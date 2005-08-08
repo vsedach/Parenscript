@@ -187,12 +187,14 @@
 	    (setf cur-elt white-space cur-empty t)))))
 
 (defmethod js-to-strings ((expression expression) start-pos)
+  (declare (ignore start-pos))
   (list (princ-to-string (value expression))))
 
 (defmethod js-to-statement-strings ((expression expression) start-pos)
   (js-to-strings expression start-pos))
 
 (defmethod js-to-statement-strings ((statement statement) start-pos)
+  (declare (ignore start-pos))
   (list (princ-to-string (value statement))))
 
 ;;; compiler macros
@@ -356,6 +358,7 @@ this macro."
   (value))
 
 (defmethod js-to-strings ((v js-variable) start-form)
+  (declare (ignore start-form))
   (list (symbol-to-js (value v))))
 
 ;;; arithmetic operators
@@ -584,6 +587,7 @@ this macro."
   (stmts indent))
 
 (defmethod js-to-statement-strings ((body js-sub-body) start-pos)
+  (declare (ignore start-pos))
   (nconc (list "{") (call-next-method) (list "}")))
 
 (defmethod expression-precedence ((body js-body))

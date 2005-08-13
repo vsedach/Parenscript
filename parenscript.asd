@@ -11,7 +11,7 @@
     :name "parenscript"
     :author "Manuel Odendahl <manuel@bl0rg.net>"
     :version "0"
-    :maintainer "Manuel Odendahl <manuel@bl0rg.net>"
+    :maintainer "Edward Marco Baringer <mb@bese.it>"
     :licence "BSD"
     :description "js - javascript compiler"
 

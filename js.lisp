@@ -514,8 +514,13 @@ this macro."
 	 (max-length (- 80 start-pos 2))
 	 (args (dwim-join value-string-lists max-length
 			  :start "(" :end ")" :join-after ",")))
-    (dwim-join (list (js-to-strings (f-function form) (+ start-pos 2))
-		     args)
+    (dwim-join (typecase (f-function form)
+                 (js-defun (list (list "(")
+                                 (js-to-strings (f-function form) (+ start-pos 2))
+                                 (list ")")
+                                 args))
+                 (t (list (js-to-strings (f-function form) (+ start-pos 2))
+                          args)))
 	       max-length
 	       :separator "")))
 

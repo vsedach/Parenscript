@@ -1,20 +1,21 @@
+;;;; -*- lisp -*-
+
 (in-package :cl-user)
 
-(defpackage :js.system
+(defpackage :parenscript.system
   (:use :cl :asdf))
 
-(in-package :js.system)
+(in-package :parenscript.system)
 
-(defsystem :js
-    :name "js"
+(defsystem :parenscript
+    :name "parenscript"
     :author "Manuel Odendahl <manuel@bl0rg.net>"
     :version "0"
     :maintainer "Manuel Odendahl <manuel@bl0rg.net>"
     :licence "BSD"
     :description "js - javascript compiler"
 
-    :depends-on (#-allegro
-                 :htmlgen)
+    :depends-on (#-allegro :htmlgen)
 
     :components ((:file "package")
 		 (:file "utils" :depends-on ("package"))

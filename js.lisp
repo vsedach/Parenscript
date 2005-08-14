@@ -345,7 +345,7 @@ this macro."
 
 (defmethod js-to-strings ((string string-literal) start-pos)
   (declare (ignore start-pos))
-  (list (prin1-to-string (value string))))
+  (list (format nil "'~A'" (value string))))
 
 ;;; number literals
 

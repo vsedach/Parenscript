@@ -30,6 +30,10 @@
   (and (> (length string) 1)
        (member (char string 0) '(#\+ #\*))))
 
+(defun untouchable-string-p (string)
+  (and (> (length string) 1)
+       (char= #\: (char string 0))))
+
 (defun symbol-to-js (symbol)
   (when (symbolp symbol)
     (setf symbol (symbol-name symbol)))
@@ -37,6 +41,7 @@
     (cond ((null symbols) "")
 	  ((= (length symbols) 1)
 	   (let (res
+                 (do-not-touch nil)
 		 (lowercase t)
 		 (all-uppercase nil))
 	     (cond ((constant-string-p symbol)
@@ -44,11 +49,17 @@
 			  symbol (subseq symbol 1 (1- (length symbol)))))
 		   ((first-uppercase-p symbol)
 		    (setf lowercase nil
-			  symbol (subseq symbol 1))))
+			  symbol (subseq symbol 1)))
+                   ((untouchable-string-p symbol)
+                    (setf do-not-touch t
+                          symbol (subseq symbol 1))))
 	     (flet ((reschar (c)
-		      (push (if (and lowercase (not all-uppercase))
-				(char-downcase c)
-				(char-upcase c)) res)
+		      (push (cond
+                              (do-not-touch c)
+                              ((and lowercase (not all-uppercase))
+                               (char-downcase c))
+                              (t (char-upcase c)))
+                            res)
 		      (setf lowercase t)))
 	       (dotimes (i (length symbol))
 		 (let ((c (char symbol i)))

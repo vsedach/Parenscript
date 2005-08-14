@@ -1249,6 +1249,13 @@ this macro."
     (js-to-statement-strings (js-compile '(progn ,@body)) 0)
     (string #\Newline)))
 
+(defmacro js* (&rest body)
+  "Just like JS except that BODY is evaluated before being
+converted to javascript."
+  `(string-join
+    (js-to-statement-strings (js-compile (list 'progn ,@body)) 0)
+    (string #\Newline)))
+
 (defun js-to-string (expr)
   (string-join
    (js-to-statement-strings (js-compile expr) 0)
@@ -1272,4 +1279,11 @@ this macro."
 (defmacro js-inline (&rest body)
   `(concatenate 'string "javascript:"
     (string-join (js-to-statement-strings (js-compile '(progn ,@body)) 0) " ")))
+
+(defmacro js-inline* (&rest body)
+  "Just like JS-INLINE except that BODY is evaluated before being
+converted to javascript."
+  `(concatenate 'string "javascript:"
+    (string-join (js-to-statement-strings (js-compile (list 'progn ,@body)) 0) " ")))
+
 

@@ -119,7 +119,9 @@
    ;; compiler
    #:js-compile
    #:js
+   #:js*
    #:js-inline
+   #:js-inline*
    #:js-file
    #:js-script
    #:js-to-strings

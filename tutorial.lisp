@@ -24,7 +24,7 @@
 ;;; have to define.
 
 (defpackage :js-tutorial
-  (:use :common-lisp :net.aserve :js :net.html.generator))
+  (:use :common-lisp :net.aserve :js))
 
 (in-package :js-tutorial)
 

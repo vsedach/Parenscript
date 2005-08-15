@@ -15,8 +15,6 @@
     :licence "BSD"
     :description "js - javascript compiler"
 
-    :depends-on (#-allegro :htmlgen)
-
     :components ((:file "package")
 		 (:file "utils" :depends-on ("package"))
 		 (:file "js" :depends-on ("package" "utils"))

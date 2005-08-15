@@ -1,7 +1,7 @@
 (in-package :cl-user)
 
 (defpackage :js
-  (:use :common-lisp :net.html.generator)
+  (:use :common-lisp)
   (:export
    ;; addition js symbols
    #:new

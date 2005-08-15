@@ -613,10 +613,35 @@ this macro."
 
 ;;; function definition
 
-(defjsclass js-defun (expression)
-  ((name :initarg :name :accessor d-name)
-   (args :initarg :args :accessor d-args)
-   (body :initarg :body :accessor d-body)))
+(defjsclass js-lambda (expression)
+  ((args :initarg :args :accessor lambda-args)
+   (body :initarg :body :accessor lambda-body)))
+
+(define-js-compiler-macro lambda (args &rest body)
+  (make-instance 'js-lambda
+                 :args (mapcar #'js-compile-to-symbol args)
+                 :body (make-instance 'js-body
+                                      :indent "  "
+                                      :stmts (mapcar #'js-compile-to-statement body))))
+
+(defmethod js-to-strings ((lambda js-lambda) start-pos)
+  (let ((fun-header (dwim-join (mapcar #'(lambda (x)
+                                           (list (symbol-to-js x)))
+				       (lambda-args lambda))
+			       (- 80 start-pos 2)
+			       :start (function-start-string lambda)
+			       :end ") {" :join-after ","))
+	(fun-body (js-to-statement-strings (lambda-body lambda) (+ start-pos 2))))
+    (nconc fun-header fun-body (list "}"))))
+
+(defmethod function-start-string ((lambda js-lambda))
+  "function (")
+
+(defmethod js-to-statement-strings ((lambda js-lambda) start-pos)
+  (js-to-strings lambda start-pos))
+
+(defjsclass js-defun (js-lambda)
+  ((name :initarg :name :accessor defun-name)))
 
 (define-js-compiler-macro defun (name args &rest body)
   (make-instance 'js-defun
@@ -626,21 +651,8 @@ this macro."
 				      :indent "  "
 				      :stmts (mapcar #'js-compile-to-statement body))))
 
-(defmethod js-to-strings ((defun js-defun) start-pos)
-  (let ((fun-header (dwim-join (mapcar #'(lambda (x) (list (symbol-to-js x)))
-				       (d-args defun))
-			       (- 80 start-pos 2)
-			       :start (format nil "function ~A("
-					      (symbol-to-js (d-name defun)))
-			       :end ") {" :join-after ","))
-	(fun-body (js-to-statement-strings (d-body defun) (+ start-pos 2))))
-    (nconc fun-header fun-body (list "}"))))
-
-(defmethod js-to-statement-strings ((defun js-defun) start-pos)
-  (js-to-strings defun start-pos))
-
-(defjsmacro lambda (args &rest body)
-  `(defun :|| ,args ,@body))
+(defmethod function-start-string ((defun js-defun))
+  (format nil "function ~A(" (symbol-to-js (defun-name defun))))
 
 ;;; object creation
 

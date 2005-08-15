@@ -1249,11 +1249,33 @@ this macro."
 		       :stmts (list res)))))
 
 ;;; Math library
+
 (defjsmacro floor (expr)
   `(*Math.floor ,expr))
 
 (defjsmacro random ()
   `(*Math.random))
+
+;;; helper functions
+
+(defvar *gen-js-name-counter* 0)
+
+(defun gen-js-name (&key (prefix "parenscript_"))
+  (intern (concatenate 'string
+                       prefix (princ-to-string (incf *gen-js-name-counter*)))
+          (find-package :js)))
+
+(defmacro with-unique-js-names (symbols &body body)
+  `(let* ,(mapcar (lambda (symbol)
+                    (destructuring-bind (symbol &optional prefix)
+                        (if (consp symbol)
+                            symbol
+                            (list symbol))
+                      (if prefix
+                          `(,symbol (gen-js-name :prefix ,prefix))
+                          `(,symbol (gen-js-name)))))
+                  symbols)
+     ,@body))
 
 ;;; helper macros
 

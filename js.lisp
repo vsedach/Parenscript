@@ -1261,11 +1261,16 @@ this macro."
 (defvar *gen-js-name-counter* 0)
 
 (defun gen-js-name (&key (prefix "parenscript_"))
+  "Generate a new javascript identifier."
   (intern (concatenate 'string
                        prefix (princ-to-string (incf *gen-js-name-counter*)))
           (find-package :js)))
 
 (defmacro with-unique-js-names (symbols &body body)
+  "Evaluate BODY with the variables on SYMBOLS bound to new javascript identifiers.
+
+Each element of SYMBOLS is either a symbol or a list of (symbol
+prefix)."
   `(let* ,(mapcar (lambda (symbol)
                     (destructuring-bind (symbol &optional prefix)
                         (if (consp symbol)

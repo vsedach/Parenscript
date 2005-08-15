@@ -1256,13 +1256,12 @@ this macro."
   
 
 (defmacro js (&rest body)
-  `(string-join
-    (js-to-statement-strings (js-compile '(progn ,@body)) 0)
-    (string #\Newline)))
+  `(js* '(progn ,@body)))
 
 (defmacro js* (&rest body)
-  "Just like JS except that BODY is evaluated before being
-converted to javascript."
+  "Return the javascript string representing BODY.
+
+Body is evaluated."
   `(string-join
     (js-to-statement-strings (js-compile (list 'progn ,@body)) 0)
     (string #\Newline)))
@@ -1288,8 +1287,7 @@ converted to javascript."
     (:princ (format nil "~%// ]]>~%"))))
 
 (defmacro js-inline (&rest body)
-  `(concatenate 'string "javascript:"
-    (string-join (js-to-statement-strings (js-compile '(progn ,@body)) 0) " ")))
+  `(js-inline '(progn ,@body)))
 
 (defmacro js-inline* (&rest body)
   "Just like JS-INLINE except that BODY is evaluated before being

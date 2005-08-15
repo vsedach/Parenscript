@@ -525,15 +525,19 @@ this macro."
 	 (max-length (- 80 start-pos 2))
 	 (args (dwim-join value-string-lists max-length
 			  :start "(" :end ")" :join-after ",")))
-    (dwim-join (typecase (f-function form)
-                 (js-defun (list (list "(")
-                                 (js-to-strings (f-function form) (+ start-pos 2))
-                                 (list ")")
-                                 args))
-                 (t (list (js-to-strings (f-function form) (+ start-pos 2))
-                          args)))
-	       max-length
-	       :separator "")))
+    (etypecase (f-function form)
+      (js-lambda
+       (dwim-join (list (append (dwim-join (list (js-to-strings (f-function form) (+ start-pos 2)))
+                                           max-length
+                                           :start "(" :end ")" :separator "")
+                                args))
+                  max-length
+                  :separator ""))
+      ((or js-variable js-aref js-slot-value)
+       (dwim-join (list (js-to-strings (f-function form) (+ start-pos 2))
+                        args)
+                  max-length
+                  :separator "")))))
 
 (defjsclass method-call (expression)
   ((method :initarg :method :accessor m-method)

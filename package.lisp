@@ -128,6 +128,10 @@
    #:js-to-statement-strings
    #:js-to-string
    #:js-to-line
+
+   ;; util
+   #:with-unique-js-names
+   #:gen-js-name
    
    ;; CSS
    #:css

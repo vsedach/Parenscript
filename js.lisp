@@ -211,8 +211,8 @@
 ;;; compiler macros
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
-  (defvar *js-compiler-macros* (make-hash-table)
-    "*JS-COMPILER-MACROS* is a hash-table containing the functions corresponding
+  (defvar *js-compiler-macros* (make-hash-table :test 'equal)
+        "*JS-COMPILER-MACROS* is a hash-table containing the functions corresponding
 to javascript special forms, indexed by their name. Javascript special
 forms are compiler macros for JS expressions."))
 
@@ -223,19 +223,19 @@ to the ongoing javascript compilation."
   (let ((js-name (intern (concatenate 'string "JS-" (symbol-name name)) #.*package*)))
     `(eval-when (:compile-toplevel :load-toplevel :execute)
       (defun ,js-name ,lambda-list ,@body)
-      (setf (gethash ',name *js-compiler-macros*) #',js-name))))
+      (setf (gethash ,(symbol-name name) *js-compiler-macros*) #',js-name))))
 
 (defun js-compiler-macro-form-p (form)
-  (when (gethash (car form) *js-compiler-macros*)
+  (when (gethash (symbol-name (car form)) *js-compiler-macros*)
     t))
 
 (defun js-get-compiler-macro (name)
-  (gethash name *js-compiler-macros*))
+  (gethash (symbol-name name) *js-compiler-macros*))
 
 ;;; macro expansion
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
-  (defvar *js-macro-toplevel* (make-hash-table)
+  (defvar *js-macro-toplevel* (make-hash-table :test 'equal)
     "Toplevel of macro expansion, holds all the toplevel javascript macros.")
   (defvar *js-macro-env* (list *js-macro-toplevel*)
     "Current macro environment."))
@@ -244,9 +244,11 @@ to the ongoing javascript compilation."
   "Lookup the macro NAME in the current macro expansion
 environment. Returns the macro and the parent macro environment of
 this macro."
+  (unless (symbolp name)
+    (return-from lookup-macro nil))
   (do ((env *js-macro-env* (cdr env)))
       ((null env) nil)
-    (let ((val (gethash name (car env))))
+    (let ((val (gethash (symbol-name name) (car env))))
       (when val
 	(return-from lookup-macro
 	  (values val (or (cdr env)
@@ -254,11 +256,11 @@ this macro."
 
 (defmacro defjsmacro (name args &rest body)
   "Define a javascript macro, and store it in the toplevel macro environment."
-  (when (gethash name *js-compiler-macros*)
+  (when (gethash (symbol-name name) *js-compiler-macros*)
     (warn "Redefining compiler macro ~S" name)
-    (remhash name *js-compiler-macros*))
+    (remhash (symbol-name name) *js-compiler-macros*))
   (let ((lambda-list (gensym)))
-    `(setf (gethash ',name *js-macro-toplevel*)
+    `(setf (gethash ,(symbol-name name) *js-macro-toplevel*)
       #'(lambda (&rest ,lambda-list)
 	  (destructuring-bind ,args ,lambda-list ,@body)))))
   
@@ -731,11 +733,11 @@ this macro."
 ;;; macros
 
 (define-js-compiler-macro macrolet (macros &rest body)
-  (let* ((macro-env (make-hash-table))
+  (let* ((macro-env (make-hash-table :test 'equal))
 	 (*js-macro-env* (cons macro-env *js-macro-env*)))
     (dolist (macro macros)
       (destructuring-bind (name arglist &rest body) macro
-	(setf (gethash name macro-env)
+	(setf (gethash (symbol-name name) macro-env)
 	      (compile nil `(lambda ,arglist ,@body)))))
     (js-compile `(progn ,@body))))
 

@@ -349,6 +349,29 @@ this macro."
 (defjsmacro make-array (&rest inits)
   `(new (*array ,@inits)))
 
+;;; object literals (maps and hash-tables)
+
+(defjsclass object-literal (expression)
+  ((values :initarg :values :accessor object-values)))
+
+(define-js-compiler-macro {} (&rest values)
+  (make-instance 'object-literal
+                 :values (loop
+                            for (key value) on values by #'cddr
+                            collect (cons key (js-compile-to-expression value)))))
+
+(defmethod js-to-strings ((obj object-literal) start-pos)
+  (dwim-join (loop
+                for (key . value) in (object-values obj)
+                append (list
+                        (dwim-join (list (list (format nil "~A:" (symbol-to-js key)))
+                                         (js-to-strings value (+ start-pos 2)))
+                                   (- 80 start-pos 2)
+                                   :start "" :end "" :join-after "")))
+             (- 80 start-pos 2)
+             :start "{ " :end " }"
+             :join-after ","))
+
 ;;; string literals
 
 (defjsclass string-literal (expression)

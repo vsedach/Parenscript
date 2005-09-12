@@ -226,11 +226,13 @@ to the ongoing javascript compilation."
       (setf (gethash ,(symbol-name name) *js-compiler-macros*) #',js-name))))
 
 (defun js-compiler-macro-form-p (form)
-  (when (gethash (symbol-name (car form)) *js-compiler-macros*)
+  (when (and (symbolp (car form))
+             (gethash (symbol-name (car form)) *js-compiler-macros*))
     t))
 
 (defun js-get-compiler-macro (name)
-  (gethash (symbol-name name) *js-compiler-macros*))
+  (when (symbolp name)
+    (gethash (symbol-name name) *js-compiler-macros*)))
 
 ;;; macro expansion
 

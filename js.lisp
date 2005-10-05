@@ -383,7 +383,15 @@ this macro."
 
 (defmethod js-to-strings ((string string-literal) start-pos)
   (declare (ignore start-pos))
-  (list (format nil "'~A'" (value string))))
+  (list (with-output-to-string (escaped)
+          (loop
+             initially (write-char #\' escaped)
+             for char across (value string)
+             if (char= #\' char)
+               do (write-string "\\'" escaped)
+             else
+               do (write-char char escaped)
+             finally (write-char #\' escaped)))))
 
 ;;; number literals
 

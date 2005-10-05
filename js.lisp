@@ -1357,7 +1357,7 @@ Body is evaluated."
     (:princ (format nil "~%// ]]>~%"))))
 
 (defmacro js-inline (&rest body)
-  `(js-inline '(progn ,@body)))
+  `(js-inline* '(progn ,@body)))
 
 (defmacro js-inline* (&rest body)
   "Just like JS-INLINE except that BODY is evaluated before being

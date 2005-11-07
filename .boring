@@ -10,5 +10,5 @@
 \.lib$
 ^docs/html($|/)
 ^docs/pdf($|/)
-^{arch}$
+^\{arch\}$
 (^|/).arch-ids($|/)

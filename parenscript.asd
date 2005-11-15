@@ -15,6 +15,8 @@
     :licence "BSD"
     :description "js - javascript compiler"
 
+    :perform (load-op :after (op araneida)
+		      (pushnew :parenscript cl:*features*))
     :components ((:file "package")
 		 (:file "utils" :depends-on ("package"))
 		 (:file "js" :depends-on ("package" "utils"))

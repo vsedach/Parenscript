@@ -35,10 +35,13 @@
     (:princ ,@(mapcar #'(lambda (rule) `(css-rule-to-string (css-rule ,@rule))) rules))
     (:princ "-->" #\Newline)))
 
-(defmacro css-inline (&rest propvals)
-  (string-join (loop for propval on propvals by #'cddr
+(defun css-inline-func (proplist)
+  (string-join (loop for propval on proplist by #'cddr
 		     collect (propval-to-string propval))
 	       ";"))
+
+(defmacro css-inline (&rest propvals)
+  `(js::css-inline-func ,propvals))
 
 (defmacro css-file (&rest rules)
   `(html

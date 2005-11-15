@@ -36,8 +36,9 @@
     (:princ "-->" #\Newline)))
 
 (defmacro css-inline (&rest propvals)
-  `(concatenate 'string ,@(loop for propval on propvals by #'cddr
-				collect (propval-to-string propval))))
+  (string-join (loop for propval on propvals by #'cddr
+		     collect (propval-to-string propval))
+	       ";"))
 
 (defmacro css-file (&rest rules)
   `(html

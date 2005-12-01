@@ -19,6 +19,7 @@
 		      (pushnew :parenscript cl:*features*))
     :components ((:file "package")
 		 (:file "utils" :depends-on ("package"))
-		 (:file "js" :depends-on ("package" "utils"))
+		 (:file "defgenerics" :depends-on ("package"))
+		 (:file "js" :depends-on ("package" "utils" "defgenerics"))
 		 (:file "js-html" :depends-on ("package" "js" "utils"))
 		 (:file "css" :depends-on ("package" "utils"))))

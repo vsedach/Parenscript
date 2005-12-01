@@ -75,7 +75,6 @@
 
 ;;; js language types
 
-(defgeneric js-equal (obj1 obj2))
 (defmethod js-equal ((obj1 list) (obj2 list))
   (and (= (length obj1) (length obj2))
        (every #'js-equal obj1 obj2)))

@@ -1,3 +1,4 @@
+(in-package :js)
 ;;;# Introduction
 ;;;
 ;;; ParenScript is a simple language that looks a lot like Lisp, but
@@ -18,11 +19,11 @@
     (return (+ a b))))
 
 ;;; The resulting javascript is:
-
+"
 function foobar(a, b) {
   return a + b;
 }
-
+"
 ;;; Great care has been given to the indentation and overall
 ;;; readability of the generated JavaScript code.
 
@@ -52,11 +53,11 @@ function foobar(a, b) {
     (alert (+ "i is " i " and j is " j))))
 
 ; compiles to
-
+"
 for (var i = 0, j = arr[i]; i < 10; i = ++i, j = arr[i]) {
-  alert("i is " + i + " and j is " + j);
+  alert('i is ' + i + ' and j is ' + j);
 }
-
+"
 ;;; ParenScript uses the Lisp reader, allowing for reader macros. It
 ;;; also comes with its own macro environment, allowing host macros
 ;;; and ParenScript to coexist without interfering with each other.
@@ -76,10 +77,10 @@ for (var i = 0, j = arr[i]; i < 10; i = ++i, j = arr[i]) {
           :bla "bla"))
 
 ; compiles to
-
-{ foo : "foo", 
-  bla : "bla" }
-
+"
+{ foo : 'foo', 
+  bla : 'bla' }
+"
 ;;; ParenScript features a HTML generator. Using the same syntax as
 ;;; the `HTMLGEN' package of Franz, Inc., it can generate JavaScript
 ;;; string expressions. This allows for a clean integration of HTML in
@@ -94,13 +95,13 @@ for (var i = 0, j = arr[i]; i < 10; i = ++i, j = arr[i]) {
             ((:a :href href) link-text))))))
 
 ; compiles to
-
+"
 function addDiv(name, href, linkText) {
-  document.write("<div id=\"" + name + "\">The link is: <a href=\""
-                                + href + "\">"
-                                + linkText + "</a></div>");
+  document.write('<div id=\"' + name + '\">The link is: <a href=\"'
+                                + href + '\">'
+                                + linkText + '</a></div>');
 }
-
+"
 ;;; In order to have a complete web application framework available in
 ;;; Lisp, ParenScript also provides a sexp-based syntax for CSS
 ;;; files. Thus, a complete web application featuring HTML, CSS and

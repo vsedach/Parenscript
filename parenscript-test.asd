@@ -8,7 +8,7 @@
 (in-package #:parenscript-test.system)
 
 (defsystem #:parenscript-test
-    :depends-on (:parenscript :fiveam)
+    :depends-on (:parenscript :fiveam :cl-ppcre)
     :components ((:file "test-package")
                  (:file "test" :depends-on ("test-package"))
                  (:file "ref2test" :depends-on ("test"))

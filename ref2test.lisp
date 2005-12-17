@@ -34,8 +34,6 @@
              (remove-if (lambda (ch) (or (char= ch #\`)(char= ch #\')))
                         (substitute  #\- #\Space (string-downcase (trim-whitespace heading))
                                      :test #'char=)))
-           (clean-quotes (str)
-             (substitute  #\' #\"  str :test #'char=))
            (strip-indentation (str indentation)
              (if indentation
                  (js::string-join (mapcar #'(lambda (str)
@@ -61,18 +59,18 @@
                                        (subseq built (+ 1 cr-before-sep)))))
                (cond
                  ((null sep-pos)
-                  (print "Warning, separator not found"))
+                  (format t "Ignoring:~a...~%" (left built 40)))
                  ((search "=>" (subseq built (+ 1 sep-pos)))
-                  (print "Error , two separators found"))
+                  (format t "Error , two separators found~%"))
                  ((and (string= heading "regular-expression-literals")
                        (= 2 heading-count)) ;requires cl-interpol reader
-                  (print "Skipping regex-test two"))
+                  (format t "Skipping regex-test two~&"))
                  ((and lisp-part javascript-part)
-                  (format out-stream "(test-ps-js ~a-~a ~%  ~a ~%  ~S)~%~%"
+                  (format out-stream "(test-ps-js ~a-~a ~%  ~a ~%  \"~a\")~%~%"
                           heading heading-count
                           (trim-whitespace lisp-part)
-                          (clean-quotes (strip-indentation javascript-part js-indent-width))))
-                 (t (print "Error, should not be here"))))))
+                          (strip-indentation javascript-part js-indent-width)))
+                 (t (format t "Error, should not be here~%"))))))
         (format out-stream +head+)
         (with-open-file (stream +reference-file+ :direction :input)
           (loop for line = (read-line stream nil nil)

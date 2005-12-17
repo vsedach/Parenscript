@@ -120,8 +120,9 @@ WHEN WHILE WITH WITH-SLOTS
 
 ;;; Lisp strings are converted into JavaScript literals.
 
-"foobar"      => "foobar"
-"bratzel bub" => "bratzel bub"
+"foobar"      => 'foobar'
+
+"bratzel bub" => 'bratzel bub'
 
 ;;; Escapes in Lisp are not converted to JavaScript escapes. However,
 ;;; to avoid having to use double backslashes when constructing a
@@ -144,13 +145,13 @@ WHEN WHILE WITH WITH-SLOTS
 
 ;;; Array literals can be created using the `ARRAY' form.
 
-(array)       => [ ]
+(array)       => [  ]
 
 (array 1 2 3) => [ 1, 2, 3 ]
 
 (array (array 2 3)
        (array "foobar" "bratzel bub"))
-   => [ [ 2, 3 ], [ "foobar", "bratzel bub" ] ]
+   => [ [ 2, 3 ], [ 'foobar', 'bratzel bub' ] ]
 
 ;;; Arrays can also be created with a call to the `Array' function
 ;;; using the `MAKE-ARRAY'. The two forms have the exact same semantic
@@ -163,7 +164,7 @@ WHEN WHILE WITH WITH-SLOTS
 (make-array
  (make-array 2 3)
  (make-array "foobar" "bratzel bub"))
-  => new Array(new Array(2, 3), new Array("foobar", "bratzel bub"))
+  => new Array(new Array(2, 3), new Array('foobar', 'bratzel bub'))
 
 ;;; Indexing arrays in ParenScript is done using the form `AREF'. Note
 ;;; that JavaScript knows of no such thing as an array. Subscripting
@@ -196,13 +197,13 @@ WHEN WHILE WITH WITH-SLOTS
 ;;; more "lispy", the property names can be keywords.
 
 (create :foo "bar" :blorg 1)
-   => { foo : "bar", 
+   => { foo : 'bar', 
         blorg : 1 }
 
 (create :foo "hihi"
         :blorg (array 1 2 3)
         :another-object (create :schtrunz 1))
-   => { foo : "hihi", 
+   => { foo : 'hihi', 
         blorg : [ 1, 2, 3 ], 
         anotherObject : { schtrunz : 1 } }
 
@@ -221,7 +222,7 @@ an-object.foo => anObject.foo
 
 (with-slots (a b c) this
   (+ a b c))
-    => this.a + this.b + this.c
+    => this.a + this.b + this.c;
 
 ;;;## Regular Expression literals
 ;;;t \index{REGEX}
@@ -258,6 +259,7 @@ an-object.foo => anObject.foo
 ;;; boolean equivalents `true' and `false'.  
 
 T     => true
+
 FALSE => false
 
 ;;; The Lisp symbol `NIL' is converted to the JavaScript keyword
@@ -521,7 +523,7 @@ a-variable  => aVariable
 
 (return 1)       => return 1
 
-(throw "foobar") => throw "foobar"
+(throw "foobar") => throw 'foobar'
 
 ;;;# Single argument expression
 ;;;t \index{single-argument expression}
@@ -553,9 +555,9 @@ a-variable  => aVariable
     (alert (+ "blorg is a string: " blorg))
     (alert "blorg is not a string"))
   => if (typeof blorg == String) {
-       alert("blorg is a string: " + blorg);
+       alert('blorg is a string: ' + blorg);
      } else {
-       alert("blorg is not a string");
+       alert('blorg is not a string');
      }
 
 ;;;# Conditional Statements
@@ -588,7 +590,7 @@ a-variable  => aVariable
         carryOn();
         return i;
       } else {
-        alert("blorg is not correct!");
+        alert('blorg is not correct!');
       }
 
 (+ i (if (blorg.add-one) 1 2))
@@ -608,7 +610,7 @@ a-variable  => aVariable
 (unless (blorg.is-correct)
   (alert "blorg is not correct!"))
     => if (!blorg.isCorrect()) {
-         alert("blorg is not correct!");
+         alert('blorg is not correct!');
        }
 
 ;;;# Variable declaration
@@ -631,7 +633,7 @@ a-variable  => aVariable
 ;;; Lisp. The `DEFVAR' is converted to "var ... = ..." form in
 ;;; JavaScript.
 
-(defvar *a* (array 1 2 3)) => var A = [ 1, 2, 3 ]
+(defvar *a* (array 1 2 3)) => var A = [ 1, 2, 3 ];
 
 (if (= i 1)
     (progn (defvar blorg "hallo")
@@ -639,10 +641,10 @@ a-variable  => aVariable
     (progn (defvar blorg "blitzel")
            (alert blorg)))
    => if (i == 1) {
-        var blorg = "hallo";
+        var blorg = 'hallo';
         alert(blorg);
       } else {
-        var blorg = "blitzel";
+        var blorg = 'blitzel';
         alert(blorg);
       }
 
@@ -655,10 +657,10 @@ a-variable  => aVariable
     (let ((blorg "blitzel"))
       (alert blorg)))
    => if (i == 1) {
-        var blorg = "hallo";
+        var blorg = 'hallo';
         alert(blorg);
       } else {
-        var blorg = "blitzel";
+        var blorg = 'blitzel';
         alert(blorg);
       }
 
@@ -704,10 +706,10 @@ a-variable  => aVariable
     ((or (= i blorg.length)
          (eql l "Fumitastic")))
   (document.write (+ "L is " l)))
-   => for (var i = 0, l = blorg[i];
-	   !(i == blorg.length || l == "Fumitastic");
+   => for (var i = 0, l = blorg[i]; 
+           !(i == blorg.length || l == 'Fumitastic');
            i = i + 1, l = blorg[i]) {
-        document.write("L is " + l);
+        document.write('L is ' + l);
       }
 
 ;;; The `DOTIMES' form, which lets a variable iterate from 0 upto an
@@ -715,8 +717,8 @@ a-variable  => aVariable
 
 (dotimes (i blorg.length)
   (document.write (+ "L is " (aref blorg i))))
-   => for (var i = 0; i != blorg.length; i = i++) {
-        document.write("L is " + blorg[i]);
+   => for (var i = 0; i < blorg.length; i = i + 1) {
+        document.write('L is ' + blorg[i]);
       }
 
 ;;; The `DOLIST' form is a shortcut for iterating over an array. Note
@@ -725,12 +727,15 @@ a-variable  => aVariable
 
 (dolist (l blorg)
   (document.write (+ "L is " l)))
-   => var tmpArr1 = blorg;
-      for (var tmpI2 = 0; tmpI2 < tmpArr1.length;
-	   tmpI2 = tmpI2++) {
-        var l = tmpArr1[tmpI2];
-        document.write("L is " + l);
+   => {
+        var tmpArr1 = blorg;
+        for (var tmpI2 = 0; tmpI2 < tmpArr1.length;
+          tmpI2 = tmpI2 + 1) {
+          var l = tmpArr1[tmpI2];
+          document.write('L is ' + l);
+        }
       }
+
 
 ;;; The `DOEACH' form is converted to a `for (var .. in ..)' form in
 ;;; JavaScript. It is used to iterate over the enumerable properties
@@ -739,7 +744,7 @@ a-variable  => aVariable
 (doeach (i object)
    (document.write (+ i " is " (aref object i))))
    => for (var i in object) {
-        document.write(i + " is " + object[i]);
+        document.write(i + ' is ' + object[i]);
       }
 
 ;;; The `WHILE' form is transformed to the JavaScript form `while',
@@ -772,9 +777,9 @@ a-variable  => aVariable
   (2 (alert "two"))
   (default (alert "default clause")))
     => switch (blorg[i]) {
-         case 1:   alert("one");
-         case 2:   alert("two");
-         default:   alert("default clause");
+         case 1:   alert('one');
+         case 2:   alert('two');
+         default:   alert('default clause');
        }
 
 ;;;# The `WITH' statement
@@ -795,9 +800,9 @@ a-variable  => aVariable
 
 (with ((create :foo "foo" :i "i"))
   (alert (+ "i is now intermediary scoped: " i)))
-   => with ({ foo : "foo", 
-              i : "i" }) {
-        alert("i is now intermediary scoped: " + i);
+   => with ({ foo : 'foo', 
+              i : 'i' }) {
+        alert('i is now intermediary scoped: ' + i);
       }
 
 ;;;# The `TRY' statement
@@ -824,11 +829,11 @@ a-variable  => aVariable
  (:finally
    (alert "Leaving the try form")))
    => try {
-        throw "i";
+        throw 'i';
       } catch (error) {
-        alert("an error happened: " + error);
+        alert('an error happened: ' + error);
       } finally {
-        alert("Leaving the try form");
+        alert('Leaving the try form');
       }
 
 ;;;# The HTML Generator
@@ -844,19 +849,18 @@ a-variable  => aVariable
 ;;; compiler. The resulting expression is a JavaScript expression.
 
 (html ((:a :href "foobar") "blorg"))
-  => "<a href=\"foobar\">blorg</a>"
+  => '<a href=\"foobar\">blorg</a>'
 
 (html ((:a :href (generate-a-link)) "blorg"))
-  => "<a href=\"" + generateALink() + "\">blorg</a>"
+  => '<a href=\"' + generateALink() + '\">blorg</a>'
 
 ;;; We can recursively call the JS compiler in a HTML expression.
 
 (document.write
- (html ((:a :href "#"
+  (html ((:a :href "#"
             :onclick (js-inline (transport))) "link")))
-  => document.write("<a href=\"#\" onclick=\""
-                    + "javascript:transport();"
-                    + "\">link</a>")
+  => document.write
+     ('<a href=\"#\" onclick=\"' + 'javascript:transport();' + '\">link</a>')
 
 ;;;# Macrology
 ;;;t \index{macro}

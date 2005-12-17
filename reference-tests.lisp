@@ -50,9 +50,17 @@
   #x10 
   "16")
 
+(test-ps-js string-literals-1 
+  "foobar" 
+  "'foobar'")
+
+(test-ps-js string-literals-2 
+  "bratzel bub" 
+  "'bratzel bub'")
+
 (test-ps-js array-literals-1 
   (array) 
-  "[ ]")
+  "[  ]")
 
 (test-ps-js array-literals-2 
   (array 1 2 3) 
@@ -101,21 +109,29 @@
 (test-ps-js object-literals-5 
   (with-slots (a b c) this
   (+ a b c)) 
-  "this.a + this.b + this.c")
+  "this.a + this.b + this.c;")
 
 (test-ps-js regular-expression-literals-1 
   (regex "/foobar/i") 
   "/foobar/i")
 
+(test-ps-js literal-symbols-1 
+  T 
+  "true")
+
 (test-ps-js literal-symbols-2 
+  FALSE 
+  "false")
+
+(test-ps-js literal-symbols-3 
   NIL 
   "null")
 
-(test-ps-js literal-symbols-3 
+(test-ps-js literal-symbols-4 
   UNDEFINED 
   "undefined")
 
-(test-ps-js literal-symbols-4 
+(test-ps-js literal-symbols-5 
   THIS 
   "this")
 
@@ -307,7 +323,7 @@ x = a + b + c;")
 
 (test-ps-js variable-declaration-1 
   (defvar *a* (array 1 2 3)) 
-  "var A = [ 1, 2, 3 ]")
+  "var A = [ 1, 2, 3 ];")
 
 (test-ps-js variable-declaration-2 
   (if (= i 1)
@@ -343,8 +359,8 @@ x = a + b + c;")
     ((or (= i blorg.length)
          (eql l "Fumitastic")))
   (document.write (+ "L is " l))) 
-  "for (var i = 0, l = blorg[i];
-i == blorg.length || l == 'Fumitastic');
+  "for (var i = 0, l = blorg[i]; 
+     !(i == blorg.length || l == 'Fumitastic');
      i = i + 1, l = blorg[i]) {
   document.write('L is ' + l);
 }")
@@ -352,18 +368,20 @@ i == blorg.length || l == 'Fumitastic');
 (test-ps-js iteration-constructs-2 
   (dotimes (i blorg.length)
   (document.write (+ "L is " (aref blorg i)))) 
-  "for (var i = 0; i != blorg.length; i = i++) {
+  "for (var i = 0; i < blorg.length; i = i + 1) {
   document.write('L is ' + blorg[i]);
 }")
 
 (test-ps-js iteration-constructs-3 
   (dolist (l blorg)
   (document.write (+ "L is " l))) 
-  "var tmpArr1 = blorg;
-for (var tmpI2 = 0; tmpI2 < tmpArr1.length;
-pI2 = tmpI2++) {
-  var l = tmpArr1[tmpI2];
-  document.write('L is ' + l);
+  "{
+  var tmpArr1 = blorg;
+  for (var tmpI2 = 0; tmpI2 < tmpArr1.length;
+    tmpI2 = tmpI2 + 1) {
+    var l = tmpArr1[tmpI2];
+    document.write('L is ' + l);
+  }
 }")
 
 (test-ps-js iteration-constructs-4 
@@ -415,19 +433,18 @@ pI2 = tmpI2++) {
 
 (test-ps-js the-html-generator-1 
   (html ((:a :href "foobar") "blorg")) 
-  "'<a href=\\'foobar\\'>blorg</a>'")
+  "'<a href=\"foobar\">blorg</a>'")
 
 (test-ps-js the-html-generator-2 
   (html ((:a :href (generate-a-link)) "blorg")) 
-  "'<a href=\\'' + generateALink() + '\\'>blorg</a>'")
+  "'<a href=\"' + generateALink() + '\">blorg</a>'")
 
 (test-ps-js the-html-generator-3 
   (document.write
- (html ((:a :href "#"
+  (html ((:a :href "#"
             :onclick (js-inline (transport))) "link"))) 
-  "document.write('<a href=\\'#\\' onclick=\\''
-               + 'javascript:transport();'
-               + '\\'>link</a>')")
+  "document.write
+('<a href=\"#\" onclick=\"' + 'javascript:transport();' + '\">link</a>')")
 
 
 (run! 'ref-tests)

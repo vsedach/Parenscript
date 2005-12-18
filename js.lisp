@@ -119,27 +119,24 @@
 	  (t (error "unsupported form ~S" form)))))
 
 (defun dwim-join (value-string-lists max-length
-		  &key start end
-		       join-before join-after
-		  white-space (separator " ")
+		  &key (start "")
+                       end
+		       (join-before "")
+                       join-after
+		       (white-space (make-string (length start) :initial-element #\Space))
+                       (separator " ")
 		  (append-to-last #'append-to-last)
 		  (collect t))
     #+nil
     (format t "value-string-lists: ~S~%" value-string-lists)
-
-    (unless start
-      (setf start ""))
-
-    (unless join-before
-      (setf join-before ""))
 
     ;;; collect single value-string-lists until line full
     
     (do* ((string-lists value-string-lists (cdr string-lists))
 	  (string-list (car string-lists) (car string-lists))
 	  (cur-elt start)
+          (is-first t nil)
 	  (cur-empty t)
-	  (white-space (or white-space (make-string (length start) :initial-element #\Space)))
 	  (res nil))
 	 ((null string-lists)
 	  (unless cur-empty
@@ -151,7 +148,6 @@
 		  (setf (first res)
 			(funcall append-to-last (first res) end)))
 		(nreverse res))))
-
       #+nil
       (format t "string-list: ~S~%" string-list)
 
@@ -173,7 +169,8 @@
 			  (length cur-elt)) max-length))
 		(setf cur-elt
 		      (concatenate 'string cur-elt
-				   (if cur-empty "" (concatenate 'string separator join-before))
+				   (if (or is-first (and cur-empty (string= join-before "")))
+                                        "" (concatenate 'string separator join-before))
 				   (first string-list))
 		      cur-empty nil)
 		(progn
@@ -189,11 +186,13 @@
 		    cur-empty t))
 	    (setf res (nconc (nreverse
 			      (cons (concatenate 'string
-						 cur-elt (if (null res)
-							     "" join-before)
+						 cur-elt
+                                                 (if (null res)
+						     "" join-before)
 						 (first string-list))
 				    (mapcar #'(lambda (x) (concatenate 'string white-space x))
-					    (cdr string-list)))) res))
+					    (cdr string-list))))
+                             res))
 	    (setf cur-elt white-space cur-empty t)))))
 
 (defmethod js-to-strings ((expression expression) start-pos)
@@ -479,7 +478,8 @@ this macro."
 		  (op-args form)))
 	 (max-length (- 80 start-pos 2))
 	 (op-string (format nil "~A " (operator form))))
-    (dwim-join value-string-lists max-length :join-before op-string)))
+    (dwim-join value-string-lists max-length :join-before op-string)    
+    ))
 
 (defjsmacro 1- (form)
   `(- ,form 1))

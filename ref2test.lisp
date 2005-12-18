@@ -96,4 +96,4 @@
                                             (when (not (empty-p built))
                                               (list #\Newline))
                                             line))))))
-        (format out-stream "~%(run! 'ref-tests)~%")))))
+        (format out-stream "~%(run-tests)~%")))))

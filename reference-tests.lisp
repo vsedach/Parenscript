@@ -461,4 +461,4 @@ x = a + b + c;")
 }")
 
 
-(run! 'ref-tests)
+(run-tests)

@@ -839,6 +839,9 @@ a-variable  => aVariable
 ;;;# The HTML Generator
 ;;;t \index{HTML}
 ;;;t \index{HTML generation}
+;;;t \index{CSS}
+;;;t \index{CSS generation}
+
 
 ; (HTML html-expression)
 
@@ -861,6 +864,22 @@ a-variable  => aVariable
             :onclick (js-inline (transport))) "link")))
   => document.write
      ('<a href=\"#\" onclick=\"' + 'javascript:transport();' + '\">link</a>')
+
+; (CSS-INLINE css-expression)
+
+;;; Stylesheets can also be created in ParenScript.
+
+(css-inline :color "red"
+            :font-size "x-small")
+  => 'color:red;font-size:x-small'
+
+(defun make-color-div(color-name)
+    (return (html ((:div :style (css-inline :color color-name))
+                   color-name " looks like this."))))
+  => function makeColorDiv(colorName) {
+       return '<div style=\"' + ('color:' + colorName) + '\">' + colorName
+         + ' looks like this.</div>';
+     }
 
 ;;;# Macrology
 ;;;t \index{macro}

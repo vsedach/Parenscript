@@ -58,3 +58,15 @@
 
 (define-js-compiler-macro html (&rest forms)
   (js-compile (process-html-forms forms)))
+
+(defun process-css-forms(proplist)
+  (optimize-string-list (butlast
+                         (loop for propval on proplist by #'cddr appending
+                              (list (string-downcase ( symbol-name (first propval)))
+                                    ":"
+                                    (second propval)
+                                    ";")))))
+
+
+(define-js-compiler-macro css-inline (&rest forms)
+  (js-compile-to-expression (cons '+ (process-css-forms forms))))

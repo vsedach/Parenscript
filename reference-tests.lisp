@@ -446,5 +446,19 @@ x = a + b + c;")
   "document.write
 ('<a href=\"#\" onclick=\"' + 'javascript:transport();' + '\">link</a>')")
 
+(test-ps-js the-html-generator-4 
+  (css-inline :color "red"
+            :font-size "x-small") 
+  "'color:red;font-size:x-small'")
+
+(test-ps-js the-html-generator-5 
+  (defun make-color-div(color-name)
+    (return (html ((:div :style (css-inline :color color-name))
+                   color-name " looks like this.")))) 
+  "function makeColorDiv(colorName) {
+  return '<div style=\"' + ('color:' + colorName) + '\">' + colorName
+    + ' looks like this.</div>';
+}")
+
 
 (run! 'ref-tests)

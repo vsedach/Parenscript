@@ -727,11 +727,13 @@ this macro."
 
 (define-js-compiler-macro slot-value (obj slot)
   (make-instance 'js-slot-value :object (js-compile-to-expression obj)
-		 :slot (js-compile-to-symbol slot)))
+   		   :slot (js-compile slot)))
 
 (defmethod js-to-strings ((sv js-slot-value) start-pos)
   (append-to-last (js-to-strings (sv-object sv) start-pos)
-		  (format nil ".~A" (symbol-to-js (sv-slot sv)))))
+                  (if (symbolp (sv-slot sv))
+		      (format nil ".~A" (symbol-to-js (sv-slot sv)))
+                      (format nil "[~A]" (first (js-to-strings (sv-slot sv) 0))))))
 
 (defjsmacro with-slots (slots object &rest body)
   `(symbol-macrolet ,(mapcar #'(lambda (slot)
@@ -1371,5 +1373,4 @@ Body is evaluated."
 converted to javascript."
   `(concatenate 'string "javascript:"
     (string-join (js-to-statement-strings (js-compile (list 'progn ,@body)) 0) " ")))
-
 

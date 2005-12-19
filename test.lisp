@@ -50,3 +50,26 @@
  + ('border:1pxsssssssssss;font-size:x-small;height:' + 2 * 200 + ';width:'
  + 2 * 300)
  + '\"></div>')") ;";This line should start with a plus character.
+
+
+(test-ps-js simple-slot-value 
+  (let ((foo (create :a 1)))
+   (alert (slot-value foo 'a)))
+  "{
+    var foo = { a : 1 };
+    alert(foo.a);
+   }")
+
+(test-ps-js buggy-slot-value 
+   (let ((foo (create :a 1))
+        (slot-name "a"))
+    (alert (slot-value foo slot-name)))
+  "{
+    var foo = { a : 1 };
+    var slotName = 'a';
+    alert(foo[slotName]);
+   }"); Last line was alert(foo.slotName) before bug-fix.
+
+(test-ps-js buggy-slot-value-two
+  (slot-value foo (get-slot-name))
+  "foo[getSlotName()]")

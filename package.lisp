@@ -132,6 +132,7 @@
    ;; util
    #:with-unique-js-names
    #:gen-js-name
+   #:gen-js-name-string
    
    ;; CSS
    #:css

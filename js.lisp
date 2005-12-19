@@ -1296,10 +1296,14 @@ this macro."
 
 (defvar *gen-js-name-counter* 0)
 
+(defun gen-js-name-string (&key (prefix "parenscript_"))
+  "Generates a unique valid javascript identifier ()"
+  (concatenate 'string
+               prefix (princ-to-string (incf *gen-js-name-counter*))))
+
 (defun gen-js-name (&key (prefix "parenscript_"))
   "Generate a new javascript identifier."
-  (intern (concatenate 'string
-                       prefix (princ-to-string (incf *gen-js-name-counter*)))
+  (intern (gen-js-name-string :prefix prefix)
           (find-package :js)))
 
 (defmacro with-unique-js-names (symbols &body body)

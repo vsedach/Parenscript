@@ -69,4 +69,4 @@
 
 
 (define-js-compiler-macro css-inline (&rest forms)
-  (js-compile-to-expression (cons '+ (process-css-forms forms))))
+  (js-compile (cons '+ (process-css-forms forms))))

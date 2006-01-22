@@ -50,7 +50,7 @@
    ;; function definition
    #:defun
    #:lambda
-   
+
    ;; object literals
    #:create
    #:slot-value
@@ -133,7 +133,7 @@
    #:with-unique-js-names
    #:gen-js-name
    #:gen-js-name-string
-   
+
    ;; CSS
    #:css
    #:css-to-string

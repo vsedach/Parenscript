@@ -755,7 +755,7 @@ a-variable  => aVariable
    => while (film.isNotFinished()) {
         this.eat(new Popcorn);
       }
-      
+
 ;;;# The `CASE' statement
 ;;;t \index{CASE}
 ;;;t \index{switch}

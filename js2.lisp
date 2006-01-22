@@ -143,7 +143,7 @@
       (setf join-before ""))
 
     ;;; collect single value-string-lists until line full
-    
+
     (do* ((string-lists value-string-lists (cdr string-lists))
 	  (string-list (car string-lists) (car string-lists))
 	  (cur-elt start)
@@ -164,7 +164,7 @@
       (when join-after
 	(unless (null (cdr string-lists))
 	  (funcall append-to-last string-list join-after)))
-      
+
       (if (and collect (= (length string-list) 1))
 	  (progn
 	    #+nil
@@ -263,7 +263,7 @@ this macro."
     `(setf (gethash ',name *js-macro-toplevel*)
       #'(lambda (&rest ,lambda-list)
 	  (destructuring-bind ,args ,lambda-list ,@body)))))
-  
+
 (defun js-expand-form (expr)
   "Expand a javascript form."
   (cond ((atom expr)
@@ -273,9 +273,9 @@ this macro."
 	       (js-expand-form (let ((*js-macro-env* macro-env))
 				 (funcall js-macro)))
 	       expr)))
-	
+
 	((js-compiler-macro-form-p expr) expr)
-	
+
 	((equal (first expr) 'quote) expr)
 
 	(t (let ((js-macro (lookup-macro (car expr))))
@@ -824,7 +824,7 @@ this macro."
 		   :stmts (nconc (when (var-names single-defvar) (list single-defvar))
 				 defvars
 				 (mapcar #'js-compile-to-statement body)))))
-				 
+
 ;;; iteration
 
 (defclass js-for (statement)

@@ -24,7 +24,7 @@
 	     (cond ((keywordp form)
 		    (push (format nil "<~A/>"
 				  (string-downcase (symbol-name form))) res))
-		   
+
 		   ((atom form)
 		    (push form res))
 
@@ -34,7 +34,7 @@
 		      (push (format nil "<~A>" node-name) res)
 		      (map nil #'handle-form (cdr form))
 		      (push (format nil "</~A>" node-name) res)))
-		 
+
 		   ((and (consp form)
 			 (consp (first form))
 			 (keywordp (caar form)))

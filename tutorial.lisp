@@ -392,7 +392,7 @@ document.write(LINKORNOT == 1 ?
        (setf (aref *preloaded-images* i) (new *Image)
              (slot-value (aref *preloaded-images* i) 'src)
              (aref photos i))))
-   
+
    (defun apply-effect ()
      (when (and document.all photoslider.filters)
        (let ((trans photoslider.filters.reveal-trans))
@@ -400,17 +400,17 @@ document.write(LINKORNOT == 1 ?
                (floor (* (random) 23)))
          (trans.stop)
          (trans.apply))))
-   
+
    (defun play-effect ()
      (when (and document.all photoslider.filters)
        (photoslider.filters.reveal-trans.play)))
 
    (defvar *which* 0)
-   
+
    (defun keep-track ()
      (setf window.status
            (+ "Image " (1+ *which*) " of " photos.length)))
-   
+
    (defun backward ()
      (when (> *which* 0)
        (decf *which*)
@@ -419,7 +419,7 @@ document.write(LINKORNOT == 1 ?
              (aref photos *which*))
        (play-effect)
        (keep-track)))
-   
+
    (defun forward ()
      (when (< *which* (1- photos.length))
        (incf *which*)
@@ -428,7 +428,7 @@ document.write(LINKORNOT == 1 ?
              (aref photos *which*))
        (play-effect)
        (keep-track)))
-   
+
    (defun transport ()
      (setf window.location (aref photoslink *which*)))))
 

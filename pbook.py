@@ -20,7 +20,7 @@ class TxtFile:
 
     def tempFile(self):
         return tempfile.NamedTemporaryFile('w+', -1, '.txt', 'pbook')
-    
+
     def writeFile(self, fileName = None):
         if not fileName:
             file = self.tempFile()
@@ -83,7 +83,7 @@ class TexFile(TxtFile):
             return self.articleSectioningCommands[min(level, len(self.articleSectioningCommands))]
         elif self.style == "book":
             return self.bookSectioningCommands[min(level, len(self.bookSectioningCommands))]
-    
+
     def escapeString(aStr):
         aStr = re.sub("\\\\", "$\\\\backslash$", aStr)
         def escapeRepl(match):
@@ -95,7 +95,7 @@ class TexFile(TxtFile):
                 return match.group(0)
         return re.sub("([#%&~$_^{}])", escapeRepl, aStr)
     escapeString = staticmethod(escapeString)
-    
+
     def tempFile(self):
         return tempfile.NamedTemporaryFile('w+', -1, '.tex', 'pbook')
     def writeFile(self, fileName = None):
@@ -291,7 +291,7 @@ class Pbook:
         self.outFile.reset()
         self.formatBuffer()
         return self.outFile.writeFile(fileName)
-    
+
 class LispPbook(Pbook):
     def __init__(self, files, outFile):
         Pbook.__init__(self, files, outFile)

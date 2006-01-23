@@ -1,4 +1,4 @@
-(in-package :js-test) 
+(in-package :js-test)
 ;;Generates automatic tests from the reference
 
 (defparameter +reference-file+ (make-pathname :name "reference"
@@ -23,7 +23,7 @@
     (with-open-file (out-stream +generate-file+
                                 :direction :output
                                 :if-exists :supersede)
-      (labels 
+      (labels
           ((empty-p (str)
              (zerop (length str)))
            (trim-whitespace (str)

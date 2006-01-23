@@ -25,7 +25,7 @@
     (let ((generated-code (js-to-string ',parenscript))
           (js-code ,javascript))
       (is (string= (normalize-js-code generated-code)
-                   (normalize-js-code js-code)))))) 
+                   (normalize-js-code js-code))))))
 
 (defun run-tests()
   (format t "Running reference tests:~&")
@@ -52,7 +52,7 @@
  + '\"></div>')") ;";This line should start with a plus character.
 
 
-(test-ps-js simple-slot-value 
+(test-ps-js simple-slot-value
   (let ((foo (create :a 1)))
    (alert (slot-value foo 'a)))
   "{
@@ -60,7 +60,7 @@
     alert(foo.a);
    }")
 
-(test-ps-js buggy-slot-value 
+(test-ps-js buggy-slot-value
    (let ((foo (create :a 1))
         (slot-name "a"))
     (alert (slot-value foo slot-name)))

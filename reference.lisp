@@ -38,7 +38,7 @@
 ;;; few simple rules. Special characters `!', `?', `#', `$', `@', `%',
 ;;; '/', `*' and `+' get replaced by their written-out equivalents
 ;;; "bang", "what", "hash", "dollar", "at", "percent", "slash",
-;;; "start" and "plus" respectively. 
+;;; "start" and "plus" respectively.
 
 !?#$@% => bangwhathashdollaratpercent
 
@@ -102,7 +102,7 @@ WHEN WHILE WITH WITH-SLOTS
 
 ;;;
 ;;; ParenScript supports the standard JavaScript literal
-;;; values. Numbers are compiled into JavaScript numbers. 
+;;; values. Numbers are compiled into JavaScript numbers.
 
 1       => 1
 
@@ -197,14 +197,14 @@ WHEN WHILE WITH WITH-SLOTS
 ;;; more "lispy", the property names can be keywords.
 
 (create :foo "bar" :blorg 1)
-   => { foo : 'bar', 
+   => { foo : 'bar',
         blorg : 1 }
 
 (create :foo "hihi"
         :blorg (array 1 2 3)
         :another-object (create :schtrunz 1))
-   => { foo : 'hihi', 
-        blorg : [ 1, 2, 3 ], 
+   => { foo : 'hihi',
+        blorg : [ 1, 2, 3 ],
         anotherObject : { schtrunz : 1 } }
 
 ;;; Object properties can be accessed using the `SLOT-VALUE' form,
@@ -256,7 +256,7 @@ an-object.foo => anObject.foo
 ; T, FALSE, NIL, UNDEFINED, THIS
 
 ;;; The Lisp symbols `T' and `FALSE' are converted to their JavaScript
-;;; boolean equivalents `true' and `false'.  
+;;; boolean equivalents `true' and `false'.
 
 T     => true
 
@@ -356,7 +356,7 @@ a-variable  => aVariable
 ; argument ::= a ParenScript expression
 
 ;;; Operator forms are similar to function call forms, but have an
-;;; operator as function name. 
+;;; operator as function name.
 ;;;
 ;;; Please note that `=' is converted to `==' in JavaScript. The `='
 ;;; ParenScript operator is not the assignment operator. Unlike
@@ -706,7 +706,7 @@ a-variable  => aVariable
     ((or (= i blorg.length)
          (eql l "Fumitastic")))
   (document.write (+ "L is " l)))
-   => for (var i = 0, l = blorg[i]; 
+   => for (var i = 0, l = blorg[i];
            !(i == blorg.length || l == 'Fumitastic');
            i = i + 1, l = blorg[i]) {
         document.write('L is ' + l);
@@ -800,7 +800,7 @@ a-variable  => aVariable
 
 (with ((create :foo "foo" :i "i"))
   (alert (+ "i is now intermediary scoped: " i)))
-   => with ({ foo : 'foo', 
+   => with ({ foo : 'foo',
               i : 'i' }) {
         alert('i is now intermediary scoped: ' + i);
       }
@@ -823,7 +823,7 @@ a-variable  => aVariable
 ;;; is catched, and the body of the finally is always invoked when
 ;;; leaving the body of the `TRY' form.
 
-(try (throw "i") 
+(try (throw "i")
  (:catch (error)
    (alert (+ "an error happened: " error)))
  (:finally
@@ -983,7 +983,7 @@ a-variable  => aVariable
 ;;; The ParenScript compiler can be invoked from withing Lisp and from
 ;;; within ParenScript itself. The primary API function is
 ;;; `JS-COMPILE', which takes a list of ParenScript, and returns an
-;;; internal object representing the compiled ParenScript. 
+;;; internal object representing the compiled ParenScript.
 
 (js-compile '(foobar 1 2))
   => #<JS::FUNCTION-CALL {584AA5DD}>

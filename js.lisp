@@ -319,7 +319,7 @@ this macro."
 (defjsmacro list (&rest values)
   `(array ,@values))
 
-(defmethod js-to-strings ((array array-literal) start-pos) 
+(defmethod js-to-strings ((array array-literal) start-pos)
   (let ((value-string-lists
 	 (mapcar #'(lambda (x) (js-to-strings x (+ start-pos 2)))
 		 (array-values array)))

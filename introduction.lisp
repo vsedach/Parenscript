@@ -78,7 +78,7 @@ for (var i = 0, j = arr[i]; i < 10; i = ++i, j = arr[i]) {
 
 ; compiles to
 "
-{ foo : 'foo', 
+{ foo : 'foo',
   bla : 'bla' }
 "
 ;;; ParenScript features a HTML generator. Using the same syntax as
@@ -110,7 +110,7 @@ function addDiv(name, href, linkText) {
 ;;; and complexities of Web syntax. For example, to generate a CSS
 ;;; inline node in a HTML document:
 
-(html-stream *standard-output* 
+(html-stream *standard-output*
   (html
    (:html
     (:head

@@ -59,7 +59,7 @@
 ;;; Browsing "http://localhost:8000/tutorial1" should return an empty
 ;;; HTML page. It's now time to fill this rather page with
 ;;; content. ParenScript features a macro that generates a string that
-;;; can be used as an attribute value of HTML nodes. 
+;;; can be used as an attribute value of HTML nodes.
 
 (defun tutorial1 (req ent)
   (declare (ignore req ent))
@@ -569,7 +569,7 @@ function transport() {
 ;;; We can now publish the same slideshow as before, under the
 ;;; "/bknr/" prefix:
 
-(publish-slideshow "/bknr/" 
+(publish-slideshow "/bknr/"
   `("/home/manuel/bknr-sputnik.png"
     "/home/manuel/bknrlogo_red648.png"
     "/home/manuel/screenshots/screenshot-14.03.2005-11.54.33.png"))

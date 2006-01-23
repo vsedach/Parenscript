@@ -52,7 +52,7 @@
 
 ;;; generate a CSS file
 #+nil
-(html-stream *standard-output* 
+(html-stream *standard-output*
       (css-file (* :border "1px solid black")
 	    (div.bl0rg :font-family "serif")
 	    (("a:active" "a:hoover") :color "black" :size "200%")))
@@ -60,7 +60,7 @@
 
 ;;; generate an inline CSS spec in a HTML head element
 #+nil
-(html-stream *standard-output* 
+(html-stream *standard-output*
   (html
    (:html
     (:head
@@ -70,7 +70,7 @@
 
 ;;; generate a style attribute for a DIV element
 #+nil
-(html-stream *standard-output* 
+(html-stream *standard-output*
       (html (:html (:body ((:div :style (css-inline :border "1px solid black"))
 			   "foobar")))))
 

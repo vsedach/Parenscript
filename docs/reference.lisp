@@ -758,29 +758,53 @@ a-variable  => aVariable
 
 ;;;# The `CASE' statement
 ;;;t \index{CASE}
+;;;t \index{SWITCH}
 ;;;t \index{switch}
 
 ; (CASE case-value clause*)
 ;
-; clause     ::= (value body)
+; clause     ::= (value body) | ((value*) body) | t-clause
 ; case-value ::= a ParenScript expression
 ; value      ::= a ParenScript expression
+; t-clause   ::= {t | otherwise | default} body
 ; body       ::= a list of ParenScript statements
 
 ;;; The Lisp `CASE' form is transformed to a `switch' statement in
 ;;; JavaScript. Note that `CASE' is not an expression in
-;;; ParenScript. The default case is not named `T' in ParenScript, but
-;;; `DEFAULT' instead.
+;;; ParenScript. 
 
 (case (aref blorg i)
-  (1 (alert "one"))
+  ((1 "one") (alert "one"))
   (2 (alert "two"))
-  (default (alert "default clause")))
+  (t (alert "default clause")))
     => switch (blorg[i]) {
-         case 1:   alert('one');
-         case 2:   alert('two');
+         case 1:   ;
+         case 'one':
+                   alert('one');
+                   break;
+         case 2:
+                   alert('two');
+                   break;
          default:   alert('default clause');
        }
+
+; (SWITCH case-value clause*)
+; clause     ::= (value body) | (default body)
+
+;;; The `SWITCH' form is the equivalent to a javascript switch statement.
+;;; No break statements are inserted, and the default case is named `DEFAULT'.
+;;; The `CASE' form should be prefered in most cases.
+
+(switch (aref blorg i)
+  (1 (alert "If I get here"))
+  (2 (alert "I also get here"))
+  (default (alert "I always get here")))
+    => switch (blorg[i]) {
+         case 1:   alert('If I get here');
+         case 2:   alert('I also get here');
+         default:   alert('I always get here');
+       }
+
 
 ;;;# The `WITH' statement
 ;;;t \index{WITH}

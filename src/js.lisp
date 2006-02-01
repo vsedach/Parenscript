@@ -1114,11 +1114,11 @@ this macro."
 
 ;;; case
 
-(defjsclass js-case (statement)
+(defjsclass js-switch (statement)
   ((value :initarg :value :accessor case-value)
    (clauses :initarg :clauses :accessor case-clauses)))
 
-(define-js-compiler-macro case (value &rest clauses)
+(define-js-compiler-macro switch (value &rest clauses)
   (let ((clauses (mapcar #'(lambda (clause)
 			     (let ((val (first clause))
 				   (body (cdr clause)))
@@ -1128,10 +1128,10 @@ this macro."
 				     (js-compile-to-body (cons 'progn body) :indent "  "))))
 			 clauses))
 	(check (js-compile-to-expression value)))
-    (make-instance 'js-case :value check
+    (make-instance 'js-switch :value check
 		   :clauses clauses)))
 
-(defmethod js-to-statement-strings ((case js-case) start-pos)
+(defmethod js-to-statement-strings ((case js-switch) start-pos)
   (let ((body 	 (mapcan #'(lambda (clause)
 		     (let ((val (car clause))
 			   (body (second clause)))
@@ -1151,6 +1151,21 @@ this macro."
 		    :start "switch (" :end ") {")
 	   body
 	   (list "}"))))
+
+(defjsmacro case (value &rest clauses)
+  (labels ((make-clause (val body more)
+             (cond ((listp val)
+                    (append (mapcar #'list (butlast val))
+                            (make-clause (first (last val)) body more)))
+                   ((member val '(t otherwise))
+                    (make-clause 'default body more))
+                   (more `((,val ,@body break)))
+                   (t `((,val ,@body))))))
+    `(switch ,value ,@(mapcon #'(lambda (x)
+                                  (make-clause (car (first x))
+                                               (cdr (first x))
+                                               (rest x)))
+                              clauses))))
 
 ;;; throw catch
 

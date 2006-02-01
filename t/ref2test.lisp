@@ -1,9 +1,13 @@
 (in-package :js-test)
 ;;Generates automatic tests from the reference
 
-(defparameter +reference-file+ (make-pathname :name "reference"
-                                              :type "lisp"
-                                              :defaults *load-truename*))
+(defparameter +reference-file+ (merge-pathnames
+                                (make-pathname :directory '(:relative :back "docs"))
+                                (make-pathname :name "reference"
+                                               :type "lisp"
+                                               :defaults *load-truename*)))
+
+
 (defparameter +generate-file+ (make-pathname :name "reference-tests"
                                               :type "lisp"
                                               :defaults *load-truename*))
@@ -66,7 +70,7 @@
                        (= 2 heading-count)) ;requires cl-interpol reader
                   (format t "Skipping regex-test two~&"))
                  ((and lisp-part javascript-part)
-                  (format out-stream "(test-ps-js ~a-~a ~%  ~a ~%  \"~a\")~%~%"
+                  (format out-stream "(test-ps-js ~a-~a~%  ~a~%  \"~a\")~%~%"
                           heading heading-count
                           (trim-whitespace lisp-part)
                           (strip-indentation javascript-part js-indent-width)))

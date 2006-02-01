@@ -73,3 +73,63 @@
 (test-ps-js buggy-slot-value-two
   (slot-value foo (get-slot-name))
   "foo[getSlotName()]")
+
+(test-ps-js old-case-is-now-switch
+  ;; Switch was "case" before, but that was very non-lispish.
+  ;; For example, this code makes three messages and not one
+  ;; which may have been expected. This is because a switch
+  ;; statment must have a break statement for it to return
+  ;; after the alert. Otherwise it continues on the next
+  ;; clause.
+  (switch (aref blorg i)
+     (1 (alert "one"))
+     (2 (alert "two"))
+     (default (alert "default clause")))
+     "switch (blorg[i]) {
+         case 1:   alert('one');
+         case 2:   alert('two');
+         default:   alert('default clause');
+         }")
+
+(test-ps-js lisp-like-case
+   (case (aref blorg i)
+     (1 (alert "one"))
+     (2 (alert "two"))
+     (default (alert "default clause")))    
+     "switch (blorg[i]) {
+         case 1:
+                   alert('one');
+                   break;
+         case 2:
+                   alert('two');
+                   break;
+         default:   alert('default clause');
+         }")
+
+
+(test-ps-js even-lispier-case
+  (case (aref blorg i)
+      ((1 2) (alert "Below three"))
+      (3 (alert "Three"))
+      (t (alert "Something else")))
+   "switch (blorg[i]) {
+         case 1:   ;
+         case 2:
+                   alert('Below three');
+                   break;
+         case 3:
+                   alert('Three');
+                   break;
+         default:   alert('Something else');
+    }")
+
+(test-ps-js otherwise-case
+   (case (aref blorg i)
+     (1 (alert "one"))
+     (otherwise (alert "default clause")))    
+     "switch (blorg[i]) {
+         case 1:
+                   alert('one');
+                   break;
+         default:   alert('default clause');
+         }")

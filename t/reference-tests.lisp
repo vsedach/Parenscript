@@ -400,13 +400,29 @@ x = a + b + c;")
 
 (test-ps-js the-case-statement-1
   (case (aref blorg i)
-  (1 (alert "one"))
+  ((1 "one") (alert "one"))
   (2 (alert "two"))
-  (default (alert "default clause")))
+  (t (alert "default clause")))
   "switch (blorg[i]) {
-  case 1:   alert('one');
-  case 2:   alert('two');
+  case 1:   ;
+  case 'one':
+            alert('one');
+            break;
+  case 2:
+            alert('two');
+            break;
   default:   alert('default clause');
+}")
+
+(test-ps-js the-case-statement-2
+  (switch (aref blorg i)
+  (1 (alert "If I get here"))
+  (2 (alert "I also get here"))
+  (default (alert "I always get here")))
+  "switch (blorg[i]) {
+  case 1:   alert('If I get here');
+  case 2:   alert('I also get here');
+  default:   alert('I always get here');
 }")
 
 (test-ps-js the-with-statement-1

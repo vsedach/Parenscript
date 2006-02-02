@@ -380,16 +380,35 @@ this macro."
   (value))
 
 (defmethod js-to-strings ((string string-literal) start-pos)
-  (declare (ignore start-pos))
+  (declare (ignore start-pos)
+           (inline lisp-special-char-to-js))
   (list (with-output-to-string (escaped)
           (loop
-             initially (write-char #\' escaped)
-             for char across (value string)
-             if (char= #\' char)
-               do (write-string "\\'" escaped)
-             else
-               do (write-char char escaped)
-             finally (write-char #\' escaped)))))
+           initially (write-char #\' escaped)
+           for char across (value string)
+           for code = (char-code char)
+           for special = (lisp-special-char-to-js char)
+           do
+           (cond
+             (special
+              (write-char #\\ escaped)
+              (write-char special escaped))
+             ((or (<= code #x1f) (>= code #x80))
+              (format escaped "\\u~4,'0x" code))
+             (t (write-char char escaped)))
+           finally (write-char #\' escaped)))))
+
+(defparameter *js-lisp-escaped-chars*
+  '((#\' . #\')
+    (#\\ . #\\)
+    (#\b . #\Backspace)
+    (#\f . #\Form)
+    (#\n . #\Newline)
+    (#\r . #\Return)
+    (#\t . #\Tab)))
+
+(defun lisp-special-char-to-js(lisp-char)
+    (car (rassoc lisp-char *js-lisp-escaped-chars*)))
 
 ;;; number literals
 

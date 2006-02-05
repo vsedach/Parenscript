@@ -402,7 +402,7 @@ this macro."
   '((#\' . #\')
     (#\\ . #\\)
     (#\b . #\Backspace)
-    (#\f . #\Form)
+    (#\f . #.(code-char 12))
     (#\n . #\Newline)
     (#\r . #\Return)
     (#\t . #\Tab)))

@@ -9,7 +9,6 @@
   '((#\! . "Bang")
     (#\? . "What")
     (#\# . "Hash")
-    (#\$ . "Dollar")
     (#\@ . "At")
     (#\% . "Percent")
     (#\+ . "Plus")

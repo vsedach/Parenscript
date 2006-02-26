@@ -1231,6 +1231,10 @@ this macro."
 (define-js-compiler-macro regex (regex)
   (make-instance 'regex :value (string regex)))
 
+(defmethod js-to-strings ((regex regex) start-pos)
+  (declare (ignore start-pos))
+  (list (format nil "/~A/" (value regex))))
+
 ;;; conditional compilation
 
 (defjsclass cc-if ()

@@ -378,7 +378,12 @@ this macro."
 (defjsclass string-literal (expression)
   (value))
 
-(defvar *js-quote-char* #\')
+(defvar *js-quote-char* #\'
+  "Specifies which character JS sholud use for delimiting strings.
+
+This variable is usefull when have to embed some javascript code
+in an html attribute delimited by #\\\" as opposed to #\\', or
+vice-versa.")
 
 (defmethod js-to-strings ((string string-literal) start-pos)
   (declare (ignore start-pos)

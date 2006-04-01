@@ -378,12 +378,14 @@ this macro."
 (defjsclass string-literal (expression)
   (value))
 
+(defvar *js-quote-char* #\')
+
 (defmethod js-to-strings ((string string-literal) start-pos)
   (declare (ignore start-pos)
            (inline lisp-special-char-to-js))
   (list (with-output-to-string (escaped)
           (loop
-           initially (write-char #\' escaped)
+           initially (write-char *js-quote-char*  escaped)
            for char across (value string)
            for code = (char-code char)
            for special = (lisp-special-char-to-js char)
@@ -395,7 +397,7 @@ this macro."
              ((or (<= code #x1f) (>= code #x80))
               (format escaped "\\u~4,'0x" code))
              (t (write-char char escaped)))
-           finally (write-char #\' escaped)))))
+           finally (write-char *js-quote-char* escaped)))))
 
 (defparameter *js-lisp-escaped-chars*
   '((#\' . #\')

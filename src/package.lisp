@@ -128,7 +128,8 @@
    #:js-to-statement-strings
    #:js-to-string
    #:js-to-line
-
+   #:defjsmacro
+   
    ;; util
    #:with-unique-js-names
    #:gen-js-name

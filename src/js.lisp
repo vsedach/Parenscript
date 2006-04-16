@@ -1368,6 +1368,20 @@ prefix)."
 
 ;;; helper macros
 
+(defjsmacro rebind (variables expression)
+  "Creates a new js lexical environment and copies the given variable(s) there.
+Executes the body in the new environment. This has the same effect as a new
+(let () ...) form in lisp but works on the js side for js closures."
+  (unless (listp variables)
+    (setf variables (list variables)))
+  `((lambda ()
+      (let ((new-context (new *object)))
+        ,@(loop for variable in variables
+                do (setf variable (symbol-to-js variable))
+                collect `(setf (slot-value new-context ,variable) (slot-value this ,variable)))
+        (with (new-context)
+              (return ,expression))))))
+
 (define-js-compiler-macro js (&rest body)
   (make-instance 'string-literal
 		 :value (string-join (js-to-statement-strings

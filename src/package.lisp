@@ -141,4 +141,6 @@
    #:css-inline
    #:css-file
 
+   #:compile-parenscript-file
+   #:compile-parenscript-file-to-string
    ))

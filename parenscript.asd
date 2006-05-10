@@ -14,9 +14,6 @@
   :maintainer "Edward Marco Baringer <mb@bese.it>"
   :licence "BSD"
   :description "js - javascript compiler"
-
-  :perform (load-op :after (op araneida)
-                    (pushnew :parenscript cl:*features*))
   :components ((:static-file "parenscript.asd")
                (:module :src
                 :components ((:file "package")
@@ -24,7 +21,11 @@
                              (:file "defgenerics" :depends-on ("package"))
                              (:file "js" :depends-on ("package" "utils" "defgenerics"))
                              (:file "js-html" :depends-on ("package" "js" "utils"))
-                             (:file "css" :depends-on ("package" "utils"))))))
+                             (:file "css" :depends-on ("package" "utils"))
+                             (:file "compile-js" :depends-on ("package" "js"))))))
+
+(defmethod asdf:perform :after ((op asdf:load-op) (system (eql (asdf:find-system :parenscript)))) 
+  (pushnew :parenscript cl:*features*))
 
 (defsystem :parenscript.test
   :depends-on (:parenscript :fiveam :cl-ppcre)

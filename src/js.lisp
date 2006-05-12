@@ -222,6 +222,12 @@ to the ongoing javascript compilation."
       (defun ,js-name ,lambda-list ,@body)
       (setf (gethash ,(symbol-name name) *js-compiler-macros*) #',js-name))))
 
+(defun undefine-js-compiler-macro (name)
+  (declare (type symbol name))
+  (when (gethash (symbol-name name) *js-compiler-macros*)
+    (warn "Redefining compiler macro ~S" name)
+    (remhash (symbol-name name) *js-compiler-macros*)))
+
 (defun js-compiler-macro-form-p (form)
   (when (and (symbolp (car form))
              (gethash (symbol-name (car form)) *js-compiler-macros*))
@@ -255,13 +261,19 @@ this macro."
 
 (defmacro defjsmacro (name args &rest body)
   "Define a javascript macro, and store it in the toplevel macro environment."
-  (when (gethash (symbol-name name) *js-compiler-macros*)
-    (warn "Redefining compiler macro ~S" name)
-    (remhash (symbol-name name) *js-compiler-macros*))
   (let ((lambda-list (gensym)))
+    (undefine-js-compiler-macro name)
     `(setf (gethash ,(symbol-name name) *js-macro-toplevel*)
       #'(lambda (&rest ,lambda-list)
-	  (destructuring-bind ,args ,lambda-list ,@body)))))
+          (destructuring-bind ,args ,lambda-list ,@body)))))
+
+(defun import-macros-from-lisp (&rest names)
+  "Import the named lisp macros into the js macro expansion"
+  (dolist (name names)
+    (undefine-js-compiler-macro name)
+    (setf (gethash (symbol-name name) *js-macro-toplevel*)
+          (lambda (&rest args)
+            (macroexpand `(,name ,@args))))))
 
 (defun js-expand-form (expr)
   "Expand a javascript form."

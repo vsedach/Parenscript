@@ -211,7 +211,13 @@
   (defvar *js-compiler-macros* (make-hash-table :test 'equal)
         "*JS-COMPILER-MACROS* is a hash-table containing the functions corresponding
 to javascript special forms, indexed by their name. Javascript special
-forms are compiler macros for JS expressions."))
+forms are compiler macros for JS expressions.")
+
+  (defun undefine-js-compiler-macro (name)
+    (declare (type symbol name))
+    (when (gethash (symbol-name name) *js-compiler-macros*)
+      (warn "Redefining compiler macro ~S" name)
+      (remhash (symbol-name name) *js-compiler-macros*))))
 
 (defmacro define-js-compiler-macro (name lambda-list &rest body)
   "Define a javascript compiler macro NAME. Arguments are destructured
@@ -221,12 +227,6 @@ to the ongoing javascript compilation."
     `(eval-when (:compile-toplevel :load-toplevel :execute)
       (defun ,js-name ,lambda-list ,@body)
       (setf (gethash ,(symbol-name name) *js-compiler-macros*) #',js-name))))
-
-(defun undefine-js-compiler-macro (name)
-  (declare (type symbol name))
-  (when (gethash (symbol-name name) *js-compiler-macros*)
-    (warn "Redefining compiler macro ~S" name)
-    (remhash (symbol-name name) *js-compiler-macros*)))
 
 (defun js-compiler-macro-form-p (form)
   (when (and (symbolp (car form))

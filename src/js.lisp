@@ -1383,9 +1383,11 @@ prefix)."
 ;;; helper macros
 
 (defjsmacro rebind (variables expression)
-  "Creates a new js lexical environment and copies the given variable(s) there.
-Executes the body in the new environment. This has the same effect as a new
-(let () ...) form in lisp but works on the js side for js closures."
+  ;; Creates a new js lexical environment and copies the given
+  ;; variable(s) there.  Executes the body in the new environment. This
+  ;; has the same effect as a new (let () ...) form in lisp but works on
+  ;; the js side for js closures."
+  
   (unless (listp variables)
     (setf variables (list variables)))
   `((lambda ()

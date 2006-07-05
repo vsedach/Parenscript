@@ -1354,12 +1354,12 @@ vice-versa.")
 
 (defvar *gen-js-name-counter* 0)
 
-(defun gen-js-name-string (&key (prefix "parenscript_"))
+(defun gen-js-name-string (&key (prefix "_ps_"))
   "Generates a unique valid javascript identifier ()"
   (concatenate 'string
                prefix (princ-to-string (incf *gen-js-name-counter*))))
 
-(defun gen-js-name (&key (prefix "parenscript_"))
+(defun gen-js-name (&key (prefix "_ps_"))
   "Generate a new javascript identifier."
   (intern (gen-js-name-string :prefix prefix)
           (find-package :js)))

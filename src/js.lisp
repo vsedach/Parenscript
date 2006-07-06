@@ -294,6 +294,50 @@ this macro."
 		 (js-expand-form (apply js-macro (cdr expr)))
 		 expr)))))
 
+(defvar *gen-js-name-counter* 0)
+
+(defun gen-js-name-string (&key (prefix "_ps_"))
+  "Generates a unique valid javascript identifier ()"
+  (concatenate 'string
+               prefix (princ-to-string (incf *gen-js-name-counter*))))
+
+(defun gen-js-name (&key (prefix "_ps_"))
+  "Generate a new javascript identifier."
+  (intern (gen-js-name-string :prefix prefix)
+          (find-package :js)))
+
+(defmacro with-unique-js-names (symbols &body body)
+  "Evaluate BODY with the variables on SYMBOLS bound to new javascript identifiers.
+
+Each element of SYMBOLS is either a symbol or a list of (symbol
+prefix)."
+  `(let* ,(mapcar (lambda (symbol)
+                    (destructuring-bind (symbol &optional prefix)
+                        (if (consp symbol)
+                            symbol
+                            (list symbol))
+                      (if prefix
+                          `(,symbol (gen-js-name :prefix ,prefix))
+                          `(,symbol (gen-js-name)))))
+                  symbols)
+     ,@body))
+
+(defjsmacro rebind (variables expression)
+  ;; Creates a new js lexical environment and copies the given
+  ;; variable(s) there.  Executes the body in the new environment. This
+  ;; has the same effect as a new (let () ...) form in lisp but works on
+  ;; the js side for js closures."
+  
+  (unless (listp variables)
+    (setf variables (list variables)))
+  `((lambda ()
+      (let ((new-context (new *object)))
+        ,@(loop for variable in variables
+                do (setf variable (symbol-to-js variable))
+                collect `(setf (slot-value new-context ,variable) (slot-value this ,variable)))
+        (with (new-context)
+              (return ,expression))))))
+
 (defvar *var-counter* 0)
 
 (defun js-gensym (&optional (name "js"))
@@ -1381,53 +1425,7 @@ vice-versa.")
 (defjsmacro random ()
   `(*Math.random))
 
-;;; helper functions
-
-(defvar *gen-js-name-counter* 0)
-
-(defun gen-js-name-string (&key (prefix "_ps_"))
-  "Generates a unique valid javascript identifier ()"
-  (concatenate 'string
-               prefix (princ-to-string (incf *gen-js-name-counter*))))
-
-(defun gen-js-name (&key (prefix "_ps_"))
-  "Generate a new javascript identifier."
-  (intern (gen-js-name-string :prefix prefix)
-          (find-package :js)))
-
-(defmacro with-unique-js-names (symbols &body body)
-  "Evaluate BODY with the variables on SYMBOLS bound to new javascript identifiers.
-
-Each element of SYMBOLS is either a symbol or a list of (symbol
-prefix)."
-  `(let* ,(mapcar (lambda (symbol)
-                    (destructuring-bind (symbol &optional prefix)
-                        (if (consp symbol)
-                            symbol
-                            (list symbol))
-                      (if prefix
-                          `(,symbol (gen-js-name :prefix ,prefix))
-                          `(,symbol (gen-js-name)))))
-                  symbols)
-     ,@body))
-
 ;;; helper macros
-
-(defjsmacro rebind (variables expression)
-  ;; Creates a new js lexical environment and copies the given
-  ;; variable(s) there.  Executes the body in the new environment. This
-  ;; has the same effect as a new (let () ...) form in lisp but works on
-  ;; the js side for js closures."
-  
-  (unless (listp variables)
-    (setf variables (list variables)))
-  `((lambda ()
-      (let ((new-context (new *object)))
-        ,@(loop for variable in variables
-                do (setf variable (symbol-to-js variable))
-                collect `(setf (slot-value new-context ,variable) (slot-value this ,variable)))
-        (with (new-context)
-              (return ,expression))))))
 
 (define-js-compiler-macro js (&rest body)
   (make-instance 'string-literal

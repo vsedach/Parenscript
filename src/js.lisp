@@ -1123,7 +1123,7 @@ vice-versa.")
           (do ((,idx 0 (1+ ,idx)))
               ((>= ,idx (slot-value ,arrvar 'length)))
             (setf (aref ,arrvar ,idx) (,fn (aref ,arrvar ,idx)))))
-        (return array)))))
+        (return ,arrvar)))))
 
 (defjsmacro map (function array)
   "Call FUNCTION on each element in ARRAY and return the returned values in a new array."

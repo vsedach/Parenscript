@@ -940,8 +940,27 @@ vice-versa.")
 (define-js-single-op delete)
 (define-js-single-op void)
 (define-js-single-op typeof)
-(define-js-single-op instanceof)
 (define-js-single-op new)
+
+;; TODO this may not be the best integrated implementation of
+;; instanceof into the rest of the code
+(defjsclass js-instanceof (expression)
+  ((value)
+   (type :initarg :type)))
+
+(define-js-compiler-macro instanceof (value type)
+  (make-instance 'js-instanceof
+                 :value (js-compile-to-expression value)
+                 :type (js-compile-to-expression type)))
+
+(defmethod js-to-strings ((instanceof js-instanceof) start-pos)
+  (dwim-join
+   (list (js-to-strings (value instanceof) (+ start-pos 2))
+         (list "instanceof")
+         (js-to-strings (slot-value instanceof 'type) (+ start-pos 2)))
+   (- 80 start-pos 2)
+   :white-space
+   "  "))
 
 ;;; assignment
 

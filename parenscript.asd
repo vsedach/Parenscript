@@ -22,7 +22,9 @@
                              (:file "js" :depends-on ("package" "utils" "defgenerics"))
                              (:file "js-html" :depends-on ("package" "js" "utils"))
                              (:file "css" :depends-on ("package" "utils"))
-                             (:file "compile-js" :depends-on ("package" "js"))))))
+                             (:file "compile-js" :depends-on ("package" "js"))))
+               (:module :lib
+                :components ((:static-file "functional")))))
 
 (defmethod asdf:perform :after ((op asdf:load-op) (system (eql (asdf:find-system :parenscript)))) 
   (pushnew :parenscript cl:*features*))

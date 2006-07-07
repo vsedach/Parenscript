@@ -1110,37 +1110,6 @@ vice-versa.")
 	(let ((,var (aref ,arrvar ,idx)))
 	  ,@body)))))
 
-(defjsmacro map-into (function array)
-  "Call FUNCTION on each element in ARRAY, replace element with the return value."
-  ;; be friendly to both (map-into 'foo array) and (map-into foo array) calls
-  (when (and (listp function)
-             (eq 'quote (first function)))
-    (setf function (eval function)))
-  (with-unique-js-names (arrvar idx fn)
-    `((lambda ()
-        (let ((,arrvar ,array)
-              (,fn ,function))
-          (do ((,idx 0 (1+ ,idx)))
-              ((>= ,idx (slot-value ,arrvar 'length)))
-            (setf (aref ,arrvar ,idx) (,fn (aref ,arrvar ,idx)))))
-        (return ,arrvar)))))
-
-(defjsmacro map (function array)
-  "Call FUNCTION on each element in ARRAY and return the returned values in a new array."
-  ;; be friendly to both (map 'foo array) and (map foo array) calls
-  (when (and (listp function)
-             (eq 'quote (first function)))
-    (setf function (eval function)))
-  (with-unique-js-names (arrvar result idx fn)
-    `((lambda ()
-        (let ((,arrvar ,array)
-              (,fn ,function)
-              (,result (make-array (slot-value ,arrvar 'length))))
-          (do ((,idx 0 (1+ ,idx)))
-              ((>= ,idx (slot-value ,arrvar 'length)))
-            (setf (aref ,result ,idx) (,fn (aref ,arrvar ,idx)))))
-        (return ,result)))))
-
 (defmethod js-to-statement-strings ((for js-for) start-pos)
   (let* ((init (dwim-join (mapcar #'(lambda (x)
 				      (dwim-join (list (list (symbol-to-js (first (var-names x))))

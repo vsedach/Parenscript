@@ -1,16 +1,16 @@
 (in-package :js-test)
 ;;Generates automatic tests from the reference
 
+(defparameter +this-dir+ (asdf:component-pathname (asdf:find-component (asdf:find-system :parenscript.test) "t")))
 (defparameter +reference-file+ (merge-pathnames
-                                (make-pathname :directory '(:relative :back "docs"))
-                                (make-pathname :name "reference"
-                                               :type "lisp"
-                                               :defaults *load-truename*)))
-
+                                (make-pathname :directory '(:relative :back "docs")
+                                               :name "reference"
+                                               :type "lisp")
+                                +this-dir+))
 
 (defparameter +generate-file+ (make-pathname :name "reference-tests"
                                               :type "lisp"
-                                              :defaults *load-truename*))
+                                              :defaults +this-dir+))
 
 (defparameter +head+ "(in-package :js-test)
 ;; Tests of everything in the reference.
@@ -101,3 +101,7 @@
                                               (list #\Newline))
                                             line))))))
         (format out-stream "~%(run-tests)~%")))))
+
+
+
+;; (make-reference-tests-dot-lisp)

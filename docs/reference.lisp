@@ -35,12 +35,12 @@
 ;;;t \index{symbol conversion}
 
 ;;; Lisp symbols are converted to JavaScript symbols by following a
-;;; few simple rules. Special characters `!', `?', `#', `$', `@', `%',
+;;; few simple rules. Special characters `!', `?', `#', `@', `%',
 ;;; '/', `*' and `+' get replaced by their written-out equivalents
-;;; "bang", "what", "hash", "dollar", "at", "percent", "slash",
-;;; "start" and "plus" respectively.
+;;; "bang", "what", "hash", "at", "percent", "slash",
+;;; "start" and "plus" respectively. The `$' character is untouched.
 
-!?#$@% => bangwhathashdollaratpercent
+!?#@% => bangwhathashatpercent
 
 ;;; The `-' is an indication that the following character should be
 ;;; converted to uppercase. Thus, `-' separated symbols are converted

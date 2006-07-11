@@ -19,8 +19,8 @@
 }")
 
 (test-ps-js symbol-conversion-1
-  !?#$@%
-  "bangwhathashdollaratpercent")
+  !?#@%
+  "bangwhathashatpercent")
 
 (test-ps-js symbol-conversion-2
   bla-foo-bar

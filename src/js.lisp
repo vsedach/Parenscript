@@ -1313,9 +1313,14 @@ vice-versa.")
 (define-js-compiler-macro regex (regex)
   (make-instance 'regex :value (string regex)))
 
+(defun first-slash-p (string)
+  (and (> (length string) 0)
+       (eq (char string 0) '#\/)))
+
 (defmethod js-to-strings ((regex regex) start-pos)
-  (declare (ignore start-pos))
-  (list (format nil "/~A/" (value regex))))
+   (declare (ignore start-pos))
+   (let ((slash (if (first-slash-p (value regex)) nil "/")))
+     (list (format nil (concatenate 'string slash "~A" slash) (value regex)))))
 
 ;;; conditional compilation
 

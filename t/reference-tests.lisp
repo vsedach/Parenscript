@@ -112,6 +112,10 @@
   "this.a + this.b + this.c;")
 
 (test-ps-js regular-expression-literals-1
+  (regex "foobar")
+  "/foobar/")
+
+(test-ps-js regular-expression-literals-2
   (regex "/foobar/i")
   "/foobar/i")
 

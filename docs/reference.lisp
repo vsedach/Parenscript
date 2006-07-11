@@ -233,9 +233,14 @@ an-object.foo => anObject.foo
 ;
 ; regex ::= a Lisp string
 
-;;; Regular expressions can be created by using the `REGEX' form. The
-;;; regex form actually does nothing at all to its argument, and
-;;; prints it as is.
+;;; Regular expressions can be created by using the `REGEX' form. If
+;;; the argument does not start with a slash, it is surrounded by
+;;; slashes to make it a proper JavaScript regex. If the argument
+;;; starts with a slash it is left as it is. This makes it possible
+;;; to use modifiers such as slash-i (case-insensitive) or
+;;; slash-g (match-globally (all)).
+
+(regex "foobar") => /foobar/
 
 (regex "/foobar/i") => /foobar/i
 

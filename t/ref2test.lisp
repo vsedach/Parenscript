@@ -67,8 +67,8 @@
                  ((search "=>" (subseq built (+ 1 sep-pos)))
                   (format t "Error , two separators found~%"))
                  ((and (string= heading "regular-expression-literals")
-                       (= 2 heading-count)) ;requires cl-interpol reader
-                  (format t "Skipping regex-test two~&"))
+                       (= 3 heading-count)) ;requires cl-interpol reader
+                  (format t "Skipping regex-test with cl-interpol&"))
                  ((and lisp-part javascript-part)
                   (format out-stream "(test-ps-js ~a-~a~%  ~a~%  \"~a\")~%~%"
                           heading heading-count

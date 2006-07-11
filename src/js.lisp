@@ -270,10 +270,11 @@ this macro."
 (defun import-macros-from-lisp (&rest names)
   "Import the named lisp macros into the js macro expansion"
   (dolist (name names)
-    (undefine-js-compiler-macro name)
-    (setf (gethash (symbol-name name) *js-macro-toplevel*)
-          (lambda (&rest args)
-            (macroexpand `(,name ,@args))))))
+    (let ((name name))
+      (undefine-js-compiler-macro name)
+      (setf (gethash (symbol-name name) *js-macro-toplevel*)
+            (lambda (&rest args)
+              (macroexpand `(,name ,@args)))))))
 
 (defun js-expand-form (expr)
   "Expand a javascript form."

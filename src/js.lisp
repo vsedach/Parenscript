@@ -103,8 +103,7 @@
   (flet ((special-append (form elt)
 	   (let ((len (length form)))
 	     (if (and (> len 0)
-		      (member (char form (1- len))
-			      '(#\; #\, #\})))
+                      (string= (char form (1- len)) elt))
 		 form
 		 (concatenate 'string form elt)))))
     (cond ((stringp form)

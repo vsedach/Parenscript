@@ -385,7 +385,7 @@ x = a + b + c;")
     tmpI2 = tmpI2 + 1) {
     var l = tmpArr1[tmpI2];
     document.write('L is ' + l);
-  }
+  };
 }")
 
 (test-ps-js iteration-constructs-4

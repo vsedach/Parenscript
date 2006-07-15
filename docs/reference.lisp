@@ -738,7 +738,7 @@ a-variable  => aVariable
           tmpI2 = tmpI2 + 1) {
           var l = tmpArr1[tmpI2];
           document.write('L is ' + l);
-        }
+        };
       }
 
 

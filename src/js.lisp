@@ -667,13 +667,20 @@ vice-versa.")
    (args :initarg :args :accessor m-args)))
 
 (defmethod js-to-strings ((form method-call) start-pos)
-  (let ((fname (dwim-join (list (js-to-strings (m-object form) (+ start-pos 2))
-				(list (symbol-to-js (m-method form))))
-			  (- 80 start-pos 2)
-			  :end "("
-			  :separator "")))
-    (let ((butlast (butlast fname))
-	  (last (car (last fname))))
+  (let ((object (js-to-strings (m-object form) (+ start-pos 2))))
+    ;; TODO: this may not be the best way to add ()'s around lambdas
+    ;; probably there is or should be a more general solution working
+    ;; in other situations involving lambda's
+    (when (typep (m-object form) 'js-lambda)
+      (push "(" object)
+      (nconc object (list ")")))
+    (let* ((fname (dwim-join (list object
+                                   (list (symbol-to-js (m-method form))))
+                             (- 80 start-pos 2)
+                             :end "("
+                             :separator ""))
+           (butlast (butlast fname))
+           (last (car (last fname))))
       (nconc butlast
 	     (dwim-join (mapcar #'(lambda (x) (js-to-strings x (+ start-pos 2)))
 				(m-args form))

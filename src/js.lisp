@@ -335,7 +335,7 @@ prefix)."
         ,@(loop for variable in variables
                 do (setf variable (symbol-to-js variable))
                 collect `(setf (slot-value new-context ,variable) (slot-value this ,variable)))
-        (with (new-context)
+        (with new-context
               (return ,expression))))))
 
 (defvar *var-counter* 0)
@@ -1202,8 +1202,8 @@ vice-versa.")
 
 (define-js-compiler-macro with (statement &rest body)
   (make-instance 'js-with
-		 :obj (js-compile-to-expression (first statement))
-		 :body (js-compile-to-body (cons 'progn body) :indent "  ")))
+                 :obj (js-compile-to-expression statement)
+                 :body (js-compile-to-body (cons 'progn body) :indent "  ")))
 
 (defmethod js-to-statement-strings ((with js-with) start-pos)
   (nconc (dwim-join (list (js-to-strings (with-obj with) (+ start-pos 2)))

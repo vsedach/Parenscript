@@ -652,7 +652,14 @@ vice-versa.")
        (dwim-join (list (js-to-strings (f-function form) (+ start-pos 2))
                         args)
                   max-length
-                  :separator "")))))
+                  :separator ""))
+      (function-call
+       ;; TODO it adds superfluous newlines after each ()
+       ;; and it's nearly the same as the js-lambda case above
+       (dwim-join (list (append (dwim-join (list (js-to-strings (f-function form) (+ start-pos 2)))
+                                           max-length :separator "")
+                                args))
+                  max-length :separator "")))))
 
 (defjsclass method-call (expression)
   ((method :initarg :method :accessor m-method)

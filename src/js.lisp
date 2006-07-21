@@ -796,15 +796,18 @@ vice-versa.")
 (define-js-compiler-macro create (&rest args)
   (make-instance 'js-object
 		 :slots (loop for (name val) on args by #'cddr
-			      collect (list (js-compile-to-symbol name)
-					    (js-compile-to-expression val)))))
+			      collect (let ((name-expr (js-compile-to-expression name)))
+					(assert (or (typep name-expr 'js-variable)
+						    (typep name-expr 'string-literal)
+						    (typep name-expr 'number-literal)))
+					(list name-expr (js-compile-to-expression val))))))
 
 (defmethod js-to-strings ((object js-object) start-pos)
   (let ((value-string-lists
 	 (mapcar #'(lambda (slot)
 		     (dwim-join (list (js-to-strings (second slot) (+ start-pos 4)))
 				(- 80 start-pos 2)
-				:start (concatenate 'string (symbol-to-js (first slot)) " : ")
+				:start (concatenate 'string (car (js-to-strings (first slot) 0)) " : ")
 				:white-space "    ")) (o-slots object)))
 	(max-length (- 80 start-pos 2)))
     (dwim-join value-string-lists max-length

@@ -490,34 +490,38 @@ vice-versa.")
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
 
-  (defparameter *op-precedence-hash* (make-hash-table))
-
-  (defparameter *op-precedences*
-    '((aref)
-      (slot-value)
-      (! not ~)
-      (* / %)
-      (+ -)
-      (<< >>)
-      (>>>)
-      (< > <= >=)
-      (in if)
-      (eql == != =)
-      (=== !==)
-      (&)
-      (^)
-      (\|)
-      (\&\& and)
-      (\|\| or)
-      (setf *= /= %= += -= <<= >>= >>>= \&= ^= \|=)
-      (comma)))
+  (defparameter *op-precedence-hash* (make-hash-table :test #'equal))
 
   ;;; generate the operator precedences from *OP-PRECEDENCES*
   (let ((precedence 1))
-    (dolist (ops *op-precedences*)
+    (dolist (ops '((aref)
+                   (slot-value)
+                   (! not ~)
+                   (* / %)
+                   (+ -)
+                   (<< >>)
+                   (>>>)
+                   (< > <= >=)
+                   (in if)
+                   (eql == != =)
+                   (=== !==)
+                   (&)
+                   (^)
+                   (\|)
+                   (\&\& and)
+                   (\|\| or)
+                   (setf *= /= %= += -= <<= >>= >>>= \&= ^= \|=)
+                   (comma)))
       (dolist (op ops)
-        (setf (gethash op *op-precedence-hash*) precedence))
-      (incf precedence))))
+        (let ((op-name (symbol-name op)))
+          (setf (gethash op-name *op-precedence-hash*) precedence)))
+      (incf precedence)))
+
+  (defun op-precedence (op)
+    (gethash (if (symbolp op)
+                 (symbol-name op)
+                 op)
+             *op-precedence-hash*)))
 
 (defun js-convert-op-name (op)
   (case op
@@ -535,7 +539,7 @@ vice-versa.")
 (defun op-form-p (form)
   (and (listp form)
        (not (js-compiler-macro-form-p form))
-       (not (null (gethash (first form) *op-precedence-hash*)))))
+       (not (null (op-precedence (first form))))))
 
 (defun klammer (string-list)
   (prepend-to-first string-list "(")
@@ -546,7 +550,7 @@ vice-versa.")
   0)
 
 (defmethod expression-precedence ((form op-form))
-  (gethash (operator form) *op-precedence-hash*))
+  (op-precedence (operator form)))
 
 (defmethod js-to-strings ((form op-form) start-pos)
   (let* ((precedence (expression-precedence form))
@@ -742,7 +746,7 @@ vice-versa.")
 (defmethod expression-precedence ((body js-body))
   (if (= (length (b-stmts body)) 1)
       (expression-precedence (first (b-stmts body)))
-      (gethash 'comma *op-precedence-hash*)))
+      (op-precedence 'comma)))
 
 ;;; function definition
 
@@ -899,7 +903,7 @@ vice-versa.")
 				       (list "}")))))
 
 (defmethod expression-precedence ((if js-if))
-  (gethash 'if *op-precedence-hash*))
+  (op-precedence 'if))
 
 (defmethod js-to-strings ((if js-if) start-pos)
   (assert (typep (if-then if) 'expression))
@@ -1057,7 +1061,7 @@ vice-versa.")
 	     :join-after " ="))
 
 (defmethod expression-precedence ((setf js-setf))
-  (gethash '= *op-precedence-hash*))
+  (op-precedence '=))
 
 ;;; defvar
 

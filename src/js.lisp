@@ -1084,21 +1084,20 @@ vice-versa.")
 ;;; let
 
 (define-js-compiler-macro let (decls &rest body)
-  (let ((single-defvar (make-instance 'js-defvar
-				      :names (mapcar #'js-compile-to-symbol
-						     (remove-if-not #'atom decls))
-				      :value nil))
-	(defvars (mapcar #'(lambda (decl)
-			     (let ((name (first decl))
-				   (value (second decl)))
-			     (make-instance 'js-defvar
-					    :names (list (js-compile-to-symbol name))
-					    :value (js-compile-to-expression value))))
-			 (remove-if #'atom decls))))
+  (let ((defvars (mapcar #'(lambda (decl)
+			     (if (atom decl)
+                                 (make-instance 'js-defvar
+                                       :names (list (js-compile-to-symbol decl))
+                                       :value nil)
+                                 (let ((name (first decl))
+                                       (value (second decl)))
+                                   (make-instance 'js-defvar
+                                                  :names (list (js-compile-to-symbol name))
+                                                  :value (js-compile-to-expression value)))))
+			 decls)))
     (make-instance 'js-sub-body
 		   :indent "  "
-		   :stmts (nconc (when (var-names single-defvar) (list single-defvar))
-				 defvars
+		   :stmts (nconc defvars
 				 (mapcar #'js-compile-to-statement body)))))
 
 ;;; iteration

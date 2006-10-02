@@ -66,10 +66,7 @@ class TexFile(TxtFile):
     def beginning(self):
         return '\n\\documentclass[notitlepage,a4paper,makeidx]{' + self.style + '}\n' + \
                '\\usepackage{fancyvrb,color,palatino,makeidx}\n' + \
-               "\\newif\\ifpdf\n\\ifx\\pdfoutput\\undefined\n\\pdffalse\n" + \
-               "\\else\n\\pdfoutput=1\n\\pdftrue\n\\fi\n" + \
-               "\\ifpdf\n\\usepackage[pdftex]{graphicx}\n" + \
-               "\\else\n\\usepackage{graphicx}\n\\fi\n" + \
+               "\\usepackage{graphicx}\n" + \
                '\\definecolor{gray}{gray}{0.6}\n' + \
                '\\title{' + TexFile.escapeString(self.title) + '}\n' +  \
                (self.author and ('\\author{' + self.author + '}\n') or '') + \

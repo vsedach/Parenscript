@@ -1439,6 +1439,12 @@ vice-versa.")
 (defjsmacro random ()
   `(*Math.random))
 
+(defjsmacro evenp (num)
+  `(= (% ,num 2) 0))
+
+(defjsmacro oddp (num)
+  `(= (% ,num 2) 1))
+
 ;;; helper macros
 
 (define-js-compiler-macro js (&rest body)

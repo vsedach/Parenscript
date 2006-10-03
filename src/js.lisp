@@ -1298,6 +1298,7 @@ vice-versa.")
   (let ((body (js-compile-to-body body :indent "  "))
 	(catch (cdr (assoc :catch clauses)))
 	(finally (cdr (assoc :finally clauses))))
+    (assert (not (cdar catch)) nil "Sorry, currently only simple catch forms are supported.")
     (make-instance 'js-try
 		   :body body
 		   :catch (when catch (list (js-compile-to-symbol (caar catch))

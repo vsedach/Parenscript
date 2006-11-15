@@ -99,9 +99,7 @@
                          built (concatenate 'string built
                                             (when (not (empty-p built))
                                               (list #\Newline))
-                                            line))))))
-        (format out-stream "~%(run-tests)~%")))))
+                                            line))))))))))
 
 
-
-;; (make-reference-tests-dot-lisp)
+(make-reference-tests-dot-lisp)

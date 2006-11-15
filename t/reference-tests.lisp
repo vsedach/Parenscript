@@ -480,5 +480,3 @@ x = a + b + c;")
     + ' looks like this.</div>';
 }")
 
-
-(run-tests)

@@ -29,6 +29,9 @@
 (defmethod asdf:perform :after ((op asdf:load-op) (system (eql (asdf:find-system :parenscript)))) 
   (pushnew :parenscript cl:*features*))
 
+(defmethod asdf:perform ((o test-op) (c (eql (find-system :parenscript))))
+  (asdf:operate 'asdf:test-op :parenscript.test))
+
 (defsystem :parenscript.test
   :depends-on (:parenscript :fiveam :cl-ppcre)
   :components ((:module :t
@@ -36,3 +39,8 @@
                              (:file "test" :depends-on ("test-package"))
                              (:file "ref2test" :depends-on ("test"))
                              (:file "reference-tests" :depends-on ("test"))))))
+
+(defmethod asdf:perform ((o test-op) (c (eql (find-system :parenscript.test))))
+  (asdf:operate 'asdf:load-op :parenscript.test)
+  (funcall (intern (symbol-name :run-tests)
+                   (find-package :js-test))))

@@ -37,6 +37,14 @@
 (def-suite ps-tests)
 (in-suite ps-tests)
 
+(test-ps-js plus-is-not-commutative
+   (setf x (+ "before" x "after"))
+   "x = 'before' + x + 'after';")
+
+(test-ps-js dot-notation-bug
+     (.match (+ "" x) "foo")
+     "('' + x).match('foo')")
+
 ;; A problem with long nested operator, when the statement spanned several rows
 ;; the rows would not be joined together correctly.
 (test-ps-js bug-dwim-join

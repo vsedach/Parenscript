@@ -100,6 +100,7 @@ x = 2 + sideEffect() + x + 5;")
 (test-ps-js method-call-lambda-call
             (.to-string ((lambda (x) (return x)) 10))
             "(function (x) {return x;})(10).toString()")
+
 (test no-whitespace-before-dot
   (let* ((str (js:js* '(.to-string ((lambda (x) (return x)) 10))))
          (dot-pos (position #\. str :test #'char=))

@@ -265,8 +265,8 @@ x = a + b + c;")
   "a++")
 
 (test-ps-js assignment-4
-  (setf a (* 2 3 4 a 4 a))
-  "a *= 2 * 3 * 4 * 4 * a")
+  (setf a (+ a 2 3 4 a))
+  "a += 2 + 3 + 4 + a")
 
 (test-ps-js assignment-5
   (setf a (- 1 a))

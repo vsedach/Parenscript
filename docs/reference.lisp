@@ -505,7 +505,7 @@ a-variable  => aVariable
 
 (setf a (1+ a))          => a++
 
-(setf a (* 2 3 4 a 4 a)) => a *= 2 * 3 * 4 * 4 * a
+(setf a (+ a 2 3 4 a))   => a += 2 + 3 + 4 + a
 
 (setf a (- 1 a))         => a = 1 - a
 

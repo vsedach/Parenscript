@@ -869,6 +869,33 @@ vice-versa.")
 (defjsmacro lisp (&rest forms)
   (eval (cons 'progn forms)))
 
+;;; cond
+
+(defjsclass js-cond (expression)
+  ((tests :initarg :tests
+	  :accessor cond-tests)
+   (bodies :initarg :bodies
+	   :accessor cond-bodies)))
+
+(define-js-compiler-macro cond (&rest clauses)
+  (make-instance 'js-cond
+		 :tests (mapcar (lambda (clause) (js-compile-to-expression (car clause)))
+				clauses)
+		 :bodies (mapcar (lambda (clause) (js-compile-to-body (cons 'progn (cdr clause)) :indent "  "))
+				 clauses)))
+
+(defmethod js-to-statement-strings ((cond js-cond) start-pos)
+  (loop :for body :on (cond-bodies cond)
+	:for first = (eq body (cond-bodies cond))
+	:for last = (not (cdr body))
+	:for test :in (cond-tests cond)
+	:append (if (and last (not first) (string= (value test) "true"))
+		    '("else {")
+		    (dwim-join (list (js-to-strings test 0)) (- 80 start-pos 2)
+			       :start (if first "if (" "else if (") :end ") {"))
+	:append (js-to-statement-strings (car body) (+ start-pos 2))
+	:collect "}"))
+
 ;;; if
 
 (defjsclass js-if (expression)

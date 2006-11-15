@@ -675,7 +675,7 @@ vice-versa.")
     ;; TODO: this may not be the best way to add ()'s around lambdas
     ;; probably there is or should be a more general solution working
     ;; in other situations involving lambda's
-    (when (typep (m-object form) 'js-lambda)
+    (when (member (m-object form) (list 'js-lambda 'number-literal 'js-object 'op-form) :test #'typep)  
       (push "(" object)
       (nconc object (list ")")))
     (let* ((fname (dwim-join (list object
@@ -684,14 +684,19 @@ vice-versa.")
                              :end "("
                              :separator ""))
            (butlast (butlast fname))
-           (last (car (last fname))))
-      (nconc butlast
-	     (dwim-join (mapcar #'(lambda (x) (js-to-strings x (+ start-pos 2)))
-				(m-args form))
-			(- 80 start-pos 2)
-			:start last
-			:end ")"
-			:join-after ",")))))
+           (last (car (last fname)))
+           (method-and-args (dwim-join (mapcar #'(lambda (x) (js-to-strings x (+ start-pos 2)))
+                                               (m-args form))
+                                       (- 80 start-pos 2)
+                                       :start last
+                                       :end ")"
+                                       :join-after ","))
+           (ensure-no-newline-before-dot (concatenate 'string
+                                                      (car (last butlast))
+                                                      (first method-and-args))))
+      (nconc (butlast butlast)
+             (list ensure-no-newline-before-dot)
+             (rest method-and-args)))))
 
 (defun method-call-p (form)
   (and (funcall-form-p form)

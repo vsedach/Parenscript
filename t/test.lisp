@@ -138,14 +138,14 @@
   (let ((escapes `((#\\ . #\\)
                    (#\b . #\Backspace)
                    (#\f . #\Form)
-                   ("u000B" . ,(code-char #x000b));;Vertical tab, too uncommon to bother with
+                   ("u000b" . ,(code-char #x000b));;Vertical tab, too uncommon to bother with
                    (#\n . #\Newline)
                    (#\r . #\Return)
                    (#\' . #\');;Double quote need not be quoted because parenscript strings are single quoted
                    (#\t . #\Tab)
-                   ("u001F" . ,(code-char #x001f));; character below 32
+                   ("u001f" . ,(code-char #x001f));; character below 32
                    ("u0080" . ,(code-char 128)) ;;Character over 127. Actually valid, parenscript escapes them to be sure.
-                   ("uABCD" . ,(code-char #xabcd)))));; Really above ascii.
+                   ("uabcd" . ,(code-char #xabcd)))));; Really above ascii.
     (loop for (js-escape . lisp-char) in escapes
           for generated = (js-to-string `(let ((x , (format nil "hello~ahi" lisp-char)))))
           for wanted = (format nil "{

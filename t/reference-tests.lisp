@@ -430,7 +430,7 @@ x = a + b + c;")
 }")
 
 (test-ps-js the-with-statement-1
-  (with ((create :foo "foo" :i "i"))
+  (with (create :foo "foo" :i "i")
   (alert (+ "i is now intermediary scoped: " i)))
   "with ({ foo : 'foo',
         i : 'i' }) {

@@ -818,7 +818,7 @@ a-variable  => aVariable
 ;;;t \index{scoping}
 ;;;t \index{closure}
 
-; (WITH (object) body)
+; (WITH object body)
 ;
 ; object ::= a ParenScript expression evaluating to an object
 ; body   ::= a list of ParenScript statements
@@ -827,7 +827,7 @@ a-variable  => aVariable
 ;;; adds the object `object' as an intermediary scope objects when
 ;;; executing the body.
 
-(with ((create :foo "foo" :i "i"))
+(with (create :foo "foo" :i "i")
   (alert (+ "i is now intermediary scoped: " i)))
    => with ({ foo : 'foo',
               i : 'i' }) {

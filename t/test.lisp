@@ -39,7 +39,36 @@
 
 (test-ps-js plus-is-not-commutative
    (setf x (+ "before" x "after"))
-   "x = 'before' + x + 'after';")
+   "x = 'before' + x + 'after'")
+
+(test-ps-js plus-works-if-first
+   (setf x (+ x "middle" "after"))
+   "x += 'middle' + 'after'")
+
+(test-ps-js setf-side-effects
+            (progn
+              (let ((x 10))
+                (defun side-effect() 
+                  (setf x 4)
+                  (return 3))
+                (setf x (+ 2 (side-effect) x 5))))
+            "
+var x = 10;
+function sideEffect() {
+  x = 4;
+  return 3;
+};
+x = 2 + sideEffect() + x + 5;")
+;; Parenscript used to optimize to much:
+;;   var x = 10;
+;;   function sideEffect() {
+;;     x = 4;
+;;     return 3;
+;;   };
+;;   x += 2 + sideEffect() + 5;
+;;
+;;   Which is 20, not 14
+
 
 (test-ps-js dot-notation-bug
      (.match (+ "" x) "foo")

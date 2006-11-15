@@ -1029,12 +1029,13 @@ vice-versa.")
 			      :value lhs))
 	      ((and (assignment-op (operator rhs))
 		    (member (operator rhs)
-			    '(+ *)))
+			    '(+ *))
+                    (js-equal lhs (first (op-args rhs))))
 	       (make-instance 'op-form
 			      :operator (assignment-op (operator rhs))
 			      :args (list lhs (make-instance 'op-form
 							     :operator (operator rhs)
-							     :args args-without))))
+							     :args args-without-first))))
 	      ((and (assignment-op (operator rhs))
 		    (js-equal (first (op-args rhs)) lhs))
 	       (make-instance 'op-form

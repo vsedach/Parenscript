@@ -74,6 +74,33 @@ x = 2 + sideEffect() + x + 5;")
      (.match (+ "" x) "foo")
      "('' + x).match('foo')")
 
+(test-ps-js method-call-number (.to-string 10) "(10).toString()")
+(test-ps-js method-call-string (.to-string "hi") "'hi'.toString()")
+(test-ps-js method-call-lit-object
+            (.to-string (create :to-string : (lambda ()
+                                                (return "it works"))))
+            "({ toString : function () {
+        return 'it works';
+      } }).toString();")
+
+(test-ps-js method-call-variable
+            (.to-string x)
+            "x.toString();")
+
+(test-ps-js method-call-array
+            (.to-string (list 10 20))
+            "[10, 20].toString();")
+(test-ps-js method-call-fn-call
+            (.to-string (foo))
+            "foo().toString();")
+(test-ps-js method-call-lambda-fn
+            (.to-string (lambda () (alert 10)))
+            "(function () {alert(10);}).toString();")
+(test-ps-js method-call-lambda-call
+            (.to-string ((lambda (x) (return x)) 10))
+            "(function (x) {return x;})(10).toString();")
+
+
 ;; A problem with long nested operator, when the statement spanned several rows
 ;; the rows would not be joined together correctly.
 (test-ps-js bug-dwim-join

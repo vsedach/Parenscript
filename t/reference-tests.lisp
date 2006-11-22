@@ -467,11 +467,26 @@ x = a + b + c;")
 ('<a href=\"#\" onclick=\"' + 'javascript:transport();' + '\">link</a>')")
 
 (test-ps-js the-html-generator-4
+  (let ((disabled nil)
+      (authorized t))
+   (setf element.inner-h-t-m-l
+         (html ((:textarea (or disabled (not authorized)) :disabled "disabled")
+                "Edit me"))))
+  " {
+   var disabled = null;
+   var authorized = true;
+   element.innerHTML =
+   '<textarea'
+   + (disabled || !authorized ? ' disabled=\"' + 'disabled' + '\"' : '')
+   + '>Edit me</textarea>';
+ }")
+
+(test-ps-js the-html-generator-5
   (css-inline :color "red"
             :font-size "x-small")
   "'color:red;font-size:x-small'")
 
-(test-ps-js the-html-generator-5
+(test-ps-js the-html-generator-6
   (defun make-color-div(color-name)
     (return (html ((:div :style (css-inline :color color-name))
                    color-name " looks like this."))))

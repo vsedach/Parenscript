@@ -21,38 +21,53 @@
 (defun process-html-forms (forms)
   (let (res)
     (labels ((handle-form (form)
-	     (cond ((keywordp form)
-		    (push (format nil "<~A/>"
-				  (string-downcase (symbol-name form))) res))
+               (cond ((keywordp form)
+                      (push (format nil "<~A/>"
+                                    (string-downcase (symbol-name form))) res))
 
-		   ((atom form)
-		    (push form res))
+                     ((atom form)
+                      (push form res))
 
-		   ((and (consp form)
-			 (keywordp (first form)))
-		    (let ((node-name (string-downcase (symbol-name (first form)))))
-		      (push (format nil "<~A>" node-name) res)
-		      (map nil #'handle-form (cdr form))
-		      (push (format nil "</~A>" node-name) res)))
+                     ((and (consp form)
+                           (keywordp (first form)))
+                      (let ((node-name (string-downcase (symbol-name (first form)))))
+                        (push (format nil "<~A>" node-name) res)
+                        (map nil #'handle-form (cdr form))
+                        (push (format nil "</~A>" node-name) res)))
 
-		   ((and (consp form)
-			 (consp (first form))
-			 (keywordp (caar form)))
-		    (let ((node-name (string-downcase (symbol-name (caar form)))))
-		      (push (format nil "<~A" node-name) res)
-		      (loop for (attr-name attr-val) on (cdar form) by #'cddr
-			    do (unless (keywordp attr-name)
-				 (error "~A is not a node attribute" attr-name))
-			    (push (format nil " ~A=\"" (string-downcase (symbol-name attr-name)))
-				  res)
-			    (push attr-val res)
-			    (push "\"" res))
-		      (push ">" res)
-		      (map nil #'handle-form (cdr form))
-		      (push (format nil "</~A>" node-name) res)))
+                     ((and (consp form)
+                           (consp (first form))
+                           (keywordp (caar form)))
+                      (let ((node-name (string-downcase (symbol-name (caar form)))))
+                        (push (format nil "<~A" node-name) res)
 
-		   ((consp form)
-		    (push form res)))))
+                        (loop with attrs = (cdar form)
+                              while attrs
+                              for attr-name = (pop attrs)
+                              for attr-test = (when (not (keywordp attr-name))
+                                                (let ((test attr-name))
+                                                  (setf attr-name (pop attrs))
+                                                  test))
+                              for attr-val = (pop attrs)
+                              do
+                              (if attr-test
+                                  (push `(if ,attr-test
+                                          (+ ,(format nil " ~A=\"" (string-downcase (symbol-name attr-name)))
+                                           ,attr-val
+                                           "\"")
+                                          "")
+                                        res)
+                                  (progn 
+                                    (push (format nil " ~A=\"" (string-downcase (symbol-name attr-name)))
+                                          res)
+                                    (push attr-val res)
+                                    (push "\"" res))))
+                        (push ">" res)
+                        (map nil #'handle-form (cdr form))
+                        (push (format nil "</~A>" node-name) res)))
+
+                     ((consp form)
+                      (push form res)))))
       (map nil #'handle-form forms))
     (cons '+ (optimize-string-list (nreverse res)))))
 

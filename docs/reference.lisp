@@ -894,6 +894,23 @@ a-variable  => aVariable
   => document.write
      ('<a href=\"#\" onclick=\"' + 'javascript:transport();' + '\">link</a>')
 
+;;; Forms may be used in attribute lists to conditionally generate
+;;; the next attribute. In this example the textarea is sometimes disabled.
+
+(let ((disabled nil)
+      (authorized t))
+   (setf element.inner-h-t-m-l
+         (html ((:textarea (or disabled (not authorized)) :disabled "disabled")
+                "Edit me"))))
+  =>  {
+        var disabled = null;
+        var authorized = true;
+        element.innerHTML =
+        '<textarea'
+        + (disabled || !authorized ? ' disabled=\"' + 'disabled' + '\"' : '')
+        + '>Edit me</textarea>';
+      }
+
 ; (CSS-INLINE css-expression)
 
 ;;; Stylesheets can also be created in ParenScript.

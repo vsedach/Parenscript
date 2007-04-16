@@ -486,6 +486,11 @@ vice-versa.")
   (declare (ignore start-form))
   (list (symbol-to-js (value v))))
 
+;;; quote
+
+(defjsclass js-quote (expression)
+  ())
+
 ;;; arithmetic operators
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
@@ -1408,7 +1413,7 @@ vice-versa.")
 	       (make-instance 'js-variable :value form))))
 	((and (consp form)
 	      (eql (first form) 'quote))
-	 (second form))
+	 (make-instance 'js-quote :value (second form)))
 	((consp form)
 	 (js-compile-list form))
 	(t (error "Unknown atomar expression ~S" form))))

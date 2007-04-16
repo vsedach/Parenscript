@@ -843,8 +843,10 @@ vice-versa.")
 
 (defmethod js-to-strings ((sv js-slot-value) start-pos)
   (append-to-last (js-to-strings (sv-object sv) start-pos)
-                  (if (symbolp (sv-slot sv))
-		      (format nil ".~A" (symbol-to-js (sv-slot sv)))
+                  (if (typep (sv-slot sv) 'js-quote)
+                      (if (symbolp (value (sv-slot sv)))
+                          (format nil ".~A" (symbol-to-js (value (sv-slot sv))))
+                          (format nil ".~A" (first (js-to-strings (sv-slot sv) 0))))
                       (format nil "[~A]" (first (js-to-strings (sv-slot sv) 0))))))
 
 (defjsmacro with-slots (slots object &rest body)

@@ -215,7 +215,7 @@ forms are compiler macros for JS expressions.")
   (defun undefine-js-compiler-macro (name)
     (declare (type symbol name))
     (when (gethash (symbol-name name) *js-compiler-macros*)
-      (warn "Redefining compiler macro ~S" name)
+      (warn "Redefining js compiler macro ~S" name)
       (remhash (symbol-name name) *js-compiler-macros*))))
 
 (defmacro define-js-compiler-macro (name lambda-list &rest body)

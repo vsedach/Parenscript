@@ -595,19 +595,42 @@ vice-versa.")
       (append-to-last value-strings
 		      (one-op one-op)))))
 
-(define-js-compiler-macro incf (x)
-  (make-instance 'one-op :pre-p t :op "++"
-		 :value (js-compile-to-expression x)))
 (define-js-compiler-macro ++ (x)
   (make-instance 'one-op :pre-p nil :op "++"
 		 :value (js-compile-to-expression x)))
-(define-js-compiler-macro decf (x)
-  (make-instance 'one-op :pre-p t :op "--"
-		 :value (js-compile-to-expression x)))
+
 (define-js-compiler-macro -- (x)
   (make-instance 'one-op :pre-p nil :op "--"
 		 :value (js-compile-to-expression x)))
 
+(define-js-compiler-macro incf (x &optional (delta 1))
+  (if (eql delta 1)
+      (make-instance 'one-op :pre-p t :op "++"
+                     :value (js-compile-to-expression x))
+      (make-instance 'op-form
+                     :operator '+=
+                     :args (mapcar #'js-compile-to-expression
+                                   (list x delta )))))
+
+(define-js-compiler-macro decf (x &optional (delta 1))
+  (if (eql delta 1)
+      (make-instance 'one-op :pre-p t :op "--"
+                     :value (js-compile-to-expression x))
+      (make-instance 'op-form
+                     :operator '-=
+                     :args (mapcar #'js-compile-to-expression
+                                   (list x delta )))))
+
+(define-js-compiler-macro - (first &rest rest)
+  (if (null rest)
+      (make-instance 'one-op
+                     :pre-p t
+                     :op "-"
+                     :value (js-compile-to-expression first))
+      (make-instance 'op-form
+                     :operator '-
+                     :args (mapcar #'js-compile-to-expression
+                                   (cons first rest)))))
 
 (define-js-compiler-macro not (x)
   (let ((value (js-compile-to-expression x)))

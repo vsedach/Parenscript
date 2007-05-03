@@ -8,11 +8,10 @@
     (pop res)
     (nreverse res)))
 
-;;; wie herrlich effizient
 (defun list-to-string (list)
-  (reduce #'(lambda (str1 &optional (str2 ""))
-              (concatenate 'string str1 str2))
-          list))
+  (with-output-to-string (str)
+    (dolist (el list)
+      (write-string el str))))
 
 (defun append-to-last (form elt)
   (cond ((stringp form)

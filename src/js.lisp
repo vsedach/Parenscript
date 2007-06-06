@@ -1042,6 +1042,8 @@ vice-versa.")
          (list "instanceof")
          (js-to-strings (slot-value instanceof 'type) (+ start-pos 2)))
    (- 80 start-pos 2)
+   :start "("
+   :end ")"
    :white-space
    "  "))
 

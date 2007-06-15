@@ -91,10 +91,10 @@
 			     (slot-value obj2 slot)))
 	       ',slot-names)))))
 
-(defjsclass statement ()
+(defclass statement ()
   ((value :initarg :value :accessor value :initform nil)))
 
-(defjsclass expression (statement)
+(defclass expression (statement)
   ((value)))
 
 ;;; indenter

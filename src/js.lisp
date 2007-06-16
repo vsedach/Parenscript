@@ -654,6 +654,10 @@ vice-versa.")
 	(make-instance 'one-op :pre-p t :op "!"
 		       :value value))))
 
+(define-js-compiler-macro ~ (x)
+  (let ((expr (js-compile-to-expression x)))
+    (make-instance 'one-op :pre-p t :op "~" :value expr)))
+
 ;;; function calls
 
 (defjsclass function-call (expression)

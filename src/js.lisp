@@ -259,15 +259,20 @@ this macro."
 			  (list *js-macro-toplevel*))))))))
 
 (defmacro defjsmacro (name args &rest body)
-  "Define a javascript macro, and store it in the toplevel macro environment."
+  "Define a ParenScript macro, and store it in the toplevel macro environment."
   (let ((lambda-list (gensym)))
     (undefine-js-compiler-macro name)
     `(setf (gethash ,(symbol-name name) *js-macro-toplevel*)
       #'(lambda (&rest ,lambda-list)
           (destructuring-bind ,args ,lambda-list ,@body)))))
 
+(defmacro defmacro/js (name args &body body)
+  "Define a Lisp macro and import it into the ParenScript macro environment."
+  `(progn (defmacro ,name ,args ,@body)
+	  (js:import-macros-from-lisp ',name)))
+
 (defun import-macros-from-lisp (&rest names)
-  "Import the named lisp macros into the js macro expansion"
+  "Import the named Lisp macros into the ParenScript macro environment."
   (dolist (name names)
     (let ((name name))
       (undefine-js-compiler-macro name)

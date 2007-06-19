@@ -11,7 +11,7 @@
   :name "parenscript"
   :author "Manuel Odendahl <manuel@bl0rg.net>"
   :version "0"
-  :maintainer "Edward Marco Baringer <mb@bese.it>"
+  :maintainer "Vladimir Sedach <vsedach@gmail.com>"
   :licence "BSD"
   :description "js - javascript compiler"
   :components ((:static-file "parenscript.asd")
@@ -23,6 +23,7 @@
                              (:file "js-html" :depends-on ("package" "js" "utils"))
                              (:file "css" :depends-on ("package" "utils"))
                              (:file "compile-js" :depends-on ("package" "js"))
+                             (:file "js-utils" :depends-on ("package" "js"))
                              (:module :lib
                                       :components ((:static-file "functional.lisp")))))))
 

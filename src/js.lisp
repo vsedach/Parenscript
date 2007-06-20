@@ -259,7 +259,7 @@ this macro."
 			  (list *js-macro-toplevel*))))))))
 
 (defmacro defjsmacro (name args &rest body)
-  "Define a ParenScript macro, and store it in the toplevel macro environment."
+  "Define a ParenScript macro, and store it in the toplevel ParenScript macro environment."
   (let ((lambda-list (gensym)))
     (undefine-js-compiler-macro name)
     `(setf (gethash ,(symbol-name name) *js-macro-toplevel*)
@@ -270,6 +270,15 @@ this macro."
   "Define a Lisp macro and import it into the ParenScript macro environment."
   `(progn (defmacro ,name ,args ,@body)
 	  (js:import-macros-from-lisp ',name)))
+
+(defmacro defmacro+js (name args &body body)
+  "Define a Lisp macro and a ParenScript macro in their respective
+macro environments. This function should be used when you want to use
+the same macro in both Lisp and ParenScript, but the 'macroexpand' of
+that macro in Lisp makes the Lisp macro unsuitable to be imported into
+the ParenScript macro environment."
+  `(progn (defmacro ,name ,args ,@body)
+    (js:defjsmacro ,name ,args ,@body)))
 
 (defun import-macros-from-lisp (&rest names)
   "Import the named Lisp macros into the ParenScript macro environment."

@@ -130,6 +130,7 @@
    #:js-to-line
    #:defjsmacro
    #:defmacro/js
+   #:defmacro+js
    #:import-macros-from-lisp
    
    ;; util

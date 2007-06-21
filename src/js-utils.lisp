@@ -3,7 +3,7 @@
 ;;; Handy utilities for doing common tasks found in many web browser
 ;;; JavaScript implementations
 
-(defjsmacro with-timeout ((timeout) &body body)
+(defjsmacro do-set-timeout ((timeout) &body body)
   `(set-timeout (lambda () ,@body) ,timeout))
 
 ;;; Arithmetic
@@ -29,3 +29,8 @@
     (random (&optional upto) (if upto
                                  `(floor (* ,upto (*math.random)))
                                  '(*math.random))))
+
+;;; Exception handling
+
+(defjsmacro ignore-errors (&body body)
+  `(try (progn ,@body) (:catch (e))))

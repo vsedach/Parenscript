@@ -912,6 +912,9 @@ vice-versa.")
 			  `(,(first macro) () ,@(rest macro))) macros)
     ,@body))
 
+(defjsmacro defmacro (name args &body body)
+  `(lisp (defjsmacro ,name ,args ,@body) nil))
+
 ;;; lisp eval
 
 (defjsmacro lisp (&rest forms)

@@ -1,4 +1,4 @@
-(in-package :js)
+(in-package :parenscript)
 
 ;;; Handy utilities for doing common tasks found in many web browser
 ;;; JavaScript implementations

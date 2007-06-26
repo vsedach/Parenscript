@@ -1,7 +1,8 @@
 (in-package :cl-user)
 
-(defpackage :js
+(defpackage :parenscript
   (:use :common-lisp)
+  (:nicknames :js)
   (:export
    ;; addition js symbols
    #:new

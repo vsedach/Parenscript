@@ -1,4 +1,4 @@
-(in-package :js)
+(in-package :parenscript)
 
 (defun list-join (list elt)
   (let (res)

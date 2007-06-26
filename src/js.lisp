@@ -1,4 +1,4 @@
-(in-package :js)
+(in-package :parenscript)
 
 ;;; ecmascript standard:
 ;;; http://www.ecma-international.org/publications/standards/Ecma-262.htm

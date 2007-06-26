@@ -1,4 +1,4 @@
-(in-package :js)
+(in-package :parenscript)
 
 (defun make-css-rule (selectors properties)
   (list (mapcar #'val-to-string

@@ -1,7 +1,7 @@
 ;; Description:
 ;;   Javascript html generator
 
-(in-package :js)
+(in-package :parenscript)
 
 (defun optimize-string-list (list)
   (let (res

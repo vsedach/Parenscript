@@ -1,4 +1,4 @@
-(in-package :js)
+(in-package :parenscript)
 
 (defun compile-parenscript-file-to-string (source-file &key
                                                        (log-stream nil)

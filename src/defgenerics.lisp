@@ -1,4 +1,4 @@
-(in-package :js)
+(in-package :parenscript)
 
 (defgeneric js-equal (obj1 obj2)
   (:documentation "Determine if two enscript-javascript statements are equivalent"))

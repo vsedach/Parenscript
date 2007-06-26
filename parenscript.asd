@@ -19,11 +19,14 @@
                 :components ((:file "package")
                              (:file "utils" :depends-on ("package"))
                              (:file "defgenerics" :depends-on ("package"))
-                             (:file "js" :depends-on ("package" "utils" "defgenerics"))
-                             (:file "js-html" :depends-on ("package" "js" "utils"))
+;                             (:file "js" :depends-on ("package" "utils" "defgenerics"))
+			     (:file "source-model" :depends-on ("package" "utils" "defgenerics"))
+			     (:file "parser" :depends-on ("source-model"))
+			     (:file "js-translation" :depends-on ("parser"))
+                             (:file "js-html" :depends-on ("package" "js-translation" "utils"))
                              (:file "css" :depends-on ("package" "utils"))
-                             (:file "compile-js" :depends-on ("package" "js"))
-                             (:file "js-utils" :depends-on ("package" "js"))
+                             (:file "compile-js" :depends-on ("package" "js-translation"))
+                             (:file "js-utils" :depends-on ("package" "js-translation"))
                              (:module :lib
                                       :components ((:static-file "functional.lisp")))))))
 

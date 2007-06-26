@@ -204,67 +204,89 @@
   (declare (ignore start-pos))
   (list (princ-to-string (value statement))))
 
-;;; compiler macros
+;;; special forms
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
-  (defvar *js-compiler-macros* (make-hash-table :test 'equal)
-        "*JS-COMPILER-MACROS* is a hash-table containing the functions corresponding
-to javascript special forms, indexed by their name. Javascript special
-forms are compiler macros for JS expressions.")
+  (defvar *js-special-forms* (make-hash-table :test 'equal)
+        "A hash-table containing functions that implement ParenScript
+special forms, indexed by name (a string).")
 
-  (defun undefine-js-compiler-macro (name)
-    (declare (type symbol name))
-    (when (gethash (symbol-name name) *js-compiler-macros*)
-      (warn "Redefining js compiler macro ~S" name)
-      (remhash (symbol-name name) *js-compiler-macros*))))
+  (defun undefine-js-special-form (name)
+    (when (gethash (symbol-name name) *js-special-forms*)
+      (warn "Redefining ParenScript special form ~S" name)
+      (remhash (symbol-name name) *js-special-forms*))))
 
-(defmacro define-js-compiler-macro (name lambda-list &rest body)
-  "Define a javascript compiler macro NAME. Arguments are destructured
-according to LAMBDA-LIST. The resulting JS language types are appended
-to the ongoing javascript compilation."
-  (let ((js-name (intern (concatenate 'string "JS-" (symbol-name name)) #.*package*)))
+(defmacro define-js-special-form (name lambda-list &rest body)
+  "Define a special form NAME. Arguments are destructured according to
+LAMBDA-LIST. The resulting JS language types are appended to the
+ongoing javascript compilation."
+  (let ((js-name (intern (concatenate 'string "JS-" (symbol-name name)) #.*package*))
+        (arglist (gensym "ps-arglist-")))
     `(eval-when (:compile-toplevel :load-toplevel :execute)
-      (defun ,js-name ,lambda-list ,@body)
-      (setf (gethash ,(symbol-name name) *js-compiler-macros*) #',js-name))))
+      (defun ,js-name (&rest ,arglist)
+        (destructuring-bind ,lambda-list
+            ,arglist
+          ,@body))
+      (setf (gethash ,(symbol-name name) *js-special-forms*) #',js-name))))
 
-(defun js-compiler-macro-form-p (form)
-  (when (and (symbolp (car form))
-             (gethash (symbol-name (car form)) *js-compiler-macros*))
-    t))
+(defun js-special-form-p (form)
+  (and (consp form)
+       (symbolp (car form))
+       (gethash (symbol-name (car form)) *js-special-forms*)))
 
-(defun js-get-compiler-macro (name)
+(defun js-get-special-form (name)
   (when (symbolp name)
-    (gethash (symbol-name name) *js-compiler-macros*)))
+    (gethash (symbol-name name) *js-special-forms*)))
 
 ;;; macro expansion
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
-  (defvar *js-macro-toplevel* (make-hash-table :test 'equal)
-    "Toplevel of macro expansion, holds all the toplevel javascript macros.")
+  (defun make-macro-env-dictionary ()
+    (make-hash-table :test 'equal))
+  
+  (defvar *js-macro-toplevel* (make-macro-env-dictionary)
+    "Toplevel macro environment dictionary. Key is symbol-name of the macro, value is (symbol-macro-p . expansion-function).")
   (defvar *js-macro-env* (list *js-macro-toplevel*)
     "Current macro environment."))
 
-(defun lookup-macro (name)
-  "Lookup the macro NAME in the current macro expansion
-environment. Returns the macro and the parent macro environment of
-this macro."
-  (unless (symbolp name)
-    (return-from lookup-macro nil))
-  (do ((env *js-macro-env* (cdr env)))
-      ((null env) nil)
-    (let ((val (gethash (symbol-name name) (car env))))
-      (when val
-	(return-from lookup-macro
-	  (values val (or (cdr env)
-			  (list *js-macro-toplevel*))))))))
+(defmacro get-macro-spec (name env-dict)
+  `(gethash (symbol-name ,name) ,env-dict))
+
+(defun lookup-macro-spec (name &optional (environment *js-macro-env*))
+  (when (symbolp name)
+    (do ((env environment (cdr env)))
+        ((null env) nil)
+      (let ((val (get-macro-spec name (car env))))
+        (when val
+          (return-from lookup-macro-spec
+            (values val (or (cdr env)
+                            (list *js-macro-toplevel*)))))))))
+
+(defun symbol-macro-p (name &optional (environment *js-macro-env*))
+  (and (symbolp name) (car (lookup-macro-spec name environment))))
+
+(defun macro-p (name &optional (environment *js-macro-env*))
+  (and (symbolp name) (let ((macro-spec (lookup-macro-spec name environment)))
+                        (and macro-spec (not (car macro-spec))))))
+
+(defun lookup-macro-expansion-function (name &optional (environment *js-macro-env*))
+  "Lookup NAME in the given macro expansion environment (which
+defaults to the current macro environment). Returns the expansion
+function and the parent macro environment of the macro."
+  (multiple-value-bind (macro-spec parent-env)
+      (lookup-macro-spec name environment)
+    (values (cdr macro-spec) parent-env)))
 
 (defmacro defjsmacro (name args &rest body)
   "Define a ParenScript macro, and store it in the toplevel ParenScript macro environment."
-  (let ((lambda-list (gensym)))
-    (undefine-js-compiler-macro name)
-    `(setf (gethash ,(symbol-name name) *js-macro-toplevel*)
-      #'(lambda (&rest ,lambda-list)
-          (destructuring-bind ,args ,lambda-list ,@body)))))
+  (let ((lambda-list (gensym "ps-lambda-list-"))
+        (body (if (stringp (first body)) (rest body) body))) ;; drop docstring
+    (undefine-js-special-form name)
+    `(setf (get-macro-spec ',name *js-macro-toplevel*)
+      (cons nil (lambda (&rest ,lambda-list)
+                  (destructuring-bind ,args
+                      ,lambda-list
+                    ,@body))))))
 
 (defmacro defmacro/js (name args &body body)
   "Define a Lisp macro and import it into the ParenScript macro environment."
@@ -278,35 +300,33 @@ the same macro in both Lisp and ParenScript, but the 'macroexpand' of
 that macro in Lisp makes the Lisp macro unsuitable to be imported into
 the ParenScript macro environment."
   `(progn (defmacro ,name ,args ,@body)
-    (js:defjsmacro ,name ,args ,@body)))
+          (js:defjsmacro ,name ,args ,@body)))
 
 (defun import-macros-from-lisp (&rest names)
   "Import the named Lisp macros into the ParenScript macro environment."
   (dolist (name names)
     (let ((name name))
-      (undefine-js-compiler-macro name)
-      (setf (gethash (symbol-name name) *js-macro-toplevel*)
-            (lambda (&rest args)
-              (macroexpand `(,name ,@args)))))))
+      (undefine-js-special-form name)
+      (setf (get-macro-spec name *js-macro-toplevel*)
+            (cons nil (lambda (&rest args)
+                        (macroexpand `(,name ,@args))))))))
 
 (defun js-expand-form (expr)
-  "Expand a javascript form."
-  (cond ((atom expr)
-	 (multiple-value-bind (js-macro macro-env)
-	     (lookup-macro expr)
-	   (if js-macro
-	       (js-expand-form (let ((*js-macro-env* macro-env))
-				 (funcall js-macro)))
-	       expr)))
-
-	((js-compiler-macro-form-p expr) expr)
-
-	((equal (first expr) 'quote) expr)
-
-	(t (let ((js-macro (lookup-macro (car expr))))
-	     (if js-macro
-		 (js-expand-form (apply js-macro (cdr expr)))
-		 expr)))))
+  (if (consp expr)
+      (let ((op (car expr))
+            (args (cdr expr)))
+        (cond ((equal op 'quote) expr)
+              ((macro-p op) (multiple-value-bind (expansion-function macro-env)
+                                (lookup-macro-expansion-function op)
+                              (js-expand-form (let ((*js-macro-env* macro-env))
+                                                (apply expansion-function args)))))
+              (t expr)))
+      (cond ((js-special-form-p expr) expr)
+            ((symbol-macro-p expr) (multiple-value-bind (expansion-function macro-env)
+                                       (lookup-macro-expansion-function expr)
+                                     (js-expand-form (let ((*js-macro-env* macro-env))
+                                                       (funcall expansion-function)))))
+            (t expr))))
 
 (defvar *gen-js-name-counter* 0)
 
@@ -337,11 +357,10 @@ prefix)."
      ,@body))
 
 (defjsmacro rebind (variables expression)
-  ;; Creates a new js lexical environment and copies the given
-  ;; variable(s) there.  Executes the body in the new environment. This
-  ;; has the same effect as a new (let () ...) form in lisp but works on
-  ;; the js side for js closures."
-  
+  "Creates a new js lexical environment and copies the given
+  variable(s) there.  Executes the body in the new environment. This
+  has the same effect as a new (let () ...) form in lisp but works on
+  the js side for js closures."
   (unless (listp variables)
     (setf variables (list variables)))
   `((lambda ()
@@ -361,7 +380,7 @@ prefix)."
 
 (defmacro defjsliteral (name string)
   "Define a Javascript literal that will expand to STRING."
-  `(define-js-compiler-macro ,name () (make-instance 'expression :value ,string)))
+  `(define-js-special-form ,name () (make-instance 'expression :value ,string)))
 
 (defjsliteral this      "this")
 (defjsliteral t         "true")
@@ -371,7 +390,7 @@ prefix)."
 
 (defmacro defjskeyword (name string)
   "Define a Javascript keyword that will expand to STRING."
-  `(define-js-compiler-macro ,name () (make-instance 'statement :value ,string)))
+  `(define-js-special-form ,name () (make-instance 'statement :value ,string)))
 
 (defjskeyword break    "break")
 (defjskeyword continue "continue")
@@ -381,7 +400,7 @@ prefix)."
 (defjsclass array-literal (expression)
   ((values :initarg :values :accessor array-values)))
 
-(define-js-compiler-macro array (&rest values)
+(define-js-special-form array (&rest values)
   (make-instance 'array-literal
 		 :values (mapcar #'js-compile-to-expression values)))
 
@@ -403,7 +422,7 @@ prefix)."
    (index :initarg :index
 	  :accessor aref-index)))
 
-(define-js-compiler-macro aref (array &rest coords)
+(define-js-special-form aref (array &rest coords)
   (make-instance 'js-aref
 		 :array (js-compile-to-expression array)
 		 :index (mapcar #'js-compile-to-expression coords)))
@@ -425,7 +444,7 @@ prefix)."
 (defjsclass object-literal (expression)
   ((values :initarg :values :accessor object-values)))
 
-(define-js-compiler-macro {} (&rest values)
+(define-js-special-form {} (&rest values)
   (make-instance 'object-literal
                  :values (loop
                             for (key value) on values by #'cddr
@@ -557,7 +576,7 @@ vice-versa.")
 
 (defun op-form-p (form)
   (and (listp form)
-       (not (js-compiler-macro-form-p form))
+       (not (js-special-form-p form))
        (not (null (op-precedence (first form))))))
 
 (defun klammer (string-list)
@@ -609,15 +628,15 @@ vice-versa.")
       (append-to-last value-strings
 		      (one-op one-op)))))
 
-(define-js-compiler-macro ++ (x)
+(define-js-special-form ++ (x)
   (make-instance 'one-op :pre-p nil :op "++"
 		 :value (js-compile-to-expression x)))
 
-(define-js-compiler-macro -- (x)
+(define-js-special-form -- (x)
   (make-instance 'one-op :pre-p nil :op "--"
 		 :value (js-compile-to-expression x)))
 
-(define-js-compiler-macro incf (x &optional (delta 1))
+(define-js-special-form incf (x &optional (delta 1))
   (if (eql delta 1)
       (make-instance 'one-op :pre-p t :op "++"
                      :value (js-compile-to-expression x))
@@ -626,7 +645,7 @@ vice-versa.")
                      :args (mapcar #'js-compile-to-expression
                                    (list x delta )))))
 
-(define-js-compiler-macro decf (x &optional (delta 1))
+(define-js-special-form decf (x &optional (delta 1))
   (if (eql delta 1)
       (make-instance 'one-op :pre-p t :op "--"
                      :value (js-compile-to-expression x))
@@ -635,7 +654,7 @@ vice-versa.")
                      :args (mapcar #'js-compile-to-expression
                                    (list x delta )))))
 
-(define-js-compiler-macro - (first &rest rest)
+(define-js-special-form - (first &rest rest)
   (if (null rest)
       (make-instance 'one-op
                      :pre-p t
@@ -646,7 +665,7 @@ vice-versa.")
                      :args (mapcar #'js-compile-to-expression
                                    (cons first rest)))))
 
-(define-js-compiler-macro not (x)
+(define-js-special-form not (x)
   (let ((value (js-compile-to-expression x)))
     (if (and (typep value 'op-form)
 	     (= (length (op-args value)) 2))
@@ -668,7 +687,7 @@ vice-versa.")
 	(make-instance 'one-op :pre-p t :op "!"
 		       :value value))))
 
-(define-js-compiler-macro ~ (x)
+(define-js-special-form ~ (x)
   (let ((expr (js-compile-to-expression x)))
     (make-instance 'one-op :pre-p t :op "~" :value expr)))
 
@@ -681,7 +700,7 @@ vice-versa.")
 (defun funcall-form-p (form)
   (and (listp form)
        (not (op-form-p form))
-       (not (js-compiler-macro-form-p form))))
+       (not (js-special-form-p form))))
 
 (defmethod js-to-strings ((form function-call) start-pos)
   (let* ((value-string-lists
@@ -755,7 +774,7 @@ vice-versa.")
   ((stmts :initarg :stmts :accessor b-stmts)
    (indent :initarg :indent :initform "" :accessor b-indent)))
 
-(define-js-compiler-macro progn (&rest body)
+(define-js-special-form progn (&rest body)
   (make-instance 'js-body
 		 :stmts (mapcar #'js-compile-to-statement body)))
 
@@ -805,7 +824,7 @@ vice-versa.")
   ((args :initarg :args :accessor lambda-args)
    (body :initarg :body :accessor lambda-body)))
 
-(define-js-compiler-macro lambda (args &rest body)
+(define-js-special-form lambda (args &rest body)
   (make-instance 'js-lambda
                  :args (mapcar #'js-compile-to-symbol args)
                  :body (make-instance 'js-body
@@ -831,7 +850,7 @@ vice-versa.")
 (defjsclass js-defun (js-lambda)
   ((name :initarg :name :accessor defun-name)))
 
-(define-js-compiler-macro defun (name args &rest body)
+(define-js-special-form defun (name args &rest body)
   (make-instance 'js-defun
 		 :name (js-compile-to-symbol name)
 		 :args (mapcar #'js-compile-to-symbol args)
@@ -848,7 +867,7 @@ vice-versa.")
   ((slots :initarg :slots
 	  :accessor o-slots)))
 
-(define-js-compiler-macro create (&rest args)
+(define-js-special-form create (&rest args)
   (make-instance 'js-object
 		 :slots (loop for (name val) on args by #'cddr
 			      collect (let ((name-expr (js-compile-to-expression name)))
@@ -878,7 +897,7 @@ vice-versa.")
    (slot :initarg :slot
 	 :accessor sv-slot)))
 
-(define-js-compiler-macro slot-value (obj slot)
+(define-js-special-form slot-value (obj slot)
   (make-instance 'js-slot-value :object (js-compile-to-expression obj)
    		   :slot (js-compile slot)))
 
@@ -898,26 +917,41 @@ vice-versa.")
 
 ;;; macros
 
-(define-js-compiler-macro macrolet (macros &rest body)
-  (let* ((macro-env (make-hash-table :test 'equal))
-	 (*js-macro-env* (cons macro-env *js-macro-env*)))
+(defmacro with-temp-macro-environment ((var) &body body)
+  `(let* ((,var (make-macro-env-dictionary))
+          (*js-macro-env* (cons ,var *js-macro-env*)))
+    ,@body))
+
+(define-js-special-form macrolet (macros &body body)
+  (with-temp-macro-environment (macro-env-dict)
     (dolist (macro macros)
-      (destructuring-bind (name arglist &rest body) macro
-	(setf (gethash (symbol-name name) macro-env)
-	      (compile nil `(lambda ,arglist ,@body)))))
+      (destructuring-bind (name arglist &body body)
+          macro
+	(setf (get-macro-spec name macro-env-dict)
+	      (cons nil (let ((args (gensym "ps-macrolet-args-")))
+                          (compile nil `(lambda (&rest ,args)
+                                         (destructuring-bind ,arglist
+                                             ,args
+                                           ,@body))))))))
     (js-compile `(progn ,@body))))
 
-(defjsmacro symbol-macrolet (macros &rest body)
-  `(macrolet ,(mapcar #'(lambda (macro)
-			  `(,(first macro) () ,@(rest macro))) macros)
-    ,@body))
+(define-js-special-form symbol-macrolet (symbol-macros &body body)
+  (with-temp-macro-environment (macro-env-dict)
+    (dolist (macro symbol-macros)
+      (destructuring-bind (name &body expansion)
+          macro
+	(setf (get-macro-spec name macro-env-dict)
+	      (cons t (compile nil `(lambda () ,@expansion))))))
+    (js-compile `(progn ,@body))))
 
 (defjsmacro defmacro (name args &body body)
   `(lisp (defjsmacro ,name ,args ,@body) nil))
 
-;;; lisp eval
-
-(defjsmacro lisp (&rest forms)
+(defjsmacro lisp (&body forms)
+  "Evaluates the given forms in Common Lisp at ParenScript
+macro-expansion time. The value of the last form is treated as a
+ParenScript expression and is inserted into the generated Javascript
+(use nil for no-op)."
   (eval (cons 'progn forms)))
 
 ;;; cond
@@ -928,7 +962,7 @@ vice-versa.")
    (bodies :initarg :bodies
 	   :accessor cond-bodies)))
 
-(define-js-compiler-macro cond (&rest clauses)
+(define-js-special-form cond (&rest clauses)
   (make-instance 'js-cond
 		 :tests (mapcar (lambda (clause) (js-compile-to-expression (car clause)))
 				clauses)
@@ -957,7 +991,7 @@ vice-versa.")
    (else :initarg :else
 	 :accessor if-else)))
 
-(define-js-compiler-macro if (test then &optional else)
+(define-js-special-form if (test then &optional else)
   (make-instance 'js-if :test (js-compile-to-expression test)
 		 :then (js-compile-to-body then :indent "  ")
 		 :else (when else
@@ -1028,7 +1062,7 @@ vice-versa.")
   `(progn
     (defjsclass ,js-name (,superclass)
       (value))
-    (define-js-compiler-macro ,name (value)
+    (define-js-special-form ,name (value)
       (make-instance ',js-name :value (js-compile-to-expression value)))
     (defmethod ,(if (eql superclass 'expression)
 		    'js-to-strings
@@ -1052,7 +1086,7 @@ vice-versa.")
   ((value)
    (type :initarg :type)))
 
-(define-js-compiler-macro instanceof (value type)
+(define-js-special-form instanceof (value type)
   (make-instance 'js-instanceof
                  :value (js-compile-to-expression value)
                  :type (js-compile-to-expression type)))
@@ -1131,7 +1165,7 @@ vice-versa.")
 	      (t (make-instance 'js-setf :lhs lhs :rhsides (list rhs)))))
       (make-instance 'js-setf :lhs lhs :rhsides (list rhs))))
 
-(define-js-compiler-macro setf (&rest args)
+(define-js-special-form setf (&rest args)
   (let ((assignments (loop for (lhs rhs) on args by #'cddr
 			   for rexpr = (js-compile-to-expression rhs)
 			   for lexpr = (js-compile-to-expression lhs)
@@ -1155,7 +1189,7 @@ vice-versa.")
   ((names :initarg :names :accessor var-names)
    (value :initarg :value :accessor var-value)))
 
-(define-js-compiler-macro defvar (name &optional value)
+(define-js-special-form defvar (name &optional value)
   (make-instance 'js-defvar :names (list (js-compile-to-symbol name))
 		 :value (when value (js-compile-to-expression value))))
 
@@ -1169,7 +1203,7 @@ vice-versa.")
 
 ;;; let
 
-(define-js-compiler-macro let (decls &rest body)
+(define-js-special-form let (decls &rest body)
   (let ((defvars (mapcar #'(lambda (decl)
 			     (if (atom decl)
                                  (make-instance 'js-defvar
@@ -1206,7 +1240,7 @@ vice-versa.")
 	when (= (length decl) 3)
 	collect (js-compile-to-expression (third decl))))
 
-(define-js-compiler-macro do (decls termination &rest body)
+(define-js-special-form do (decls termination &rest body)
   (let ((vars (make-for-vars decls))
 	(steps (make-for-steps decls))
 	(check (js-compile-to-expression (list 'not (first termination))))
@@ -1268,7 +1302,7 @@ vice-versa.")
    (value :initarg :value :accessor fe-value)
    (body :initarg :body :accessor fe-body)))
 
-(define-js-compiler-macro doeach (decl &rest body)
+(define-js-special-form doeach (decl &rest body)
   (make-instance 'for-each :name (js-compile-to-symbol (first decl))
 		 :value (js-compile-to-expression (second decl))
 		 :body (js-compile-to-body (cons 'progn body) :indent "  ")))
@@ -1287,7 +1321,7 @@ vice-versa.")
   ((check :initarg :check :accessor while-check)
    (body :initarg :body :accessor while-body)))
 
-(define-js-compiler-macro while (check &rest body)
+(define-js-special-form while (check &rest body)
   (make-instance 'js-while
 		 :check (js-compile-to-expression check)
 		 :body (js-compile-to-body (cons 'progn body) :indent "  ")))
@@ -1306,7 +1340,7 @@ vice-versa.")
   ((obj :initarg :obj :accessor with-obj)
    (body :initarg :body :accessor with-body)))
 
-(define-js-compiler-macro with (statement &rest body)
+(define-js-special-form with (statement &rest body)
   (make-instance 'js-with
                  :obj (js-compile-to-expression statement)
                  :body (js-compile-to-body (cons 'progn body) :indent "  ")))
@@ -1324,7 +1358,7 @@ vice-versa.")
   ((value :initarg :value :accessor case-value)
    (clauses :initarg :clauses :accessor case-clauses)))
 
-(define-js-compiler-macro switch (value &rest clauses)
+(define-js-special-form switch (value &rest clauses)
   (let ((clauses (mapcar #'(lambda (clause)
 			     (let ((val (first clause))
 				   (body (cdr clause)))
@@ -1380,7 +1414,7 @@ vice-versa.")
    (catch :initarg :catch :accessor try-catch)
    (finally :initarg :finally :accessor try-finally)))
 
-(define-js-compiler-macro try (body &rest clauses)
+(define-js-special-form try (body &rest clauses)
   (let ((body (js-compile-to-body body :indent "  "))
 	(catch (cdr (assoc :catch clauses)))
 	(finally (cdr (assoc :finally clauses))))
@@ -1417,7 +1451,7 @@ vice-versa.")
 (defjsclass regex (expression)
   (value))
 
-(define-js-compiler-macro regex (regex)
+(define-js-special-form regex (regex)
   (make-instance 'regex :value (string regex)))
 
 (defun first-slash-p (string)
@@ -1440,7 +1474,7 @@ vice-versa.")
 	 (mapcan #'(lambda (x) (js-to-strings x start-pos)) (cc-if-body cc))
 	 (list "@end @*/")))
 
-(define-js-compiler-macro cc-if (test &rest body)
+(define-js-special-form cc-if (test &rest body)
   (make-instance 'cc-if :test test
 		 :body (mapcar #'js-compile body)))
 
@@ -1455,7 +1489,7 @@ vice-versa.")
 	((numberp form)
 	 (make-instance 'number-literal :value form))
 	((symbolp form)
-	 (let ((c-macro (js-get-compiler-macro form)))
+	 (let ((c-macro (js-get-special-form form)))
 	   (if c-macro
 	       (funcall c-macro)
 	       (make-instance 'js-variable :value form))))
@@ -1469,7 +1503,7 @@ vice-versa.")
 (defun js-compile-list (form)
   (let* ((name (car form))
 	 (args (cdr form))
-	 (js-form (js-get-compiler-macro name)))
+	 (js-form (js-get-special-form name)))
     (cond (js-form
 	   (apply js-form args))
 
@@ -1533,12 +1567,12 @@ vice-versa.")
 
 ;;; helper macros
 
-(define-js-compiler-macro js (&rest body)
+(define-js-special-form js (&rest body)
   (make-instance 'string-literal
 		 :value (string-join (js-to-statement-strings
 				      (js-compile (cons 'progn body)) 0) " ")))
 
-(define-js-compiler-macro js-inline (&rest body)
+(define-js-special-form js-inline (&rest body)
   (make-instance 'string-literal
 		 :value (concatenate
 			 'string

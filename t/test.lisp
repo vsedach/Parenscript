@@ -79,8 +79,8 @@ x = 2 + sideEffect() + x + 5;")
 (test-ps-js method-call-number (.to-string 10) "(10).toString()")
 (test-ps-js method-call-string (.to-string "hi") "'hi'.toString()")
 (test-ps-js method-call-lit-object
-            (.to-string (create :to-string : (lambda ()
-                                                (return "it works"))))
+            (.to-string (create :to-string (lambda ()
+					     (return "it works"))))
             "({ toString : function () {
         return 'it works';
       } }).toString()")

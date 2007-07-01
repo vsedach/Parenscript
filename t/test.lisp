@@ -34,7 +34,8 @@
   (run! 'ps-tests))
 
 ;;---------------------------------------------------------------------------
-(def-suite ps-tests)
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (def-suite ps-tests))
 (in-suite ps-tests)
 
 (test-ps-js plus-is-not-commutative

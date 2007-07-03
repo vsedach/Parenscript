@@ -165,7 +165,7 @@ x = 2 + sideEffect() + x + 5;")
 (test-ps-js otherwise-case
    (case (aref blorg i)
      (1 (alert "one"))
-     (otherwise (alert "default clause")))    
+     (otherwise (alert "default clause")))
      "switch (blorg[i]) {
          case 1:
                    alert('one');
@@ -192,3 +192,10 @@ x = 2 + sideEffect() + x + 5;")
 }" js-escape)
           do (is (string= generated wanted)))))
 
+(test-ps-js complicated-symbol-name1
+  grid-rows[foo].bar
+  "gridRows[foo].bar")
+
+(test-ps-js complicated-symbol-name2
+  *grid-rows*[foo].bar
+  "GRIDROWS[foo].bar")

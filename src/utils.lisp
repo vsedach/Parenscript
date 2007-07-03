@@ -43,17 +43,21 @@
 	((symbolp val) (string-downcase (symbol-name val)))
 	(t (princ-to-string val))))
 
-(defun string-split (string separators)
+(defun string-split (string separators &key (keep-separators nil) (remove-empty-subseqs nil))
   (do ((len (length string))
        (i 0 (1+ i))
        (last 0)
        res)
       ((= i len)
-       (nreverse (if (> i last)
+       (let ((split (if (> i last)
 		     (cons (subseq string last i) res)
 		     res)))
+         (nreverse (if remove-empty-subseqs
+                       (delete "" split :test #'string-equal)
+                       split))))
     (when (member (char string i) separators)
       (push (subseq string last i) res)
+      (when keep-separators (push (string (char string i)) res))
       (setf last (1+ i)))))
 
 (defparameter *special-chars*
@@ -92,7 +96,7 @@
 For example, paren-script becomes parenScript, *some-global* becomes SOMEGLOBAL."
   (when (symbolp symbol)
     (setf symbol (symbol-name symbol)))
-  (let ((symbols (string-split symbol '(#\.))))
+  (let ((symbols (string-split symbol '(#\. #\[ #\]) :keep-separators t :remove-empty-subseqs t)))
     (cond ((null symbols) "")
 	  ((= (length symbols) 1)
 	   (let (res
@@ -126,4 +130,4 @@ For example, paren-script becomes parenScript, *some-global* becomes SOMEGLOBAL.
 			(reschar i)))
 		     (t (reschar c))))))
 	     (coerce (nreverse res) 'string)))
-	  (t (string-join (mapcar #'symbol-to-js symbols) ".")))))
+	  (t (string-join (mapcar #'symbol-to-js symbols) "")))))

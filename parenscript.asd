@@ -19,7 +19,6 @@
                 :components ((:file "package")
                              (:file "utils" :depends-on ("package"))
                              (:file "defgenerics" :depends-on ("package"))
-;                             (:file "js" :depends-on ("package" "utils" "defgenerics"))
 			     (:file "source-model" :depends-on ("package" "utils" "defgenerics"))
 			     (:file "parser" :depends-on ("source-model"))
 			     (:file "js-translation" :depends-on ("parser"))
@@ -42,7 +41,8 @@
                 :components ((:file "test-package")
                              (:file "test" :depends-on ("test-package"))
                              (:file "ref2test" :depends-on ("test"))
-                             (:file "reference-tests" :depends-on ("test"))))))
+                             (:file "reference-tests" :depends-on ("test"))
+                             (:file "ps-tests" :depends-on ("test"))))))
 
 (defmethod asdf:perform ((o test-op) (c (eql (find-system :parenscript.test))))
   (asdf:operate 'asdf:load-op :parenscript.test)

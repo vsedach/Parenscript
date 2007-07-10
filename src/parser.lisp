@@ -709,9 +709,10 @@ ParenScript expression and is inserted into the generated Javascript
 
 (defun js-compile-to-symbol (form)
   (let ((res (js-compile form)))
-    (when (typep res 'js-variable )
+    (when (typep res 'js-variable)
       (setf res (value res)))
-    (assert (symbolp res))
+    (assert (symbolp res) ()
+            "~a is expected to be a symbol, but compiles to ~a. This could be due to ~a being a special form." form res form)
     res))
 
 (defun js-compile-to-statement (form)

@@ -28,7 +28,9 @@
     (round (n &optional divisor) `(*math.round ,(if divisor `(/ ,n ,divisor) n)))
     (random (&optional upto) (if upto
                                  `(floor (* ,upto (*math.random)))
-                                 '(*math.random))))
+                                 '(*math.random)))
+    (oddp (n) `(% ,n 2))
+    (evenp (n) `(not (oddp ,n))))
 
 ;;; Exception handling
 

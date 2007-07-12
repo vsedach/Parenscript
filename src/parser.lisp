@@ -172,6 +172,25 @@ prefix)."
 (defun js-gensym (&optional (name "js"))
   (intern (format nil "tmp-~A-~A" name (incf *var-counter*)) #.*package*))
 
+;;; reserved Javascript keywords
+
+(defvar *reserved-javascript-keywords*
+  '("abstract" "else" "instanceof" "switch" "boolean" "enum" "int" "synchronized"
+    "break" "export" "interface" "this" "byte" "extends" "long" "throw" "case"
+    "native" "throws" "catch" "final" "new" "transient" "char" "finally" "float"
+    "package" "try" "const" "for" "private" "typeof" "continue" "function"
+    "protected" "var" "debugger" "goto" "public" "void" "default" "if" "return"
+    "volatile" "delete" "implements" "short" "while" "do" "import" "static" "with"
+    "double" "in" "super" "class"))
+
+(defun reserved-identifier-p (id-string)
+  (find id-string *reserved-javascript-keywords* :test #'string-equal))
+
+(defmethod initialize-instance :after ((var js-variable) &rest initargs)
+  (declare (ignore initargs))
+  (when (reserved-identifier-p (slot-value var 'value))
+    (warn "~a is a reserved Javascript keyword and should not be used as a variable or function name." (slot-value var 'value))))
+
 ;;; literals
 
 (defmacro defjsliteral (name string)

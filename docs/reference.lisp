@@ -976,9 +976,28 @@ a-variable  => aVariable
         (let ((,var (aref ,arrvar ,idx)))
           ,@body)))))
 
-;;; Macros can be added dynamically to the macro environment by using
-;;; the ParenScript `MACROLET' form (note that while `DEFJSMACRO' is a
-;;; Lisp form, `MACROLET' and `SYMBOL-MACROLET' are ParenScript forms).
+;;; Macros can be defined in ParenScript itself (as opposed to Lisp)
+;;; by using the ParenScript `MACROLET' and 'DEFMACRO' forms.
+
+;;; ParenScript also supports the use of macros defined in the
+;;; underlying Lisp. Existing Lisp macros can be imported into the
+;;; ParenScript macro environment by 'IMPORT-MACROS-FROM-LISP'. This
+;;; functionality enables code sharing between ParenScript and Lisp,
+;;; and is useful in debugging since the full power of Lisp
+;;; macroexpanders, editors and other supporting facilities can be
+;;; used. However, it is important to note that the macroexpansion of
+;;; Lisp macros and ParenScript macros takes place in their own
+;;; respective environments, and many Lisp macros (especially those
+;;; provided by the Lisp implementation) expand into code that is not
+;;; usable by ParenScript. To make it easy for users to take advantage
+;;; of these features, two additional macro definition facilities are
+;;; provided by ParenScript: 'DEFMACRO/JS' and
+;;; 'DEFMACRO+JS'. 'DEFMACRO/JS' defines a Lisp macro and then imports
+;;; it into the ParenScript macro environment, while 'DEFMACRO+JS'
+;;; defines two macros with the same name and expansion, one in
+;;; ParenScript and one in Lisp. 'DEFMACRO+JS' is used when the full
+;;; 'macroexpand' of the Lisp macro yields code that cannot be used by
+;;; ParenScript.
 
 ;;; ParenScript also supports symbol macros, which can be introduced
 ;;; using the ParenScript form `SYMBOL-MACROLET'. A new macro

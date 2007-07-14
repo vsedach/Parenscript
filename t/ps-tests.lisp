@@ -43,14 +43,12 @@ x = 2 + sideEffect() + x + 5;")
             "('' + x).match('foo')")
 
 (test-ps-js method-call-op-form (.to-string (+ "" x)) "('' + x).toString()")
-(test-ps-js method-call-number (.to-string 10) "(10).toString()")
+(test-ps-js method-call-number (.to-string 10) "( 10 ).toString()")
 (test-ps-js method-call-string (.to-string "hi") "'hi'.toString()")
 (test-ps-js method-call-lit-object
             (.to-string (create :to-string (lambda ()
 					     (return "it works"))))
-            "({ toString : function () {
-        return 'it works';
-      } }).toString()")
+            "( { toString : function () { return 'it works'; } } ).toString()")
 
 (test-ps-js method-call-variable
             (.to-string x)
@@ -58,16 +56,16 @@ x = 2 + sideEffect() + x + 5;")
 
 (test-ps-js method-call-array
             (.to-string (list 10 20))
-            "[10, 20].toString()")
+            "[ 10, 20 ].toString()")
 (test-ps-js method-call-fn-call
             (.to-string (foo))
             "foo().toString()")
 (test-ps-js method-call-lambda-fn
             (.to-string (lambda () (alert 10)))
-            "(function () {alert(10);}).toString()")
+            "( function () { alert(10); } ).toString()")
 (test-ps-js method-call-lambda-call
             (.to-string ((lambda (x) (return x)) 10))
-            "(function (x) {return x;})(10).toString()")
+            "(function (x) { return x; }) (10).toString()")
 
 (test no-whitespace-before-dot
   (let* ((str (js:js* '(.to-string ((lambda (x) (return x)) 10))))
@@ -199,3 +197,7 @@ x = 2 + sideEffect() + x + 5;")
 (test-ps-js complicated-symbol-name2
   *grid-rows*[foo].bar
   "GRIDROWS[foo].bar")
+
+(test-ps-js slot-value-setf
+  (setf (slot-value x 'y) (+ (+ a 3) 4))
+  "x.y = (a + 3) + 4")

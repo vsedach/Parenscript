@@ -549,6 +549,11 @@ prefix)."
 
 ;;; with
 
+(define-js-special-form with (statement &rest body)
+  (make-instance 'js-with
+		 :obj (js-compile-to-expression statement)
+		 :body (js-compile-to-body (cons 'progn body) :indent "  ")))
+
 ;;; try-catch
 (define-js-special-form try (body &rest clauses)
   (let ((body (js-compile-to-body body :indent "  "))

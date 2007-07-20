@@ -1,5 +1,7 @@
 (in-package :js)
 
+;;;; this file might be a little dated
+
 ;; This file contains JS code and is meant to be compiled and included
 ;; into the host environment in one way or another
 

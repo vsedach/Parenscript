@@ -2,7 +2,7 @@
 
 (defpackage :parenscript
   (:use :common-lisp)
-  (:nicknames :js)
+  (:nicknames :js :ps)
   (:export
    ;; addition js symbols
    #:new
@@ -98,6 +98,7 @@
    #:with
 
    ;; case
+   #:switch
    #:case
    #:default
 
@@ -118,18 +119,13 @@
    #:html
 
    ;; compiler
-   #:js-compile
-   #:js
-   #:js*
-   #:js-inline
-   #:js-inline*
-   #:js-file
-   #:js-script
-   #:js-to-strings
-   #:js-to-statement-strings
-   #:js-to-string
-   #:js-to-line
-   #:defjsmacro
+   #:compile-script
+   #:script
+   #:with-new-compilation-environment ; tentative
+   #:with-compilation-environment     ; tentative
+   
+   ;; for parenscript macro definition within lisp
+   #:defscriptmacro #:defpsmacro ; should we use one or the other of these?
    #:defmacro/js
    #:defmacro+js
    #:import-macros-from-lisp
@@ -147,4 +143,18 @@
 
    #:compile-parenscript-file
    #:compile-parenscript-file-to-string
+
+   ;; deprecated interface
+   #:defjsmacro
+   #:js-compile
+   #:js ; replaced by #:script
+   #:js*
+   #:js-inline
+   #:js-inline*
+   #:js-file
+   #:js-script
+   #:js-to-strings
+   #:js-to-statement-strings
+   #:js-to-string
+   #:js-to-line
    ))

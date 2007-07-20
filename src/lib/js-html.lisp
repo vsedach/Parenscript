@@ -71,8 +71,8 @@
       (map nil #'handle-form forms))
     (cons '+ (optimize-string-list (nreverse res)))))
 
-(define-js-special-form html (&rest forms)
-  (js-compile (process-html-forms forms)))
+(define-script-special-form html (&rest forms)
+  (compile-script-form (process-html-forms forms)))
 
 (defun process-css-forms(proplist)
   (optimize-string-list (butlast
@@ -83,5 +83,5 @@
                                     ";")))))
 
 
-(define-js-special-form css-inline (&rest forms)
-  (js-compile (cons '+ (process-css-forms forms))))
+(define-script-special-form css-inline (&rest forms)
+  (compile-script-form (cons '+ (process-css-forms forms))))

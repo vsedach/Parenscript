@@ -13,21 +13,25 @@
   :version "0"
   :maintainer "Vladimir Sedach <vsedach@gmail.com>"
   :licence "BSD"
-  :description "js - javascript compiler"
+  :description "Parenscript is a lispy language that compiles to Javascript."
   :components ((:static-file "parenscript.asd")
                (:module :src
                 :components ((:file "package")
                              (:file "utils" :depends-on ("package"))
-                             (:file "defgenerics" :depends-on ("package"))
-			     (:file "source-model" :depends-on ("package" "utils" "defgenerics"))
+			     (:file "source-model" :depends-on ("package" "utils"))
 			     (:file "parser" :depends-on ("source-model"))
-			     (:file "js-translation" :depends-on ("parser"))
-                             (:file "js-html" :depends-on ("package" "js-translation" "utils"))
-                             (:file "css" :depends-on ("package" "utils"))
-                             (:file "compile-js" :depends-on ("package" "js-translation"))
-                             (:file "js-utils" :depends-on ("package" "js-translation"))
+			     (:file "deprecated-interface" :depends-on ("parser"))
+			     (:file "macrology" :depends-on ("deprecated-interface"))
+			     (:file "js-translation" :depends-on ("macrology"))
+			     (:file "compilation-interface" :depends-on ("package" "js-translation"))
+			     ;; standard library
                              (:module :lib
-                                      :components ((:static-file "functional.lisp")))))))
+                                      :components ((:static-file "functional.lisp")
+						   (:file "js-html")
+						   (:file "css"    )
+						   (:file "js-utils"))
+				      :depends-on ("compilation-interface")))))
+  :depends-on ())
 
 (defmethod asdf:perform :after ((op asdf:load-op) (system (eql (asdf:find-system :parenscript)))) 
   (pushnew :parenscript cl:*features*))

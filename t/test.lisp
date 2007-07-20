@@ -35,7 +35,7 @@
     (setf js::*var-counter* 0)
     ;; is-macro expands its argument again when reporting failures, so
     ;; the reported temporary js-variables get wrong if we don't evalute first.
-    (let ((generated-code (js-to-string ',parenscript))
+    (let ((generated-code (compile-script ',parenscript))
           (js-code ,javascript))
       (is (string= (normalize-js-code generated-code)
                    (normalize-js-code js-code))))))

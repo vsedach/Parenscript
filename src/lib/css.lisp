@@ -41,7 +41,7 @@
 	       ";"))
 
 (defmacro css-inline (&rest propvals)
-  `(js::css-inline-func ,propvals))
+  `(parenscript::css-inline-func ,propvals))
 
 (defmacro css-file (&rest rules)
   `(html

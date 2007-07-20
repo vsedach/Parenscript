@@ -31,6 +31,7 @@ OUTPUT-SPEC must be :javascript at the moment."
 		       (output-spec :javascript)
 		       (pretty-print t)
 		       (output-stream nil)
+		       (toplevel-p t)
 		       (comp-env (make-basic-compilation-environment)))
   "Compiles the Parenscript form SCRIPT-FORM into the language specified by OUTPUT-SPEC.
 Non-null PRETTY-PRINT values result in a pretty-printed output code.  If OUTPUT-STREAM
@@ -46,12 +47,42 @@ potentially other languages)."
 		 (let ((,var output-stream))
 		   ,@body))))
     (with-output-stream (stream)
-      (let ((*compilation-environment* comp-env))
-	(translate-ast (compile-script-form script-form :comp-env comp-env)
-		       :comp-env comp-env
-		       :output-stream stream
-		       :output-spec output-spec
-		       :pretty-print pretty-print)))))
+      (let* ((*compilation-environment* comp-env)
+	     (compiled
+	      (if toplevel-p
+		  (compile-parenscript-form 
+		   comp-env
+		   (compile-parenscript-form comp-env script-form :toplevel-p t))
+		  (compile-parenscript-form comp-env script-form :toplevel-p nil))))
+	(translate-ast
+	 compiled
+;	 (compile-script-form script-form :comp-env comp-env)
+	 :comp-env comp-env
+	 :output-stream stream
+	 :output-spec output-spec
+	 :pretty-print pretty-print)))))
+
+(defun compile-script-file (source-file
+			    &key
+			    (output-spec :javascript)
+			    (comp-env (or *compilation-environment*
+					  (make-basic-compilation-environment)))
+			    (pretty-print t)
+			    (output-stream *standard-output*))
+  "Compiles the given Parenscript source file and outputs the results
+to the given output stream."
+  (setf (comp-env-compiling-toplevel-p comp-env) t)
+  (error "NOT IMPLEMENTED."))
+	
+	
+
+
+;(defun compile-script-file (script-src-file
+;			    &key
+;			    (output-spec :javascript)
+;			    (output-stream *standard-out*)
+;			    (comp-env *compilation-environment*))
+			    
 
 ;;; SEXPs -> Javascript string functionality
 (defmacro script (&body body)
@@ -83,6 +114,8 @@ Body is evaluated."
   (string-join
    (js-to-statement-strings (compile-script-form expr) 0) " "))
 
+
+;;; old file compilation functions:
 (defun compile-parenscript-file-to-string (source-file
 					   &key
 					   (log-stream nil)

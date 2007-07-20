@@ -407,6 +407,35 @@ prefix)."
                  :value (compile-to-expression value)
                  :type (compile-to-expression type)))
 
+;;; eval-when
+(define-script-special-form eval-when (&rest args)
+  "(eval-when form-language? (situation*) form*)
+
+The given forms are evaluated only during the given SITUATION in the specified 
+FORM-LANGUAGE (either :lisp or :parenscript, def, defaulting to :lisp during
+-toplevel and :parenscript during :execute). The accepted SITUATIONS are :execute,
+:scan-toplevel. :scan-toplevel is the phase of compilation when function definitions 
+and the like are being added to the compilation environment. :execute is the phase when
+the code is being evaluated by a Javascript engine."
+  (multiple-value-bind (body-language situations subforms)
+      (process-eval-when-args args)
+    (format t "~A~%~A~%"
+	   (and (compiler-in-situation-p *compilation-environment* :compile-toplevel)
+		(find :compile-toplevel situations))
+	   (compiler-in-situation-p *compilation-environment*  :execute)
+	    (find :execute situations))
+    (cond
+      ((and (compiler-in-situation-p *compilation-environment* :compile-toplevel)
+	    (find :compile-toplevel situations))
+       (error "Should never be processing eval-when :COMPILE-TOPLEVEL forms from here."))
+
+      ((and (compiler-in-situation-p *compilation-environment*  :execute)
+	    (find :execute situations))
+       (when (eql body-language :parenscript)
+	 (let ((form `(progn ,@subforms)))
+	   (format t "Form: ~A~%" form)
+	   (compile-to-statement form)))))))
+
 ;;; script packages
 (define-script-special-form blank-statement ()
   (make-instance 'blank-statement))

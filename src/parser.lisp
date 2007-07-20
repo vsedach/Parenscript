@@ -29,16 +29,17 @@
     :accessor script-package-exclusive-lisp-package-p
     :documentation "t if the lisp package is an anonymous package created exclusively for
                     the script package.")
-   (toplevel-identifiers :accessor script-package-toplevel-ids :initarg :toplevel-ids
-                         :initform nil)
-   (macro-table   :accessor script-package-macro-table
-                  :initform (make-hash-table :test #'eql)
-                  :documentation "This package's macro environment, set up as a hash table
-                                  from symbols to macro functions")
-   (special-form-table :accessor script-package-special-form-table
-		       :initform (make-hash-table :test #'equal)
-		       :documentation "Holds special form macros for the package.
-                                       Probably not used except for built-in packages."))
+;   (toplevel-identifiers :accessor script-package-toplevel-ids :initarg :toplevel-ids
+;                         :initform nil)
+;   (macro-table   :accessor script-package-macro-table
+;                  :initform (make-hash-table :test #'eql)
+;                  :documentation "This package's macro environment, set up as a hash table
+;                                  from symbols to macro functions")
+;   (special-form-table :accessor script-package-special-form-table
+;		       :initform (make-hash-table :test #'equal)
+;		       :documentation "Holds special form macros for the package.
+;                                       Probably not used except for built-in packages."))
+   )
   (:documentation "A Parenscript package is a lisp object that holds information
 about a set of Suavescript code."))
 
@@ -47,10 +48,30 @@ about a set of Suavescript code."))
 		    :documentation "List of packages defined in this environment.")
    (current-package :accessor comp-env-current-package :initform nil :initarg :current-package
 		    :documentation "Current in-package.")
+
    (lisp-to-script-package-table
     :accessor comp-env-lisp-to-script-package-table :initform (make-hash-table)
-    :documentation   "Maps a lisp package to a script package."))
+    :documentation   "Maps a lisp package to a script package.")
+   (compiling-toplevel-p 
+    :accessor comp-env-compiling-toplevel-p :initform nil :initarg :processing-toplevel-p
+    :documentation "T if the environment is currently processing toplevel forms."))
   (:documentation ""))
+
+(defgeneric compiler-in-situation-p (comp-env situation)
+  (:documentation "Returns true when the compiler is considered 'in' the situation
+given by SITUATION, which is one of :compile-toplevel.")
+  (:method ((comp-env compilation-environment) situation)
+    (cond
+      ((eql situation :compile-toplevel) (processing-toplevel-p comp-env))
+      ((eql situation :execute) (not (processing-toplevel-p comp-env)))
+      (t nil))))
+
+(defgeneric processing-toplevel-p (comp-env)
+  (:documentation "T if we are compiling TOPLEVEL forms, as in 
+http://www.lispworks.com/documentation/HyperSpec/Body/03_bca.htm")
+  (:method ((comp-env compilation-environment))
+    (comp-env-compiling-toplevel-p comp-env)
+    ))
 
 (defvar *compilation-environment* nil
   "The active compilation environment.
@@ -297,57 +318,113 @@ macro environment."
 	    ;; leave anything else alone
             (t expr))))
 
+(defun process-eval-when-args (args)
+  "(eval-when form-language? (situation*) form*) - returns 3 values: 
+form-language, a list of situations, and a list of body forms"
+  (let* ((rest args)
+	 (form-language
+	  (when (not (listp (first rest)))
+	    (setf rest (rest args))
+	    (first args)))
+	 (situations (first rest))
+	 (body (rest rest)))
+    (when (and (find :compile-toplevel situations) (find :execute situations))
+      (error "Cannot use EVAL-WHEN to execute COMPILE-TOPLEVEL and EXECUTE code simultaneously."))
+    (when (null form-language)
+      (setf form-language
+	    (cond
+	      ((find :compile-toplevel situations) :lisp)
+	      ((find :execute situations)          :parenscript))))
+    (values form-language situations body)))
+  
 ;;;; compiler interface ;;;;
-(defgeneric compile-parenscript-form (compilation-environment form)
-  (:documentation "Compiles FORM, which is a ParenScript form, into a pre-text
-compilation object (the AST root).  Subsequently TRANSLATE-AST can be called
-to convert the result to Javascript."))
+(defgeneric compile-parenscript-form (compilation-environment form &key toplevel-p)
+  (:documentation "Compiles FORM, which is a ParenScript form.
+If toplevel-p is NIL, the result is a compilation object (the AST root).
+Subsequently TRANSLATE-AST can be called to convert the result to Javascript.
 
-(defmethod compile-parenscript-form ((comp-env compilation-environment) form)
+If the compiler is in the COMPILE-TOPLEVEL stage, then the result will
+be a Parenscript form (after it has been processed according to semantics
+like those of Lisp's COMPILE-FILE). See
+http://www.lispworks.com/documentation/HyperSpec/Body/03_bca.htm"))
+
+(defmethod compile-parenscript-form ((comp-env compilation-environment) form &key toplevel-p)
   (setf form (expand-script-form form))
-  (cond ((stringp form)
-	 (make-instance 'string-literal :value form))
-        ((characterp form)
-	 (make-instance 'string-literal :value (string form)))
-	((numberp form)
-	 (make-instance 'number-literal :value form))
-	((symbolp form) ;; is this the correct behavior?
-	 (let ((c-macro (get-script-special-form form)))
-	   (if c-macro
-	       (funcall c-macro)
-	       (make-instance 'script-variable :value form))))
-	((and (consp form)
-	      (eql (first form) 'quote))
-	 (make-instance 'script-quote :value (second form)))
-	((consp form)
-	 (let* ((name (car form))
-		(args (cdr form))
-		(script-form (get-script-special-form name)))
-	   (cond (script-form
-		  (apply script-form args))
-		 
-		 ((op-form-p form)
-		  (make-instance 'op-form
-				 :operator (script-convert-op-name (compile-to-symbol (first form)))
-				 :args (mapcar #'compile-to-expression (rest form))))
-		 
-		 ((method-call-p form)
-		  (make-instance 'method-call
-				 :method (compile-to-symbol (first form))
-				 :object (compile-to-expression (second form))
-				 :args (mapcar #'compile-to-expression (cddr form))))
-		 
-		 ((funcall-form-p form)
-		  (make-instance 'function-call
-				 :function (compile-to-expression (first form))
-				 :args (mapcar #'compile-to-expression (rest form))))
-		 
-		 (t (error "Unknown form ~S" form)))))
-	(t (error "Unknown atomar expression ~S" form))))
+  ;; ensures proper compilation environment TOPLEVEL-P slot value
+  (setf (comp-env-compiling-toplevel-p comp-env) toplevel-p)
+  (if
+   toplevel-p
+   (cond
+     ((not (listp form)) form)
+     ;; process each clause of a progn as a toplevel form
+     ((eql 'progn (car form))
+      `(progn
+	,@(mapcar #'(lambda (subform)
+		      (compile-parenscript-form comp-env subform :toplevel-p t))
+		  (rest form))))
+     ;; TODO process macrolets, symbol-macrolets, and file inclusions
+     ;; process eval-when.  evaluates in :COMPILE-TOPLEVEL situation and returns
+     ;; the resultant form.  for :EXECUTE situation it returns 
+     ((eql 'eval-when (car form))
+      (multiple-value-bind (body-language situations body)
+	  (process-eval-when-args (rest form))
+	(cond
+	  ((find :compile-toplevel situations)
+	   (when (eql body-language :lisp)
+	     (let ((other-situations (remove :compile-toplevel situations)))
+	       (multiple-value-bind (function warnings-p failure-p)
+		   (compile nil `(lambda () ,@body))
+		 (declare (ignore warnings-p) (ignore failure-p))
+		 `(progn
+		   ,(funcall function)
+		   ,@(when other-situations
+			   (list `(eval-when ,other-situations ,@body))))))))
+	  ;; if :compile-toplevel is not in the situation list, return the form
+	  (t form))))
+     (t form))
+   (cond ((stringp form)
+	  (make-instance 'string-literal :value form))
+	 ((characterp form)
+	  (make-instance 'string-literal :value (string form)))
+	 ((numberp form)
+	  (make-instance 'number-literal :value form))
+	 ((symbolp form) ;; is this the correct behavior?
+	  (let ((c-macro (get-script-special-form form)))
+	    (if c-macro
+		(funcall c-macro)
+		(make-instance 'script-variable :value form))))
+	 ((and (consp form)
+	       (eql (first form) 'quote))
+	  (make-instance 'script-quote :value (second form)))
+	 ((consp form)
+	  (let* ((name (car form))
+		 (args (cdr form))
+		 (script-form (get-script-special-form name)))
+	       (cond (script-form
+		      (apply script-form args))
+		     
+		     ((op-form-p form)
+		      (make-instance 'op-form
+				     :operator (script-convert-op-name (compile-to-symbol (first form)))
+				     :args (mapcar #'compile-to-expression (rest form))))
+		     
+		     ((method-call-p form)
+		      (make-instance 'method-call
+				     :method (compile-to-symbol (first form))
+				     :object (compile-to-expression (second form))
+				     :args (mapcar #'compile-to-expression (cddr form))))
+		     
+		     ((funcall-form-p form)
+		      (make-instance 'function-call
+				     :function (compile-to-expression (first form))
+				     :args (mapcar #'compile-to-expression (rest form))))
+		     
+		     (t (error "Unknown form ~S" form)))))
+	 (t (error "Unknown atomar expression ~S" form)))))
 
 (defun compile-script-form (form &key (comp-env *compilation-environment*))
   "Compiles a Parenscript form to an AST node."
-  (compile-parenscript-form *compilation-environment* form ))
+  (compile-parenscript-form comp-env form ))
 
 (defun compile-to-expression (form)
   "Compiles the given Parenscript form and guarantees the result is an expression."

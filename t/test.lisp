@@ -31,11 +31,29 @@
       (normalize-whitespace str))))))
 
 (defmacro test-ps-js (testname parenscript javascript)
+  (let (
+	;; (parenscript
+	;;   `(progn
+	;; (defpackage parenscript-test
+	;; (:lisp-package :parenscript-test))
+	;; ,parenscript)))
+	)
   `(test ,testname ()
     (setf js::*var-counter* 0)
+    
     ;; is-macro expands its argument again when reporting failures, so
     ;; the reported temporary js-variables get wrong if we don't evalute first.
-    (let ((generated-code (compile-script ',parenscript))
+    (let* ((parenscript::*enable-package-system* nil)
+	   (generated-code (compile-script ',parenscript))
+          (js-code ,javascript))
+      (is (string= (normalize-js-code generated-code)
+                   (normalize-js-code js-code)))))))
+
+(defmacro defpstest (testname (&key (optimize t) (enable-package-system t)) parenscript javascript)
+  `(test ,testname
+    (setf parenscript::*var-counter* 0)
+    (let* ((parenscript::*enable-package-system* ,enable-package-system)
+	   (generated-code (compile-script ',parenscript))
           (js-code ,javascript))
       (is (string= (normalize-js-code generated-code)
                    (normalize-js-code js-code))))))
@@ -44,5 +62,7 @@
   (format t "Running reference tests:~&")
   (run! 'ref-tests)
   (format t "Running other tests:~&")
-  (run! 'ps-tests))
+  (run! 'ps-tests)
+  (format t "Running Package System tests:~&")
+  (run! 'package-system-tests))
 

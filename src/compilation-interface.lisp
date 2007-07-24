@@ -17,14 +17,16 @@ to a Javascript string.  Outputs to the stream OUTPUT-STREAM in the language giv
 by OUTPUT-SPEC, pretty printing if PRETTY-PRINT is non-null.
 
 OUTPUT-SPEC must be :javascript at the moment."
-  (declare (ignore pretty-print) (ignore comp-env))
+  (declare (ignore comp-env))
   (when (not (eql :javascript output-spec))
     (error "Unsupported output-spec for translation: ~A" output-spec))
   (when (eql :javascript output-spec)
-    (write-string (string-join
-		   (js-to-statement-strings compiled-expr 0)
-		   (string #\Newline))
-		  output-stream)))
+;    (if (not pretty-print)
+;	(js-translate compiled-expr :statement output-stream)
+	(write-string (string-join
+		       (ps-js::js-to-statement-strings compiled-expr 0)
+		       (string #\Newline))
+		      output-stream)))
 
 (defun compile-script (script-form
 		       &key
@@ -73,9 +75,6 @@ potentially other languages)."
 to the given output stream."
   (setf (comp-env-compiling-toplevel-p comp-env) t)
   (error "NOT IMPLEMENTED."))
-	
-	
-
 
 ;(defun compile-script-file (script-src-file
 ;			    &key

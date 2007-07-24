@@ -3,9 +3,6 @@
 (defgeneric script-equal (compiled-ast-node1 compiled-ast-node2)
   (:documentation "Determines if the AST nodes are equal."))
 
-(defgeneric expression-precedence (expression)
-  (:documentation "Returns the precedence of an enscript-javascript expression"))
-
 ;;; AST node equality
 (defmethod script-equal ((obj1 list) (obj2 list))
   (and (= (length obj1) (length obj2))
@@ -25,7 +22,12 @@
 			     (slot-value obj2 slot)))
 	       ',slot-names)))))
 
-;;; js language types
+(in-package :parenscript.javascript)
+
+(defgeneric expression-precedence (expression)
+  (:documentation "Returns the precedence of an enscript-javascript expression"))
+
+;;;; define Javascript language types
 (defclass statement ()
   ((value :initarg :value :accessor value :initform nil))
   (:documentation "A Javascript entity without a value."))
@@ -38,7 +40,7 @@
 (defscriptclass array-literal (expression)
   ((values :initarg :values :accessor array-values)))
 
-(defscriptclass script-aref (expression)
+(defscriptclass js-aref (expression)
   ((array :initarg :array
 	  :accessor aref-array)
    (index :initarg :index
@@ -58,12 +60,8 @@
   (value))
 
 ;;; variables
-(defscriptclass script-variable (expression)
+(defscriptclass js-variable (expression)
   (value))
-
-;;; quote
-(defscriptclass script-quote (expression)
-  ())
 
 ;;; operators
 (defscriptclass op-form (expression)
@@ -71,7 +69,6 @@
    (args :initarg :args :accessor op-args)))
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
-
   (defparameter *op-precedence-hash* (make-hash-table :test #'equal))
 
   ;;; generate the operator precedences from *OP-PRECEDENCES*
@@ -123,50 +120,50 @@
    (args :initarg :args :accessor m-args)))
 
 ;;; body forms
-(defscriptclass script-body (expression)
-  ((statements :initarg :statements :accessor b-statements)
-   (indent :initarg :indent :initform "" :accessor b-indent)))
+(defscriptclass js-block (expression)
+  ((statements :initarg :statements :accessor block-statements)
+   (indent :initarg :indent :initform "" :accessor block-indent)))
 
-(defmethod initialize-instance :after ((body script-body) &rest initargs)
+(defmethod initialize-instance :after ((block js-block) &rest initargs)
   (declare (ignore initargs))
-  (let* ((statements (b-statements body))
+  (let* ((statements (block-statements block))
 	 (last (last statements))
 	 (last-stmt (car last)))
-    (when (typep last-stmt 'script-body)
-      (setf (b-statements body)
+    (when (typep last-stmt 'js-block)
+      (setf (block-statements block)
 	    (nconc (butlast statements)
-		   (b-statements last-stmt))))))
+		   (block-statements last-stmt))))))
 
-(defscriptclass script-sub-body (script-body)
+(defscriptclass js-sub-block (js-block)
   (statements indent))
 
 ;;; function definition
-(defscriptclass script-lambda (expression)
+(defscriptclass js-lambda (expression)
   ((args :initarg :args :accessor lambda-args)
    (body :initarg :body :accessor lambda-body)))
 
-(defscriptclass script-defun (script-lambda)
+(defscriptclass js-defun (js-lambda)
   ((name :initarg :name :accessor defun-name)))
 
 ;;; object creation
-(defscriptclass script-object (expression)
+(defscriptclass js-object (expression)
   ((slots :initarg :slots
 	  :accessor o-slots)))
 
-(defscriptclass script-slot-value (expression)
+(defscriptclass js-slot-value (expression)
   ((object :initarg :object
 	   :accessor sv-object)
    (slot :initarg :slot
 	 :accessor sv-slot)))
 
 ;;; cond
-(defscriptclass script-cond (expression)
+(defscriptclass js-cond (expression)
   ((tests :initarg :tests
 	  :accessor cond-tests)
    (bodies :initarg :bodies
 	   :accessor cond-bodies)))
 
-(defscriptclass script-if (expression)
+(defscriptclass js-if (expression)
   ((test :initarg :test
 	 :accessor if-test)
    (then :initarg :then
@@ -174,33 +171,33 @@
    (else :initarg :else
 	 :accessor if-else)))
 
-(defmethod initialize-instance :after ((if script-if) &rest initargs)
+(defmethod initialize-instance :after ((if js-if) &rest initargs)
   (declare (ignore initargs))
   (when (and (if-then if)
-	     (typep (if-then if) 'script-sub-body))
-    (change-class (if-then if) 'script-body))
+	     (typep (if-then if) 'js-sub-block))
+    (change-class (if-then if) 'js-block))
   (when (and (if-else if)
-	     (typep (if-else if) 'script-sub-body))
-    (change-class (if-else if) 'script-body)))
+	     (typep (if-else if) 'js-sub-block))
+    (change-class (if-else if) 'js-block)))
 
 ;;; switch
-(defscriptclass script-switch (statement)
+(defscriptclass js-switch (statement)
   ((value :initarg :value :accessor case-value)
    (clauses :initarg :clauses :accessor case-clauses)))
 
 ;;; assignment
 
-(defscriptclass script-setf (expression)
+(defscriptclass js-setf (expression)
   ((lhs :initarg :lhs :accessor setf-lhs)
    (rhsides :initarg :rhsides :accessor setf-rhsides)))
 
 ;;; defvar
-(defscriptclass script-defvar (statement)
+(defscriptclass js-defvar (statement)
   ((names :initarg :names :accessor var-names)
    (value :initarg :value :accessor var-value)))
 
 ;;; iteration
-(defscriptclass script-for (statement)
+(defscriptclass js-for (statement)
   ((vars :initarg :vars :accessor for-vars)
    (steps :initarg :steps :accessor for-steps)
    (check :initarg :check :accessor for-check)
@@ -211,17 +208,17 @@
    (value :initarg :value :accessor fe-value)
    (body :initarg :body :accessor fe-body)))
 
-(defscriptclass script-while (statement)
+(defscriptclass js-while (statement)
   ((check :initarg :check :accessor while-check)
    (body :initarg :body :accessor while-body)))
 
 ;;; with
-(defscriptclass script-with (statement)
+(defscriptclass js-with (statement)
   ((obj :initarg :obj :accessor with-obj)
    (body :initarg :body :accessor with-body)))
 
 ;;; try-catch
-(defscriptclass script-try (statement)
+(defscriptclass js-try (statement)
   ((body :initarg :body :accessor try-body)
    (catch :initarg :catch :accessor try-catch)
    (finally :initarg :finally :accessor try-finally)))
@@ -237,24 +234,19 @@
 
 ;; TODO this may not be the best integrated implementation of
 ;; instanceof into the rest of the code
-(defscriptclass script-instanceof (expression)
+(defscriptclass js-instanceof (expression)
   ((value)
    (type :initarg :type)))
 
-(defmacro define-script-single-op (name &optional (superclass 'expression))
-  (let ((script-name (intern (concatenate 'string "SCRIPT-" (symbol-name name)) #.*package*)))
+(defmacro define-js-single-op (name &optional (superclass 'expression))
+  (let ((js-name (intern (concatenate 'string "JS-" (symbol-name name)) #.*package*)))
   `(progn
-    (defscriptclass ,script-name (,superclass)
+    (defscriptclass ,js-name (,superclass)
       (value)))))
 
-(define-script-single-op return statement)
-(define-script-single-op throw statement)
-(define-script-single-op delete)
-(define-script-single-op void)
-(define-script-single-op typeof)
-(define-script-single-op new)
-
-;;; for script-package stuff
-(defscriptclass blank-statement (statement)
-  ()
-  (:documentation "An empty statement that does nothing."))
+(define-js-single-op return statement)
+(define-js-single-op throw statement)
+(define-js-single-op delete)
+(define-js-single-op void)
+(define-js-single-op typeof)
+(define-js-single-op new)

@@ -18,12 +18,16 @@
                (:module :src
                 :components ((:file "package")
                              (:file "utils" :depends-on ("package"))
-			     (:file "source-model" :depends-on ("package" "utils"))
-			     (:file "parser" :depends-on ("source-model"))
+			     (:file "js-source-model" :depends-on ("package" "utils"))
+			     (:file "ps-source-model" :depends-on ("js-source-model"))
+			     (:file "parser" :depends-on ("js-source-model" "ps-source-model"))
 			     (:file "deprecated-interface" :depends-on ("parser"))
-			     (:file "macrology" :depends-on ("deprecated-interface"))
-			     (:file "js-translation" :depends-on ("macrology"))
-			     (:file "compilation-interface" :depends-on ("package" "js-translation"))
+			     (:file "js-macrology" :depends-on ("deprecated-interface"))
+			     (:file "ps-macrology" :depends-on ("js-macrology"))
+			     (:file "js-translation" :depends-on ("ps-macrology"))
+;			     (:file "js-ugly-translation" :depends-on ("js-translation"))
+			     (:file "reader" :depends-on ("parser"))
+			     (:file "compilation-interface" :depends-on ("package" "reader" "js-translation")); "js-ugly-translation"))
 			     ;; standard library
                              (:module :lib
                                       :components ((:static-file "functional.lisp")

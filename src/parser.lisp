@@ -2,10 +2,6 @@
 
 ;;;; The mechanisms for defining macros & parsing Parenscript.
 
-(defclass identifier ()
-  ((symbol :accessor id-symbol :initform nil :type symbol))
-  (:documentation ""))
-
 (defclass script-package ()
   ;; configuration slots
   ((name          :accessor script-package-name          :initform nil :initarg :name :type string
@@ -15,7 +11,8 @@
    (lisp-package  :accessor script-package-lisp-package  :initform nil :initarg :lisp-package)
    (secondary-lisp-packages :accessor script-package-secondary-lisp-packages :initform nil
 			    :initarg :secondary-lisp-packages)
-   (exports       :accessor script-package-exports       :initform nil :initarg :exports
+   (exports       :accessor script-package-exports       :initarg :exports
+		  :initform nil;(make-hash-table :test #'equal)
 		  :documentation "List of exported identifiers.")
    (used-packages :accessor script-package-used-packages :initform nil :initarg :used-packages
 		  :documentation "")
@@ -59,7 +56,7 @@ about a set of Suavescript code."))
 
 (defgeneric compiler-in-situation-p (comp-env situation)
   (:documentation "Returns true when the compiler is considered 'in' the situation
-given by SITUATION, which is one of :compile-toplevel.")
+given by SITUATION, which is one of :compile-toplevel :execute.")
   (:method ((comp-env compilation-environment) situation)
     (cond
       ((eql situation :compile-toplevel) (processing-toplevel-p comp-env))
@@ -74,11 +71,18 @@ http://www.lispworks.com/documentation/HyperSpec/Body/03_bca.htm")
     ))
 
 (defvar *compilation-environment* nil
-  "The active compilation environment.
+  "The active compilation environment."
+;; Right now all code assumes that *compilation-environment* is accurately bound to the
+;; current compilation environment--even some functions that take the compilation environment
+;; as arguments.
+  )
 
-Right now all code assumes that *compilation-environment* is accurately bound to the
-current compilation environment--even some functions that take the compilation environment
-as arguments.")
+(defvar *enable-package-system* t
+  "When NIL, all symbols will function as global symbols.")
+
+(defvar *package-prefix-style* :prefix
+  "Determines how package symbols are serialized to JavaScript identifiers.  NIL for
+no prefixes.  :prefix to prefix variables with something like packagename_identifier.")
 
 ;;; parenscript packages
 (defun lisp-to-script-package (lisp-package &optional (comp-env *compilation-environment*))
@@ -97,19 +101,85 @@ as arguments.")
 
 (defun find-script-package (name &optional (comp-env *compilation-environment*))
   "Find the script package with the name NAME in the given compilation environment."
-  (find (string name) (comp-env-script-packages comp-env) :test #'equal))
-
+  (typecase name
+    ((or symbol string)
+     (find (string name) (comp-env-script-packages comp-env)
+	   :test #'equal :key #'script-package-name))
+    (script-package  name)
+    (t (error "~A has unknown type" name))))
+     
 (defun destroy-script-package (script-package)
   "Disposes of relevant resources when the script package is no longer relevant."
   (when (script-package-exclusive-lisp-package-p script-package)
     (delete-package (script-package-lisp-package script-package))))
 
+(defun script-intern (name script-package)
+  "Returns a Parenscript symbol with the string value STRING interned for the
+given SCRIPT-PACKAGE."
+  (setf script-package (find-script-package script-package))
+  (intern name (script-package-lisp-package script-package)))
+
+(defun script-export (symbols &optional (script-package (comp-env-current-package *compilation-environment*)))
+  "Exports the given symbols in the given script package."
+  (when (symbolp symbols)
+    (setf symbols (list symbols)))
+  ;; TODO check to make sure symbols are each interned under SCRIPT-PACKAGE
+  (mapc #'(lambda (sym)
+	    (pushnew sym (script-package-exports script-package)))
+	symbols)
+  t)
+  
+(defun find-script-symbol (name script-package)
+  "Finds the symbol with name NAME in the script package SCRIPT-PACKAGE.  NAME is a
+string and SCRIPT-PACKAGE is a package designator.  If NAME does not specify a symbol of
+script-package, returns nil.  Otherwise returns 2 values:
+1.  the symbol
+2.  :external if the symbol is external.  :internal if the symbol is internal"
+  (setf script-package (find-script-package script-package))
+  (let* ((symbol (find-symbol name (script-package-lisp-package script-package)))
+         (exported? (find symbol (script-package-exports script-package))))
+    (values symbol (if exported? :external (when symbol :internal)))))
+
 ;; environmental considerations
+(defgeneric install-standard-script-packages (comp-env)
+  (:documentation "Creates standard script packages and installs them in the current compilation
+environment.")
+  (:method ((comp-env compilation-environment))
+    (list
+     (create-script-package
+      comp-env
+      :name "GLOBAL" :lisp-package :parenscript.global
+      :secondary-lisp-packages '(:keyword))
+     (create-script-package
+      comp-env
+      :name "JAVASCRIPT" :nicknames (list "JS") :lisp-package :parenscript.javascript
+      :secondary-lisp-packages '(:common-lisp))
+     (create-script-package
+      comp-env
+      :name "PARENSCRIPT" :lisp-package :parenscript
+      :used-packages '(:javascript)
+      )
+     (create-script-package
+      comp-env
+      :name "PARENSCRIPT-USER" :lisp-package :parenscript-user
+      :secondary-lisp-packages (list :cl-user)
+      :nicknames '("PS-USER" "PAREN-USER")))))
+
+(defgeneric setup-compilation-environment (comp-env)
+  (:documentation "Sets up a basic compilation environment prepared for a language user.
+This should do things like define packages and set the current package.
+
+Returns the compilation-environment.")
+  (:method ((comp-env compilation-environment))
+    (install-standard-script-packages comp-env)
+    (setf (comp-env-current-package comp-env)
+	  (find-script-package :parenscript-user comp-env))
+    comp-env))
+
 (defun make-basic-compilation-environment ()
   "Creates a compilation environment object from scratch.  Fills it in with the default
 script packages (parenscript, global, and parenscript-user)."
-  (let ((comp-env (make-instance 'compilation-environment)))
-    comp-env))
+  (setup-compilation-environment (make-instance 'compilation-environment)))
 
 (defun create-script-package (comp-env
 			      &key name nicknames secondary-lisp-packages used-packages
@@ -221,7 +291,7 @@ ongoing javascript compilation."
 
 (defun funcall-form-p (form)
   (and (listp form)
-       (not (op-form-p form))
+       (not (ps-js::op-form-p form))
        (not (script-special-form-p form))))
 
 (defun method-call-p (form)
@@ -363,6 +433,7 @@ http://www.lispworks.com/documentation/HyperSpec/Body/03_bca.htm"))
 		      (compile-parenscript-form comp-env subform :toplevel-p t))
 		  (rest form))))
      ;; TODO process macrolets, symbol-macrolets, and file inclusions
+     
      ;; process eval-when.  evaluates in :COMPILE-TOPLEVEL situation and returns
      ;; the resultant form.  for :EXECUTE situation it returns 
      ((eql 'eval-when (car form))
@@ -375,24 +446,28 @@ http://www.lispworks.com/documentation/HyperSpec/Body/03_bca.htm"))
 	       (multiple-value-bind (function warnings-p failure-p)
 		   (compile nil `(lambda () ,@body))
 		 (declare (ignore warnings-p) (ignore failure-p))
-		 `(progn
-		   ,(funcall function)
-		   ,@(when other-situations
-			   (list `(eval-when ,other-situations ,@body))))))))
+		 (compile-parenscript-form 
+		  comp-env
+		  `(progn
+		    ,(funcall function)
+		    ,@(when other-situations
+			    (list `(eval-when ,other-situations ,@body))))
+		  :toplevel-p t)))))
 	  ;; if :compile-toplevel is not in the situation list, return the form
 	  (t form))))
      (t form))
    (cond ((stringp form)
-	  (make-instance 'string-literal :value form))
+	  (make-instance 'ps-js::string-literal :value form))
 	 ((characterp form)
-	  (make-instance 'string-literal :value (string form)))
+	  (make-instance 'ps-js::string-literal :value (string form)))
 	 ((numberp form)
-	  (make-instance 'number-literal :value form))
-	 ((symbolp form) ;; is this the correct behavior?
+	  (make-instance 'ps-js::number-literal :value form))
+	 ((symbolp form)
+	  ;; is this the correct behavior?
 	  (let ((c-macro (get-script-special-form form)))
 	    (if c-macro
 		(funcall c-macro)
-		(make-instance 'script-variable :value form))))
+		(make-instance 'ps-js::js-variable :value form))))
 	 ((and (consp form)
 	       (eql (first form) 'quote))
 	  (make-instance 'script-quote :value (second form)))
@@ -403,19 +478,19 @@ http://www.lispworks.com/documentation/HyperSpec/Body/03_bca.htm"))
 	       (cond (script-form
 		      (apply script-form args))
 		     
-		     ((op-form-p form)
-		      (make-instance 'op-form
-				     :operator (script-convert-op-name (compile-to-symbol (first form)))
+		     ((ps-js::op-form-p form)
+		      (make-instance 'ps-js::op-form
+				     :operator (ps-js::script-convert-op-name (compile-to-symbol (first form)))
 				     :args (mapcar #'compile-to-expression (rest form))))
 		     
 		     ((method-call-p form)
-		      (make-instance 'method-call
+		      (make-instance 'ps-js::method-call
 				     :method (compile-to-symbol (first form))
 				     :object (compile-to-expression (second form))
 				     :args (mapcar #'compile-to-expression (cddr form))))
 		     
 		     ((funcall-form-p form)
-		      (make-instance 'function-call
+		      (make-instance 'ps-js::function-call
 				     :function (compile-to-expression (first form))
 				     :args (mapcar #'compile-to-expression (rest form))))
 		     
@@ -429,30 +504,36 @@ http://www.lispworks.com/documentation/HyperSpec/Body/03_bca.htm"))
 (defun compile-to-expression (form)
   "Compiles the given Parenscript form and guarantees the result is an expression."
   (let ((res (compile-script-form form)))
-    (assert (typep res 'expression))
+    (assert (typep res 'ps-js::expression))
     res))
 
 (defun compile-to-symbol (form)
-  "Compiles the given Parenscript form and guarantees a symbolic result."
+  "Compiles the given Parenscript form and guarantees a symbolic result.  This
+also guarantees that the symbol has an associated script-package."
   (let ((res (compile-script-form form)))
-    (when (typep res 'script-variable)
-      (setf res (value res)))
+    (when (typep res 'ps-js::js-variable)
+      (setf res (ps-js::value res)))
     (assert (symbolp res) ()
             "~a is expected to be a symbol, but compiles to ~a. This could be due to ~a being a special form." form res form)
+    (when *enable-package-system*
+      (assert (symbol-script-package res) ()
+	      "The symbol ~A::~A has no associated script package." 
+	      (package-name (symbol-package res))
+	      res))
     res))
 
 (defun compile-to-statement (form)
   "Compiles the given Parenscript form and guarantees the result is a statement."
   (let ((res (compile-script-form form)))
-    (assert (typep res 'statement))
+    (assert (typep res 'ps-js::statement))
     res))
 
-(defun compile-to-body (form &key (indent ""))
+(defun compile-to-block (form &key (indent ""))
   "Compiles the given Parenscript form and guarantees the result is of type SCRIPT-BODY"
   (let ((res (compile-to-statement form)))
-    (if (typep res 'script-body)
-	(progn (setf (b-indent res) indent)
+    (if (typep res 'ps-js::js-block)
+	(progn (setf (ps-js::block-indent res) indent)
 	       res)
-	(make-instance 'script-body
+	(make-instance 'ps-js::js-block
 		       :indent indent
 		       :statements (list res)))))

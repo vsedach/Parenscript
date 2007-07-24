@@ -1,4 +1,4 @@
-c;; Copyright (C) 2002-2004, Yuji Minejima <ggb01164@nifty.ne.jp>
+;; Copyright (C) 2002-2004, Yuji Minejima <ggb01164@nifty.ne.jp>
 ;; ALL RIGHTS RESERVED.
 ;;
 ;; $Id: reader.lisp,v 1.10 2004/02/20 07:23:42 yuji Exp $
@@ -26,7 +26,14 @@ c;; Copyright (C) 2002-2004, Yuji Minejima <ggb01164@nifty.ne.jp>
 ;; (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 ;; OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-(in-package parenscript-reader)
+;;;; The ParenScript reader, used for reading Parenscript files and other
+;;;; forms during the Parenscript compilation process.  The main difference
+;;;; between this reader and the standard Lisp reader is that package
+;;;; prefixes are SCRIPT package names rather than Lisp package names.
+
+;;; The main function, READ, will not work unless *compilation-environement*
+;;; is bound to a valid Parenscript COMPILATION-ENVIRONMENT.
+(in-package parenscript.reader)
 
 (defstruct (readtable (:predicate readtablep) (:copier nil))
   (syntax (make-hash-table) :type hash-table)
@@ -372,7 +379,11 @@ c;; Copyright (C) 2002-2004, Yuji Minejima <ggb01164@nifty.ne.jp>
          (float? sign))))))
 
 (defun ensure-external-symbol (name package)
-  (multiple-value-bind (symbol status) (find-script-symbol name package)
+  "Ensures that the symbol with name NAME is external for the given script package PACKAGE.
+Raises a continuable error if NAME is not external in PACKAGE.  Otherwise interns NAME
+in PACKAGE and returns the symbol."
+  (multiple-value-bind (symbol status)
+      (find-script-symbol name package)
     (unless (eq status :external)
       (cerror (if (null status)
                   "Intern and export script symbol ~S in package ~S."
@@ -381,8 +392,6 @@ c;; Copyright (C) 2002-2004, Yuji Minejima <ggb01164@nifty.ne.jp>
               name package)
       (script-export (setq symbol (script-intern name package)) package))
     symbol))
-
-(defvar *intern-package-prefixes* t)
 
 (defun construct-symbol (lexemes &key uninterned-symbol-wanted)
   (labels ((up (x) (if (listp x) (copy-list x) (list (char-upcase x))))
@@ -411,26 +420,19 @@ c;; Copyright (C) 2002-2004, Yuji Minejima <ggb01164@nifty.ne.jp>
     (let* ((pos (position #\: lexemes))
            (external-p (and pos (not (eql (nth (1+ pos) lexemes) #\:))))
            (package (when pos (name (subseq lexemes 0 pos))))
-           (script-package (find-script-package *compilation-environment* package))
+           (script-package (find-script-package package))
            (name (name (subseq lexemes (if pos (+ pos (if external-p 1 2)) 0)))))
       (values (cond
-               (*intern-package-prefixes*
-                (let ((str (if package
-                               (concatenate 'string package ":" name)
-                             name)))
-                             
-                  (if uninterned-symbol-wanted
-                      str
-                    (intern str))))
                (uninterned-symbol-wanted
                 (if package
                     (reader-error)
-                  (make-symbol name)))
+		    (make-symbol name)))
                (external-p
-                (ensure-external-symbol name package))
+                (ensure-external-symbol name script-package))
                (t (script-intern name 
-                                 (or package
-                                     (current-package *compilation-environment*)))))))))
+                                 (or script-package
+                                     (parenscript::comp-env-current-package
+				      *compilation-environment*)))))))))
 
 (defun read-number-or-symbol (stream c)
   (let ((lexemes (collect-lexemes c stream)))

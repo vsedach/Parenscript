@@ -68,7 +68,8 @@ x = 2 + sideEffect() + x + 5;")
             "(function (x) { return x; }) (10).toString()")
 
 (test no-whitespace-before-dot
-  (let* ((str (js:js* '(.to-string ((lambda (x) (return x)) 10))))
+  (let* ((parenscript::*enable-package-system* nil)
+	 (str (compile-script '(.to-string ((lambda (x) (return x)) 10))))
          (dot-pos (position #\. str :test #'char=))
          (char-before (elt str (1- dot-pos)))
          (a-parenthesis #\)))
@@ -172,7 +173,8 @@ x = 2 + sideEffect() + x + 5;")
          }")
 
 (test escape-sequences-in-string
-  (let ((escapes `((#\\ . #\\)
+  (let ((parenscript::*enable-package-system* nil)
+	(escapes `((#\\ . #\\)
                    (#\b . #\Backspace)
                    (#\f . ,(code-char 12))
                    ("u000B" . ,(code-char #x000b));;Vertical tab, too uncommon to bother with

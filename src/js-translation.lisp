@@ -1,5 +1,4 @@
-(in-package :parenscript)
-
+(in-package :parenscript.javascript)
 
 (defgeneric js-to-strings (expression start-pos)
   (:documentation "Transform an enscript-javascript expression to a string"))
@@ -125,7 +124,7 @@
 	       :start "[ " :end " ]"
 	       :join-after ",")))
 
-(defmethod js-to-strings ((aref script-aref) start-pos)
+(defmethod js-to-strings ((aref js-aref) start-pos)
   (dwim-join (cons (js-to-strings (aref-array aref) start-pos)
 		   (mapcar #'(lambda (x) (dwim-join (list (js-to-strings x (+ start-pos 2)))
 						    (- 80 start-pos 2)
@@ -137,16 +136,17 @@
 ;;; object literals (maps and hash-tables)
 
 (defmethod js-to-strings ((obj object-literal) start-pos)
-  (dwim-join (loop
-                for (key . value) in (object-values obj)
-                append (list
-                        (dwim-join (list (list (format nil "~A:" (symbol-to-js key)))
-                                         (js-to-strings value (+ start-pos 2)))
-                                   (- 80 start-pos 2)
-                                   :start "" :end "" :join-after "")))
-             (- 80 start-pos 2)
-             :start "{ " :end " }"
-             :join-after ","))
+  (dwim-join
+   (loop
+    for (key . value) in (object-values obj)
+    append (list
+	    (dwim-join (list (list (format nil "~A:" (js-translate-symbol key)))
+			     (js-to-strings value (+ start-pos 2)))
+		       (- 80 start-pos 2)
+		       :start "" :end "" :join-after "")))
+   (- 80 start-pos 2)
+   :start "{ " :end " }"
+   :join-after ","))
 
 ;;; string literals
 
@@ -166,7 +166,7 @@ vice-versa.")
     (#\r . #\Return)
     (#\t . #\Tab)))
 
-(defun lisp-special-char-to-js(lisp-char)
+(defun lisp-special-char-to-js (lisp-char)
     (car (rassoc lisp-char *js-lisp-escaped-chars*)))
 
 (defmethod js-to-strings ((string string-literal) start-pos)
@@ -189,9 +189,33 @@ vice-versa.")
            finally (write-char *js-quote-char* escaped)))))
 
 ;;; variables
-(defmethod js-to-strings ((v script-variable) start-form)
+(defgeneric js-translate-symbol (var)
+  (:documentation "Given a JS-VARIABLE returns an output
+JavaScript version of it as a string."))
+
+(defmethod js-translate-symbol ((var js-variable))
+  (js-translate-symbol (value var)))
+
+(defmethod js-translate-symbol ((var-name symbol))
+  (if parenscript::*enable-package-system*
+      (case *package-prefix-style*
+	(:prefix
+	 (cond
+	   ((or (eql (symbol-package var-name) (find-package :keyword))
+		(eql (symbol-package var-name) (find-package :parenscript.global)))
+	    (symbol-to-js var-name))
+	   (t
+	    (let ((script-package (symbol-script-package var-name)))
+	      (format nil "~A_~A"
+		      (symbol-to-js (script-package-name script-package))
+		      (symbol-to-js var-name))))))
+	(t
+	 (symbol-to-js (value var-name))))
+      (symbol-to-js var-name)))
+
+(defmethod js-to-strings ((v js-variable) start-form)
   (declare (ignore start-form))
-  (list (symbol-to-js (value v))))
+  (list (js-translate-symbol v)))
 
 ;;; arithmetic operators
 (defun script-convert-op-name (op)
@@ -254,14 +278,14 @@ vice-versa.")
 	 (args (dwim-join value-string-lists max-length
 			  :start "(" :end ")" :join-after ",")))
     (etypecase (f-function form)
-      (script-lambda
+      (js-lambda
        (dwim-join (list (append (dwim-join (list (js-to-strings (f-function form) (+ start-pos 2)))
                                            max-length
                                            :start "(" :end ")" :separator "")
                                 args))
                   max-length
                   :separator ""))
-      ((or script-variable script-aref script-slot-value)
+      ((or js-variable js-aref js-slot-value)
        (dwim-join (list (js-to-strings (f-function form) (+ start-pos 2))
                         args)
                   max-length
@@ -279,11 +303,12 @@ vice-versa.")
     ;; TODO: this may not be the best way to add ()'s around lambdas
     ;; probably there is or should be a more general solution working
     ;; in other situations involving lambda's
-    (when (member (m-object form) (list 'script-lambda 'number-literal 'script-object 'op-form) :test #'typep)  
+    (when (member (m-object form) (list 'js-lambda 'number-literal 'js-object 'op-form)
+		  :test #'typep)  
       (push "(" object)
       (nconc object (list ")")))
     (let* ((fname (dwim-join (list object
-                                   (list (symbol-to-js (m-method form))))
+                                   (list (js-translate-symbol (m-method form))))
                              (- 80 start-pos 2)
                              :end "("
                              :separator ""))
@@ -302,32 +327,46 @@ vice-versa.")
              (list ensure-no-newline-before-dot)
              (rest method-and-args)))))
 
-(defmethod js-to-statement-strings ((body script-body) start-pos)
+;;; optimization that gets rid of nested blocks, which have no meaningful effect
+;;; in javascript
+(defgeneric expanded-subblocks (block)
+  (:method (block)
+    (list block))
+  (:method ((block js-block))
+    (mapcan #'expanded-subblocks (block-statements block))))
+
+(defun consolidate-subblocks (block)
+  (setf (block-statements block) (expanded-subblocks block))
+  block)
+
+
+(defmethod js-to-statement-strings ((body js-block) start-pos)
+  (consolidate-subblocks body)
   (dwim-join (mapcar #'(lambda (x) (js-to-statement-strings x (+ start-pos 2)))
-		     (b-statements body))
+		     (block-statements body))
 	     (- 80 start-pos 2)
 	     :join-after ";"
 	     :append-to-last #'special-append-to-last
-	     :start (b-indent body) :collect nil
+	     :start (block-indent body) :collect nil
 	     :end ";"))
 
-(defmethod js-to-strings ((body script-body) start-pos)
+(defmethod js-to-strings ((body js-block) start-pos)
   (dwim-join (mapcar #'(lambda (x) (js-to-strings x (+ start-pos 2)))
-		     (b-statements body))
+		     (block-statements body))
 	     (- 80 start-pos 2)
 	     :append-to-last #'special-append-to-last
 	     :join-after ","
-	     :start (b-indent body)))
+	     :start (block-indent body)))
 
 
-(defmethod js-to-statement-strings ((body script-sub-body) start-pos)
+(defmethod js-to-statement-strings ((body js-sub-block) start-pos)
   (declare (ignore start-pos))
   (nconc (list "{") (call-next-method) (list "}")))
 
 ;;; function definition
-(defmethod js-to-strings ((lambda script-lambda) start-pos)
+(defmethod js-to-strings ((lambda js-lambda) start-pos)
   (let ((fun-header (dwim-join (mapcar #'(lambda (x)
-                                           (list (symbol-to-js x)))
+                                           (list (js-translate-symbol x)))
 				       (lambda-args lambda))
 			       (- 80 start-pos 2)
 			       :start (function-start-string lambda)
@@ -339,17 +378,17 @@ vice-versa.")
   (:documentation "Returns the string that starts the function - this varies according to whether
 this is a lambda or a defun"))
 
-(defmethod function-start-string ((lambda script-lambda))
+(defmethod function-start-string ((lambda js-lambda))
   "function (")
 
-(defmethod js-to-statement-strings ((lambda script-lambda) start-pos)
+(defmethod js-to-statement-strings ((lambda js-lambda) start-pos)
   (js-to-strings lambda start-pos))
 
-(defmethod function-start-string ((defun script-defun))
-  (format nil "function ~A(" (symbol-to-js (defun-name defun))))
+(defmethod function-start-string ((defun js-defun))
+  (format nil "function ~A(" (js-translate-symbol (defun-name defun))))
 
 ;;; object creation
-(defmethod js-to-strings ((object script-object) start-pos)
+(defmethod js-to-strings ((object js-object) start-pos)
   (let ((value-string-lists
 	 (mapcar #'(lambda (slot)
 		     (dwim-join (list (js-to-strings (second slot) (+ start-pos 4)))
@@ -364,16 +403,16 @@ this is a lambda or a defun"))
 	       :white-space "  "
 	       :collect nil)))
 
-(defmethod js-to-strings ((sv script-slot-value) start-pos)
+(defmethod js-to-strings ((sv js-slot-value) start-pos)
   (append-to-last (js-to-strings (sv-object sv) start-pos)
                   (if (typep (sv-slot sv) 'script-quote)
                       (if (symbolp (value (sv-slot sv)))
-                          (format nil ".~A" (symbol-to-js (value (sv-slot sv))))
+                          (format nil ".~A" (js-translate-symbol (value (sv-slot sv))))
                           (format nil ".~A" (first (js-to-strings (sv-slot sv) 0))))
                       (format nil "[~A]" (first (js-to-strings (sv-slot sv) 0))))))
 
 ;;; cond
-(defmethod js-to-statement-strings ((cond script-cond) start-pos)
+(defmethod js-to-statement-strings ((cond js-cond) start-pos)
   (loop :for body :on (cond-bodies cond)
 	:for first = (eq body (cond-bodies cond))
 	:for last = (not (cdr body))
@@ -385,7 +424,7 @@ this is a lambda or a defun"))
 	:append (js-to-statement-strings (car body) (+ start-pos 2))
 	:collect "}"))
 
-(defmethod js-to-statement-strings ((if script-if) start-pos)
+(defmethod js-to-statement-strings ((if js-if) start-pos)
   (let ((if-strings (dwim-join (list (js-to-strings (if-test if) 0))
 			       (- 80 start-pos 2)
 			       :start "if ("
@@ -398,13 +437,13 @@ this is a lambda or a defun"))
 				       (nconc (list "} else {") else-strings (list "}"))
 				       (list "}")))))
 
-(defmethod js-to-strings ((if script-if) start-pos)
+(defmethod js-to-strings ((if js-if) start-pos)
   (assert (typep (if-then if) 'expression))
   (when (if-else if)
     (assert (typep (if-else if) 'expression)))
   (dwim-join (list (append-to-last (js-to-strings (if-test if) start-pos) " ?")
-		   (let* ((new-then (make-instance 'script-body
-						   :statements (b-statements (if-then if))
+		   (let* ((new-then (make-instance 'js-block
+						   :statements (block-statements (if-then if))
 						   :indent ""))
 			  (res (js-to-strings new-then start-pos)))
 		     (if (>= (expression-precedence (if-then if))
@@ -413,8 +452,8 @@ this is a lambda or a defun"))
 			     res))
 		   (list ":")
 		   (if (if-else if)
-		       (let* ((new-else (make-instance 'script-body
-						       :statements (b-statements (if-else if))
+		       (let* ((new-else (make-instance 'js-block
+						       :statements (block-statements (if-else if))
 						       :indent ""))
 			      (res (js-to-strings new-else start-pos)))
 			 (if (>= (expression-precedence (if-else if))
@@ -426,15 +465,15 @@ this is a lambda or a defun"))
 	     :white-space "  "))
 
 ;;; setf
-(defmethod js-to-strings ((setf script-setf) start-pos)
+(defmethod js-to-strings ((setf js-setf) start-pos)
   (dwim-join (cons (js-to-strings (setf-lhs setf) start-pos)
 		   (mapcar #'(lambda (x) (js-to-strings x start-pos)) (setf-rhsides setf)))
 	     (- 80 start-pos 2)
 	     :join-after " ="))
 
 ;;; defvar
-(defmethod js-to-statement-strings ((defvar script-defvar) start-pos)
-  (dwim-join (nconc (mapcar #'(lambda (x) (list (symbol-to-js x))) (var-names defvar))
+(defmethod js-to-statement-strings ((defvar js-defvar) start-pos)
+  (dwim-join (nconc (mapcar #'(lambda (x) (list (js-translate-symbol x))) (var-names defvar))
 		    (when (var-value defvar)
 		      (list (js-to-strings (var-value defvar) start-pos))))
 	     (- 80 start-pos 2)
@@ -442,9 +481,9 @@ this is a lambda or a defun"))
 	     :start "var " :end ";"))
 
 ;;; iteration
-(defmethod js-to-statement-strings ((for script-for) start-pos)
+(defmethod js-to-statement-strings ((for js-for) start-pos)
   (let* ((init (dwim-join (mapcar #'(lambda (x)
-				      (dwim-join (list (list (symbol-to-js (first (var-names x))))
+				      (dwim-join (list (list (js-translate-symbol (first (var-names x))))
 						       (js-to-strings (var-value x)
 								      (+ start-pos 2)))
 						 (- 80 start-pos 2)
@@ -455,7 +494,7 @@ this is a lambda or a defun"))
 	 (check (js-to-strings (for-check for) (+ start-pos 2)))
 	 (steps (dwim-join (mapcar #'(lambda (x var)
 				       (dwim-join
-					(list (list (symbol-to-js (first (var-names var))))
+					(list (list (js-translate-symbol (first (var-names var))))
 					      (js-to-strings x (- start-pos 2)))
 					(- 80 start-pos 2)
 					:join-after " ="))
@@ -472,7 +511,7 @@ this is a lambda or a defun"))
 
 
 (defmethod js-to-statement-strings ((fe for-each) start-pos)
-  (let ((header (dwim-join (list (list (symbol-to-js (fe-name fe)))
+  (let ((header (dwim-join (list (list (js-translate-symbol (fe-name fe)))
 				 (list "in")
 				 (js-to-strings (fe-value fe) (+ start-pos 2)))
 			   (- 80 start-pos 2)
@@ -481,7 +520,7 @@ this is a lambda or a defun"))
 	(body (js-to-statement-strings (fe-body fe) (+ start-pos 2))))
     (nconc header body (list "}"))))
 
-(defmethod js-to-statement-strings ((while script-while) start-pos)
+(defmethod js-to-statement-strings ((while js-while) start-pos)
   (let ((header (dwim-join (list (js-to-strings (while-check while) (+ start-pos 2)))
 			   (- 80 start-pos 2)
 			   :start "while ("
@@ -490,7 +529,7 @@ this is a lambda or a defun"))
     (nconc header body (list "}"))))
 
 ;;; with
-(defmethod js-to-statement-strings ((with script-with) start-pos)
+(defmethod js-to-statement-strings ((with js-with) start-pos)
   (nconc (dwim-join (list (js-to-strings (with-obj with) (+ start-pos 2)))
 		    (- 80 start-pos 2)
 		    :start "with (" :end ") {")
@@ -498,7 +537,7 @@ this is a lambda or a defun"))
 	 (list "}")))
 
 ;;; switch
-(defmethod js-to-statement-strings ((case script-switch) start-pos)
+(defmethod js-to-statement-strings ((case js-switch) start-pos)
   (let ((body 	 (mapcan #'(lambda (clause)
 		     (let ((val (car clause))
 			   (body (second clause)))
@@ -520,12 +559,12 @@ this is a lambda or a defun"))
 	   (list "}"))))
 
 ;;; try-catch
-(defmethod js-to-statement-strings ((try script-try) start-pos)
+(defmethod js-to-statement-strings ((try js-try) start-pos)
   (let* ((catch (try-catch try))
 	 (finally (try-finally try))
 	 (catch-list (when catch
 		       (nconc
-			(dwim-join (list (list (symbol-to-js (first catch))))
+			(dwim-join (list (list (js-translate-symbol (first catch))))
 				   (- 80 start-pos 2)
 				   :start "} catch ("
 				   :end ") {")
@@ -557,7 +596,7 @@ this is a lambda or a defun"))
 
 
 ;;; TODO instanceof
-(defmethod js-to-strings ((instanceof script-instanceof) start-pos)
+(defmethod js-to-strings ((instanceof js-instanceof) start-pos)
   (dwim-join
    (list (js-to-strings (value instanceof) (+ start-pos 2))
          (list "instanceof")
@@ -570,7 +609,7 @@ this is a lambda or a defun"))
 
 ;;; single operations
 (defmacro define-translate-js-single-op (name &optional (superclass 'expression))
-    (let ((script-name (intern (concatenate 'string "SCRIPT-" (symbol-name name)) #.*package*)))
+    (let ((script-name (intern (concatenate 'string "JS-" (symbol-name name)) #.*package*)))
       `(defmethod ,(if (eql superclass 'expression)
                        'js-to-strings
                      'js-to-statement-strings)
@@ -586,7 +625,3 @@ this is a lambda or a defun"))
 (define-translate-js-single-op void)
 (define-translate-js-single-op typeof)
 (define-translate-js-single-op new)
-
-(defmethod js-to-statement-strings ((blank-statement blank-statement) start-pos)
-  (declare (ignore blank-statement) (ignore start-pos))
-  '(";"))

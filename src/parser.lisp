@@ -2,6 +2,14 @@
 
 ;;;; The mechanisms for defining macros & parsing Parenscript.
 
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (defvar *enable-package-system* t
+    "When NIL, all symbols will function as global symbols."))
+  
+(eval-when (:compile-toplevel :load-toplevel)
+  (defun macro-name-hash-function ()
+    (if *enable-package-system* #'eql #'equal)))
+
 (defclass script-package ()
   ;; configuration slots
   ((name          :accessor script-package-name          :initform nil :initarg :name :type string
@@ -38,7 +46,9 @@
 ;                                       Probably not used except for built-in packages."))
    )
   (:documentation "A Parenscript package is a lisp object that holds information
-about a set of Suavescript code."))
+about a set of code.
+
+"))
 
 (defclass compilation-environment ()
   ((script-packages :accessor comp-env-script-packages :initform nil :initarg :packages
@@ -77,9 +87,6 @@ http://www.lispworks.com/documentation/HyperSpec/Body/03_bca.htm")
 ;; as arguments.
   )
 
-(defvar *enable-package-system* t
-  "When NIL, all symbols will function as global symbols.")
-
 (defvar *package-prefix-style* :prefix
   "Determines how package symbols are serialized to JavaScript identifiers.  NIL for
 no prefixes.  :prefix to prefix variables with something like packagename_identifier.")
@@ -103,8 +110,12 @@ no prefixes.  :prefix to prefix variables with something like packagename_identi
   "Find the script package with the name NAME in the given compilation environment."
   (typecase name
     ((or symbol string)
-     (find (string name) (comp-env-script-packages comp-env)
-	   :test #'equal :key #'script-package-name))
+     (find-if #'(lambda (script-package)
+		  (find (string name)
+			(cons (script-package-name script-package)
+			      (script-package-nicknames script-package))
+			:test #'equal))
+	      (comp-env-script-packages comp-env)))
     (script-package  name)
     (t (error "~A has unknown type" name))))
      
@@ -117,18 +128,24 @@ no prefixes.  :prefix to prefix variables with something like packagename_identi
   "Returns a Parenscript symbol with the string value STRING interned for the
 given SCRIPT-PACKAGE."
   (setf script-package (find-script-package script-package))
-  (intern name (script-package-lisp-package script-package)))
+  (flet ((find-exported-symbol (name script-package)
+	   (let ((res
+		  (find name (script-package-exports script-package)
+			:key #'(lambda (exported-symbol) (string exported-symbol))
+			:test #'equal)))
+;	     (format t "Searching for exported symbol ~A in ~A: ~A~%" 
+;		     name (script-package-name script-package) res)
+	     res)))
+    (let ((res
+	   (or
+	    (some #'(lambda (used-package)
+		      (find-exported-symbol name used-package))
+		  (script-package-used-packages script-package))
+	    (intern name (script-package-lisp-package script-package)))))
+      (declare (type symbol res))
+      res)))
 
-(defun script-export (symbols &optional (script-package (comp-env-current-package *compilation-environment*)))
-  "Exports the given symbols in the given script package."
-  (when (symbolp symbols)
-    (setf symbols (list symbols)))
-  ;; TODO check to make sure symbols are each interned under SCRIPT-PACKAGE
-  (mapc #'(lambda (sym)
-	    (pushnew sym (script-package-exports script-package)))
-	symbols)
-  t)
-  
+
 (defun find-script-symbol (name script-package)
   "Finds the symbol with name NAME in the script package SCRIPT-PACKAGE.  NAME is a
 string and SCRIPT-PACKAGE is a package designator.  If NAME does not specify a symbol of
@@ -140,73 +157,88 @@ script-package, returns nil.  Otherwise returns 2 values:
          (exported? (find symbol (script-package-exports script-package))))
     (values symbol (if exported? :external (when symbol :internal)))))
 
-;; environmental considerations
-(defgeneric install-standard-script-packages (comp-env)
-  (:documentation "Creates standard script packages and installs them in the current compilation
-environment.")
-  (:method ((comp-env compilation-environment))
-    (list
-     (create-script-package
-      comp-env
-      :name "GLOBAL" :lisp-package :parenscript.global
-      :secondary-lisp-packages '(:keyword))
-     (create-script-package
-      comp-env
-      :name "JAVASCRIPT" :nicknames (list "JS") :lisp-package :parenscript.javascript
-      :secondary-lisp-packages '(:common-lisp))
-     (create-script-package
-      comp-env
-      :name "PARENSCRIPT" :lisp-package :parenscript
-      :used-packages '(:javascript)
-      )
-     (create-script-package
-      comp-env
-      :name "PARENSCRIPT-USER" :lisp-package :parenscript-user
-      :secondary-lisp-packages (list :cl-user)
-      :nicknames '("PS-USER" "PAREN-USER")))))
+(defun script-export (symbols
+		      &optional (script-package (comp-env-current-package *compilation-environment*)))
+  "Exports the given symbols in the given script package."
+  (when (not (listp symbols)) (setf symbols (list symbols)))
+  (setf script-package (find-script-package script-package))
+;  (format t "Exporting symbols ~A in package ~A~%"
+;	  symbols (script-package-name script-package))
+  (let ((symbols-not-in-package
+	 (remove-if #'(lambda (symbol)
+			(declare (type symbol symbol))
+			(eql symbol (find-script-symbol (string symbol) script-package)))
+		    symbols)))
+    (when symbols-not-in-package
+      (error "Invalid exports.  The following symbols are not interned in the package ~A:~%~A"
+	     (script-package-name script-package) symbols-not-in-package)))
+  (mapc #'(lambda (symbol)
+	    (pushnew symbol (script-package-exports script-package)))
+	symbols)
+  t)
+  
+(defun use-script-package (packages-to-use
+			   &optional (into-package (comp-env-current-package *compilation-environment*)))
+  "use-script-package causes INTO-PACKAGE to inherit all the external symbols of packages-to-use. 
+The inherited symbols become accessible as internal symbols of package."
+  (when (not (listp packages-to-use)) (setf packages-to-use (list packages-to-use)))
+  (setf packages-to-use (mapcar #'find-script-package packages-to-use))
+  (setf into-package (find-script-package into-package))
 
+  (let ((all-used-symbols (apply #'append (mapcar #'script-package-exports packages-to-use))))
+    (mapc #'(lambda (used-symbol)
+	      (let ((symbol-same-name (find-script-symbol (string used-symbol) into-package)))
+		(when (not (or (null symbol-same-name)
+			       (eql symbol-same-name used-symbol)))
+		  (error "Import of symbol ~A into package ~A conflicts with interned symbol ~A"
+			 used-symbol (script-package-name into-package) symbol-same-name))))
+	  all-used-symbols))
+  (setf (script-package-used-packages into-package)
+	(append (script-package-used-packages into-package) packages-to-use)))
+	
+
+
+;; environmental considerations
 (defgeneric setup-compilation-environment (comp-env)
   (:documentation "Sets up a basic compilation environment prepared for a language user.
 This should do things like define packages and set the current package.
 
-Returns the compilation-environment.")
-  (:method ((comp-env compilation-environment))
-    (install-standard-script-packages comp-env)
-    (setf (comp-env-current-package comp-env)
-	  (find-script-package :parenscript-user comp-env))
-    comp-env))
+Returns the compilation-environment."))
+
+(defgeneric install-standard-script-packages (comp-env)
+  (:documentation "Creates standard script packages and installs them in the current compilation
+environment."))
 
 (defun make-basic-compilation-environment ()
   "Creates a compilation environment object from scratch.  Fills it in with the default
 script packages (parenscript, global, and parenscript-user)."
-  (setup-compilation-environment (make-instance 'compilation-environment)))
+  (let ((*compilation-environment* (make-instance 'compilation-environment)))
+    (setup-compilation-environment *compilation-environment*)))
 
 (defun create-script-package (comp-env
 			      &key name nicknames secondary-lisp-packages used-packages
 			      lisp-package exports documentation)
   "Creates a script package in the given compilation environment"
-  (labels ((normalize (string-like) (string string-like)))
-    (let*  ((explicit-lisp-package-p (not (null lisp-package)))
-	    (lisp-package
-	     (or (and explicit-lisp-package-p (find-package lisp-package))
-		 (make-package (gensym (string name))))))
-      (labels ((package-intern (string-like)
-		 (intern (normalize string-like) lisp-package)))
-	(let ((script-package
-	       (make-instance 'script-package
-			      :name (normalize name)
-			      :comp-env comp-env
-			      :nicknames (mapcar #'normalize nicknames)
-			      :lisp-package (find-package lisp-package)
-			      :secondary-lisp-packages (mapcar #'find-package secondary-lisp-packages)
-			      :exclusive-lisp-package? (not explicit-lisp-package-p)
-			      :exports (mapcar #'package-intern exports)
-			      :used-packages (mapcar #'(lambda (script-package-designator)
-							 (find-script-package
-							  script-package-designator comp-env))
-						     used-packages)
-			      :documentation documentation)))
-	  (push script-package (comp-env-script-packages comp-env)))))))
+  (let*  ((explicit-lisp-package-p (not (null lisp-package)))
+	  (lisp-package
+	   (or (and explicit-lisp-package-p (find-package lisp-package))
+	       (make-package (gensym (string name))))))
+    (let ((script-package
+	   (make-instance 'script-package
+			  :name (string name)
+			  :comp-env comp-env
+			  :nicknames (mapcar #'string nicknames)
+			  :lisp-package (find-package lisp-package)
+			  :secondary-lisp-packages (mapcar #'find-package secondary-lisp-packages)
+			  :exclusive-lisp-package? (not explicit-lisp-package-p)
+			  :documentation documentation)))
+	(use-script-package used-packages script-package)
+;	(format t "CSP exports for ~A: ~A~%" (script-package-name script-package) exports)
+	(labels ((package-intern (string-like)
+		   (script-intern (string string-like) script-package)))
+	  (script-export (mapcar #'package-intern exports) script-package))
+	(push script-package (comp-env-script-packages comp-env))
+	script-package)))
 
 (defmethod initialize-instance :after ((package script-package) &key)
   (assert (script-package-comp-env package))
@@ -250,10 +282,9 @@ compilation environment. PACKAGE-DESIGNATOR is a string or symbol.")
   
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
-  (defvar *toplevel-special-forms* (make-hash-table)
+  (defvar *toplevel-special-forms* (make-hash-table :test (macro-name-hash-function))
     "A hash-table containing functions that implement Parenscript special forms,
 indexed by name (as symbols)")
-  
   (defun undefine-script-special-form (name)
     "Undefines the special form with the given name (name is a symbol)."
     (declare (type symbol name))
@@ -269,25 +300,33 @@ ongoing javascript compilation."
 	 (intern (format nil "PAREN-~A" (symbol-name name))
 		 (find-package :parenscript)))
 	(arglist (gensym "ps-arglist-")))
-    `(eval-when (:compile-toplevel :load-toplevel :execute)
-      (defun ,script-name (&rest ,arglist)
-	(destructuring-bind ,lambda-list
-	    ,arglist
-	  ,@body))
-      (setf (gethash (quote ,name) *toplevel-special-forms*) #',script-name))))
+    `(setf (gethash (quote ,name) *toplevel-special-forms*)
+      #'(lambda (&rest ,arglist)
+	  (destructuring-bind ,lambda-list
+	      ,arglist
+	    ,@body)))))
+	   
 
 (defun get-script-special-form (name)
   "Returns the special form function corresponding to the given name."
 ; (declare (type symbol name))
-  (when (symbolp name)
-    (gethash name *toplevel-special-forms*)))
+  (cond
+    (*enable-package-system*
+     (when (symbolp name)
+       (gethash name *toplevel-special-forms*)))
+    (t
+     (when (symbolp name)
+       (maphash #'(lambda (macro-name value)
+		    (when (equal (string macro-name) (string name))
+		      (return-from get-script-special-form value)))
+		*toplevel-special-forms*)))))
 
 ;;; sexp form predicates
 (defun script-special-form-p (form)
   "Returns T if FORM is a special form and NIL otherwise."
   (and (consp form)
        (symbolp (car form))
-       (gethash (car form) *toplevel-special-forms*)))
+       (get-script-special-form (car form))))
 
 (defun funcall-form-p (form)
   (and (listp form)
@@ -303,17 +342,33 @@ ongoing javascript compilation."
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (defun make-macro-env-dictionary ()
     "Creates a standard macro dictionary."
-    (make-hash-table))
+    (make-hash-table  :test (macro-name-hash-function)))
   (defvar *script-macro-toplevel* (make-macro-env-dictionary)
     "Toplevel macro environment dictionary. Key is symbol-name of the macro, value
 is (symbol-macro-p . expansion-function).")
   (defvar *script-macro-env* (list *script-macro-toplevel*) ;(list nil)
-    "Current macro environment."))
+    "Current macro environment.")
+  
+  (defun find-macro-spec (name env-dict)
+    (if *enable-package-system*
+	(gethash name env-dict)
+	(with-hash-table-iterator (next-entry env-dict)
+	  (loop
+	   (multiple-value-bind (exists? macro-name spec)
+	       (next-entry)
+	     (if exists?
+		 (when (equal (string macro-name) (string name))
+		   (return spec))
+		 (return nil)))))))
+  (defsetf find-macro-spec (name env-dict)
+      (spec)
+    `(setf (gethash ,name ,env-dict) ,spec)))
+
 
 (defmacro get-macro-spec (name env-dict)
   "Retrieves the macro spec of the given name with the given environment dictionary.
 SPEC is of the form (symbol-macro-op expansion-function)."
-  `(gethash ,name ,env-dict))
+  `(find-macro-spec ,name ,env-dict))
 
 (defun lookup-macro-spec (name &optional (environment *script-macro-env*))
   "Looks up the macro spec associated with NAME in the given environment.  A

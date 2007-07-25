@@ -1,4 +1,4 @@
-(in-package :js-test)
+(in-package :ps-test)
 ;; Tests of everything in the reference.
 ;; File is generated automatically from the text in reference.lisp by
 ;; the function make-reference-tests-dot-lisp in ref2test.lisp

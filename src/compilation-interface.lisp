@@ -5,7 +5,6 @@
 	  (*compilation-environment* ,var))
     ,@body))
     
-
 (defun translate-ast (compiled-expr
 		      &key
 		      (comp-env *compilation-environment*)
@@ -34,7 +33,8 @@ OUTPUT-SPEC must be :javascript at the moment."
 		       (pretty-print t)
 		       (output-stream nil)
 		       (toplevel-p t)
-		       (comp-env (make-basic-compilation-environment)))
+		       (comp-env (or *compilation-environment*
+				     (make-basic-compilation-environment))))
   "Compiles the Parenscript form SCRIPT-FORM into the language specified by OUTPUT-SPEC.
 Non-null PRETTY-PRINT values result in a pretty-printed output code.  If OUTPUT-STREAM
 is NIL, then the result is a string; otherwise code is output to the OUTPUT-STREAM stream.
@@ -74,8 +74,36 @@ potentially other languages)."
   "Compiles the given Parenscript source file and outputs the results
 to the given output stream."
   (setf (comp-env-compiling-toplevel-p comp-env) t)
-  (error "NOT IMPLEMENTED."))
-
+  (with-open-file (input source-file :direction :input)
+    (let ((end-read-form '#:unique))
+      (flet ((read-form ()
+	       (parenscript.reader:read input nil end-read-form)))
+	(macrolet ((with-output-stream ((var) &body body)
+		     `(if (null output-stream)
+		       (with-output-to-string (,var)
+			 ,@body)
+		       (let ((,var output-stream))
+			 ,@body))))
+	  (let* ((*compilation-environment* comp-env)
+		 (compiled
+		  (do ((form (read-form) (read-form))
+		       (compiled-forms nil))
+		      ((eql form end-read-form)
+		       (compile-parenscript-form 
+			comp-env
+			`(progn ,@(nreverse compiled-forms))
+			:toplevel-p nil))
+		    (let ((tl-compiled-form
+			   (compile-parenscript-form comp-env form :toplevel-p t)))
+		      (push tl-compiled-form compiled-forms)))))
+	    (with-output-stream (output)
+	      (translate-ast
+	       compiled
+	       :comp-env comp-env
+	       :output-stream output
+	       :output-spec output-spec
+	       :pretty-print pretty-print))))))))
+  
 ;(defun compile-script-file (script-src-file
 ;			    &key
 ;			    (output-spec :javascript)
@@ -94,70 +122,14 @@ to the given output stream."
 Body is evaluated."
   `(compile-script (progn ,@body)))
 
-;; DEPRECATED
-(defmacro js (&body body)
-  "A macro that returns a javascript string of the supplied Parenscript forms."
-  `(script ,@body))
-
-(defmacro js* (&body body)
-  `(script* ,@body))
-
-(defun js-to-string (expr)
-  "Given an AST node, compiles it to a Javascript string."
-  (string-join
-   (js-to-statement-strings (compile-script-form expr) 0)
-   (string #\Newline)))
-
-(defun js-to-line (expr)
-  "Given an AST node, compiles it to a Javascript string."
-  (string-join
-   (js-to-statement-strings (compile-script-form expr) 0) " "))
-
-
 ;;; old file compilation functions:
-(defun compile-parenscript-file-to-string (source-file
-					   &key
-					   (log-stream nil)
-					   (comment nil)
-					   (eval-forms-p nil))
+(defun compile-parenscript-file-to-string (source-file)
   "Compile SOURCE-FILE (a parenscript file) to a javascript string. (in-package ...) forms
 behave as expected and all other forms are evaluated according to the value of
 EVAL-FORMS-P. If the result of the evaluation is not nil then it's compiled with
 js:js* and written to the output."
-  (with-output-to-string (output)
-    (with-open-file (input source-file :direction :input)
-      (flet ((read-form ()
-               (read input nil))
-             (log-message (&rest args)
-               (when log-stream
-                 (apply #'format log-stream args))))
-        (let ((*package* *package*))
-          (loop for form = (read-form)
-                while form do
-                (if (or (not (listp form))
-                        (not (eq (car form) 'cl:in-package)))
-                    (progn
-                      (log-message "Processing form:~%~S~%" form)
-                      (when comment
-                        (princ "/*" output)
-                        (print form output)
-                        (terpri output)
-                        (princ "*/" output)
-                        (terpri output))
-                      (when eval-forms-p
-                        (setf form (eval form)))
-                      (log-message "After evaluation:~%~S~%" form)
-                      (when form
-                        (let ((compiled (js:js* form)))
-                          (log-message "Compiled into:~%~A~%~%" compiled)
-                          (write-string compiled output)
-                          (terpri output)
-                          (terpri output))))
-                    (when (and (listp form)
-                               (eq (car form) 'cl:in-package))
-                      (log-message "Setting package to: ~S~%" (cadr form))
-                      (setf *package* (find-package (cadr form)))))))))))
-
+  (compile-script-file source-file :output-stream nil))
+  
 (defun compile-parenscript-file (source-file &rest args &key destination-file &allow-other-keys)
   "Compile SOURCE-FILE (a parenscript file) to a javascript file with
 compile-parenscript-file-to-string. When DESTINATION-FILE is omitted,
@@ -169,3 +141,22 @@ then it will be named the same as SOURCE-FILE but with js extension."
                                             source-file)))
   (with-open-file (output destination-file :if-exists :supersede :direction :output)
     (write-string (apply #'compile-parenscript-file-to-string source-file args) output)))
+
+;; DEPRECATED
+(defmacro js (&body body)
+  "A macro that returns a javascript string of the supplied Parenscript forms."
+  `(script ,@body))
+
+(defmacro js* (&body body)
+  `(script* ,@body))
+
+(defun js-to-string (expr)
+  "Given an AST node, compiles it to a Javascript string."
+  (string-join
+   (ps-js::js-to-statement-strings (compile-script-form expr) 0)
+   (string #\Newline)))
+
+(defun js-to-line (expr)
+  "Given an AST node, compiles it to a Javascript string."
+  (string-join
+   (ps-js::js-to-statement-strings (compile-script-form expr) 0) " "))

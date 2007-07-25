@@ -9,8 +9,10 @@
 
 (defscriptliteral this      "this")
 (defscriptliteral t         "true")
-(defscriptliteral nil       "null")
+(defscriptliteral true      "true")
 (defscriptliteral false     "false")
+(defscriptliteral f         "false")
+(defscriptliteral nil       "null")
 (defscriptliteral undefined "undefined")
 
 (defmacro defscriptkeyword (name string)

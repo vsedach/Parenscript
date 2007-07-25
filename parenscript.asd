@@ -21,13 +21,14 @@
 			     (:file "js-source-model" :depends-on ("package" "utils"))
 			     (:file "ps-source-model" :depends-on ("js-source-model"))
 			     (:file "parser" :depends-on ("js-source-model" "ps-source-model"))
+			     (:file "builtin-packages" :depends-on ("parser"))
 			     (:file "deprecated-interface" :depends-on ("parser"))
 			     (:file "js-macrology" :depends-on ("deprecated-interface"))
 			     (:file "ps-macrology" :depends-on ("js-macrology"))
 			     (:file "js-translation" :depends-on ("ps-macrology"))
 ;			     (:file "js-ugly-translation" :depends-on ("js-translation"))
 			     (:file "reader" :depends-on ("parser"))
-			     (:file "compilation-interface" :depends-on ("package" "reader" "js-translation")); "js-ugly-translation"))
+			     (:file "compilation-interface" :depends-on ("package" "reader" "js-translation" "builtin-packages")); "js-ugly-translation"))
 			     ;; standard library
                              (:module :lib
                                       :components ((:static-file "functional.lisp")
@@ -50,9 +51,11 @@
                              (:file "test" :depends-on ("test-package"))
                              (:file "ref2test" :depends-on ("test"))
                              (:file "reference-tests" :depends-on ("test"))
-                             (:file "ps-tests" :depends-on ("test"))))))
+                             (:file "ps-tests" :depends-on ("test"))
+			     (:file "package-system-tests" :depends-on ("test"))))))
+			     
 
 (defmethod asdf:perform ((o test-op) (c (eql (find-system :parenscript.test))))
   (asdf:operate 'asdf:load-op :parenscript.test)
   (funcall (intern (symbol-name :run-tests)
-                   (find-package :js-test))))
+                   (find-package :parenscript-test))))

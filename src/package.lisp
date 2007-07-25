@@ -1,109 +1,120 @@
 (in-package :cl-user)
+;;;; Package definitions for the Parenscript 
+;; #: 
+
+(eval-when (:compile-toplevel :load-toplevel)
+  ;; exports shared between PARENSCRIPT and PARENSCRIPT.JAVASCRIPT
+  (defparameter *shared-symbols-ps-js*
+    '(
+      ;; literals
+      #:t
+      #:f
+      #:true
+      #:nil
+      #:this
+      #:false
+      #:undefined
+      
+      ;; keywords
+      #:break
+      #:continue
+      
+      ;; array literals
+      #:array
+      #:list
+      #:aref
+      #:make-array
+      
+      ;; operators
+      #:! #:not #:~
+      #:* #:/ #:%
+      #:+ #:-
+      #:<< #:>>
+      #:>>>
+      #:< #:> #:<= #:>=
+      #:in
+      #:eql #:== #:!= #:=
+      #:=== #:!==
+      #:&
+      #:^
+      #:\|
+      #:\&\& #:and
+      #:\|\| #:or
+      #:>>= #:<<=
+      #:*= #:/= #:%= #:+= #:\&= #:^= #:\|= #:~=
+      #:++ #:--
+      #:1+ #:1-
+      #:incf #:decf
+      
+      ;; body forms
+      #:progn
+      
+      ;; function definition
+      #:defun
+      #:lambda
+      
+      ;; object literals
+      #:create
+      #:slot-value
+      #:with-slots
+      
+      ;; macros
+      #:macrolet
+      #:symbol-macrolet
+      
+      ;; if
+      #:if
+      #:when
+      #:unless
+      
+      ;; single argument statements
+      #:return
+      #:throw
+      
+      ;; single argument expressions
+      #:delete
+      #:void
+      #:typeof
+      #:instanceof
+      #:new
+      
+      ;; assignment
+      #:setf
+      
+      ;; variables
+      #:defvar
+      
+      ;; iteration
+      #:for
+      #:doeach
+      #:while
+      
+      ;; with
+      #:with
+      
+      ;; case
+      #:switch
+      #:case
+      #:default
+      
+      ;; try throw catch
+      #:try
+      
+      ;; regex literals
+      #:regex
+      
+      ;; conditional compilation (IE)
+      #:cc-if)
+    "Symbols exported from both the Parenscript and Javascript packages 
+that are also valid as Parenscript symbols for the corresponding script packages."))
+
+  
 
 (defpackage parenscript.javascript
   (:use :common-lisp)
   (:nicknames javascript ps-js)
+  #.(cons :export *shared-symbols-ps-js*)
   (:export
-
-   #:new
-   ;; literals
-   #:t
-   #:nil
-   #:this
-   #:false
-   #:undefined
-
-   ;; keywords
-   #:break
-   #:continue
-
-   ;; array literals
-   #:array
-   #:list
-   #:aref
-   #:make-array
-
-   ;; operators
-   #:! #:not #:~
-   #:* #:/ #:%
-   #:+ #:-
-   #:<< #:>>
-   #:>>>
-   #:< #:> #:<= #:>=
-   #:in
-   #:eql #:== #:!= #:=
-   #:=== #:!==
-   #:&
-   #:^
-   #:\|
-   #:\&\& #:and
-   #:\|\| #:or
-   #:>>= #:<<=
-   #:*= #:/= #:%= #:+= #:\&= #:^= #:\|= #:~=
-   #:++ #:--
-   #:1+ #:1-
-   #:incf #:decf
-
-   ;; body forms
-   #:progn
-
-   ;; function definition
-   #:defun
-   #:lambda
-
-   ;; object literals
-   #:create
-   #:slot-value
-   #:with-slots
-
-   ;; macros
-   #:macrolet
-   #:symbol-macrolet
-
-   ;; if
-   #:if
-   #:when
-   #:unless
-
-   ;; single argument statements
-   #:return
-   #:throw
-
-   ;; single argument expressions
-   #:delete
-   #:void
-   #:typeof
-   #:instanceof
-   #:new
-
-   ;; assignment
-   #:setf
-
-   ;; variables
-   #:defvar
-
-   ;; iteration
-   #:for
-   #:doeach
-   #:while
-
-   ;; with
-   #:with
-
-   ;; case
-   #:switch
-   #:case
-   #:default
-
-   ;; try throw catch
-   #:try
-
-   ;; regex literals
-   #:regex
-
-   ;; conditional compilation (IE)
-   #:cc-if
-   
    ;; translate
    #:js-to-strings
    #:js-to-statement-strings
@@ -111,126 +122,64 @@
   (:documentation "The package used to define Javascript special forms.  Most of Parenscript
 is defined as macros on top of Javascript special forms"))
 
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (defparameter *parenscript-lang-exports*
+    (append 
+     *shared-symbols-ps-js*
+     '(
+       ;; package system
+       #:defpackage
+       #:in-package
+
+       ;; eval-when
+       #:eval-when
+       ;; macros
+       #:macrolet
+       #:symbol-macrolet
+       
+       ;; lisp eval
+       #:lisp
+       
+       ;; assignment
+       #:setf
+       
+       #:let
+       
+       ;; iteration
+       #:do
+       #:dotimes
+       #:dolist
+       #:doeach
+       #:while
+       
+       ;; v v v STUFF WE SHOULD PROBABLY MOVE TO OTHER LIBS v v v
+       
+       ;; CSS
+       #:css
+       #:css-to-string
+       #:css-inline
+       #:css-file
+
+       ;; math library
+       #:floor
+       #:random
+       
+       ;; html generator for javascript
+       #:html
+       ))
+    "List of (uninterned) symbols. Contains all symbols considerred
+part of the Parenscript language.  These should be exported within
+both the Lisp package and the script package for Parenscript."))
+
 (defpackage :parenscript
   (:use :common-lisp :parenscript.javascript)
   (:nicknames :js :ps)
+  #.(cons :export *shared-symbols-ps-js*)
+  #.(cons :export *parenscript-lang-exports*)
   (:export
-   ;; addition js symbols
-   #:new
-
-   ;; literals
-   #:t
-   #:nil
-   #:this
-   #:false
-   #:undefined
-
-   ;; keywords
-   #:break
-   #:continue
-
-   ;; array literals
-   #:array
-   #:list
-   #:aref
-   #:make-array
-
-   ;; operators
-   #:! #:not #:~
-   #:* #:/ #:%
-   #:+ #:-
-   #:<< #:>>
-   #:>>>
-   #:< #:> #:<= #:>=
-   #:in
-   #:eql #:== #:!= #:=
-   #:=== #:!==
-   #:&
-   #:^
-   #:\|
-   #:\&\& #:and
-   #:\|\| #:or
-   #:>>= #:<<=
-   #:*= #:/= #:%= #:+= #:\&= #:^= #:\|= #:~=
-   #:++ #:--
-   #:1+ #:1-
-   #:incf #:decf
-
-   ;; body forms
-   #:progn
-
-   ;; function definition
-   #:defun
-   #:lambda
-
-   ;; object literals
-   #:create
-   #:slot-value
-   #:with-slots
-
-   ;; macros
-   #:macrolet
-   #:symbol-macrolet
-
-   ;; lisp eval
-   #:lisp
-
-   ;; if
-   #:if
-   #:when
-   #:unless
-
-   ;; single argument statements
-   #:return
-   #:throw
-
-   ;; single argument expressions
-   #:delete
-   #:void
-   #:typeof
-   #:instanceof
-   #:new
-
-   ;; assignment
-   #:setf
-
-   ;; variables
-   #:defvar
-   #:let
-
-   ;; iteration
-   #:do
-   #:dotimes
-   #:dolist
-   #:doeach
-   #:while
-
-   ;; with
-   #:with
-
-   ;; case
-   #:switch
-   #:case
-   #:default
-
-   ;; try throw catch
-   #:try
-
-   ;; regex literals
-   #:regex
-
-   ;; conditional compilation (IE)
-   #:cc-if
-
-   ;; math library
-   #:floor
-   #:random
-
-   ;; html generator for javascript
-   #:html
-
    ;; compiler
    #:compile-script
+   #:compile-script-file
    #:compile-parenscript-file
    #:compile-parenscript-file-to-string
    #:script
@@ -248,7 +197,8 @@ is defined as macros on top of Javascript special forms"))
    #:script-package-name
    
    ;; for parenscript macro definition within lisp
-   #:defscriptmacro #:defpsmacro ; should we use one or the other of these?
+   #:defscriptmacro
+   #:defpsmacro ; should we use one or the other of these?
    #:defmacro/js
    #:defmacro+js
    #:import-macros-from-lisp
@@ -257,12 +207,6 @@ is defined as macros on top of Javascript special forms"))
    #:with-unique-js-names
    #:gen-js-name
    #:gen-js-name-string
-
-   ;; CSS
-   #:css
-   #:css-to-string
-   #:css-inline
-   #:css-file
 
    ;; deprecated interface
    #:defjsmacro
@@ -277,33 +221,9 @@ is defined as macros on top of Javascript special forms"))
    #:js-to-statement-strings
    #:js-to-string
    #:js-to-line
-   )
-  (:intern 
-   #:define-script-special-form
-   #:defscriptclass
-   #:symbol-to-js
-   #:script-quote
-   #:*package-prefix-style*
-   #:*script-macro-env*
-   #:compile-to-statement
-   #:compile-to-block
-   #:compile-to-symbol
-   #:compile-to-expression
-   #:list-join
-   #:list-to-string
-   #:append-to-last
-   #:prepend-to-first
-   #:string-join
-   #:val-to-string
-   #:string-split
-   #:script-special-form-p
-   #:make-macro-env-dictionary
-   #:compile-script-form
-   )
-  )
+   ))
 
 (in-package :parenscript)
-
 (import 
  '(defscriptclass
    define-script-special-form
@@ -335,46 +255,49 @@ is defined as macros on top of Javascript special forms"))
 (defpackage parenscript.reader
   (:nicknames parenscript-reader)
   (:use :common-lisp :parenscript)
-  (:shadow readtablep
-           readtable-case
-           copy-readtable
-           get-macro-character
-           get-dispatch-macro-character
-           set-macro-character
-           set-dispatch-macro-character
-           make-dispatch-macro-character
-           set-syntax-from-char
-           read-preserving-whitespace
-           read
-           read-from-string
-           read-delimited-list
-           backquote-comma-dot
-           backquote
-           backquote-comma
-           backquote-comma-at
+  (:shadow #:readtablep
+           #:readtable-case
+           #:copy-readtable
+           #:get-macro-character
+           #:get-dispatch-macro-character
+           #:set-macro-character
+           #:set-dispatch-macro-character
+           #:make-dispatch-macro-character
+           #:set-syntax-from-char
+           #:read-preserving-whitespace
+           #:read
+           #:read-from-string
+           #:read-delimited-list
+           #:backquote-comma-dot
+           #:backquote
+           #:backquote-comma
+           #:backquote-comma-at
            
-           *read-eval*
-           *read-base*
-           *read-default-float-format*
-           *read-suppress*
-           *readtable*
-           *read-suppress*
-           *reader-error*
-           *read-suppress*
+           #:*read-eval*
+           #:*read-base*
+           #:*read-default-float-format*
+           #:*read-suppress*
+           #:*readtable*
+           #:*read-suppress*
+           #:*reader-error*
+           #:*read-suppress*
            
-           readtable
-           backquote
-           reader-error)
+           #:readtable
+           #:backquote
+           #:reader-error)
   (:export
-    read
-    read-from-string
-    read-delimited-list))
+    #:read
+    #:read-from-string
+    #:read-delimited-list)
+  (:documentation "The Parenscript reader.  Used for reading Parenscript
+forms."))
 
 (defpackage parenscript.global
-  (:nicknames global)
+  (:nicknames "GLOBAL")
   (:documentation "Symbols interned in the global package are serialized in Javascript
 as non-prefixed identifiers."))
 
 (defpackage parenscript.user
+  (:use :parenscript)
   (:nicknames ps-user paren-user parenscript-user)
   (:documentation "The default package a user is inside of when compiling code."))

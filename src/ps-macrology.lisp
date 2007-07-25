@@ -87,6 +87,7 @@ the code is being evaluated by a Javascript engine."
 	(:use (setf used-packages (rest opt)))
 	(:documentation (setf documentation (second opt)))
 	(t (error "Unknown option in DEFPACKAGE: ~A" (opt-name opt)))))
+    (format t "Exports: ~A~%" exports)
     (create-script-package
      *compilation-environment*
      :name name
@@ -101,9 +102,15 @@ the code is being evaluated by a Javascript engine."
 (defscriptmacro in-package (package-designator)
   "Changes the current script package in the parenscript compilation environment.  This mostly
 affects the reader and how it interns non-prefixed symbols"
-  (setf (comp-env-current-package *compilation-environment*)
-	(find-script-package package-designator *compilation-environment*))
-  `(progn))
+  (let ((script-package
+	 (find-script-package package-designator *compilation-environment*)))
+    (when (null script-package)
+      (error "~A does not designate any script package.  Available script package: ~A"
+	     package-designator
+	     (mapcar #'script-package-name (comp-env-script-packages *compilation-environment*))))
+    (setf (comp-env-current-package *compilation-environment*)
+	  script-package)
+    `(progn)))
 
 (defscriptmacro case (value &rest clauses)
   (labels ((make-clause (val body more)

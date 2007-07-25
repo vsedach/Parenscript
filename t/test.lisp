@@ -1,4 +1,4 @@
-(in-package :js-test)
+(in-package :ps-test)
 
 ;; Testcases for parenscript
 

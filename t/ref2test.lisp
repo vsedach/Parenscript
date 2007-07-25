@@ -1,4 +1,4 @@
-(in-package :js-test)
+(in-package :ps-test)
 ;;Generates automatic tests from the reference
 
 (defparameter +this-dir+ (asdf:component-pathname (asdf:find-component (asdf:find-system :parenscript.test) "t")))
@@ -12,7 +12,7 @@
                                               :type "lisp"
                                               :defaults +this-dir+))
 
-(defparameter +head+ "(in-package :js-test)
+(defparameter +head+ "(in-package :ps-test)
 ;; Tests of everything in the reference.
 ;; File is generated automatically from the text in reference.lisp by
 ;; the function make-reference-tests-dot-lisp in ref2test.lisp
@@ -41,11 +41,11 @@
                                      :test #'char=)))
            (strip-indentation (str indentation)
              (if indentation
-                 (js::string-join (mapcar #'(lambda (str)
+                 (parenscript::string-join (mapcar #'(lambda (str)
                                           (if (> (length str) indentation)
                                               (subseq str indentation)
                                               str))
-                                      (js::string-split str (list #\Newline)))
+                                      (parenscript::string-split str (list #\Newline)))
                               (string #\Newline))
                  str))
 

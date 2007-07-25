@@ -382,16 +382,18 @@
   "Ensures that the symbol with name NAME is external for the given script package PACKAGE.
 Raises a continuable error if NAME is not external in PACKAGE.  Otherwise interns NAME
 in PACKAGE and returns the symbol."
-  (multiple-value-bind (symbol status)
-      (find-script-symbol name package)
-    (unless (eq status :external)
-      (cerror (if (null status)
-                  "Intern and export script symbol ~S in package ~S."
-                  "Export script symbol ~S in package ~S.")
-              "There is no external symbol by the name of ~S in script package ~S."
-              name package)
-      (script-export (setq symbol (script-intern name package)) package))
-    symbol))
+  (if package
+      (multiple-value-bind (symbol status)
+	  (find-script-symbol name package)
+	(unless (eq status :external)
+	  (cerror (if (null status)
+		      "Intern and export script symbol ~S in package ~S."
+		      "Export script symbol ~S in package ~S.")
+		  "There is no external symbol by the name of ~S in script package ~S."
+		  name package)
+	  (script-export (setq symbol (script-intern name package)) package))
+	symbol)
+      (script-intern name "KEYWORD")))
 
 (defun construct-symbol (lexemes &key uninterned-symbol-wanted)
   (labels ((up (x) (if (listp x) (copy-list x) (list (char-upcase x))))
@@ -740,6 +742,11 @@ in PACKAGE and returns the symbol."
         until (and (char= c #\|) (char= (read-char stream t nil t) #\#)))
   (values))
 
+(defun sharp-l (stream sub-char n)
+  "#L uses the Lisp reader for the next form."
+  (declare (ignore sub-char n))
+  (cl:read stream))
+
 
 (defvar *standard-syntax-table*
   (let ((table (make-hash-table)))
@@ -806,6 +813,9 @@ in PACKAGE and returns the symbol."
    (#\* sharp-asterisk) (#\: sharp-colon) (#\. sharp-dot) (#\b sharp-b)
    (#\o sharp-o) (#\x sharp-x) (#\r sharp-r) (#\c sharp-c) (#\a sharp-a)
    (#\s sharp-s) (#\p sharp-p) (#\= sharp-equal) (#\# sharp-sharp)
-   (#\+ sharp-plus) (#\- sharp-minus) (#\| sharp-vertical-bar)))
+   (#\+ sharp-plus) (#\- sharp-minus) (#\| sharp-vertical-bar)
+   (#\L sharp-l)))
 
 (setq *readtable* (copy-readtable nil))
+
+

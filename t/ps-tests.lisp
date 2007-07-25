@@ -1,4 +1,4 @@
-(in-package :js-test)
+(in-package :ps-test)
 ;; Other tests not in the reference
 
 (eval-when (:compile-toplevel :load-toplevel :execute)

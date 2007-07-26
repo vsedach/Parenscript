@@ -355,19 +355,6 @@
 (defscriptmacro 1+ (form)
   `(+ ,form 1))
 
-;;; Math library
-(defscriptmacro floor (expr)
-  `(*Math.floor ,expr))
-
-(defscriptmacro random ()
-  `(*Math.random))
-
-(defscriptmacro evenp (num)
-  `(= (% ,num 2) 0))
-
-(defscriptmacro oddp (num)
-  `(= (% ,num 2) 1))
-
 ;;; helper macros
 (define-script-special-form js (&rest body)
   (make-instance 'string-literal

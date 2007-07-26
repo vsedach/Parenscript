@@ -203,3 +203,12 @@ x = 2 + sideEffect() + x + 5;")
 (test-ps-js slot-value-setf
   (setf (slot-value x 'y) (+ (+ a 3) 4))
   "x.y = (a + 3) + 4")
+
+(test-ps-js slot-value-conditional1
+  (slot-value (if zoo foo bar) 'x)
+  "(zoo ? foo : bar).x")
+
+(test-ps-js slot-value-conditional2
+  (slot-value (if (not zoo) foo bar) 'x)
+  "(!zoo ? foo : bar).x")
+

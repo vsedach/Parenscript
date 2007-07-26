@@ -110,7 +110,7 @@
 (test-ps-js object-literals-5
   (with-slots (a b c) this
   (+ a b c))
-  "this.a + this.b + this.c;")
+  "(this).a + (this).b + (this).c;")
 
 (test-ps-js regular-expression-literals-1
   (regex "foobar")

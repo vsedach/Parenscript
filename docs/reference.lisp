@@ -222,7 +222,7 @@ an-object.foo => anObject.foo
 
 (with-slots (a b c) this
   (+ a b c))
-    => this.a + this.b + this.c;
+    => (this).a + (this).b + (this).c;
 
 ;;;## Regular Expression literals
 ;;;t \index{REGEX}

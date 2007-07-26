@@ -197,37 +197,37 @@
 
 (defun make-js-test (lhs rhs)
   (if (and (typep rhs 'op-form)
-	   (member lhs (op-args rhs) :test #'js-equal))
+	   (member lhs (op-args rhs) :test #'script-equal))
       (let ((args-without (remove lhs (op-args rhs)
-				  :count 1 :test #'js-equal))
+				  :count 1 :test #'script-equal))
 	    (args-without-first (remove lhs (op-args rhs)
 					:count 1 :end 1
-					:test #'js-equal))
+					:test #'script-equal))
 	    (one (list (make-instance 'number-literal :value 1))))
 	#+nil
 	(format t "OPERATOR: ~S, ARGS-WITHOUT: ~S, ARGS-WITHOUT-FIRST ~S~%"
 		(operator rhs)
 		args-without
 		args-without-first)
-	(cond ((and (js-equal args-without one)
+	(cond ((and (script-equal args-without one)
 		    (eql (operator rhs) '+))
 	       (make-instance 'one-op :pre-p nil :op "++"
 			      :value lhs))
-	      ((and (js-equal args-without-first one)
+	      ((and (script-equal args-without-first one)
 		    (eql (operator rhs) '-))
 	       (make-instance 'one-op :pre-p nil :op "--"
 			      :value lhs))
 	      ((and (assignment-op (operator rhs))
 		    (member (operator rhs)
 			    '(+ *))
-                    (js-equal lhs (first (op-args rhs))))
+                    (script-equal lhs (first (op-args rhs))))
 	       (make-instance 'op-form
 			      :operator (assignment-op (operator rhs))
 			      :args (list lhs (make-instance 'op-form
 							     :operator (operator rhs)
 							     :args args-without-first))))
 	      ((and (assignment-op (operator rhs))
-		    (js-equal (first (op-args rhs)) lhs))
+		    (script-equal (first (op-args rhs)) lhs))
 	       (make-instance 'op-form
 			      :operator (assignment-op (operator rhs))
 			      :args (list lhs (make-instance 'op-form

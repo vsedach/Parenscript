@@ -1,67 +1,81 @@
 (in-package :parenscript)
 
+(defun warn-deprecated (old-name new-name)
+  (warn (format nil "~:@(~a~) is deprecated. Use ~:@(~a~) instead." old-name new-name)))
+
 ;;; DEPRECATED INTERFACE ;;;
-(defun js-equal (a b) (script-equal a b))
+
+(defun js-equal (a b)
+  (warn-deprecated 'js-equal 'script-equal)
+  (script-equal a b))
 
 (defun js-compile (form)
+  (warn-deprecated 'js-compile 'compile-script)
   (compile-script form :output-spec :javascript))
 
 (defun js-compile-list (form)
+  (warn-deprecated 'js-compile-list 'compile-script)
   (compile-script form :output-spec :javascript))
 
 (defun js-gensym (&rest args)
+  (warn-deprecated 'js-gensym 'script-gensym)
   (apply #'script-gensym args))
 
-(defmacro defjsmacro (name args &rest body)
-  "Define a ParenScript macro, and store it in the toplevel ParenScript macro environment.
+(defmacro defjsmacro (&rest args)
+  (warn-deprecated 'defjsmacro 'defscriptmacro)
+  `(defscriptmacro ,@args))
 
-DEPRECATED"
-  `(defscriptmacro ,name ,args ,@body))
+(defmacro js (&body body)
+  (warn-deprecated 'js 'ps)
+  `(script ,@body))
 
-;;; dual lisp/parenscript macro balderdash
-;;; TODO: should probably move elsewhere ;;;
-#+nil
-(progn
-(defmacro defmacro/js (name args &body body)
-  "Define a Lisp macro and import it into the ParenScript macro environment."
-  `(progn (defmacro ,name ,args ,@body)
-	  (js:import-macros-from-lisp ',name)))
+(defmacro js* (&body body)
+  (warn-deprecated 'js* 'ps*)
+  `(script* ,@body))
 
-(defmacro defmacro+js (name args &body body)
-  "Define a Lisp macro and a ParenScript macro in their respective
-macro environments. This function should be used when you want to use
-the same macro in both Lisp and ParenScript, but the 'macroexpand' of
-that macro in Lisp makes the Lisp macro unsuitable to be imported into
-the ParenScript macro environment."
-  `(progn (defmacro ,name ,args ,@body)
-    (defscriptmacro ,name ,args ,@body)))
+(defun js-to-string (expr)
+  "Given an AST node, compiles it to a Javascript string."
+  (warn "JS-TO-STRING is deprecated.")
+  (string-join
+   (ps-js::js-to-statement-strings (compile-script-form expr) 0)
+   (string #\Newline)))
 
-(defun import-macros-from-lisp (&rest names)
-  "Import the named Lisp macros into the ParenScript macro environment."
-  (dolist (name names)
-    (let ((name name))
-      (undefine-js-special-form name)
-      (setf (get-macro-spec name *script-macro-toplevel*)
-            (cons nil (lambda (&rest args)
-                        (macroexpand `(,name ,@args))))))))
+(defun js-to-line (expr)
+  "Given an AST node, compiles it to a Javascript string."
+  (warn "JS-TO-LINE is deprecated.")
+  (string-join
+   (ps-js::js-to-statement-strings (compile-script-form expr) 0) " "))
 
 (defmacro js-file (&rest body)
+  (warn "JS-FILE is deprecated.")
   `(html
     (:princ
      (js ,@body))))
 
 (defmacro js-script (&rest body)
+  (warn "JS-SCRIPT is deprecated.")
   `((:script :type "text/javascript")
     (:princ (format nil "~%// <![CDATA[~%"))
     (:princ (js ,@body))
     (:princ (format nil "~%// ]]>~%"))))
 
 (defmacro js-inline (&rest body)
+  (warn "JS-INLINE is deprecated.")
   `(js-inline* '(progn ,@body)))
 
 (defmacro js-inline* (&rest body)
-  "Just like JS-INLINE except that BODY is evaluated before being
-converted to javascript."
+  (warn "JS-INLINE* is deprecated.")
   `(concatenate 'string "javascript:"
     (string-join (js-to-statement-strings (compile-script-form (list 'progn ,@body)) 0) " ")))
-)
+
+(defmacro with-unique-js-names (&rest args)
+  (warn-deprecated 'with-unique-js-names 'with-unique-ps-names)
+  `(with-unique-ps-names ,@args))
+
+(defmacro gen-js-name (&rest args)
+  (warn-deprecated 'gen-js-name 'gen-ps-name)
+  `(gen-ps-name ,@args))
+
+(defmacro gen-js-name-string (&rest args)
+  (warn-deprecated 'gen-js-name-string 'gen-script-name-string)
+  `(gen-script-name-string ,@args))

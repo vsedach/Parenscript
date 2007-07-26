@@ -160,10 +160,6 @@ is defined as macros on top of Javascript special forms"))
        #:css-inline
        #:css-file
 
-       ;; math library
-       #:floor
-       #:random
-       
        ;; html generator for javascript
        #:html
        ))
@@ -183,11 +179,15 @@ both the Lisp package and the script package for Parenscript."))
    #:compile-parenscript-file
    #:compile-parenscript-file-to-string
    #:script
+   #:script*
+   #:ps
+   #:ps*
    #:with-new-compilation-environment ; tentative
    #:with-compilation-environment     ; tentative
    #:*compilation-environment*
    
    ;; package system
+   #:*enable-package-system*
    #:find-script-package
    #:script-intern
    #:script-export
@@ -203,12 +203,16 @@ both the Lisp package and the script package for Parenscript."))
    #:defmacro+js
    #:import-macros-from-lisp
    
-   ;; util
-   #:with-unique-js-names
-   #:gen-js-name
-   #:gen-js-name-string
+   ;; gensym
+   #:with-unique-ps-names
+   #:gen-script-name
+   #:gen-script-name-string
+   #:gen-ps-name
 
    ;; deprecated interface
+   #:gen-js-name
+   #:gen-js-name-string
+   #:with-unique-js-names
    #:defjsmacro
    #:js-compile
    #:js ; replaced by #:script
@@ -247,7 +251,7 @@ both the Lisp package and the script package for Parenscript."))
    string-split
    script-special-form-p
    make-macro-env-dictionary
-   js-equal
+   script-equal
    compile-script-form
    ) 
  :parenscript.javascript)

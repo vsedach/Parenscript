@@ -15,7 +15,10 @@
   (intern (gen-script-name-string :prefix prefix)
           (find-package :js)))
 
-(defmacro with-unique-js-names (symbols &body body)
+(defmacro gen-ps-name (&rest args)
+  `(gen-script-name ,@args))
+
+(defmacro with-unique-ps-names (symbols &body body)
   "Evaluate BODY with the variables on SYMBOLS bound to new javascript identifiers.
 
 Each element of SYMBOLS is either a symbol or a list of (symbol

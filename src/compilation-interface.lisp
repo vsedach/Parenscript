@@ -114,13 +114,19 @@ to the given output stream."
 ;;; SEXPs -> Javascript string functionality
 (defmacro script (&body body)
   "A macro that returns a Javascript string of the supplied Parenscript forms."
-  `(js* '(progn ,@body)))
+  `(script* '(progn ,@body)))
+
+(defmacro ps (&body body)
+  `(script ,@body))
 
 (defmacro script* (&body body)
   "Return the javascript string representing BODY.
 
 Body is evaluated."
   `(compile-script (progn ,@body)))
+
+(defmacro ps* (&body body)
+  `(script* ,@body))
 
 ;;; old file compilation functions:
 (defun compile-parenscript-file-to-string (source-file)
@@ -141,22 +147,3 @@ then it will be named the same as SOURCE-FILE but with js extension."
                                             source-file)))
   (with-open-file (output destination-file :if-exists :supersede :direction :output)
     (write-string (apply #'compile-parenscript-file-to-string source-file args) output)))
-
-;; DEPRECATED
-(defmacro js (&body body)
-  "A macro that returns a javascript string of the supplied Parenscript forms."
-  `(script ,@body))
-
-(defmacro js* (&body body)
-  `(script* ,@body))
-
-(defun js-to-string (expr)
-  "Given an AST node, compiles it to a Javascript string."
-  (string-join
-   (ps-js::js-to-statement-strings (compile-script-form expr) 0)
-   (string #\Newline)))
-
-(defun js-to-line (expr)
-  "Given an AST node, compiles it to a Javascript string."
-  (string-join
-   (ps-js::js-to-statement-strings (compile-script-form expr) 0) " "))

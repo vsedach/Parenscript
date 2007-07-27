@@ -27,14 +27,20 @@ OUTPUT-SPEC must be :javascript at the moment."
 		       (string #\Newline))
 		      output-stream)))
 
+(defun non-nil-comp-env ()
+  "Returns a sane compilation environment.  Either the one currently bound or a new
+one."
+  (or *compilation-environment*
+      (make-basic-compilation-environment)))
+
+
 (defun compile-script (script-form
 		       &key
 		       (output-spec :javascript)
 		       (pretty-print t)
 		       (output-stream nil)
 		       (toplevel-p t)
-		       (comp-env (or *compilation-environment*
-				     (make-basic-compilation-environment))))
+		       (comp-env (non-nil-comp-env)))
   "Compiles the Parenscript form SCRIPT-FORM into the language specified by OUTPUT-SPEC.
 Non-null PRETTY-PRINT values result in a pretty-printed output code.  If OUTPUT-STREAM
 is NIL, then the result is a string; otherwise code is output to the OUTPUT-STREAM stream.
@@ -67,8 +73,7 @@ potentially other languages)."
 (defun compile-script-file (source-file
 			    &key
 			    (output-spec :javascript)
-			    (comp-env (or *compilation-environment*
-					  (make-basic-compilation-environment)))
+			    (comp-env (non-nil-comp-env))
 			    (pretty-print t)
 			    (output-stream *standard-output*))
   "Compiles the given Parenscript source file and outputs the results
@@ -103,30 +108,36 @@ to the given output stream."
 	       :output-stream output
 	       :output-spec output-spec
 	       :pretty-print pretty-print))))))))
-  
+
+(defun compile-script-system (system 
+			      &rest args
+			      &key
+			      (output-spec :javascript)
+			      (pretty-print t)
+			      (output-to-stream t)
+			      (output-stream *standard-output*)
+			      output-to-files ;; currently ignored
+			      (comp-env (non-nil-comp-env)))
+  "Compiles a collection of parenscripts as described by an ASDF system into files or
+a specified output stream."
+  (asdf:operate 'asdf::parenscript-compile-op system
+		:output-spec output-spec
+		:pretty-print pretty-print
+;		:output-to-stream t
+		:output-stream output-stream
+		:comp-env comp-env
+		:force-p t
+		))
+	 
+
+;(defun compile-script-system-component (system-designator 
+
 ;(defun compile-script-file (script-src-file
 ;			    &key
 ;			    (output-spec :javascript)
 ;			    (output-stream *standard-out*)
 ;			    (comp-env *compilation-environment*))
 			    
-
-;;; SEXPs -> Javascript string functionality
-(defmacro script (&body body)
-  "A macro that returns a Javascript string of the supplied Parenscript forms."
-  `(script* '(progn ,@body)))
-
-(defmacro ps (&body body)
-  `(script ,@body))
-
-(defmacro script* (&body body)
-  "Return the javascript string representing BODY.
-
-Body is evaluated."
-  `(compile-script (progn ,@body)))
-
-(defmacro ps* (&body body)
-  `(script* ,@body))
 
 ;;; old file compilation functions:
 (defun compile-parenscript-file-to-string (source-file)
@@ -147,3 +158,20 @@ then it will be named the same as SOURCE-FILE but with js extension."
                                             source-file)))
   (with-open-file (output destination-file :if-exists :supersede :direction :output)
     (write-string (apply #'compile-parenscript-file-to-string source-file args) output)))
+
+;;; SEXPs -> Javascript string functionality
+(defmacro script (&body body)
+  "A macro that returns a Javascript string of the supplied Parenscript forms."
+  `(script* '(progn ,@body)))
+
+(defmacro ps (&body body)
+  `(script ,@body))
+
+(defmacro script* (&body body)
+  "Return the javascript string representing BODY.
+
+Body is evaluated."
+  `(compile-script (progn ,@body)))
+
+(defmacro ps* (&body body)
+  `(script* ,@body))

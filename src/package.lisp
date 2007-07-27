@@ -303,5 +303,9 @@ as non-prefixed identifiers."))
 
 (defpackage parenscript.user
   (:use :parenscript)
-  (:nicknames ps-user paren-user parenscript-user)
+  (:nicknames ps-user parenscript-user)
   (:documentation "The default package a user is inside of when compiling code."))
+
+(defpackage parenscript.asdf
+  (:use :parenscript :asdf :common-lisp)
+  (:documentation "ASDF extensions that help compile and use Parenscript systems."))

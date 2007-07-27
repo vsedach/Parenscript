@@ -72,7 +72,7 @@ the code is being evaluated by a Javascript engine."
 	    (find :execute situations))
        (when (eql body-language :parenscript)
 	 (let ((form `(progn ,@subforms)))
-	   (format t "Form: ~A~%" form)
+;	   (format t "Form: ~A~%" form)
 	   (compile-to-statement form)))))))
 
 ;;; script packages
@@ -90,7 +90,7 @@ the code is being evaluated by a Javascript engine."
 	(:use (setf used-packages (rest opt)))
 	(:documentation (setf documentation (second opt)))
 	(t (error "Unknown option in DEFPACKAGE: ~A" (opt-name opt)))))
-    (format t "Exports: ~A~%" exports)
+;    (format t "Exports: ~A~%" exports)
     (create-script-package
      *compilation-environment*
      :name name

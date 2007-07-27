@@ -26,7 +26,7 @@
   `(defscriptmacro ,@args))
 
 (defmacro js (&body body)
-  (warn-deprecated 'js 'ps)
+  (warn-deprecated 'js 'script)
   `(script ,@body))
 
 (defmacro js* (&body body)

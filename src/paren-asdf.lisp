@@ -10,7 +10,6 @@
 (defclass asdf::parenscript-file (asdf:source-file)
   ())
 
-
 (defclass asdf::parenscript-compile-op (asdf:operation)
   ((output-spec :initarg :output-spec :initform :javascript :accessor output-spec)
    (comp-env :initarg :comp-env :initform nil :accessor comp-env)
@@ -44,6 +43,11 @@
   nil)
 
 (defmethod perform ((op asdf::parenscript-compile-op) general-component)
+;  (format t "General component: ~A~%" general-component)
+  (call-next-method))
+
+(defmethod perform ((op asdf::parenscript-compile-op) (file asdf:source-file))
+;  (format t "Source file ignored: ~A~%" file)
   nil)
 
 (defmethod perform ((op asdf::parenscript-compile-op) (file asdf::parenscript-file))
@@ -55,8 +59,20 @@
   (write-char #\Newline (output-stream op)))
 
 (defmethod operation-done-p ((op asdf::parenscript-compile-op) general-component)
-  (call-next-method))
+  (call-next-method)
+  nil)
 
 (defmethod operation-done-p ((op asdf::parenscript-compile-op) (file asdf::parenscript-file))
   (and (not (force-p op))
        (call-next-method)))
+
+
+;;; FIXME: we simply copy load-op's dependencies.  this is Just Not Right.
+(defmethod asdf:component-depends-on ((op asdf::parenscript-compile-op) (c component))
+  (let ((what-would-load-op-do (cdr (assoc 'load-op
+                                           (slot-value c 'asdf::in-order-to)))))
+    (mapcar (lambda (dep)
+              (if (eq (car dep) 'load-op)
+                  (cons 'asdf::parenscript-compile-op (cdr dep))
+                  dep))
+            what-would-load-op-do)))

@@ -176,6 +176,7 @@ both the Lisp package and the script package for Parenscript."))
    ;; compiler
    #:compile-script
    #:compile-script-file
+   #:compile-script-system
    #:compile-parenscript-file
    #:compile-parenscript-file-to-string
    #:script

@@ -415,6 +415,13 @@ macro environment."
                       ,lambda-list
                     ,@body))))))
 
+(defmacro define-script-symbol-macro (name expansion)
+  "Define a ParenScript symbol macro, and store it in the toplevel ParenScript
+macro environment."
+  (undefine-script-special-form name)
+  `(setf (get-macro-spec ',name *script-macro-toplevel*)
+    (cons t (lambda () ,expansion))))
+
 (defun import-macros-from-lisp (&rest names)
   "Import the named Lisp macros into the ParenScript macro
 environment. When the imported macro is macroexpanded by ParenScript,

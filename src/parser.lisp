@@ -407,7 +407,7 @@ function and the parent macro environment of the macro."
   "Define a ParenScript macro, and store it in the toplevel ParenScript
 macro environment."
   (let ((lambda-list (gensym "ps-lambda-list-"))
-        (body (if (stringp (first body)) (rest body) body))) ;; drop docstring
+        (body (if (and (cdr body) (stringp (first body))) (rest body) body))) ;; drop docstring
     (undefine-script-special-form name)
     `(setf (get-macro-spec ',name *script-macro-toplevel*)
       (cons nil (lambda (&rest ,lambda-list)

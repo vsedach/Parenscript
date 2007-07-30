@@ -179,10 +179,13 @@ both the Lisp package and the script package for Parenscript."))
    #:compile-script-system
    #:compile-parenscript-file
    #:compile-parenscript-file-to-string
+   #:ps-to-string
    #:script
    #:script*
    #:ps
    #:ps*
+   #:js
+   #:js*
    #:with-new-compilation-environment ; tentative
    #:with-compilation-environment     ; tentative
    #:*compilation-environment*
@@ -216,16 +219,11 @@ both the Lisp package and the script package for Parenscript."))
    #:with-unique-js-names
    #:defjsmacro
    #:js-compile
-   #:js ; replaced by #:script
-   #:js*
    #:js-inline
    #:js-inline*
    #:js-file
    #:js-script
-   #:js-to-strings
    #:js-to-statement-strings
-   #:js-to-string
-   #:js-to-line
    ))
 
 (in-package :parenscript)

@@ -159,18 +159,31 @@ then it will be named the same as SOURCE-FILE but with js extension."
   (with-open-file (output destination-file :if-exists :supersede :direction :output)
     (write-string (apply #'compile-parenscript-file-to-string source-file args) output)))
 
+(defun ps-to-string (expr)
+  "Given an AST node, compiles it to a Javascript string."
+  (string-join
+   (ps-js::js-to-statement-strings (compile-script-form expr) 0)
+   (string #\Newline)))
+
 ;;; SEXPs -> Javascript string functionality
 (defmacro script (&body body)
   "A macro that returns a Javascript string of the supplied Parenscript forms."
   `(script* '(progn ,@body)))
-
-(defmacro ps (&body body)
-  `(script ,@body))
 
 (defun script* (&rest body)
   "Return the javascript string representing BODY.
 Body is evaluated."
   (compile-script `(progn ,@body)))
 
+;;; Handy synonyms
+(defmacro ps (&body body)
+  `(script ,@body))
+
 (defmacro ps* (&body body)
+  `(script* ,@body))
+
+(defmacro js (&body body)
+  `(script ,@body))
+
+(defmacro js* (&body body)
   `(script* ,@body))

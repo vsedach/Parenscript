@@ -17,34 +17,9 @@
   (warn-deprecated 'js-compile-list 'compile-script)
   (compile-script form :output-spec :javascript))
 
-(defun js-gensym (&rest args)
-  (warn-deprecated 'js-gensym 'script-gensym)
-  (apply #'script-gensym args))
-
 (defmacro defjsmacro (&rest args)
-  (warn-deprecated 'defjsmacro 'defscriptmacro)
+  (warn-deprecated 'defjsmacro 'defpsmacro)
   `(defscriptmacro ,@args))
-
-(defmacro js (&body body)
-  (warn-deprecated 'js 'script)
-  `(script ,@body))
-
-(defmacro js* (&body body)
-  (warn-deprecated 'js* 'ps*)
-  `(script* ,@body))
-
-(defun js-to-string (expr)
-  "Given an AST node, compiles it to a Javascript string."
-  (warn "JS-TO-STRING is deprecated.")
-  (string-join
-   (ps-js::js-to-statement-strings (compile-script-form expr) 0)
-   (string #\Newline)))
-
-(defun js-to-line (expr)
-  "Given an AST node, compiles it to a Javascript string."
-  (warn "JS-TO-LINE is deprecated.")
-  (string-join
-   (ps-js::js-to-statement-strings (compile-script-form expr) 0) " "))
 
 (defmacro js-file (&rest body)
   (warn "JS-FILE is deprecated.")

@@ -434,12 +434,12 @@ then that expansion is further expanded by ParenScript."
             (cons nil (lambda (&rest args)
                         (macroexpand `(,name ,@args))))))))
 
-(defmacro defmacro/js (name args &body body)
+(defmacro defmacro/ps (name args &body body)
   "Define a Lisp macro and import it into the ParenScript macro environment."
   `(progn (defmacro ,name ,args ,@body)
-	  (js:import-macros-from-lisp ',name)))
+	  (ps:import-macros-from-lisp ',name)))
 
-(defmacro defmacro+js (name args &body body)
+(defmacro defmacro+ps (name args &body body)
   "Define a Lisp macro and a ParenScript macro in their respective
 macro environments. This function should be used when you want to use
 the same macro in both Lisp and ParenScript, but the 'macroexpand' of
@@ -602,7 +602,7 @@ also guarantees that the symbol has an associated script-package."
     (when (typep res 'ps-js::js-variable)
       (setf res (ps-js::value res)))
     (assert (symbolp res) ()
-            "~a is expected to be a symbol, but compiles to ~a. This could be due to ~a being a special form." form res form)
+            "~a is expected to be a symbol, but compiles to ~a (the ParenScript output for ~a alone is \"~a\"). This could be due to ~a being a special form." form res form (let ((*enable-package-system* nil)) (ps* form)) form)
     (when *enable-package-system*
       (assert (symbol-script-package res) ()
 	      "The symbol ~A::~A has no associated script package." 

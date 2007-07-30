@@ -167,11 +167,10 @@ then it will be named the same as SOURCE-FILE but with js extension."
 (defmacro ps (&body body)
   `(script ,@body))
 
-(defmacro script* (&body body)
+(defun script* (&rest body)
   "Return the javascript string representing BODY.
-
 Body is evaluated."
-  `(compile-script (progn ,@body)))
+  (compile-script `(progn ,@body)))
 
 (defmacro ps* (&body body)
   `(script* ,@body))

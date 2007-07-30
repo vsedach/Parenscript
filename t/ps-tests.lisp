@@ -212,3 +212,8 @@ x = 2 + sideEffect() + x + 5;")
   (slot-value (if (not zoo) foo bar) 'x)
   "(!zoo ? foo : bar).x")
 
+(test script-star-eval1
+  (is (string= "x = 1; y = 2;" (normalize-js-code (let ((*enable-package-system* nil)) (script* '(setf x 1) '(setf y 2)))))))
+
+(test script-star-eval2
+  (is (string= "x = 1;" (normalize-js-code (let ((*enable-package-system* nil)) (script* '(setf x 1)))))))

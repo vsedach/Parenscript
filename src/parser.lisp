@@ -456,7 +456,7 @@ the ParenScript macro environment."
   (if (consp expr)
       (let ((op (car expr))
             (args (cdr expr)))
-        (cond ((equal op 'quote) expr) ;; leave quotes alone
+        (cond ((equal op 'quote) (if (equalp '(nil) args) nil expr)) ;; leave quotes alone, unless it's a quoted nil
               ((script-macro-p op) ;; recursively expand parenscript macros in parent env.
 	       (multiple-value-bind (expansion-function macro-env)
 		   (lookup-macro-expansion-function op)

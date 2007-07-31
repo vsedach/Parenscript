@@ -247,7 +247,7 @@ script packages (parenscript, global, and parenscript-user)."
 			(script-package-secondary-lisp-packages package))))
     (dolist (lisp-package lisp-packages)
       (when (lisp-to-script-package lisp-package (script-package-comp-env package))
-	(warn "Lisp package already has corresponding script package: ~A" (package-name lisp-package)))
+	(error "Lisp package already has corresponding script package: ~A" (package-name lisp-package)))
       (setf (lisp-to-script-package lisp-package (script-package-comp-env package))
 	    package))))
 

@@ -1,7 +1,12 @@
 (in-package :parenscript)
 
-(defun warn-deprecated (old-name new-name)
-  (warn (format nil "~:@(~a~) is deprecated. Use ~:@(~a~) instead." old-name new-name)))
+(define-condition simple-style-warning (simple-condition style-warning)
+  ())
+
+(defun warn-deprecated (old-name &optional new-name)
+  (warn 'simple-style-warning
+        :format-control "~:@(~a~) is deprecated~:[.~;, use ~:@(~a~) instead~]"
+        :format-arguments (list old-name new-name new-name)))
 
 ;;; DEPRECATED INTERFACE ;;;
 
@@ -22,24 +27,24 @@
   `(defscriptmacro ,@args))
 
 (defmacro js-file (&rest body)
-  (warn "JS-FILE is deprecated.")
+  (warn-deprecated 'js-file)
   `(html
     (:princ
      (js ,@body))))
 
 (defmacro js-script (&rest body)
-  (warn "JS-SCRIPT is deprecated.")
+  (warn-deprecated 'js-script)
   `((:script :type "text/javascript")
     (:princ (format nil "~%// <![CDATA[~%"))
     (:princ (js ,@body))
     (:princ (format nil "~%// ]]>~%"))))
 
 (defmacro js-inline (&rest body)
-  (warn "JS-INLINE is deprecated.")
+  (warn-deprecated 'js-inline)
   `(js-inline* '(progn ,@body)))
 
 (defmacro js-inline* (&rest body)
-  (warn "JS-INLINE* is deprecated.")
+  (warn-deprecated 'js-inline*)
   `(concatenate 'string "javascript:"
     (string-join (js-to-statement-strings (compile-script-form (list 'progn ,@body)) 0) " ")))
 

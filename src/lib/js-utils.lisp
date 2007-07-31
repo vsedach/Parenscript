@@ -36,3 +36,8 @@
 
 (defscriptmacro ignore-errors (&body body)
   `(try (progn ,@body) (:catch (e))))
+
+;;; Misc
+
+(defpsmacro null (x)
+  `(= ,x nil))

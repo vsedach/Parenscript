@@ -67,10 +67,3 @@
 (defmacro gen-js-name-string (&rest args)
   (warn-deprecated 'gen-js-name-string 'gen-script-name-string)
   `(gen-script-name-string ,@args))
-
-;;; Functions for setting up and tearing down a persistent compilation environment
-(defun setup-persistent-compilation-environment ()
-  (setf *compilation-environment* (make-basic-compilation-environment)))
-
-(defun clear-persistent-compilation-environment ()
-  (setf *compilation-environment* nil))

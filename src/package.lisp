@@ -240,8 +240,6 @@ both the Lisp package and the script package for Parenscript."))
    #:js-file
    #:js-script
    #:js-to-statement-strings
-   #:setup-persistent-compilation-environment
-   #:clear-persistent-compilation-environment
    ))
 
 (in-package :parenscript)

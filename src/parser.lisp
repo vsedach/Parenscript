@@ -80,7 +80,7 @@ http://www.lispworks.com/documentation/HyperSpec/Body/03_bca.htm")
     (comp-env-compiling-toplevel-p comp-env)
     ))
 
-(defvar *compilation-environment* nil
+(defvar *compilation-environment* (make-basic-compilation-environment)
   "The active compilation environment."
 ;; Right now all code assumes that *compilation-environment* is accurately bound to the
 ;; current compilation environment--even some functions that take the compilation environment
@@ -587,7 +587,7 @@ http://www.lispworks.com/documentation/HyperSpec/Body/03_bca.htm"))
 
 (defun compile-script-form (form &key (comp-env *compilation-environment*))
   "Compiles a Parenscript form to an AST node."
-  (compile-parenscript-form comp-env form ))
+  (compile-parenscript-form comp-env form))
 
 (defun compile-to-expression (form)
   "Compiles the given Parenscript form and guarantees the result is an expression."

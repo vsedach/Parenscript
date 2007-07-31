@@ -217,3 +217,15 @@ x = 2 + sideEffect() + x + 5;")
 
 (test script-star-eval2
   (is (string= "x = 1;" (normalize-js-code (let ((*enable-package-system* nil)) (script* '(setf x 1)))))))
+
+(test-ps-js slot-value-null1
+  (slot-value foo nil)
+  "foo")
+
+(test-ps-js slot-value-null2
+  (slot-value foo 'nil)
+  "foo")
+
+(test-ps-js quoted-nil
+  'nil
+  "null")

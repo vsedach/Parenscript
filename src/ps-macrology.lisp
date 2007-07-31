@@ -205,18 +205,17 @@ ParenScript expression and is inserted into the generated Javascript
 \(use nil for no-op)."
   (eval (cons 'progn forms)))
 
-
-(defscriptmacro rebind (variables expression)
+(defscriptmacro rebind (variables &body body)
   "Creates a new js lexical environment and copies the given
-  variable(s) there.  Executes the body in the new environment. This
-  has the same effect as a new (let () ...) form in lisp but works on
-  the js side for js closures."
+variable(s) there. Executes the body in the new environment. This
+has the same effect as a new (let () ...) form in lisp but works on
+the js side for js closures."
   (unless (listp variables)
     (setf variables (list variables)))
   `((lambda ()
       (let ((new-context (new *object)))
         ,@(loop for variable in variables
-                do (setf variable (symbol-to-js variable))
-                collect `(setf (slot-value new-context ,variable) (slot-value this ,variable)))
+                collect `(setf (slot-value new-context ,(symbol-to-js variable))
+                               ,variable))
         (with new-context
-              (return ,expression))))))
+          ,@body)))))

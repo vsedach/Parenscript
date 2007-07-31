@@ -203,8 +203,8 @@ both the Lisp package and the script package for Parenscript."))
    ;; for parenscript macro definition within lisp
    #:defscriptmacro
    #:defpsmacro ; should we use one or the other of these?
-   #:defmacro/js
-   #:defmacro+js
+   #:defmacro/ps
+   #:defmacro+ps
    #:import-macros-from-lisp
    
    ;; gensym

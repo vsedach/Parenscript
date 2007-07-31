@@ -587,7 +587,7 @@ http://www.lispworks.com/documentation/HyperSpec/Body/03_bca.htm"))
 
 (defun compile-script-form (form &key (comp-env *compilation-environment*))
   "Compiles a Parenscript form to an AST node."
-  (compile-parenscript-form comp-env form ))
+  (compile-parenscript-form comp-env form))
 
 (defun compile-to-expression (form)
   "Compiles the given Parenscript form and guarantees the result is an expression."

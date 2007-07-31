@@ -202,7 +202,7 @@ affects the reader and how it interns non-prefixed symbols"
   "Evaluates the given forms in Common Lisp at ParenScript
 macro-expansion time. The value of the last form is treated as a
 ParenScript expression and is inserted into the generated Javascript
-(use nil for no-op)."
+\(use nil for no-op)."
   (eval (cons 'progn forms)))
 
 

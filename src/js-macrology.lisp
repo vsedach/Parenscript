@@ -142,8 +142,10 @@
 
 
 (define-script-special-form slot-value (obj slot)
-  (make-instance 'js-slot-value :object (compile-to-expression obj)
-   		   :slot (compile-script-form slot)))
+  (if (ps::expand-script-form slot)
+      (make-instance 'js-slot-value :object (compile-to-expression obj)
+                     :slot (compile-script-form slot))
+      (compile-to-expression obj)))
 
 ;;; cond
 (define-script-special-form cond (&rest clauses)

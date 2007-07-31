@@ -8,18 +8,26 @@
         :format-control "~:@(~a~) is deprecated~:[.~;, use ~:@(~a~) instead~]"
         :format-arguments (list old-name new-name new-name)))
 
+(defmacro without-packages (&body body)
+  `(let ((ps:*enable-package-system* nil))
+    ,@body))
+
+(defmacro defun-js (old-name new-name args &body body)
+  `(defun ,old-name ,args
+    ,(when (and (stringp (car body)) (< 1 (length body))) ;; docstring
+           (car body))
+    (warn-deprecated ',old-name ',new-name)
+    (without-packages ,@body)))
+
 ;;; DEPRECATED INTERFACE ;;;
 
-(defun js-equal (a b)
-  (warn-deprecated 'js-equal 'script-equal)
+(defun-js js-equal script-equal (a b)
   (script-equal a b))
 
-(defun js-compile (form)
-  (warn-deprecated 'js-compile 'compile-script)
+(defun-js js-compile compile-script (form)
   (compile-script form :output-spec :javascript))
 
-(defun js-compile-list (form)
-  (warn-deprecated 'js-compile-list 'compile-script)
+(defun-js js-compile-list compile-script (form)
   (compile-script form :output-spec :javascript))
 
 (defmacro defjsmacro (&rest args)

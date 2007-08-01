@@ -113,6 +113,14 @@
   (declare (ignore start-pos))
   (list (princ-to-string (value statement))))
 
+(defmethod js-to-strings ((expression script-quote) start-pos)
+  (declare (ignore start-pos))
+  (list
+   (if (null (value expression))
+       "null"
+       (case (value expression)
+	 (t (error "Cannot translated quoted value ~A to javascript" (value expression)))))))
+
 ;;; array literals
 
 (defmethod js-to-strings ((array array-literal) start-pos)
@@ -189,6 +197,37 @@ vice-versa.")
            finally (write-char *js-quote-char* escaped)))))
 
 ;;; variables
+(defgeneric js-translate-symbol-contextually (symbol package env)
+  (:documentation "Translates a symbol to a string in the given environment & package
+and for the given symbol."))
+
+(defparameter *obfuscate-standard-identifiers* nil)
+
+(defparameter *obfuscation-table* (make-hash-table))
+
+(defun obfuscated-symbol (symbol)
+  (or (gethash symbol *obfuscation-table*)
+      (setf (gethash symbol *obfuscation-table*) (string (gensym)))))
+
+(defmethod js-translate-symbol-contextually ((symbol symbol)
+					     (package ps::script-package)
+					     (env ps::compilation-environment))
+  (cond
+    ((member (ps::script-package-lisp-package package)
+	     (mapcar #'find-package '(:keyword :parenscript.global)))
+     (symbol-to-js symbol))
+    (*obfuscate-standard-identifiers*
+     (obfuscated-symbol symbol))
+    (t
+     (case *package-prefix-style*
+       (:prefix
+;	(when (first
+	(format nil "~A_~A"
+		(symbol-to-js (script-package-name package))
+		(symbol-to-js symbol)))
+       (t
+	(symbol-to-js (value symbol)))))))
+
 (defgeneric js-translate-symbol (var)
   (:documentation "Given a JS-VARIABLE returns an output
 JavaScript version of it as a string."))
@@ -198,19 +237,10 @@ JavaScript version of it as a string."))
 
 (defmethod js-translate-symbol ((var-name symbol))
   (if parenscript::*enable-package-system*
-      (case *package-prefix-style*
-	(:prefix
-	 (cond
-	   ((or (eql (symbol-package var-name) (find-package :keyword))
-		(eql (symbol-package var-name) (find-package :parenscript.global)))
-	    (symbol-to-js var-name))
-	   (t
-	    (let ((script-package (symbol-script-package var-name)))
-	      (format nil "~A_~A"
-		      (symbol-to-js (script-package-name script-package))
-		      (symbol-to-js var-name))))))
-	(t
-	 (symbol-to-js (value var-name))))
+      (js-translate-symbol-contextually
+       var-name
+       (ps::symbol-script-package var-name)
+       ps::*compilation-environment*)
       (symbol-to-js var-name)))
 
 (defmethod js-to-strings ((v js-variable) start-form)
@@ -391,10 +421,18 @@ this is a lambda or a defun"))
 (defmethod js-to-strings ((object js-object) start-pos)
   (let ((value-string-lists
 	 (mapcar #'(lambda (slot)
-		     (dwim-join (list (js-to-strings (second slot) (+ start-pos 4)))
-				(- 80 start-pos 2)
-				:start (concatenate 'string (car (js-to-strings (first slot) 0)) " : ")
-				:white-space "    ")) (o-slots object)))
+		     (let* ((slot-name (first slot))
+			    (slot-string-name
+			    (if (typep slot-name 'script-quote)
+				(if (symbolp (value slot-name))
+				    (format nil "~A" (js-translate-symbol (value slot-name)))
+				    (format nil "~A" (first (js-to-strings slot-name 0))))
+				(car (js-to-strings slot-name 0)))))
+		       (dwim-join (list (js-to-strings (second slot) (+ start-pos 4)))
+				  (- 80 start-pos 2)
+				  :start (concatenate 'string slot-string-name  " : ")
+				  :white-space "    ")))
+		 (o-slots object)))
 	(max-length (- 80 start-pos 2)))
     (dwim-join value-string-lists max-length
 	       :start "{ "
@@ -614,12 +652,12 @@ this is a lambda or a defun"))
     (let ((script-name (intern (concatenate 'string "JS-" (symbol-name name)) #.*package*)))
       `(defmethod ,(if (eql superclass 'expression)
                        'js-to-strings
-                     'js-to-statement-strings)
-         ((,name ,script-name) start-pos)
-         (dwim-join (list (js-to-strings (value ,name) (+ start-pos 2)))
-                    (- 80 start-pos 2)
-                    :start ,(concatenate 'string (string-downcase (symbol-name name)) " ")
-                    :white-space "  "))))
+		       'js-to-statement-strings)
+	((,name ,script-name) start-pos)
+	(dwim-join (list (js-to-strings (value ,name) (+ start-pos 2)))
+	 (- 80 start-pos 2)
+	 :start ,(concatenate 'string (string-downcase (symbol-name name)) " ")
+	 :white-space "  "))))
 
 (define-translate-js-single-op return statement)
 (define-translate-js-single-op throw statement)

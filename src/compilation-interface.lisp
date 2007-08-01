@@ -54,14 +54,19 @@ potentially other languages)."
 		   ,@body)
 		 (let ((,var output-stream))
 		   ,@body))))
+    ;; we might want to bind this rather than set it
+    (setf (comp-env-compiling-toplevel-p comp-env) toplevel-p)
     (with-output-stream (stream)
       (let* ((*compilation-environment* comp-env)
 	     (compiled
-	      (if toplevel-p
-		  (compile-parenscript-form 
-		   comp-env
-		   (compile-parenscript-form comp-env script-form :toplevel-p t))
-		  (compile-parenscript-form comp-env script-form :toplevel-p nil))))
+	      (progn
+		(let ((first-result
+		       (compile-parenscript-form comp-env script-form)))
+		  (if (not toplevel-p)
+		      first-result
+		      (progn
+			(setf (comp-env-compiling-toplevel-p comp-env) nil)
+			(compile-parenscript-form comp-env first-result)))))))
 	(translate-ast
 	 compiled
 ;	 (compile-script-form script-form :comp-env comp-env)
@@ -109,8 +114,17 @@ to the given output stream."
 	       :output-spec output-spec
 	       :pretty-print pretty-print))))))))
 
+;(defun compile-script-asdf-component (component
+;				      &key
+;				      (output-spec :javascript)
+;				      (pretty-print t)
+;				      (output-to-stream t)
+;				      (output-stream *standard-output*)
+;				      output-to-files ;; currently ignored
+;				      (comp-env (non-nil-comp-env)))
+;  "Compiles any ASDF:COMPONENT and its dependencies "
+
 (defun compile-script-system (system 
-			      &rest args
 			      &key
 			      (output-spec :javascript)
 			      (pretty-print t)

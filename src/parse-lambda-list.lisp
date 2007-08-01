@@ -27,7 +27,7 @@
 ;;; arg specifiers are just passed through untouched. If something is
 ;;; wrong, we use COMPILER-ERROR, aborting compilation to the last
 ;;; recovery point.
-(eval-when (#-sb-xc :compile-toplevel :load-toplevel :execute)
+(eval-when (:compile-toplevel :load-toplevel :execute)
   (defun collect-list-expander (n-value n-tail forms)
     (let ((n-res (gensym)))
       `(progn
@@ -74,7 +74,6 @@
 
 (defun style-warn (&rest args) (apply #'format t args))
 
-
 (defun parse-lambda-list-like-thing (list)
  (collect ((required)
             (optional)
@@ -102,7 +101,7 @@
               (&optional
                (unless (eq state :required)
                  (format t "misplaced &OPTIONAL in lambda list: ~S"
-                                 list))
+			 list))
                (setq state :optional))
               (&rest
                (unless (member state '(:required :optional))

@@ -49,10 +49,6 @@
       ;; body forms
       #:progn
       
-      ;; function definition
-      #:defun
-      #:lambda
-      
       ;; object literals
       #:create
       #:slot-value
@@ -115,6 +111,9 @@ that are also valid as Parenscript symbols for the corresponding script packages
   (:nicknames javascript ps-js)
   #.(cons :export *shared-symbols-ps-js*)
   (:export
+   ;; function definition
+   #:%js-defun
+   #:%js-lambda
    ;; translate
    #:js-to-strings
    #:js-to-statement-strings
@@ -131,18 +130,36 @@ is defined as macros on top of Javascript special forms"))
        #:defpackage
        #:in-package
 
+       ;; function definition
+       #:defun
+       #:lambda
+       
+       
+       ;; lambda lists
+       #:&key
+       #:&rest
+       #:&body
+       #:&optional
+       #:&aux
+       #:&environment
+
+
        ;; eval-when
        #:eval-when
        ;; macros
        #:macrolet
        #:symbol-macrolet
+       #:define-symbol-macro
+       #:define-script-symbol-macro
+       #:defmacro
        
        ;; lisp eval
        #:lisp
        
        ;; assignment
        #:setf
-       
+       #:defaultf
+
        #:let
        
        ;; iteration

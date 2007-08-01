@@ -29,7 +29,8 @@
 
 ;;; when you compile the system, compile the Parenscript files in it.
 (defmethod asdf:perform ((op compile-op) (paren-file asdf::parenscript-file))
-  (parenscript:compile-parenscript-file (component-pathname paren-file)))
+;  (parenscript:compile-parenscript-file (component-pathname paren-file)))
+  )
 
 ;;; when you load the system, do nothing with the parenscript files.  This could
 ;;; be enhanced so that files are automatically installed into the appropriate web

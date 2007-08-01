@@ -226,6 +226,14 @@ x = 2 + sideEffect() + x + 5;")
   (slot-value foo 'nil)
   "foo")
 
+(test-ps-js unquoted-nil
+  nil
+  "null")
+
+(test-ps-js list-with-single-nil
+  (array 'nil)
+  "[null]")
+
 (test-ps-js quoted-nil
   'nil
   "null")

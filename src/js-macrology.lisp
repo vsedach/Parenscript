@@ -115,14 +115,14 @@
       (op-precedence 'comma)))
 
 ;;; function definition
-(define-script-special-form lambda (args &rest body)
+(define-script-special-form %js-lambda (args &rest body)
   (make-instance 'js-lambda
                  :args (mapcar #'compile-to-symbol args)
                  :body (make-instance 'js-block
                                       :indent "  "
                                       :statements (mapcar #'compile-to-statement body))))
 
-(define-script-special-form defun (name args &rest body)
+(define-script-special-form %js-defun (name args &rest body)
   (make-instance 'js-defun
 		 :name (compile-to-symbol name)
 		 :args (mapcar #'compile-to-symbol args)
@@ -136,6 +136,7 @@
 		 :slots (loop for (name val) on args by #'cddr
 			      collect (let ((name-expr (compile-to-expression name)))
 					(assert (or (typep name-expr 'js-variable)
+						    (typep name-expr 'script-quote)
 						    (typep name-expr 'string-literal)
 						    (typep name-expr 'number-literal)))
 					(list name-expr (compile-to-expression val))))))
@@ -339,12 +340,6 @@
 		 :body (mapcar #'compile-script-form body)))
 
 ;;; standard macros
-(defscriptmacro with-slots (slots object &rest body)
-  `(symbol-macrolet ,(mapcar #'(lambda (slot)
-				 `(,slot '(slot-value ,object ',slot)))
-			     slots)
-    ,@body))
-
 (defscriptmacro when (test &rest body)
   `(if ,test (progn ,@body)))
 

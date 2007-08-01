@@ -39,6 +39,10 @@ prefix)."
 (defun script-gensym (&optional (name "js"))
   (intern (format nil "tmp-~A-~A" name (incf *var-counter*)) #.*package*))
 
+(defscriptmacro defaultf (place value)
+  `(setf ,place (or (and (=== undefined ,place) ,place)
+		 ,value)))
+
 ;;; array literals
 (defscriptmacro list (&rest values)
   `(array ,@values))
@@ -90,7 +94,6 @@ the code is being evaluated by a Javascript engine."
 	(:use (setf used-packages (rest opt)))
 	(:documentation (setf documentation (second opt)))
 	(t (error "Unknown option in DEFPACKAGE: ~A" (opt-name opt)))))
-;    (format t "Exports: ~A~%" exports)
     (create-script-package
      *compilation-environment*
      :name name
@@ -198,6 +201,9 @@ affects the reader and how it interns non-prefixed symbols"
 (defscriptmacro defmacro (name args &body body)
   `(lisp (defscriptmacro ,name ,args ,@body) nil))
 
+(defscriptmacro define-symbol-macro (name &body body)
+  `(lisp (define-script-symbol-macro ,name ,@body)))
+
 (defscriptmacro lisp (&body forms)
   "Evaluates the given forms in Common Lisp at ParenScript
 macro-expansion time. The value of the last form is treated as a
@@ -219,3 +225,149 @@ the js side for js closures."
                                ,variable))
         (with new-context
           ,@body)))))
+
+(defscriptmacro with-slots (slots object &rest body)
+  (flet ((slot-var (slot) (if (listp slot) (first slot) slot))
+	 (slot-symbol (slot) (if (listp slot) (second slot) slot)))
+    `(symbol-macrolet ,(mapcar #'(lambda (slot)
+				   `(,(slot-var slot) '(slot-value ,object ',(slot-symbol slot))))
+			       slots)
+      ,@body)))
+
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (defun parse-function-body (body)
+    ;; (format t "parsing function body ~A~%" body)
+    (let* ((documentation
+	    (when (stringp (first body))
+	      (first body)))
+	   (body-forms (if documentation (rest body) body)))
+      (values
+       body-forms
+       documentation)))
+
+  (defun parse-key-spec (key-spec)
+    "parses an &key parameter.  Returns 4 values:
+var, init-form,  keyword-name, supplied-p-var, init-form-supplied-p.
+
+Syntax of key spec:
+[&key {var | ({var | (keyword-name var)} [init-form [supplied-p-parameter]])}*
+"
+    (let* ((var (cond ((symbolp key-spec) key-spec)
+		      ((and (listp key-spec) (symbolp (first key-spec))) (first key-spec))
+		      ((and (listp key-spec) (listp (first key-spec)))   (second key-spec))))
+	   (keyword-name (if (and (listp key-spec) (listp (first key-spec)))
+			     (first (first key-spec))
+			     (intern (string var) :keyword)))
+	   (init-form (if (listp key-spec) (second key-spec) nil))
+	   (init-form-supplied-p (if (listp key-spec) t nil))
+	   (supplied-p-var (if (listp key-spec) (third key-spec) nil)))
+      (values var init-form keyword-name supplied-p-var init-form-supplied-p)))
+
+  (defun parse-optional-spec (spec)
+    "Parses an &optional parameter.  Returns 3 values: var, init-form, supplied-p-var.
+[&optional {var | (var [init-form [supplied-p-parameter]])}*] "
+    (let* ((var (cond ((symbolp spec) spec)
+		      ((and (listp spec) (first spec)))))
+	   (init-form (if (listp spec) (second spec)))
+	   (supplied-p-var (if (listp spec) (third spec))))
+      (values var init-form supplied-p-var)))
+  
+  (defun parse-aux-spec (spec)
+    "Returns two values: variable and init-form"
+;; [&aux {var | (var [init-form])}*])
+    (values (if (symbolp spec) spec (first spec))
+	    (when (listp spec) (second spec))))
+
+  (defun parse-extended-function (lambda-list body &optional name)
+    "Returns two values: the effective arguments and body for a function with
+the given lambda-list and body."
+
+;; The lambda list is transformed as follows, since a javascript lambda list is just a 
+;; list of variable names, and you have access to the arguments variable inside the function:
+;; * standard variables are the mapped directly into the js-lambda list
+;; * optional variables' variable names are mapped directly into the lambda list,
+;;   and for each optional variable with name v and default value d, a form is produced
+;;   (defaultf v d)
+;; * when any keyword variables are in the lambda list, a single 'options' variable is
+;;   appended to the js-lambda list as the last argument.  WITH-SLOTS is used for all
+;;   the variables with  inside the body of the function,
+    ;;   a (with-slots ((var-name key-name)) options ...)
+    (declare (ignore name))
+    (multiple-value-bind (requireds optionals rest? rest keys? keys)
+	(parse-lambda-list lambda-list)
+      ;; (format t "~A .." rest)
+      (let* ((options-var 'options)
+	     ;; optionals are of form (var default-value)
+	     (effective-args
+	      (remove-if
+	       #'null
+	       (append requireds
+		       (mapcar #'parse-optional-spec optionals)
+		       (when keys (list options-var)))))
+	     ;; an alist of arg -> default val
+	     (initform-pairs
+	      (remove
+	       nil
+	       (append
+		;; optional arguments first
+		(mapcar #'(lambda (opt-spec)
+			    (multiple-value-bind (var val) (parse-optional-spec opt-spec)
+			      (cons var val)))
+			optionals)
+		(if keys? (list (cons options-var '(create))))
+		(mapcar #'(lambda (key-spec)
+			    (multiple-value-bind (var val x y specified?) (parse-key-spec key-spec)
+			      (declare (ignore x y))
+			      (when specified? (cons var val))))
+			keys))))
+	     (body-paren-forms (parse-function-body body)) ;remove documentation
+	     ;;
+	     (initform-forms
+	      (mapcar #'(lambda (default-pair)
+			  `(defaultf ,(car default-pair) ,(cdr default-pair)))
+		      initform-pairs))
+	     (rest-form
+	      (if rest?
+		  `(defvar ,rest (:.slice (to-array arguments)
+				  ,(length effective-args)))
+		  `(progn)))
+	     (effective-body   (append initform-forms (list rest-form) body-paren-forms))
+	     (effective-body
+	      (if keys?
+		  (list `(with-slots ,(mapcar #'(lambda (key-spec)
+						  (multiple-value-bind (var x key-name)
+						      (parse-key-spec key-spec)
+						    (declare (ignore x))
+						    (list var key-name)))
+					      keys)
+			  ,options-var
+			  ,@effective-body))
+		  effective-body)))
+	(values effective-args effective-body)))))
+
+(ps:defscriptmacro defun (name lambda-list &body body)
+  "An extended defun macro that allows cool things like keyword arguments.
+lambda-list::=
+ (var* 
+  [&optional {var | (var [init-form [supplied-p-parameter]])}*] 
+  [&rest var] 
+  [&key {var | ({var | (keyword-name var)} [init-form [supplied-p-parameter]])}* [&allow-other-keys]] 
+  [&aux {var | (var [init-form])}*])"
+  (multiple-value-bind (effective-args effective-body)
+      (parse-extended-function lambda-list body name)
+    `(%js-defun ,name ,effective-args
+      ,@effective-body)))
+
+
+(ps:defscriptmacro lambda (lambda-list &body body)
+  "An extended defun macro that allows cool things like keyword arguments.
+lambda-list::=
+ (var* 
+  [&optional {var | (var [init-form [supplied-p-parameter]])}*] 
+  [&rest var] 
+  [&key {var | ({var | (keyword-name var)} [init-form [supplied-p-parameter]])}* [&allow-other-keys]] 
+  [&aux {var | (var [init-form])}*])"
+  (multiple-value-bind (effective-args effective-body)
+      (parse-extended-function lambda-list body)
+    `(%js-lambda ,effective-args
+      ,@effective-body)))

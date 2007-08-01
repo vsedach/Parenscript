@@ -131,3 +131,14 @@ For example, paren-script becomes parenScript, *some-global* becomes SOMEGLOBAL.
 		     (t (reschar c))))))
 	     (coerce (nreverse res) 'string)))
 	  (t (string-join (mapcar #'symbol-to-js symbols) "")))))
+
+(defun compose (&rest fns)
+  "(funcall (compose #'x #'y #'z) 'foo) is (x (y (z 'foo)))"
+  (if fns
+      (let ((fn1 (car (last fns)))
+	    (fns (butlast fns)))
+	#'(lambda (&rest args)
+	    (reduce #'funcall fns 
+		    :from-end t
+		    :initial-value (apply fn1 args))))
+      #'identity))

@@ -680,7 +680,7 @@ also guarantees that the symbol has an associated script-package."
     (when (typep res 'ps-js::js-variable)
       (setf res (ps-js::value res)))
     (assert (symbolp res) ()
-            "~a is expected to be a symbol, but compiles to ~a (the ParenScript output for ~a alone is \"~a\"). This could be due to ~a being a special form." form res form (let ((*enable-package-system* nil)) (ps:ps* form)) form)
+            "~a is expected to be a symbol, but compiles to ~a (the ParenScript output for ~a alone is \"~a\"). This could be due to ~a being a special form." form res form (let ((*enable-package-system* nil)) (ps::ps* form)) form)
     (when *enable-package-system*
       (assert (symbol-script-package res) ()
 	      "The symbol ~A::~A has no associated script package." 

@@ -119,7 +119,7 @@
    (if (null (value expression))
        "null"
        (case (value expression)
-	 (t (error "Cannot translated quoted value ~A to javascript" (value expression)))))))
+	 (t (error "Cannot translated quoted value ~s to javascript" (value expression)))))))
 
 ;;; array literals
 

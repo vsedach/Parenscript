@@ -371,3 +371,32 @@ lambda-list::=
       (parse-extended-function lambda-list body)
     `(%js-lambda ,effective-args
       ,@effective-body)))
+
+(defpsmacro defsetf (access-fn lambda-list (store-var) form)
+  (setf (find-macro-spec access-fn *script-setf-expanders*)
+        (compile nil
+                 (let ((var-bindings (set-difference lambda-list lambda-list-keywords)))
+                   `(lambda (access-fn-args store-form)
+                     (destructuring-bind ,lambda-list
+                               access-fn-args
+                       (let* ((,store-var (ps:gen-ps-name))
+                              (gensymed-names (loop repeat ,(length var-bindings) collecting (ps:gen-ps-name)))
+                              (gensymed-arg-bindings (mapcar #'list gensymed-names (list ,@var-bindings))))
+                         (destructuring-bind ,var-bindings
+                             gensymed-names
+                           `(let ((,,store-var ,store-form)
+                                  ,@gensymed-arg-bindings)
+                             ,,form))))))))
+  nil)
+
+(defpsmacro setf (&rest args)
+  (flet ((process-setf-clause (place value-form)
+           (if (and (listp place) (find-macro-spec (car place) *script-setf-expanders*))
+               (funcall (find-macro-spec (car place) *script-setf-expanders*) (cdr place) value-form)
+               (let ((exp-place (expand-script-form place)))
+                 (if (and (listp exp-place) (find-macro-spec (car exp-place) *script-setf-expanders*))
+                     (funcall (find-macro-spec (car exp-place) *script-setf-expanders*) (cdr exp-place) value-form)
+                     `(parenscript.javascript::setf1% ,exp-place ,value-form))))))
+    (assert (evenp (length args)) ()
+            "~s does not have an even number of arguments." (cons 'setf args))
+    `(progn ,@(loop for (place value) on args by #'cddr collect (process-setf-clause place value)))))

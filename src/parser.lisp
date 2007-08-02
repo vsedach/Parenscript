@@ -367,12 +367,18 @@ ongoing javascript compilation."
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (defun make-macro-env-dictionary ()
     "Creates a standard macro dictionary."
-    (make-hash-table  :test (macro-name-hash-function)))
+    (make-hash-table :test (macro-name-hash-function)))
   (defvar *script-macro-toplevel* (make-macro-env-dictionary)
-    "Toplevel macro environment dictionary. Key is symbol-name of the macro, value
-is (symbol-macro-p . expansion-function).")
+    "Toplevel macro environment dictionary. Key is the symbol of the
+macro, value is (symbol-macro-p . expansion-function).")
   (defvar *script-macro-env* (list *script-macro-toplevel*) ;(list nil)
     "Current macro environment.")
+
+  (defvar *script-setf-expanders* (make-macro-env-dictionary)
+    "Setf expander dictionary. Key is the symbol of the access
+function of the place, value is an expansion function that takes the
+arguments of the access functions as a first value and the form to be
+stored as the second value.")
   
   (defun find-macro-spec (name env-dict)
     (if *enable-package-system*
@@ -392,7 +398,7 @@ is (symbol-macro-p . expansion-function).")
 
 (defmacro get-macro-spec (name env-dict)
   "Retrieves the macro spec of the given name with the given environment dictionary.
-SPEC is of the form (symbol-macro-op expansion-function)."
+SPEC is of the form (symbol-macro-p . expansion-function)."
   `(find-macro-spec ,name ,env-dict))
 
 (defun lookup-macro-spec (name &optional (environment *script-macro-env*))

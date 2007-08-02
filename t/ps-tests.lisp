@@ -7,11 +7,11 @@
 
 (test-ps-js plus-is-not-commutative
    (setf x (+ "before" x "after"))
-   "x = 'before' + x + 'after'")
+   "x = 'before' + x + 'after';")
 
 (test-ps-js plus-works-if-first
    (setf x (+ x "middle" "after"))
-   "x += 'middle' + 'after'")
+   "x += 'middle' + 'after';")
 
 (test-ps-js setf-side-effects
             (progn
@@ -202,7 +202,7 @@ x = 2 + sideEffect() + x + 5;")
 
 (test-ps-js slot-value-setf
   (setf (slot-value x 'y) (+ (+ a 3) 4))
-  "x.y = (a + 3) + 4")
+  "x.y = (a + 3) + 4;")
 
 (test-ps-js slot-value-conditional1
   (slot-value (if zoo foo bar) 'x)
@@ -237,3 +237,10 @@ x = 2 + sideEffect() + x + 5;")
 (test-ps-js quoted-nil
   'nil
   "null")
+
+(test defsetf1
+  (ps (defsetf baz (x y) (newval) `(set-baz ,x ,y ,newval)))
+  (is (string= "var _ps_1 = 3; var _ps_2 = 2; var _ps_3 = 1; setBaz(_ps_3, _ps_2, _ps_1);"
+               (normalize-js-code (let ((*enable-package-system* nil)
+                                        (ps::*gen-script-name-counter* 0))
+                                    (ps (setf (baz 1 2) 3)))))))

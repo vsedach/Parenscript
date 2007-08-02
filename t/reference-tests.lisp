@@ -252,7 +252,7 @@ blafoo(i);")
 
 (test-ps-js assignment-1
   (setf a 1)
-  "a = 1")
+  "a = 1;")
 
 (test-ps-js assignment-2
   (setf a 2 b 3 c 4 x (+ a b c))
@@ -263,15 +263,15 @@ x = a + b + c;")
 
 (test-ps-js assignment-3
   (setf a (1+ a))
-  "a++")
+  "a++;")
 
 (test-ps-js assignment-4
   (setf a (+ a 2 3 4 a))
-  "a += 2 + 3 + 4 + a")
+  "a += 2 + 3 + 4 + a;")
 
 (test-ps-js assignment-5
   (setf a (- 1 a))
-  "a = 1 - a")
+  "a = 1 - a;")
 
 (test-ps-js single-argument-statements-1
   (return 1)

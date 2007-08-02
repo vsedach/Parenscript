@@ -491,7 +491,7 @@ a-variable  => aVariable
 ;;; Assignment is done using the `SETF' form, which is transformed
 ;;; into a series of assignments using the JavaScript `=' operator.
 
-(setf a 1) => a = 1
+(setf a 1) => a = 1;
 
 (setf a 2 b 3 c 4 x (+ a b c))
    => a = 2;
@@ -503,11 +503,11 @@ a-variable  => aVariable
 ;;; operator expression using this variable into a more "efficient"
 ;;; assignment operator form. For example:
 
-(setf a (1+ a))          => a++
+(setf a (1+ a))          => a++;
 
-(setf a (+ a 2 3 4 a))   => a += 2 + 3 + 4 + a
+(setf a (+ a 2 3 4 a))   => a += 2 + 3 + 4 + a;
 
-(setf a (- 1 a))         => a = 1 - a
+(setf a (- 1 a))         => a = 1 - a;
 
 ;;;# Single argument statements
 ;;;t \index{single-argument statement}

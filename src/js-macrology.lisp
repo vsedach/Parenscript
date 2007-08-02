@@ -104,10 +104,8 @@
   (let ((expr (compile-to-expression x)))
     (make-instance 'one-op :pre-p t :op "~" :value expr)))
 
-;;; progn
 (define-script-special-form progn (&rest body)
-  (make-instance 'js-block
-		 :statements (mapcar #'compile-to-statement body)))
+  (make-instance 'js-block :statements (mapcar #'compile-to-statement body)))
 
 (defmethod expression-precedence ((body js-block))
   (if (= (length (block-statements body)) 1)
@@ -239,14 +237,8 @@
 	      (t (make-instance 'js-setf :lhs lhs :rhsides (list rhs)))))
       (make-instance 'js-setf :lhs lhs :rhsides (list rhs))))
 
-(define-script-special-form setf (&rest args)
-  (let ((assignments (loop for (lhs rhs) on args by #'cddr
-			   for rexpr = (compile-to-expression rhs)
-			   for lexpr = (compile-to-expression lhs)
-			   collect (make-js-test lexpr rexpr))))
-    (if (= (length assignments) 1)
-	(first assignments)
-	(make-instance 'js-block :indent "" :statements assignments))))
+(define-script-special-form setf1% (lhs rhs)
+  (make-js-test (compile-to-expression lhs) (compile-to-expression rhs)))
 
 (defmethod expression-precedence ((setf js-setf))
   (op-precedence '=))

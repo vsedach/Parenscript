@@ -290,16 +290,16 @@ the given lambda-list and body."
 ;; * optional variables' variable names are mapped directly into the lambda list,
 ;;   and for each optional variable with name v and default value d, a form is produced
 ;;   (defaultf v d)
-;; * when any keyword variables are in the lambda list, a single 'options' variable is
+;; * when any keyword variables are in the lambda list, a single 'optional-args' variable is
 ;;   appended to the js-lambda list as the last argument.  WITH-SLOTS is used for all
 ;;   the variables with  inside the body of the function,
-    ;;   a (with-slots ((var-name key-name)) options ...)
+    ;;   a (with-slots ((var-name key-name)) optional-args ...)
     (declare (ignore name))
     (multiple-value-bind (requireds optionals rest? rest keys? keys allow? aux? aux
 				    more? more-context more-count key-object)
 	(parse-lambda-list lambda-list)
       (declare (ignore allow? aux? aux more? more-context more-count))
-      (let* ((options-var (or key-object 'options))
+      (let* ((options-var (or key-object 'optional-args))
 	     ;; optionals are of form (var default-value)
 	     (effective-args
 	      (remove-if

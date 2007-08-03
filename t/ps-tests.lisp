@@ -241,3 +241,10 @@ x = 2 + sideEffect() + x + 5;")
   (is (string= "var PS_GS_1 = 3; var PS_GS_2 = 2; var PS_GS_3 = 1; setBaz(PS_GS_3, PS_GS_2, PS_GS_1);"
                (normalize-js-code (let ((ps::*gen-script-name-counter* 0))
                                     (ps (setf (baz 1 2) 3)))))))
+
+(test-ps-js defun-optional1
+  (defun test-opt (&optional x) (return (if x "yes" "no")))
+  "function testOpt(x) {
+  x = undefined === x && null || x;
+  return x ? 'yes' : 'no';
+}")

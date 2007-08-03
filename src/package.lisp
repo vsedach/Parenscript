@@ -142,7 +142,7 @@ is defined as macros on top of Javascript special forms"))
        #:&aux
        #:&environment
        #:&key-object
-       #:options
+       #:optional-args
 
        ;; slot access
        #:with-slots

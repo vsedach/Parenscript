@@ -242,6 +242,10 @@ x = 2 + sideEffect() + x + 5;")
                (normalize-js-code (let ((ps::*gen-script-name-counter* 0))
                                     (ps (setf (baz 1 2) 3)))))))
 
+(test defsetf-short
+  (ps (defsetf baz set-baz "blah"))
+  (is (string= "setBaz(1, 2, 3, 'foo');" (normalize-js-code (ps (setf (baz 1 2 3) "foo"))))))
+
 (test-ps-js defun-optional1
   (defun test-opt (&optional x) (return (if x "yes" "no")))
   "function testOpt(x) {

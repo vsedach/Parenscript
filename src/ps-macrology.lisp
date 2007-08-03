@@ -375,7 +375,7 @@ lambda-list::=
     `(%js-lambda ,effective-args
       ,@effective-body)))
 
-(defpsmacro defsetf (access-fn lambda-list (store-var) form)
+(defpsmacro defsetf-long (access-fn lambda-list (store-var) form)
   (setf (find-macro-spec access-fn *script-setf-expanders*)
         (compile nil
                  (let ((var-bindings (set-difference lambda-list lambda-list-keywords)))
@@ -391,6 +391,16 @@ lambda-list::=
                                   ,@gensymed-arg-bindings)
                              ,,form))))))))
   nil)
+
+(defpsmacro defsetf-short (access-fn update-fn &optional docstring)
+  (declare (ignore docstring))
+  (setf (find-macro-spec access-fn *script-setf-expanders*)
+        (lambda (access-fn-args store-form)
+          `(,update-fn ,@access-fn-args ,store-form)))
+  nil)
+
+(defpsmacro defsetf (access-fn &rest args)
+  `(,(if (= (length args) 3) 'defsetf-long 'defsetf-short) ,access-fn ,@args))
 
 (defpsmacro setf (&rest args)
   (flet ((process-setf-clause (place value-form)

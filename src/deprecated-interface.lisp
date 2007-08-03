@@ -13,7 +13,7 @@
     ,(when (and (stringp (car body)) (< 1 (length body))) ;; docstring
            (car body))
     (warn-deprecated ',old-name ',new-name)
-    (without-packages ,@body)))
+    ,@body))
 
 ;;; DEPRECATED INTERFACE ;;;
 

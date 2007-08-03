@@ -35,6 +35,9 @@ about a set of code.
 
 "))
 
+(defmethod print-object ((sp script-package) stream)
+  (format stream "#<SCRIPT-PACKAGE ~s>" (script-package-name sp)))
+
 (defclass compilation-environment ()
   ((script-packages :accessor comp-env-script-packages :initform nil :initarg :packages
 		    :documentation "List of packages defined in this environment.")

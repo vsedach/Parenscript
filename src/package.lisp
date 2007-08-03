@@ -183,6 +183,9 @@ is defined as macros on top of Javascript special forms"))
 
        ;; html generator for javascript
        #:html
+
+       ;; utils
+       #:do-set-timeout
        ))
     "List of (uninterned) symbols. Contains all symbols considerred
 part of the Parenscript language.  These should be exported within

@@ -246,6 +246,13 @@ x = 2 + sideEffect() + x + 5;")
   (ps (defsetf baz set-baz "blah"))
   (is (string= "setBaz(1, 2, 3, 'foo');" (normalize-js-code (ps (setf (baz 1 2 3) "foo"))))))
 
+(test defun-setf1
+  (is (and (string= (normalize-js-code (ps:ps (defun (setf some-thing) (new-val i1 i2)
+                                           (setf (aref *some-thing* i1 i2) new-val))))
+               "null; function __setf_someThing(newVal, i1, i2) { SOMETHING[i1][i2] = newVal; };")
+           (string= (let ((ps::*gen-script-name-counter* 0)) (normalize-js-code (ps:ps (setf (some-thing 1 2) "foo"))))
+               "var PS_GS_2 = 1; var PS_GS_3 = 2; var PS_GS_1 = 'foo'; __setf_someThing(PS_GS_1, PS_GS_2, PS_GS_3);"))))
+
 (test-ps-js defun-optional1
   (defun test-opt (&optional x) (return (if x "yes" "no")))
   "function testOpt(x) {
@@ -256,3 +263,9 @@ x = 2 + sideEffect() + x + 5;")
 (test-ps-js return-nothing
   (return)
   "return null")
+
+(test-ps-js set-timeout
+  (do-set-timeout (10) (alert "foo"))
+  "setTimeout (function () { alert('foo'); }, 10)")
+
+ 

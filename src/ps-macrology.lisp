@@ -356,11 +356,27 @@ lambda-list::=
   [&rest var] 
   [&key {var | ({var | (keyword-name var)} [init-form [supplied-p-parameter]])}* [&allow-other-keys]] 
   [&aux {var | (var [init-form])}*])"
+  (if (symbolp name)
+      `(defun-normal ,name ,lambda-list ,@body)
+      (progn (assert (and (= (length name) 2) (eql 'setf (car name))) ()
+                     "(defun ~s ~s ...) needs to have a symbol or (setf symbol) for a name." name lambda-list)
+             `(defun-setf ,name ,lambda-list ,@body))))
+
+(ps:defscriptmacro defun-normal (name lambda-list &body body)
   (multiple-value-bind (effective-args effective-body)
       (parse-extended-function lambda-list body name)
     `(%js-defun ,name ,effective-args
       ,@effective-body)))
 
+(defvar *defun-setf-name-prefix* "__setf_")
+
+(ps:defscriptmacro defun-setf (setf-name lambda-list &body body)
+  (let ((mangled-function-name (intern (concatenate 'string *defun-setf-name-prefix* (symbol-name (second setf-name)))
+                                       (symbol-package (second setf-name))))
+        (function-args (cdr (ordered-set-difference lambda-list lambda-list-keywords))))
+    `(progn (defsetf ,(second setf-name) ,(cdr lambda-list) (store-var)
+              `(,',mangled-function-name ,store-var ,@(list ,@function-args)))
+            (defun ,mangled-function-name ,lambda-list ,@body))))
 
 (ps:defscriptmacro lambda (lambda-list &body body)
   "An extended defun macro that allows cool things like keyword arguments.
@@ -375,7 +391,7 @@ lambda-list::=
     `(%js-lambda ,effective-args
       ,@effective-body)))
 
-(defpsmacro defsetf-long (access-fn lambda-list (store-var) form)
+(ps:defscriptmacro defsetf-long (access-fn lambda-list (store-var) form)
   (setf (find-macro-spec access-fn *script-setf-expanders*)
         (compile nil
                  (let ((var-bindings (ordered-set-difference lambda-list lambda-list-keywords)))
@@ -392,7 +408,7 @@ lambda-list::=
                              ,,form))))))))
   nil)
 
-(defpsmacro defsetf-short (access-fn update-fn &optional docstring)
+(ps:defscriptmacro defsetf-short (access-fn update-fn &optional docstring)
   (declare (ignore docstring))
   (setf (find-macro-spec access-fn *script-setf-expanders*)
         (lambda (access-fn-args store-form)

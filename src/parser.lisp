@@ -312,35 +312,27 @@ compilation environment. PACKAGE-DESIGNATOR is a string or symbol.")
   
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
-  (defvar *toplevel-special-forms* (make-hash-table :test (macro-name-hash-function))
+  (defvar *toplevel-special-forms* (make-hash-table :test #'equal)
     "A hash-table containing functions that implement Parenscript special forms,
 indexed by name (as symbols)")
   (defun undefine-script-special-form (name)
     "Undefines the special form with the given name (name is a symbol)."
-    (declare (type symbol name))
-    (when (gethash name *toplevel-special-forms*)
-      (remhash name *toplevel-special-forms*))))
+    (remhash (symbol-name name) *toplevel-special-forms*)))
 
 (defmacro define-script-special-form (name lambda-list &rest body)
   "Define a special form NAME. Arguments are destructured according to
 LAMBDA-LIST. The resulting Parenscript language types are appended to the
 ongoing javascript compilation."
-  (declare (type symbol name))
-  (let ((script-name 
-	 (intern (format nil "PAREN-~A" (symbol-name name))
-		 (find-package :parenscript)))
-	(arglist (gensym "ps-arglist-")))
-    `(setf (gethash (quote ,name) *toplevel-special-forms*)
-      #'(lambda (&rest ,arglist)
-	  (destructuring-bind ,lambda-list
-	      ,arglist
-	    ,@body)))))
-	   
+  (let ((arglist (gensym "ps-arglist-")))
+    `(setf (gethash ,(symbol-name name) *toplevel-special-forms*)
+      (lambda (&rest ,arglist)
+        (destructuring-bind ,lambda-list
+            ,arglist
+          ,@body)))))
 
 (defun get-script-special-form (name)
   "Returns the special form function corresponding to the given name."
-  (when (symbolp name)
-    (gethash name *toplevel-special-forms*)))
+  (gethash (symbol-name name) *toplevel-special-forms*))
 
 ;;; sexp form predicates
 (defun script-special-form-p (form)

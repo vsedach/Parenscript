@@ -58,15 +58,12 @@ potentially other languages)."
     (setf (comp-env-compiling-toplevel-p comp-env) toplevel-p)
     (with-output-stream (stream)
       (let* ((*compilation-environment* comp-env)
-	     (compiled
-	      (progn
-		(let ((first-result
-		       (compile-parenscript-form comp-env script-form)))
-		  (if (not toplevel-p)
-		      first-result
-		      (progn
-			(setf (comp-env-compiling-toplevel-p comp-env) nil)
-			(compile-parenscript-form comp-env first-result)))))))
+	     (compiled (let ((first-result (compile-parenscript-form comp-env script-form)))
+                         (if (not toplevel-p)
+                             first-result
+                             (progn
+                               (setf (comp-env-compiling-toplevel-p comp-env) nil)
+                               (compile-parenscript-form comp-env first-result))))))
 	(translate-ast
 	 compiled
 ;	 (compile-script-form script-form :comp-env comp-env)

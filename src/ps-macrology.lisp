@@ -387,8 +387,8 @@ lambda-list::=
                               (gensymed-arg-bindings (mapcar #'list gensymed-names (list ,@var-bindings))))
                          (destructuring-bind ,var-bindings
                              gensymed-names
-                           `(let ((,,store-var ,store-form)
-                                  ,@gensymed-arg-bindings)
+                           `(let (,@(reverse gensymed-arg-bindings)
+                                  (,,store-var ,store-form))
                              ,,form))))))))
   nil)
 

@@ -238,7 +238,7 @@ x = 2 + sideEffect() + x + 5;")
 
 (test defsetf1
   (ps (defsetf baz (x y) (newval) `(set-baz ,x ,y ,newval)))
-  (is (string= "var PS_GS_3 = 1; var PS_GS_2 = 2; var PS_GS_1 = 3; setBaz(PS_GS_3, PS_GS_2, PS_GS_1);"
+  (is (string= "var PS_GS_2 = 1; var PS_GS_3 = 2; var PS_GS_1 = 3; setBaz(PS_GS_2, PS_GS_3, PS_GS_1);"
                (normalize-js-code (let ((ps::*gen-script-name-counter* 0))
                                     (ps (setf (baz 1 2) 3)))))))
 

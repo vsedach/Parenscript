@@ -378,7 +378,7 @@ lambda-list::=
 (defpsmacro defsetf-long (access-fn lambda-list (store-var) form)
   (setf (find-macro-spec access-fn *script-setf-expanders*)
         (compile nil
-                 (let ((var-bindings (set-difference lambda-list lambda-list-keywords)))
+                 (let ((var-bindings (ordered-set-difference lambda-list lambda-list-keywords)))
                    `(lambda (access-fn-args store-form)
                      (destructuring-bind ,lambda-list
                                access-fn-args
@@ -387,7 +387,7 @@ lambda-list::=
                               (gensymed-arg-bindings (mapcar #'list gensymed-names (list ,@var-bindings))))
                          (destructuring-bind ,var-bindings
                              gensymed-names
-                           `(let (,@(reverse gensymed-arg-bindings)
+                           `(let (,@gensymed-arg-bindings
                                   (,,store-var ,store-form))
                              ,,form))))))))
   nil)

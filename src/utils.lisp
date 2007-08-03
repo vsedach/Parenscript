@@ -142,3 +142,7 @@ For example, paren-script becomes parenScript, *some-global* becomes SOMEGLOBAL.
 		    :from-end t
 		    :initial-value (apply fn1 args))))
       #'identity))
+
+(defun ordered-set-difference (list1 list2 &key (test #'eql))
+  (reduce (lambda (list el) (remove el list :test test))
+          (cons list1 list2)))

@@ -207,7 +207,6 @@ both the Lisp package and the script package for Parenscript."))
    #:*compilation-environment*
    
    ;; package system
-   #:*enable-package-system*
    #:find-script-package
    #:script-intern
    #:script-export
@@ -324,3 +323,6 @@ as non-prefixed identifiers."))
 (defpackage parenscript.asdf
   (:use :parenscript :asdf :common-lisp)
   (:documentation "ASDF extensions that help compile and use Parenscript systems."))
+
+(defpackage parenscript.non-prefixed (:nicknames ps.non-prefixed))
+(defpackage parenscript.ps-gensyms)

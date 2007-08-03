@@ -9,7 +9,7 @@
   (progn
     (defpackage test (:lisp-package :parenscript-test))
     (defvar the-var))
-   "var test_theVar;")
+   "var TEST_theVar;")
 
 (defpstest no-global-variable-prefix ()
   (progn

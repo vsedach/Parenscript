@@ -221,9 +221,8 @@ and for the given symbol."))
     (t
      (case *package-prefix-style*
        (:prefix
-;	(when (first
-	(format nil "~A_~A"
-		(symbol-to-js (script-package-name package))
+	(format nil "~A~A"
+		(or (ps::script-package-prefix package) (concatenate 'string (ps::script-package-name package) "_"))
 		(symbol-to-js symbol)))
        (t
 	(symbol-to-js (value symbol)))))))
@@ -236,12 +235,7 @@ JavaScript version of it as a string."))
   (js-translate-symbol (value var)))
 
 (defmethod js-translate-symbol ((var-name symbol))
-  (if parenscript::*enable-package-system*
-      (js-translate-symbol-contextually
-       var-name
-       (ps::symbol-script-package var-name)
-       ps::*compilation-environment*)
-      (symbol-to-js var-name)))
+  (js-translate-symbol-contextually var-name (ps::symbol-script-package var-name) ps::*compilation-environment*))
 
 (defmethod js-to-strings ((v js-variable) start-form)
   (declare (ignore start-form))

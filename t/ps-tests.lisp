@@ -68,8 +68,7 @@ x = 2 + sideEffect() + x + 5;")
             "(function (x) { return x; }) (10).toString()")
 
 (test no-whitespace-before-dot
-  (let* ((parenscript::*enable-package-system* nil)
-	 (str (compile-script '(.to-string ((lambda (x) (return x)) 10))))
+  (let* ((str (compile-script '(.to-string ((lambda (x) (return x)) 10))))
          (dot-pos (position #\. str :test #'char=))
          (char-before (elt str (1- dot-pos)))
          (a-parenthesis #\)))
@@ -173,8 +172,7 @@ x = 2 + sideEffect() + x + 5;")
          }")
 
 (test escape-sequences-in-string
-  (let ((parenscript::*enable-package-system* nil)
-	(escapes `((#\\ . #\\)
+  (let ((escapes `((#\\ . #\\)
                    (#\b . #\Backspace)
                    (#\f . ,(code-char 12))
                    ("u000B" . ,(code-char #x000b));;Vertical tab, too uncommon to bother with
@@ -186,7 +184,7 @@ x = 2 + sideEffect() + x + 5;")
                    ("u0080" . ,(code-char 128)) ;;Character over 127. Actually valid, parenscript escapes them to be sure.
                    ("uABCD" . ,(code-char #xabcd)))));; Really above ascii.
     (loop for (js-escape . lisp-char) in escapes
-	  for generated = (compile-script `(let ((x , (format nil "hello~ahi" lisp-char)))))
+	  for generated = (compile-script `(let ((x ,(format nil "hello~ahi" lisp-char)))))
 	  for wanted = (format nil "{
   var x = 'hello\\~ahi';
 }" js-escape)
@@ -213,10 +211,10 @@ x = 2 + sideEffect() + x + 5;")
   "(!zoo ? foo : bar).x")
 
 (test script-star-eval1
-  (is (string= "x = 1; y = 2;" (normalize-js-code (let ((*enable-package-system* nil)) (script* '(setf x 1) '(setf y 2)))))))
+  (is (string= "x = 1; y = 2;" (normalize-js-code (script* '(setf x 1) '(setf y 2))))))
 
 (test script-star-eval2
-  (is (string= "x = 1;" (normalize-js-code (let ((*enable-package-system* nil)) (script* '(setf x 1)))))))
+  (is (string= "x = 1;" (normalize-js-code (script* '(setf x 1))))))
 
 (test-ps-js slot-value-null1
   (slot-value foo nil)
@@ -240,7 +238,6 @@ x = 2 + sideEffect() + x + 5;")
 
 (test defsetf1
   (ps (defsetf baz (x y) (newval) `(set-baz ,x ,y ,newval)))
-  (is (string= "var _ps_1 = 3; var _ps_2 = 2; var _ps_3 = 1; setBaz(_ps_3, _ps_2, _ps_1);"
-               (normalize-js-code (let ((*enable-package-system* nil)
-                                        (ps::*gen-script-name-counter* 0))
+  (is (string= "var PS_GS_1 = 3; var PS_GS_2 = 2; var PS_GS_3 = 1; setBaz(PS_GS_3, PS_GS_2, PS_GS_1);"
+               (normalize-js-code (let ((ps::*gen-script-name-counter* 0))
                                     (ps (setf (baz 1 2) 3)))))))

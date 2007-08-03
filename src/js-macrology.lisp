@@ -357,5 +357,5 @@
 			 "javascript:"
 			 (string-join (js-to-statement-strings
 				       (compile-script-form (cons 'progn body)) 0) " "))))
-(defscriptmacro js-inline (&rest body)
+(defscriptmacro parenscript::js-inline (&rest body)
   `(script-inline ,@body))

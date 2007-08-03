@@ -8,10 +8,6 @@
         :format-control "~:@(~a~) is deprecated~:[.~;, use ~:@(~a~) instead~]"
         :format-arguments (list old-name new-name new-name)))
 
-(defmacro without-packages (&body body)
-  `(let ((ps:*enable-package-system* nil))
-    ,@body))
-
 (defmacro defun-js (old-name new-name args &body body)
   `(defun ,old-name ,args
     ,(when (and (stringp (car body)) (< 1 (length body))) ;; docstring

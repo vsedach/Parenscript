@@ -43,17 +43,15 @@
     
       ;; is-macro expands its argument again when reporting failures, so
       ;; the reported temporary js-variables get wrong if we don't evalute first.
-      (let* ((parenscript::*enable-package-system* nil)
-             (generated-code (compile-script ',parenscript))
+      (let* ((generated-code (compile-script ',parenscript))
              (js-code ,javascript))
         (is (string= (normalize-js-code generated-code)
                      (normalize-js-code js-code)))))))
 
-(defmacro defpstest (testname (&key (optimize t) (enable-package-system t)) parenscript javascript)
+(defmacro defpstest (testname (&key (optimize t)) parenscript javascript)
   `(test ,testname
     (setf parenscript::*var-counter* 0)
-    (let* ((parenscript::*enable-package-system* ,enable-package-system)
-	   (generated-code (compile-script ',parenscript))
+    (let* ((generated-code (compile-script ',parenscript))
            (js-code ,javascript))
       (is (string= (normalize-js-code generated-code)
                    (normalize-js-code js-code))))))

@@ -26,20 +26,24 @@
    (create-script-package
     comp-env
     :name "GLOBAL" :lisp-package :parenscript.global)
+   ;; symbols in the parenscript, javascript and parenscript-user packages are non-prefixed
    (create-script-package
     comp-env
-    :name "JAVASCRIPT" :nicknames (list "JS") :lisp-package :parenscript.javascript
+    :name "JAVASCRIPT" :prefix "" :nicknames (list "JS") :lisp-package :parenscript.javascript
     :exports *javascript-exports*
     :secondary-lisp-packages '(:common-lisp))
    (create-script-package
     comp-env
-    :name "PARENSCRIPT" :lisp-package :parenscript
+    :name "PARENSCRIPT" :prefix "" :lisp-package :parenscript
     :exports *parenscript-exports*
     :used-packages '(:javascript)
     )
    (create-script-package
     comp-env
-    :name "PARENSCRIPT-USER" :lisp-package :parenscript-user
+    :name "PARENSCRIPT-USER" :prefix "" :lisp-package :parenscript-user
     :secondary-lisp-packages (list :cl-user)
     :used-packages '("PARENSCRIPT")
-    :nicknames '("PS-USER" "PAREN-USER"))))
+    :nicknames '("PS-USER" "PAREN-USER"))
+   (create-script-package
+    comp-env
+    :name "PS_GS" :lisp-package :parenscript.ps-gensyms)))

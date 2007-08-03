@@ -10,10 +10,10 @@
   (concatenate 'string
                prefix (princ-to-string (incf *gen-script-name-counter*))))
 
-(defun gen-script-name (&key (prefix "_ps_"))
+(defun gen-script-name (&key (prefix ""))
   "Generate a new javascript identifier."
   (intern (gen-script-name-string :prefix prefix)
-          (find-package :js)))
+          (find-package :parenscript.ps-gensyms)))
 
 (defmacro gen-ps-name (&rest args)
   `(gen-script-name ,@args))

@@ -148,20 +148,28 @@ given SCRIPT-PACKAGE."
         (declare (type symbol res))
         res))))
 
-
 (defun find-script-symbol (name script-package)
   "Finds the symbol with name NAME in the script package SCRIPT-PACKAGE.  NAME is a
 string and SCRIPT-PACKAGE is a package designator.  If NAME does not specify a symbol of
 script-package, returns nil.  Otherwise returns 2 values:
 1.  the symbol
-2.  :external if the symbol is external.  :internal if the symbol is internal"
+2.  :external if the symbol is external.  :internal if the symbol is internal. NIL if
+the symbol is not interned in the package."
   (setf script-package (find-script-package script-package))
-  (let* ((symbol
-	  (if (script-package-lisp-package script-package)
-	      (find-symbol name (script-package-lisp-package script-package))
-	      (gethash name (script-package-symbol-table script-package))))
-         (exported? (find symbol (script-package-exports script-package))))
-    (values symbol (if exported? :external (when symbol :internal)))))
+  (let (symbol interned-p)
+
+    (if (script-package-lisp-package script-package)
+	(multiple-value-bind (lisp-symbol lisp-status)
+	    (find-symbol name (script-package-lisp-package script-package))
+	  (setf symbol lisp-symbol)
+	  (setf interned-p (and lisp-status t)))
+	(multiple-value-bind (sym sym-found-p)
+	    (gethash name (script-package-symbol-table script-package))
+	  (setf symbol sym)
+	  (setf interned-p sym-found-p)))
+    (let ((exported? (member symbol (script-package-exports script-package))))
+      (values symbol
+	      (if exported? :external (if interned-p :internal nil))))))
 
 (defun script-export (symbols
 		      &optional (script-package (comp-env-current-package *compilation-environment*)))
@@ -660,6 +668,8 @@ the keyword for it."
 also guarantees that the symbol has an associated script-package."
   (let ((res (compile-script-form form)))
     (when (typep res 'ps-js::js-variable)
+      (setf res (ps-js::value res)))
+    (when (typep res 'ps-js::script-quote)
       (setf res (ps-js::value res)))
     (assert (symbolp res) ()
             "~a is expected to be a symbol, but compiles to ~a (the ParenScript output for ~a alone is \"~a\"). This could be due to ~a being a special form." form res form (ps::ps* form) form)

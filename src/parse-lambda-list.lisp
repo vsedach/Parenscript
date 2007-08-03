@@ -22,6 +22,7 @@
 ;;; 12. the &MORE count var;
 ;;; 13. true if any lambda list keyword is present (only for
 ;;;     PARSE-LAMBDA-LIST-LIKE-THING).
+;;; 14. the &KEY-OBJECT var
 ;;;
 ;;; The top level lambda list syntax is checked for validity, but the
 ;;; arg specifiers are just passed through untouched. If something is
@@ -70,7 +71,7 @@
     `(macrolet ,macros (let* ,(nreverse binds) ,@body))))
   
 (defparameter *lambda-list-keywords*
- '(&allow-other-keys &aux &body &environment &key &optional &rest &whole))
+ '(&allow-other-keys &aux &body &environment &key &key-object &optional &rest &whole))
 
 (defun style-warn (&rest args) (apply #'format t args))
 
@@ -87,13 +88,15 @@
           (keyp nil)
           (auxp nil)
           (allowp nil)
+	  (key-object nil)
           (state :required))
       (declare (type (member :allow-other-keys :aux
                              :key
                              :more-context :more-count
                              :optional
                              :post-more :post-rest
-                             :required :rest)
+                             :required :rest
+			     :key-object :post-key)
                      state))
       (dolist (arg list)
         (if (member arg *lambda-list-keywords*)
@@ -123,7 +126,7 @@
                (setq keyp t
                      state :key))
               (&allow-other-keys
-               (unless (eq state ':key)
+               (unless (member state '(:key :post-key))
                  (format t "misplaced &ALLOW-OTHER-KEYS in ~
                                   lambda list: ~S"
                                  list))
@@ -136,6 +139,10 @@
                  (format t "multiple &AUX in lambda list: ~S" list))
                (setq auxp t
                      state :aux))
+	      (&key-object
+	       (unless (member state '(:key :allow-other-keys))
+		 (format t "&key-object misplaced in lmabda list: ~S. Belongs after &key" list))
+	       (setf state :key-object))
               (t (format t "unknown LAMBDA-LIST-KEYWORD in lambda list: ~S." arg)))
             (progn
               (when (symbolp arg)
@@ -158,6 +165,7 @@
                  (setq more-count arg
                        state :post-more))
                 (:key (keys arg))
+		(:key-object (setf key-object arg) (setf state :post-key))
                 (:aux (aux arg))
                 (t
                  (format t "found garbage in lambda list when expecting ~
@@ -168,7 +176,8 @@
 
       (values (required) (optional) restp rest keyp (keys) allowp auxp (aux)
               morep more-context more-count
-              (not (eq state :required))))))
+              (not (eq state :required))
+	      key-object))))
 
 ;;; like PARSE-LAMBDA-LIST-LIKE-THING, except our LAMBDA-LIST argument
 ;;; really *is* a lambda list, not just a "lambda-list-like thing", so
@@ -179,8 +188,9 @@
 
   ;; Classify parameters without checking their validity individually.
   (multiple-value-bind (required optional restp rest keyp keys allowp auxp aux
-                        morep more-context more-count)
+                        morep more-context more-count beyond-requireds? key-object)
       (parse-lambda-list-like-thing lambda-list)
+    (declare (ignore beyond-requireds?))
 
     ;; Check validity of parameters.
     (flet ((need-symbol (x why)
@@ -218,4 +228,4 @@
 
     ;; Voila.
     (values required optional restp rest keyp keys allowp auxp aux
-            morep more-context more-count)))
+            morep more-context more-count key-object)))

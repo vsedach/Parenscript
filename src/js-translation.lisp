@@ -116,10 +116,10 @@
 (defmethod js-to-strings ((expression script-quote) start-pos)
   (declare (ignore start-pos))
   (list
-   (if (null (value expression))
+   (if (eql nil (value expression))
        "null"
        (case (value expression)
-	 (t (error "Cannot translated quoted value ~s to javascript" (value expression)))))))
+	 (t (error "Cannot translate quoted value ~S to javascript" (value expression)))))))
 
 ;;; array literals
 
@@ -583,9 +583,6 @@ this is a lambda or a defun"))
 				  :start (if (eql val 'default) "  default" "  case ")
 				  :white-space "   "
 				  :join-after ":"))) (case-clauses case))))
-
-    #+nil
-    (format t "body: ~S~%" body)
     (nconc (dwim-join (list (js-to-strings (case-value case) (+ start-pos 2)))
 		    (- 80 start-pos 2)
 		    :start "switch (" :end ") {")

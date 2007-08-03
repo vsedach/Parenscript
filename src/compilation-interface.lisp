@@ -99,12 +99,13 @@ to the given output stream."
 		  (do ((form (read-form) (read-form))
 		       (compiled-forms nil))
 		      ((eql form end-read-form)
-		       (compile-parenscript-form 
-			comp-env
-			`(progn ,@(nreverse compiled-forms))
-			:toplevel-p nil))
+		       (progn
+			 (setf (comp-env-compiling-toplevel-p comp-env) nil)
+			 (compile-parenscript-form 
+			  comp-env
+			  `(progn ,@(nreverse compiled-forms)))))
 		    (let ((tl-compiled-form
-			   (compile-parenscript-form comp-env form :toplevel-p t)))
+			   (compile-parenscript-form comp-env form)))
 		      (push tl-compiled-form compiled-forms)))))
 	    (with-output-stream (output)
 	      (translate-ast

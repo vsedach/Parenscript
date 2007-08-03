@@ -140,9 +140,10 @@
 					(list name-expr (compile-to-expression val))))))
 
 
-(define-script-special-form slot-value (obj slot)
+(define-script-special-form %js-slot-value (obj slot)
   (if (ps::expand-script-form slot)
-      (make-instance 'js-slot-value :object (compile-to-expression obj)
+      (make-instance 'js-slot-value
+		     :object (compile-to-expression obj)
                      :slot (compile-script-form slot))
       (compile-to-expression obj)))
 

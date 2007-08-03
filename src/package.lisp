@@ -10,7 +10,7 @@
       #:t
       #:f
       #:true
-      #:nil
+      "NIL"
       #:this
       #:false
       #:undefined
@@ -51,7 +51,6 @@
       
       ;; object literals
       #:create
-      #:slot-value
       #:with-slots
       
       ;; macros
@@ -114,6 +113,7 @@ that are also valid as Parenscript symbols for the corresponding script packages
    ;; function definition
    #:%js-defun
    #:%js-lambda
+   #:%js-slot-value
    ;; translate
    #:js-to-strings
    #:js-to-statement-strings
@@ -134,7 +134,6 @@ is defined as macros on top of Javascript special forms"))
        #:defun
        #:lambda
        
-       
        ;; lambda lists
        #:&key
        #:&rest
@@ -142,7 +141,12 @@ is defined as macros on top of Javascript special forms"))
        #:&optional
        #:&aux
        #:&environment
+       #:&key-object
+       #:options
 
+       ;; slot access
+       #:with-slots
+       #:slot-value
 
        ;; eval-when
        #:eval-when

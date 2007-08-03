@@ -40,8 +40,8 @@ prefix)."
   (intern (format nil "tmp-~A-~A" name (incf *var-counter*)) #.*package*))
 
 (defscriptmacro defaultf (place value)
-  `(setf ,place (or (and (=== undefined ,place) ,place)
-		 ,value)))
+  `(setf ,place (or (and (=== undefined ,place) ,value)
+		 ,place)))
 
 ;;; array literals
 (defscriptmacro list (&rest values)
@@ -62,11 +62,6 @@ and the like are being added to the compilation environment. :execute is the pha
 the code is being evaluated by a Javascript engine."
   (multiple-value-bind (body-language situations subforms)
       (process-eval-when-args args)
-;    (format t "~A~%~A~%"
-;	   (and (compiler-in-situation-p *compilation-environment* :compile-toplevel)
-;		(find :compile-toplevel situations))
-;	   (compiler-in-situation-p *compilation-environment*  :execute)
-;	    (find :execute situations))
     (cond
       ((and (compiler-in-situation-p *compilation-environment* :compile-toplevel)
 	    (find :compile-toplevel situations))
@@ -76,8 +71,21 @@ the code is being evaluated by a Javascript engine."
 	    (find :execute situations))
        (when (eql body-language :parenscript)
 	 (let ((form `(progn ,@subforms)))
-;	   (format t "Form: ~A~%" form)
 	   (compile-to-statement form)))))))
+
+;;; slot access
+(defscriptmacro slot-value (obj &rest slots)
+  (if (null (rest slots))
+      `(%js-slot-value ,obj ,(first slots))
+      `(slot-value (slot-value ,obj ,(first slots)) ,@(rest slots))))
+
+(defscriptmacro with-slots (slots object &rest body)
+  (flet ((slot-var (slot) (if (listp slot) (first slot) slot))
+	 (slot-symbol (slot) (if (listp slot) (second slot) slot)))
+    `(symbol-macrolet ,(mapcar #'(lambda (slot)
+				   `(,(slot-var slot) '(slot-value ,object ',(slot-symbol slot))))
+			       slots)
+      ,@body)))
 
 ;;; script packages
 (defscriptmacro defpackage (name &rest options)
@@ -166,7 +174,7 @@ affects the reader and how it interns non-prefixed symbols"
 	(idx (script-gensym "i")))
     `(let ((,arrvar ,array))
       (do ((,idx 0 (1+ ,idx)))
-	  ((>= ,idx (slot-value ,arrvar 'length)))
+	  ((>= ,idx (slot-value ,arrvar 'global::length)))
 	(let ((,var (aref ,arrvar ,idx)))
 	  ,@body)))))
 
@@ -225,14 +233,6 @@ the js side for js closures."
                                ,variable))
         (with new-context
           ,@body)))))
-
-(defscriptmacro with-slots (slots object &rest body)
-  (flet ((slot-var (slot) (if (listp slot) (first slot) slot))
-	 (slot-symbol (slot) (if (listp slot) (second slot) slot)))
-    `(symbol-macrolet ,(mapcar #'(lambda (slot)
-				   `(,(slot-var slot) '(slot-value ,object ',(slot-symbol slot))))
-			       slots)
-      ,@body)))
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (defun parse-function-body (body)
@@ -293,10 +293,11 @@ the given lambda-list and body."
 ;;   the variables with  inside the body of the function,
     ;;   a (with-slots ((var-name key-name)) options ...)
     (declare (ignore name))
-    (multiple-value-bind (requireds optionals rest? rest keys? keys)
+    (multiple-value-bind (requireds optionals rest? rest keys? keys allow? aux? aux
+				    more? more-context more-count key-object)
 	(parse-lambda-list lambda-list)
-      ;; (format t "~A .." rest)
-      (let* ((options-var 'options)
+      (declare (ignore allow? aux? aux more? more-context more-count))
+      (let* ((options-var (or key-object 'options))
 	     ;; optionals are of form (var default-value)
 	     (effective-args
 	      (remove-if

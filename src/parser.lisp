@@ -658,7 +658,9 @@ the keyword for it."
 (defun compile-to-expression (form)
   "Compiles the given Parenscript form and guarantees the result is an expression."
   (let ((res (compile-script-form form)))
-    (assert (typep res 'ps-js::expression))
+    (assert (typep res 'ps-js::expression) ()
+            "Error: ~s was expected to compile to a ParenScript expression, but instead compiled to ~s, which has type ~s"
+            form res (type-of res))
     res))
 
 (defun compile-to-symbol (form)

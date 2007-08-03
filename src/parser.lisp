@@ -105,7 +105,7 @@ don't have an associated ParenScript package.")
 Defaulting to :parenscript-user."
                          :format-arguments (list symbol (symbol-package symbol))))
                  (find-script-package "PARENSCRIPT-USER" (make-basic-compilation-environment))))
-      (gethash symbol (symbol-to-script-package *compilation-environment*))))
+      (find-script-package "UNINTERNED" *compilation-environment*)))
 
 (defun find-script-package (name &optional (comp-env *compilation-environment*))
   "Find the script package with the name NAME in the given compilation environment."
@@ -663,10 +663,12 @@ also guarantees that the symbol has an associated script-package."
       (setf res (ps-js::value res)))
     (assert (symbolp res) ()
             "~a is expected to be a symbol, but compiles to ~a (the ParenScript output for ~a alone is \"~a\"). This could be due to ~a being a special form." form res form (ps::ps* form) form)
-    (assert (symbol-script-package res) ()
-            "The symbol ~A::~A has no associated script package." 
-            (if (symbol-package res) (package-name (symbol-package res)) "ANONYMOUS-PACKAGE")
-            res)
+    (unless (symbol-script-package res)
+      (when *warn-ps-package*
+        (warn 'simple-style-warning
+              :format-control "The symbol ~A::~A has no associated script package."
+              :format-arguments (list (if (symbol-package res) (package-name (symbol-package res)) "ANONYMOUS-PACKAGE")
+                                      res))))
     res))
 
 (defun compile-to-statement (form)

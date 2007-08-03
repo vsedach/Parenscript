@@ -46,4 +46,7 @@
     :nicknames '("PS-USER" "PAREN-USER"))
    (create-script-package
     comp-env
-    :name "PS_GS" :lisp-package :parenscript.ps-gensyms)))
+    :name "PS_GS" :lisp-package :parenscript.ps-gensyms)
+   (create-script-package
+    comp-env
+    :name "UNINTERNED" :prefix "")))

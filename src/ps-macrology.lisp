@@ -206,11 +206,13 @@ affects the reader and how it interns non-prefixed symbols"
 	      (cons t (compile nil `(lambda () ,@expansion))))))
     (compile-script-form `(progn ,@body))))
 
-(defscriptmacro defmacro (name args &body body)
-  `(lisp (defscriptmacro ,name ,args ,@body) nil))
+(define-script-special-form defmacro (name args &body body)
+  (define-script-macro% name args body :symbol-macro-p nil)
+  (compile-script-form '(progn)))
 
-(defscriptmacro define-symbol-macro (name &body body)
-  `(lisp (define-script-symbol-macro ,name ,@body)))
+(define-script-special-form define-symbol-macro (name &body body)
+  (define-script-macro% name () body :symbol-macro-p t)
+  (compile-script-form '(progn)))
 
 (defscriptmacro lisp (&body forms)
   "Evaluates the given forms in Common Lisp at ParenScript

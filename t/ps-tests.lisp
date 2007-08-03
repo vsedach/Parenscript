@@ -248,3 +248,7 @@ x = 2 + sideEffect() + x + 5;")
   x = undefined === x && null || x;
   return x ? 'yes' : 'no';
 }")
+
+(test-ps-js return-nothing
+  (return)
+  "return null")

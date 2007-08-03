@@ -320,12 +320,14 @@
        (make-instance ',script-name :value (compile-to-expression value)))
     ))
 
-(define-parse-script-single-op return statement)
 (define-parse-script-single-op throw statement)
 (define-parse-script-single-op delete)
 (define-parse-script-single-op void)
 (define-parse-script-single-op typeof)
 (define-parse-script-single-op new)
+
+(define-script-special-form return (&optional value)
+  (make-instance 'js-return :value (compile-to-expression value)))
 
 ;;; conditional compilation
 (define-script-special-form cc-if (test &rest body)

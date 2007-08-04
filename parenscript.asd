@@ -30,7 +30,6 @@
 			     (:file "js-translation" :depends-on ("ps-macrology"))
 ;			     (:file "js-ugly-translation" :depends-on ("js-translation"))
 			     (:file "compilation-interface" :depends-on ("package" "js-translation" "builtin-packages")); "js-ugly-translation"))
-			     (:file "paren-asdf" :depends-on ("package" "compilation-interface"))
 			     ;; standard library
                              (:module :lib
                                       :components ((:static-file "functional.lisp")

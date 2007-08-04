@@ -29,8 +29,7 @@
 			     (:file "ps-macrology" :depends-on ("js-macrology" "parse-lambda-list"))
 			     (:file "js-translation" :depends-on ("ps-macrology"))
 ;			     (:file "js-ugly-translation" :depends-on ("js-translation"))
-			     (:file "reader" :depends-on ("parser"))
-			     (:file "compilation-interface" :depends-on ("package" "reader" "js-translation" "builtin-packages")); "js-ugly-translation"))
+			     (:file "compilation-interface" :depends-on ("package" "js-translation" "builtin-packages")); "js-ugly-translation"))
 			     (:file "paren-asdf" :depends-on ("package" "compilation-interface"))
 			     ;; standard library
                              (:module :lib

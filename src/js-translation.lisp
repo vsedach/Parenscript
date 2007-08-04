@@ -197,36 +197,6 @@ vice-versa.")
            finally (write-char *js-quote-char* escaped)))))
 
 ;;; variables
-(defgeneric js-translate-symbol-contextually (symbol package env)
-  (:documentation "Translates a symbol to a string in the given environment & package
-and for the given symbol."))
-
-(defparameter *obfuscate-standard-identifiers* nil)
-
-(defparameter *obfuscation-table* (make-hash-table))
-
-(defun obfuscated-symbol (symbol)
-  (or (gethash symbol *obfuscation-table*)
-      (setf (gethash symbol *obfuscation-table*) (string (gensym)))))
-
-(defmethod js-translate-symbol-contextually ((symbol symbol)
-					     (package ps::script-package)
-					     (env ps::compilation-environment))
-  (cond
-    ((member (ps::script-package-lisp-package package)
-	     (mapcar #'find-package '(:keyword :parenscript.global)))
-     (symbol-to-js symbol))
-    (*obfuscate-standard-identifiers*
-     (obfuscated-symbol symbol))
-    (t
-     (case *package-prefix-style*
-       (:prefix
-	(format nil "~A~A"
-		(or (ps::script-package-prefix package) (concatenate 'string (ps::script-package-name package) "_"))
-		(symbol-to-js symbol)))
-       (t
-	(symbol-to-js (value symbol)))))))
-
 (defgeneric js-translate-symbol (var)
   (:documentation "Given a JS-VARIABLE returns an output
 JavaScript version of it as a string."))
@@ -235,7 +205,7 @@ JavaScript version of it as a string."))
   (js-translate-symbol (value var)))
 
 (defmethod js-translate-symbol ((var-name symbol))
-  (js-translate-symbol-contextually var-name (ps::symbol-script-package var-name) ps::*compilation-environment*))
+  (ps::js-translate-symbol-contextually var-name (ps::symbol-script-package var-name) ps::*compilation-environment*))
 
 (defmethod js-to-strings ((v js-variable) start-form)
   (declare (ignore start-form))

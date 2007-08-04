@@ -10,7 +10,7 @@
   (concatenate 'string
                prefix (princ-to-string (incf *gen-script-name-counter*))))
 
-(defun gen-script-name (&key (prefix ""))
+(defun gen-script-name (&key (prefix "_ps_"))
   "Generate a new javascript identifier."
   (intern (gen-script-name-string :prefix prefix)
           (find-package :parenscript.ps-gensyms)))
@@ -392,7 +392,7 @@ lambda-list::=
       ,@effective-body)))
 
 (ps:defscriptmacro defsetf-long (access-fn lambda-list (store-var) form)
-  (setf (find-macro-spec access-fn *script-setf-expanders*)
+  (setf (get-macro-spec access-fn *script-setf-expanders*)
         (compile nil
                  (let ((var-bindings (ordered-set-difference lambda-list lambda-list-keywords)))
                    `(lambda (access-fn-args store-form)
@@ -410,7 +410,7 @@ lambda-list::=
 
 (ps:defscriptmacro defsetf-short (access-fn update-fn &optional docstring)
   (declare (ignore docstring))
-  (setf (find-macro-spec access-fn *script-setf-expanders*)
+  (setf (get-macro-spec access-fn *script-setf-expanders*)
         (lambda (access-fn-args store-form)
           `(,update-fn ,@access-fn-args ,store-form)))
   nil)
@@ -420,11 +420,11 @@ lambda-list::=
 
 (defpsmacro setf (&rest args)
   (flet ((process-setf-clause (place value-form)
-           (if (and (listp place) (find-macro-spec (car place) *script-setf-expanders*))
-               (funcall (find-macro-spec (car place) *script-setf-expanders*) (cdr place) value-form)
+           (if (and (listp place) (get-macro-spec (car place) *script-setf-expanders*))
+               (funcall (get-macro-spec (car place) *script-setf-expanders*) (cdr place) value-form)
                (let ((exp-place (expand-script-form place)))
-                 (if (and (listp exp-place) (find-macro-spec (car exp-place) *script-setf-expanders*))
-                     (funcall (find-macro-spec (car exp-place) *script-setf-expanders*) (cdr exp-place) value-form)
+                 (if (and (listp exp-place) (get-macro-spec (car exp-place) *script-setf-expanders*))
+                     (funcall (get-macro-spec (car exp-place) *script-setf-expanders*) (cdr exp-place) value-form)
                      `(parenscript.javascript::setf1% ,exp-place ,value-form))))))
     (assert (evenp (length args)) ()
             "~s does not have an even number of arguments." (cons 'setf args))

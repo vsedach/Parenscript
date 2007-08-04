@@ -18,6 +18,10 @@
    nil
    ))
 
+(defgeneric install-standard-script-packages (comp-env)
+  (:documentation "Creates standard script packages and installs them in the current compilation
+environment."))
+
 (defmethod install-standard-script-packages ((comp-env compilation-environment))
   (list
    (create-script-package

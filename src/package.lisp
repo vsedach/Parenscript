@@ -103,8 +103,6 @@
     "Symbols exported from both the Parenscript and Javascript packages 
 that are also valid as Parenscript symbols for the corresponding script packages."))
 
-  
-
 (defpackage parenscript.javascript
   (:use :common-lisp)
   (:nicknames javascript ps-js)
@@ -199,10 +197,6 @@ both the Lisp package and the script package for Parenscript."))
   (:export
    ;; compiler
    #:compile-script
-   #:compile-script-file
-   #:compile-script-system
-   #:compile-parenscript-file
-   #:compile-parenscript-file-to-string
    #:script
    #:script*
    #:ps

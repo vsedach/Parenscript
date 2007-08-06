@@ -115,26 +115,28 @@ function and the parent macro environment of the macro."
       (lookup-macro-spec name environment)
     (values (cdr macro-spec) parent-env)))
 
-(defun define-script-macro% (name args body &key symbol-macro-p)
-  (let ((lambda-list (gensym "ps-lambda-list-"))
-        (body (if (and (cdr body) (stringp (first body))) (rest body) body))) ;; drop docstring
-    (undefine-script-special-form name)
-    (setf (get-macro-spec name *script-macro-toplevel*)
-          (cons symbol-macro-p (compile nil `(lambda (&rest ,lambda-list)
-                                   (destructuring-bind ,args
-                                       ,lambda-list
-                                     ,@body)))))
-    nil))
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (defun define-script-macro% (name args body &key symbol-macro-p)
+    (format t "Defining script macro ~A~%" name)
+    (let ((lambda-list (gensym "ps-lambda-list-"))
+	  (body (if (and (cdr body) (stringp (first body))) (rest body) body))) ;; drop docstring
+      (undefine-script-special-form name)
+      (setf (get-macro-spec name *script-macro-toplevel*)
+	    (cons symbol-macro-p (compile nil `(lambda (&rest ,lambda-list)
+						(destructuring-bind ,args
+						    ,lambda-list
+						  ,@body)))))
+      nil)))
 
 (defmacro defscriptmacro (name args &body body)
   "Define a ParenScript macro, and store it in the toplevel ParenScript
 macro environment."
-  (define-script-macro% name args body :symbol-macro-p nil))
+  `(define-script-macro% ',name ',args ',body :symbol-macro-p nil))
 
 (defmacro define-script-symbol-macro (name &body body)
   "Define a ParenScript symbol macro, and store it in the toplevel ParenScript
 macro environment.  BODY is a Lisp form that should return a ParenScript form."
-  (define-script-macro% name () body :symbol-macro-p t))
+  `(define-script-macro% ',name () ',body :symbol-macro-p t))
 
 (defun import-macros-from-lisp (&rest names)
   "Import the named Lisp macros into the ParenScript macro
@@ -142,7 +144,9 @@ environment. When the imported macro is macroexpanded by ParenScript,
 it is first fully macroexpanded in the Lisp macro environment, and
 then that expansion is further expanded by ParenScript."
   (dolist (name names)
-    (define-script-macro% name '(&rest args) (list `(common-lisp:macroexpand `(,',name ,@args))) :symbol-macro-p nil)))
+    (define-script-macro% name '(&rest args) 
+      (list `(common-lisp:macroexpand `(,',name ,@args)))
+      :symbol-macro-p nil)))
 
 (defmacro defmacro/ps (name args &body body)
   "Define a Lisp macro and import it into the ParenScript macro environment."
@@ -311,7 +315,7 @@ the keyword for it."
 	(if (keyword-arg arg-expr)
 	    (progn
 	      (when (oddp (length expressions-subl))
-		(error "Odd number of keyword arguments."))
+		(error "Odd number of keyword arguments: ~A." forms))
 	      (push
 	       (make-instance 'ps-js::js-object
 			      :slots

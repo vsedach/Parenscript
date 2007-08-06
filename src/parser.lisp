@@ -117,7 +117,6 @@ function and the parent macro environment of the macro."
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (defun define-script-macro% (name args body &key symbol-macro-p)
-    (format t "Defining script macro ~A~%" name)
     (let ((lambda-list (gensym "ps-lambda-list-"))
 	  (body (if (and (cdr body) (stringp (first body))) (rest body) body))) ;; drop docstring
       (undefine-script-special-form name)

@@ -39,7 +39,7 @@
 	;; ,parenscript)))
 	)
     `(test ,testname ()
-      (setf js::*var-counter* 0)
+      (setf ps:*ps-gensym-counter* 0)
     
       ;; is-macro expands its argument again when reporting failures, so
       ;; the reported temporary js-variables get wrong if we don't evalute first.
@@ -50,7 +50,7 @@
 
 (defmacro defpstest (testname (&key (optimize t)) parenscript javascript)
   `(test ,testname
-    (setf parenscript::*var-counter* 0)
+    (setf ps:*ps-gensym-counter* 0)
     (let* ((generated-code (compile-script ',parenscript))
            (js-code ,javascript))
       (is (string= (normalize-js-code generated-code)

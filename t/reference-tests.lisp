@@ -197,34 +197,26 @@
   "1 * (2 + 3 + 4) * 4 * (6 / 7)")
 
 (test-ps-js operator-expressions-6
-  (++ i)
-  "i++")
-
-(test-ps-js operator-expressions-7
-  (-- i)
-  "i--")
-
-(test-ps-js operator-expressions-8
   (incf i)
   "++i")
 
-(test-ps-js operator-expressions-9
+(test-ps-js operator-expressions-7
   (decf i)
   "--i")
 
-(test-ps-js operator-expressions-10
+(test-ps-js operator-expressions-8
   (1- i)
   "i - 1")
 
-(test-ps-js operator-expressions-11
+(test-ps-js operator-expressions-9
   (1+ i)
   "i + 1")
 
-(test-ps-js operator-expressions-12
+(test-ps-js operator-expressions-10
   (not (< i 2))
   "i >= 2")
 
-(test-ps-js operator-expressions-13
+(test-ps-js operator-expressions-11
   (not (eql i 2))
   "i != 2")
 
@@ -380,14 +372,12 @@ x = a + b + c;")
 (test-ps-js iteration-constructs-3
   (dolist (l blorg)
   (document.write (+ "L is " l)))
-  "{
-  var tmpArr1 = blorg;
+  "  var tmpArr1 = blorg;
   for (var tmpI2 = 0; tmpI2 < tmpArr1.length;
     tmpI2 = tmpI2 + 1) {
     var l = tmpArr1[tmpI2];
     document.write('L is ' + l);
-  };
-}")
+  };")
 
 (test-ps-js iteration-constructs-4
   (doeach (i object)
@@ -463,7 +453,7 @@ x = a + b + c;")
 (test-ps-js the-html-generator-3
   (document.write
   (html ((:a :href "#"
-            :onclick (js-inline (transport))) "link")))
+            :onclick (ps-inline (transport))) "link")))
   "document.write
 ('<a href=\"#\" onclick=\"' + 'javascript:transport();' + '\">link</a>')")
 
@@ -473,14 +463,12 @@ x = a + b + c;")
    (setf element.inner-h-t-m-l
          (html ((:textarea (or disabled (not authorized)) :disabled "disabled")
                 "Edit me"))))
-  " {
-   var disabled = null;
+  "   var disabled = null;
    var authorized = true;
    element.innerHTML =
    '<textarea'
    + (disabled || !authorized ? ' disabled=\"' + 'disabled' + '\"' : '')
-   + '>Edit me</textarea>';
- }")
+   + '>Edit me</textarea>';")
 
 (test-ps-js the-html-generator-5
   (css-inline :color "red"

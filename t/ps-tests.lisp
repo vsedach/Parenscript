@@ -92,20 +92,17 @@ x = 2 + sideEffect() + x + 5;")
 (test-ps-js simple-slot-value
   (let ((foo (create :a 1)))
    (alert (slot-value foo 'a)))
-  "{
-    var foo = { a : 1 };
-    alert(foo.a);
-   }")
+  "var foo = { a : 1 };
+   alert(foo.a);")
 
 (test-ps-js buggy-slot-value
    (let ((foo (create :a 1))
         (slot-name "a"))
     (alert (slot-value foo slot-name)))
-  "{
-    var foo = { a : 1 };
+  " var foo = { a : 1 };
     var slotName = 'a';
     alert(foo[slotName]);
-   }"); Last line was alert(foo.slotName) before bug-fix.
+   "); Last line was alert(foo.slotName) before bug-fix.
 
 (test-ps-js buggy-slot-value-two
   (slot-value foo (get-slot-name))
@@ -185,10 +182,8 @@ x = 2 + sideEffect() + x + 5;")
                    ("uABCD" . ,(code-char #xabcd)))));; Really above ascii.
     (loop for (js-escape . lisp-char) in escapes
 	  for generated = (compile-script `(let ((x ,(format nil "hello~ahi" lisp-char)))))
-	  for wanted = (format nil "{
-  var x = 'hello\\~ahi';
-}" js-escape)
-	  do (is (string= generated wanted)))))
+	  for wanted = (format nil "var x = 'hello\\~ahi';" js-escape)
+	  do (is (string= (normalize-js-code generated) wanted)))))
   
 (test-ps-js complicated-symbol-name1
   grid-rows[foo].bar
@@ -211,10 +206,10 @@ x = 2 + sideEffect() + x + 5;")
   "(!zoo ? foo : bar).x")
 
 (test script-star-eval1
-  (is (string= "x = 1; y = 2;" (normalize-js-code (script* '(setf x 1) '(setf y 2))))))
+  (is (string= "x = 1; y = 2;" (normalize-js-code (ps* '(setf x 1) '(setf y 2))))))
 
 (test script-star-eval2
-  (is (string= "x = 1;" (normalize-js-code (script* '(setf x 1))))))
+  (is (string= "x = 1;" (normalize-js-code (ps* '(setf x 1))))))
 
 (test-ps-js slot-value-null1
   (slot-value foo nil)
@@ -238,8 +233,8 @@ x = 2 + sideEffect() + x + 5;")
 
 (test defsetf1
   (ps (defsetf baz (x y) (newval) `(set-baz ,x ,y ,newval)))
-  (is (string= "var PS_GS_2 = 1; var PS_GS_3 = 2; var PS_GS_1 = 3; setBaz(PS_GS_2, PS_GS_3, PS_GS_1);"
-               (normalize-js-code (let ((ps::*gen-script-name-counter* 0))
+  (is (string= "var _js2 = 1; var _js3 = 2; var _js1 = 3; setBaz(_js2, _js3, _js1);"
+               (normalize-js-code (let ((ps:*ps-gensym-counter* 0))
                                     (ps (setf (baz 1 2) 3)))))))
 
 (test defsetf-short
@@ -250,8 +245,8 @@ x = 2 + sideEffect() + x + 5;")
   (is (and (string= (normalize-js-code (ps:ps (defun (setf some-thing) (new-val i1 i2)
                                            (setf (aref *some-thing* i1 i2) new-val))))
                "null; function __setf_someThing(newVal, i1, i2) { SOMETHING[i1][i2] = newVal; };")
-           (string= (let ((ps::*gen-script-name-counter* 0)) (normalize-js-code (ps:ps (setf (some-thing 1 2) "foo"))))
-               "var PS_GS_2 = 1; var PS_GS_3 = 2; var PS_GS_1 = 'foo'; __setf_someThing(PS_GS_1, PS_GS_2, PS_GS_3);"))))
+           (string= (let ((ps:*ps-gensym-counter* 0)) (normalize-js-code (ps:ps (setf (some-thing 1 2) "foo"))))
+               "var _js2 = 1; var _js3 = 2; var _js1 = 'foo'; __setf_someThing(_js1, _js2, _js3);"))))
 
 (test-ps-js defun-optional1
   (defun test-opt (&optional x) (return (if x "yes" "no")))
@@ -268,4 +263,26 @@ x = 2 + sideEffect() + x + 5;")
   (do-set-timeout (10) (alert "foo"))
   "setTimeout (function () { alert('foo'); }, 10)")
 
- 
+(test-ps-js operator-precedence
+  (* 3 (+ 4 5) 6)
+  "3 * (4 + 5) * 6")
+
+(test-ps-js incf1
+  (incf foo bar)
+  "foo += bar")
+
+(test-ps-js decf1
+  (decf foo bar)
+  "foo -= bar")
+
+(test-ps-js setf-conditional
+  (setf foo (if x 1 2))
+  "foo = x ? 1 : 2;")
+
+(test-ps-js obj-literal-numbers
+  (create 1 "foo")
+  "{ 1 : 'foo' }")
+
+(test-ps-js obj-literal-strings
+  (create "foo" 2)
+  "{ 'foo' : 2 }")

@@ -286,3 +286,7 @@ x = 2 + sideEffect() + x + 5;")
 (test-ps-js obj-literal-strings
   (create "foo" 2)
   "{ 'foo' : 2 }")
+
+(test-ps-js slot-value-string
+  (slot-value foo "bar")
+  "foo['bar']")

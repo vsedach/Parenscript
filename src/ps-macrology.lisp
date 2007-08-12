@@ -3,83 +3,45 @@
 ;;;; The macrology of the Parenscript language.  Special forms and macros.
 
 ;;; parenscript gensyms
-(defvar *gen-script-name-counter* 0)
+(defvar *ps-gensym-counter* 0)
 
-(defun gen-script-name-string (&key (prefix "_js_"))
-  "Generates a unique valid javascript identifier ()"
-  (concatenate 'string
-               prefix (princ-to-string (incf *gen-script-name-counter*))))
+(defun ps-gensym (&optional (prefix "_js"))
+  (make-symbol (format nil "~A-~A" prefix (incf *ps-gensym-counter*))))
 
-(defun gen-script-name (&key (prefix "_ps_"))
-  "Generate a new javascript identifier."
-  (intern (gen-script-name-string :prefix prefix)
-          (find-package :parenscript.ps-gensyms)))
-
-(defmacro gen-ps-name (&rest args)
-  `(gen-script-name ,@args))
-
-(defmacro with-unique-ps-names (symbols &body body)
-  "Evaluate BODY with the variables on SYMBOLS bound to new javascript identifiers.
+(defmacro with-ps-gensyms (symbols &body body)
+  "Evaluate BODY with SYMBOLS bound to unique ParenScript identifiers.
 
 Each element of SYMBOLS is either a symbol or a list of (symbol
-prefix)."
+gensym-prefix-string)."
   `(let* ,(mapcar (lambda (symbol)
                     (destructuring-bind (symbol &optional prefix)
                         (if (consp symbol)
                             symbol
                             (list symbol))
                       (if prefix
-                          `(,symbol (gen-script-name :prefix ,prefix))
-                          `(,symbol (gen-script-name)))))
+                          `(,symbol (ps-gensym ,prefix))
+                          `(,symbol (ps-gensym)))))
                   symbols)
      ,@body))
 
-(defvar *var-counter* 0)
-
-(defun script-gensym (&optional (name "js"))
-  (intern (format nil "tmp-~A-~A" name (incf *var-counter*)) #.*package*))
-
-(defscriptmacro defaultf (place value)
+(defpsmacro defaultf (place value)
   `(setf ,place (or (and (=== undefined ,place) ,value)
 		 ,place)))
 
 ;;; array literals
-(defscriptmacro list (&rest values)
+(defpsmacro list (&rest values)
   `(array ,@values))
 
-(defscriptmacro make-array (&rest inits)
+(defpsmacro make-array (&rest inits)
   `(new (*array ,@inits)))
 
-;;; eval-when
-(define-script-special-form eval-when (&rest args)
-  "(eval-when form-language? (situation*) form*)
-
-The given forms are evaluated only during the given SITUATION in the specified 
-FORM-LANGUAGE (either :lisp or :parenscript, def, defaulting to :lisp during
--toplevel and :parenscript during :execute). The accepted SITUATIONS are :execute,
-:scan-toplevel. :scan-toplevel is the phase of compilation when function definitions 
-and the like are being added to the compilation environment. :execute is the phase when
-the code is being evaluated by a Javascript engine."
-  (multiple-value-bind (body-language situations subforms)
-      (process-eval-when-args args)
-    (cond
-      ((and (compiler-in-situation-p *compilation-environment* :compile-toplevel)
-	    (find :compile-toplevel situations))
-       (error "Should never be processing eval-when :COMPILE-TOPLEVEL forms from here."))
-
-      ((and (compiler-in-situation-p *compilation-environment*  :execute)
-	    (find :execute situations))
-       (when (eql body-language :parenscript)
-	 (let ((form `(progn ,@subforms)))
-	   (compile-to-statement form)))))))
-
 ;;; slot access
-(defscriptmacro slot-value (obj &rest slots)
+(defpsmacro slot-value (obj &rest slots)
   (if (null (rest slots))
       `(%js-slot-value ,obj ,(first slots))
       `(slot-value (slot-value ,obj ,(first slots)) ,@(rest slots))))
 
-(defscriptmacro with-slots (slots object &rest body)
+(defpsmacro with-slots (slots object &rest body)
   (flet ((slot-var (slot) (if (listp slot) (first slot) slot))
 	 (slot-symbol (slot) (if (listp slot) (second slot) slot)))
     `(symbol-macrolet ,(mapcar #'(lambda (slot)
@@ -87,46 +49,7 @@ the code is being evaluated by a Javascript engine."
 			       slots)
       ,@body)))
 
-;;; script packages
-(defscriptmacro defpackage (name &rest options)
-  "Defines a Parenscript package."
-  (labels ((opt-name (opt) (if (listp opt) (car opt) opt)))
-  (let ((nicknames nil) (lisp-package nil) (secondary-lisp-packages nil)
-	(exports nil) (used-packages nil) (documentation nil))
-    (dolist (opt options)
-      (case (opt-name opt)
-	(:lisp-package (setf lisp-package (second opt)))
-	(:nicknames (setf nicknames (rest opt)))
-	(:secondary-lisp-packages secondary-lisp-packages t)
-	(:export (setf exports (rest opt)))
-	(:use (setf used-packages (rest opt)))
-	(:documentation (setf documentation (second opt)))
-	(t (error "Unknown option in DEFPACKAGE: ~A" (opt-name opt)))))
-    (create-script-package
-     *compilation-environment*
-     :name name
-     :nicknames nicknames
-     :secondary-lisp-packages secondary-lisp-packages
-     :used-packages used-packages
-     :lisp-package lisp-package
-     :exports exports
-     :documentation documentation)))
-  `(progn))
-
-(defscriptmacro in-package (package-designator)
-  "Changes the current script package in the parenscript compilation environment.  This mostly
-affects the reader and how it interns non-prefixed symbols"
-  (let ((script-package
-	 (find-script-package package-designator *compilation-environment*)))
-    (when (null script-package)
-      (error "~A does not designate any script package.  Available script package: ~A"
-	     package-designator
-	     (mapcar #'script-package-name (comp-env-script-packages *compilation-environment*))))
-    (setf (comp-env-current-package *compilation-environment*)
-	  script-package)
-    `(progn)))
-
-(defscriptmacro case (value &rest clauses)
+(defpsmacro case (value &rest clauses)
   (labels ((make-clause (val body more)
              (cond ((listp val)
                     (append (mapcar #'list (butlast val))
@@ -135,46 +58,35 @@ affects the reader and how it interns non-prefixed symbols"
                     (make-clause 'default body more))
                    (more `((,val ,@body break)))
                    (t `((,val ,@body))))))
-    `(switch ,value ,@(mapcon #'(lambda (x)
-                                  (make-clause (car (first x))
-                                               (cdr (first x))
-                                               (rest x)))
+    `(switch ,value ,@(mapcon (lambda (clause)
+                                (make-clause (car (first clause))
+                                             (cdr (first clause))
+                                             (rest clause)))
                               clauses))))
 
-;;; let
-(define-script-special-form let (decls &rest body)
-  (let ((defvars (mapcar #'(lambda (decl)
-			     (if (atom decl)
-                                 (make-instance 'ps-js::js-defvar
-                                       :names (list (compile-to-symbol decl))
-                                       :value nil)
-                                 (let ((name (first decl))
-                                       (value (second decl)))
-                                   (make-instance 'ps-js::js-defvar
-                                                  :names (list (compile-to-symbol name))
-                                                  :value (compile-to-expression value)))))
-			 decls)))
-    (make-instance 'ps-js::js-sub-block
-		   :indent "  "
-		   :statements (nconc defvars
-				 (mapcar #'compile-to-statement body)))))
+(define-ps-special-form let (expecting bindings &rest body)
+  (let ((defvars (mapcar (lambda (binding) (if (atom binding)
+                                               `(defvar ,binding)
+                                               `(defvar ,@binding)))
+                         bindings)))
+    (compile-parenscript-form `(progn ,@defvars ,@body))))
 
 ;;; iteration
-(defscriptmacro dotimes (iter &rest body)
+(defpsmacro dotimes (iter &rest body)
   (let ((var (first iter))
         (times (second iter)))
   `(do ((,var 0 (1+ ,var)))
        ((>= ,var ,times))
      ,@body)))
 
-(defscriptmacro dolist (i-array &rest body)
+(defpsmacro dolist (i-array &rest body)
   (let ((var (first i-array))
 	(array (second i-array))
-	(arrvar (script-gensym "arr"))
-	(idx (script-gensym "i")))
+	(arrvar (ps-gensym "tmp-arr"))
+	(idx (ps-gensym "tmp-i")))
     `(let ((,arrvar ,array))
       (do ((,idx 0 (1+ ,idx)))
-	  ((>= ,idx (slot-value ,arrvar 'global::length)))
+	  ((>= ,idx (slot-value ,arrvar 'length)))
 	(let ((,var (aref ,arrvar ,idx)))
 	  ,@body)))))
 
@@ -184,7 +96,7 @@ affects the reader and how it interns non-prefixed symbols"
           (*script-macro-env* (cons ,var *script-macro-env*)))
     ,@body))
 
-(define-script-special-form macrolet (macros &body body)
+(define-ps-special-form macrolet (expecting macros &body body)
   (with-temp-macro-environment (macro-env-dict)
     (dolist (macro macros)
       (destructuring-bind (name arglist &body body)
@@ -195,33 +107,33 @@ affects the reader and how it interns non-prefixed symbols"
                                          (destructuring-bind ,arglist
                                              ,args
                                            ,@body))))))))
-    (compile-script-form `(progn ,@body))))
+    (compile-parenscript-form `(progn ,@body))))
 
-(define-script-special-form symbol-macrolet (symbol-macros &body body)
+(define-ps-special-form symbol-macrolet (expecting symbol-macros &body body)
   (with-temp-macro-environment (macro-env-dict)
     (dolist (macro symbol-macros)
       (destructuring-bind (name &body expansion)
           macro
 	(setf (get-macro-spec name macro-env-dict)
 	      (cons t (compile nil `(lambda () ,@expansion))))))
-    (compile-script-form `(progn ,@body))))
+    (compile-parenscript-form `(progn ,@body))))
 
-(define-script-special-form defmacro (name args &body body)
+(define-ps-special-form defmacro (expecting name args &body body)
   (define-script-macro% name args body :symbol-macro-p nil)
-  (compile-script-form '(progn)))
+  nil)
 
-(define-script-special-form define-symbol-macro (name &body body)
+(define-ps-special-form define-symbol-macro (expecting name &body body)
   (define-script-macro% name () body :symbol-macro-p t)
-  (compile-script-form '(progn)))
+  nil)
 
-(defscriptmacro lisp (&body forms)
+(defpsmacro lisp (&body forms)
   "Evaluates the given forms in Common Lisp at ParenScript
 macro-expansion time. The value of the last form is treated as a
 ParenScript expression and is inserted into the generated Javascript
 \(use nil for no-op)."
   (eval (cons 'progn forms)))
 
-(defscriptmacro rebind (variables &body body)
+(defpsmacro rebind (variables &body body)
   "Creates a new js lexical environment and copies the given
 variable(s) there. Executes the body in the new environment. This
 has the same effect as a new (let () ...) form in lisp but works on
@@ -348,7 +260,7 @@ the given lambda-list and body."
 		  effective-body)))
 	(values effective-args effective-body)))))
 
-(ps:defscriptmacro defun (name lambda-list &body body)
+(defpsmacro defun (name lambda-list &body body)
   "An extended defun macro that allows cool things like keyword arguments.
 lambda-list::=
  (var* 
@@ -362,7 +274,7 @@ lambda-list::=
                      "(defun ~s ~s ...) needs to have a symbol or (setf symbol) for a name." name lambda-list)
              `(defun-setf ,name ,lambda-list ,@body))))
 
-(ps:defscriptmacro defun-normal (name lambda-list &body body)
+(defpsmacro defun-normal (name lambda-list &body body)
   (multiple-value-bind (effective-args effective-body)
       (parse-extended-function lambda-list body name)
     `(%js-defun ,name ,effective-args
@@ -370,7 +282,7 @@ lambda-list::=
 
 (defvar *defun-setf-name-prefix* "__setf_")
 
-(ps:defscriptmacro defun-setf (setf-name lambda-list &body body)
+(defpsmacro defun-setf (setf-name lambda-list &body body)
   (let ((mangled-function-name (intern (concatenate 'string *defun-setf-name-prefix* (symbol-name (second setf-name)))
                                        (symbol-package (second setf-name))))
         (function-args (cdr (ordered-set-difference lambda-list lambda-list-keywords))))
@@ -378,7 +290,7 @@ lambda-list::=
               `(,',mangled-function-name ,store-var ,@(list ,@function-args)))
             (defun ,mangled-function-name ,lambda-list ,@body))))
 
-(ps:defscriptmacro lambda (lambda-list &body body)
+(defpsmacro lambda (lambda-list &body body)
   "An extended defun macro that allows cool things like keyword arguments.
 lambda-list::=
  (var* 
@@ -391,15 +303,15 @@ lambda-list::=
     `(%js-lambda ,effective-args
       ,@effective-body)))
 
-(ps:defscriptmacro defsetf-long (access-fn lambda-list (store-var) form)
+(defpsmacro defsetf-long (access-fn lambda-list (store-var) form)
   (setf (get-macro-spec access-fn *script-setf-expanders*)
         (compile nil
                  (let ((var-bindings (ordered-set-difference lambda-list lambda-list-keywords)))
                    `(lambda (access-fn-args store-form)
                      (destructuring-bind ,lambda-list
                                access-fn-args
-                       (let* ((,store-var (ps:gen-ps-name))
-                              (gensymed-names (loop repeat ,(length var-bindings) collecting (ps:gen-ps-name)))
+                       (let* ((,store-var (ps-gensym))
+                              (gensymed-names (loop repeat ,(length var-bindings) collecting (ps-gensym)))
                               (gensymed-arg-bindings (mapcar #'list gensymed-names (list ,@var-bindings))))
                          (destructuring-bind ,var-bindings
                              gensymed-names
@@ -408,7 +320,7 @@ lambda-list::=
                              ,,form))))))))
   nil)
 
-(ps:defscriptmacro defsetf-short (access-fn update-fn &optional docstring)
+(defpsmacro defsetf-short (access-fn update-fn &optional docstring)
   (declare (ignore docstring))
   (setf (get-macro-spec access-fn *script-setf-expanders*)
         (lambda (access-fn-args store-form)
@@ -422,10 +334,10 @@ lambda-list::=
   (flet ((process-setf-clause (place value-form)
            (if (and (listp place) (get-macro-spec (car place) *script-setf-expanders*))
                (funcall (get-macro-spec (car place) *script-setf-expanders*) (cdr place) value-form)
-               (let ((exp-place (expand-script-form place)))
+               (let ((exp-place (ps-macroexpand place)))
                  (if (and (listp exp-place) (get-macro-spec (car exp-place) *script-setf-expanders*))
                      (funcall (get-macro-spec (car exp-place) *script-setf-expanders*) (cdr exp-place) value-form)
-                     `(parenscript.javascript::setf1% ,exp-place ,value-form))))))
+                     `(setf1% ,exp-place ,value-form))))))
     (assert (evenp (length args)) ()
             "~s does not have an even number of arguments." (cons 'setf args))
     `(progn ,@(loop for (place value) on args by #'cddr collect (process-setf-clause place value)))))

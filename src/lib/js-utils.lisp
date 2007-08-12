@@ -3,13 +3,13 @@
 ;;; Handy utilities for doing common tasks found in many web browser
 ;;; JavaScript implementations
 
-(defscriptmacro do-set-timeout ((timeout) &body body)
+(defpsmacro do-set-timeout ((timeout) &body body)
   `(set-timeout (lambda () ,@body) ,timeout))
 
 ;;; Arithmetic
 
 (defmacro def-js-maths (&rest mathdefs)
-  `(progn ,@(mapcar (lambda (def) (cons 'defscriptmacro def)) mathdefs)))
+  `(progn ,@(mapcar (lambda (def) (cons 'defpsmacro def)) mathdefs)))
 
 (def-js-maths
     (min (&rest nums) `(*math.min ,@nums))
@@ -34,7 +34,7 @@
 
 ;;; Exception handling
 
-(defscriptmacro ignore-errors (&body body)
+(defpsmacro ignore-errors (&body body)
   `(try (progn ,@body) (:catch (e))))
 
 ;;; Misc

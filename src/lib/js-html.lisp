@@ -71,17 +71,17 @@
       (map nil #'handle-form forms))
     (cons '+ (optimize-string-list (nreverse res)))))
 
-(define-script-special-form html (&rest forms)
-  (compile-script-form (process-html-forms forms)))
+(define-ps-special-form html (expecting &rest forms)
+  (compile-parenscript-form (process-html-forms forms)))
 
-(defun process-css-forms(proplist)
+(defun process-css-forms (proplist)
   (optimize-string-list (butlast
                          (loop for propval on proplist by #'cddr appending
-                              (list (string-downcase ( symbol-name (first propval)))
+                              (list (string-downcase (symbol-name (first propval)))
                                     ":"
                                     (second propval)
                                     ";")))))
 
 
-(define-script-special-form css-inline (&rest forms)
-  (compile-script-form (cons '+ (process-css-forms forms))))
+(define-ps-special-form css-inline (expecting &rest forms)
+  (compile-parenscript-form (cons '+ (process-css-forms forms))))

@@ -1,12 +1,118 @@
-(in-package :parenscript.javascript)
+(in-package :parenscript)
 
-(defgeneric js-to-strings (expression start-pos)
-  (:documentation "Transform an enscript-javascript expression to a string"))
+(defgeneric ps-print% (special-form-name special-form-args %start-pos%))
 
-(defgeneric js-to-statement-strings (code-fragment start-pos)
-  (:documentation "Transform an enscript-javascript code fragment to a string"))
+(defmacro defprinter (special-form content-args &body body)
+  "Given a special-form name and a destructuring lambda-list for its
+arguments, defines a printer for that form using the given body."
+  (let ((sf (gensym))
+        (sf-args (gensym)))
+    `(defmethod ps-print% ((,sf (eql ',special-form)) ,sf-args %start-pos%)
+      (declare (ignore ,sf))
+      (destructuring-bind ,content-args
+          ,sf-args
+        ,@body))))
+
+(defvar %start-pos%)
+
+(defgeneric ps-print (compiled-form %start-pos%))
+
+(defmethod ps-print ((compiled-form cons) %start-pos%)
+  "Prints the given compiled ParenScript form starting at the given
+indent position."
+  (ps-print% (car compiled-form) (cdr compiled-form) %start-pos%))
+
+;;; string literals
+(defvar *js-quote-char* #\'
+  "Specifies which character JS should use for delimiting strings.
+
+This variable is useful when have to embed some javascript code
+in an html attribute delimited by #\\\" as opposed to #\\', or
+vice-versa.")
+
+(defparameter *js-lisp-escaped-chars*
+  '((#\' . #\')
+    (#\\ . #\\)
+    (#\b . #\Backspace)
+    (#\f . #.(code-char 12))
+    (#\n . #\Newline)
+    (#\r . #\Return)
+    (#\t . #\Tab)))
+
+(defmethod ps-print ((string string) %start-pos%)
+  (flet ((lisp-special-char-to-js (lisp-char)
+           (car (rassoc lisp-char *js-lisp-escaped-chars*))))
+    (list (with-output-to-string (escaped)
+            (write-char *js-quote-char* escaped)
+            (loop for char across string
+                  for code = (char-code char)
+                  for special = (lisp-special-char-to-js char)
+                  do (cond
+                       (special
+                        (write-char #\\ escaped)
+                        (write-char special escaped))
+                       ((or (<= code #x1f) (>= code #x80))
+                        (format escaped "\\u~4,'0x" code))
+                       (t (write-char char escaped)))
+                  finally (write-char *js-quote-char* escaped))))))
+
+(defmethod ps-print ((number number) %start-pos%)
+  (list (format nil (if (integerp number) "~S" "~F") number)))
+
+;;; expression and operator precedence rules
+
+(defun expression-precedence (expr)
+  (if (consp expr)
+      (case (car expr)
+        (js-block (if (= (length (cdr expr)) 1)
+                      (expression-precedence (first (cdr expr)))
+                      (op-precedence 'comma)))
+        (js-expression-if (op-precedence 'js-expression-if))
+        (js-assign (op-precedence '=))
+        (operator (op-precedence (second expr)))
+        (otherwise 0))
+      0))
+
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (defparameter *op-precedence-hash* (make-hash-table :test #'equal))
+
+  ;;; generate the operator precedences from *OP-PRECEDENCES*
+  (let ((precedence 1))
+    (dolist (ops '((js-aref)
+                   (js-slot-value)
+                   (! not ~)
+                   (* / %)
+                   (+ -)
+                   (<< >>)
+                   (>>>)
+                   (< > <= >=)
+                   (in js-expression-if)
+                   (eql == != =)
+                   (=== !==)
+                   (&)
+                   (^)
+                   (\|)
+                   (\&\& and)
+                   (\|\| or)
+                   (js-assign *= /= %= += -= <<= >>= >>>= \&= ^= \|=)
+                   (comma)))
+      (dolist (op ops)
+        (let ((op-name (symbol-name op)))
+          (setf (gethash op-name *op-precedence-hash*) precedence)))
+      (incf precedence)))
+
+  (defun op-precedence (op)
+    (gethash (if (symbolp op)
+                 (symbol-name op)
+                 op)
+             *op-precedence-hash*)))
 
 ;;; indenter
+
+(defmacro max-length () '(- 80 %start-pos% 2))
+
+(defun ps-print-indent (ps-form)
+  (ps-print ps-form (+ %start-pos% 2)))
 
 (defun special-append-to-last (form elt)
   (flet ((special-append (form elt)
@@ -23,7 +129,7 @@
 		 (rplaca last (special-append (car last) elt))
 		 (append-to-last (car last) elt))
 	   form))
-	  (t (error "unsupported form ~S" form)))))
+	  (t (error "Wrong argument type to indent appender: ~S" form)))))
 
 (defun dwim-join (value-string-lists max-length
 		  &key (start "")
@@ -37,7 +143,7 @@
     #+nil
     (format t "value-string-lists: ~S~%" value-string-lists)
 
-    ;;; collect single value-string-lists until line full
+    ;;; collect single value-string-lists until the line is full
 
     (do* ((string-lists value-string-lists (cdr string-lists))
 	  (string-list (car string-lists) (car string-lists))
@@ -102,114 +208,47 @@
                              res))
 	    (setf cur-elt white-space cur-empty t)))))
 
-(defmethod js-to-strings ((expression expression) start-pos)
-  (declare (ignore start-pos))
-  (list (princ-to-string (value expression))))
+(defprinter script-quote (val)
+  (if (null val)
+      (list "null")
+      (error "Cannot translate quoted value ~S to javascript" val)))
 
-(defmethod js-to-statement-strings ((expression expression) start-pos)
-  (js-to-strings expression start-pos))
+(defprinter js-literal (str)
+  (list str))
 
-(defmethod js-to-statement-strings ((statement statement) start-pos)
-  (declare (ignore start-pos))
-  (list (princ-to-string (value statement))))
-
-(defmethod js-to-strings ((expression script-quote) start-pos)
-  (declare (ignore start-pos))
-  (list
-   (if (eql nil (value expression))
-       "null"
-       (case (value expression)
-	 (t (error "Cannot translate quoted value ~S to javascript" (value expression)))))))
+(defprinter js-keyword (str)
+  (list str))
 
 ;;; array literals
 
-(defmethod js-to-strings ((array array-literal) start-pos)
-  (let ((value-string-lists
-	 (mapcar #'(lambda (x) (js-to-strings x (+ start-pos 2)))
-		 (array-values array)))
-	(max-length (- 80 start-pos 2)))
-    (dwim-join value-string-lists max-length
+(defprinter array-literal (&rest initial-contents)
+  (let ((initial-contents-strings (mapcar #'ps-print-indent initial-contents)))
+    (dwim-join initial-contents-strings (max-length)
 	       :start "[ " :end " ]"
 	       :join-after ",")))
 
-(defmethod js-to-strings ((aref js-aref) start-pos)
-  (dwim-join (cons (js-to-strings (aref-array aref) start-pos)
-		   (mapcar #'(lambda (x) (dwim-join (list (js-to-strings x (+ start-pos 2)))
-						    (- 80 start-pos 2)
-						    :start "[" :end "]"))
-			   (aref-index aref)))
-	     (- 80 start-pos 2) :separator ""
-	     :white-space "  "))
+(defprinter js-aref (array coords)
+  (dwim-join (cons (ps-print array %start-pos%)
+		   (mapcar (lambda (x) (dwim-join (list (ps-print-indent x))
+                                                  (max-length)
+                                                  :start "[" :end "]"))
+			   coords))
+	     (max-length)
+             :white-space "  "
+             :separator ""))
 
-;;; object literals (maps and hash-tables)
+(defprinter object-literal (&rest arrows)
+  (dwim-join (loop for (key . value) in arrows appending
+                   (list (dwim-join (list (list (format nil "~A:" (js-translate-symbol key)))
+                                          (ps-print-indent value))
+                                    (max-length)
+                                    :start "" :end "" :join-after "")))
+             (max-length)
+             :start "{ " :end " }"
+             :join-after ","))
 
-(defmethod js-to-strings ((obj object-literal) start-pos)
-  (dwim-join
-   (loop
-    for (key . value) in (object-values obj)
-    append (list
-	    (dwim-join (list (list (format nil "~A:" (js-translate-symbol key)))
-			     (js-to-strings value (+ start-pos 2)))
-		       (- 80 start-pos 2)
-		       :start "" :end "" :join-after "")))
-   (- 80 start-pos 2)
-   :start "{ " :end " }"
-   :join-after ","))
-
-;;; string literals
-
-(defvar *js-quote-char* #\'
-  "Specifies which character JS sholud use for delimiting strings.
-
-This variable is usefull when have to embed some javascript code
-in an html attribute delimited by #\\\" as opposed to #\\', or
-vice-versa.")
-
-(defparameter *js-lisp-escaped-chars*
-  '((#\' . #\')
-    (#\\ . #\\)
-    (#\b . #\Backspace)
-    (#\f . #.(code-char 12))
-    (#\n . #\Newline)
-    (#\r . #\Return)
-    (#\t . #\Tab)))
-
-(defun lisp-special-char-to-js (lisp-char)
-    (car (rassoc lisp-char *js-lisp-escaped-chars*)))
-
-(defmethod js-to-strings ((string string-literal) start-pos)
-  (declare (ignore start-pos)
-           (inline lisp-special-char-to-js))
-  (list (with-output-to-string (escaped)
-          (write-char *js-quote-char*  escaped)
-          (loop
-           for char across (value string)
-           for code = (char-code char)
-           for special = (lisp-special-char-to-js char)
-           do
-           (cond
-             (special
-              (write-char #\\ escaped)
-              (write-char special escaped))
-             ((or (<= code #x1f) (>= code #x80))
-              (format escaped "\\u~4,'0x" code))
-             (t (write-char char escaped)))
-           finally (write-char *js-quote-char* escaped)))))
-
-;;; variables
-(defgeneric js-translate-symbol (var)
-  (:documentation "Given a JS-VARIABLE returns an output
-JavaScript version of it as a string."))
-
-(defmethod js-translate-symbol ((var js-variable))
-  (js-translate-symbol (value var)))
-
-(defmethod js-translate-symbol ((var-name symbol))
-  (ps::js-translate-symbol-contextually var-name (ps::symbol-script-package var-name) ps::*compilation-environment*))
-
-(defmethod js-to-strings ((v js-variable) start-form)
-  (declare (ignore start-form))
-  (list (js-translate-symbol v)))
+(defprinter js-variable (var)
+  (list (js-translate-symbol var)))
 
 ;;; arithmetic operators
 (defun script-convert-op-name (op)
@@ -221,408 +260,303 @@ JavaScript version of it as a string."))
     (=   '\=\=)
     (t op)))
 
-(defun op-form-p (form)
-  (and (listp form)
-       (not (script-special-form-p form))
-       (not (null (op-precedence (first form))))))
-
-(defun klammer (string-list)
+(defun parenthesize (string-list)
   (prepend-to-first string-list "(")
   (append-to-last string-list ")")
   string-list)
 
-(defmethod expression-precedence ((expression expression))
-  0)
+(defprinter operator (op args)
+  (let* ((precedence (op-precedence op))
+	 (arg-strings (mapcar (lambda (arg)
+                                (let ((arg-strings (ps-print-indent arg)))
+                                  (if (>= (expression-precedence arg) precedence)
+                                      (parenthesize arg-strings)
+                                      arg-strings)))
+                              args))
+	 (op-string (format nil "~A " op)))
+    (dwim-join arg-strings (max-length) :join-before op-string)))
 
-(defmethod expression-precedence ((form op-form))
-  (op-precedence (operator form)))
+(defprinter unary-operator (op arg &key prefix)
+  (let ((arg-string (ps-print arg %start-pos%)))
+    (when (eql 'operator (car arg))
+      (setf arg-string (parenthesize arg-string)))
+    (if prefix
+        (prepend-to-first arg-string op)
+        (append-to-last arg-string op))))
 
-(defmethod js-to-strings ((form op-form) start-pos)
-  (let* ((precedence (expression-precedence form))
-	 (value-string-lists
-	  (mapcar #'(lambda (x)
-		      (let ((string-list (js-to-strings x (+ start-pos 2))))
-			(if (>= (expression-precedence x) precedence)
-			    (klammer string-list)
-			    string-list)))
-		  (op-args form)))
-	 (max-length (- 80 start-pos 2))
-	 (op-string (format nil "~A " (operator form))))
-    (dwim-join value-string-lists max-length :join-before op-string)    
-    ))
-
-(defmethod js-to-strings ((one-op one-op) start-pos)
-  (let* ((value (value one-op))
-	 (value-strings (js-to-strings value start-pos)))
-    (when (typep value 'op-form)
-      (setf value-strings (klammer value-strings)))
-    (if (one-op-pre-p one-op)
-      (prepend-to-first value-strings
-			(one-op one-op))
-      (append-to-last value-strings
-		      (one-op one-op)))))
-
-;;; function calls
-
-(defmethod js-to-strings ((form function-call) start-pos)
-  (let* ((value-string-lists
-	  (mapcar #'(lambda (x) (js-to-strings x (+ start-pos 2)))
-		  (f-args form)))
-	 (max-length (- 80 start-pos 2))
-	 (args (dwim-join value-string-lists max-length
+;;; function and method calls
+(defprinter js-funcall (fun-designator args)
+  (let* ((arg-strings (mapcar #'ps-print-indent args))
+	 (args (dwim-join arg-strings (max-length)
 			  :start "(" :end ")" :join-after ",")))
-    (etypecase (f-function form)
-      (js-lambda
-       (dwim-join (list (append (dwim-join (list (js-to-strings (f-function form) (+ start-pos 2)))
-                                           max-length
-                                           :start "(" :end ")" :separator "")
-                                args))
-                  max-length
-                  :separator ""))
-      ((or js-variable js-aref js-slot-value)
-       (dwim-join (list (js-to-strings (f-function form) (+ start-pos 2))
-                        args)
-                  max-length
-                  :separator ""))
-      (function-call
-       ;; TODO it adds superfluous newlines after each ()
-       ;; and it's nearly the same as the js-lambda case above
-       (dwim-join (list (append (dwim-join (list (js-to-strings (f-function form) (+ start-pos 2)))
-                                           max-length :separator "")
-                                args))
-                  max-length :separator "")))))
+    (cond ((eql 'js-lambda (car fun-designator))
+           (dwim-join (list (append (dwim-join (list (ps-print-indent fun-designator))
+                                               (max-length)
+                                               :start "(" :end ")" :separator "")
+                                    args))
+                      (max-length)
+                      :separator ""))
+          ((member (car fun-designator) '(js-variable js-aref js-slot-value))
+           (dwim-join (list (ps-print-indent fun-designator) args)
+                      (max-length)
+                      :separator ""))
+          ((eql 'js-funcall (car fun-designator))
+           ;; TODO it adds superfluous newlines after each ()
+           ;; and it's nearly the same as the js-lambda case above
+           (dwim-join (list (append (dwim-join (list (ps-print-indent fun-designator))
+                                               (max-length) :separator "")
+                                    args))
+                      (max-length) :separator "")))))
 
-(defmethod js-to-strings ((form method-call) start-pos)
-  (let ((object (js-to-strings (m-object form) (+ start-pos 2))))
+(defprinter js-method-call (method object args)
+  (let ((printed-object (ps-print object (+ %start-pos% 2))))
     ;; TODO: this may not be the best way to add ()'s around lambdas
     ;; probably there is or should be a more general solution working
     ;; in other situations involving lambda's
-    (when (member (m-object form) (list 'js-lambda 'number-literal 'js-object 'op-form)
-		  :test #'typep)  
-      (push "(" object)
-      (nconc object (list ")")))
-    (let* ((fname (dwim-join (list object
-                                   (list (js-translate-symbol (m-method form))))
-                             (- 80 start-pos 2)
+    (when (or (numberp object) (and (consp object) (member (car object) '(js-lambda js-object operator))))
+      (setf printed-object (append (list "(") printed-object (list ")"))))
+    (let* ((fname (dwim-join (list printed-object (list (js-translate-symbol method)))
+                             (max-length)
                              :end "("
                              :separator ""))
            (butlast (butlast fname))
            (last (car (last fname)))
-           (method-and-args (dwim-join (mapcar #'(lambda (x) (js-to-strings x (+ start-pos 2)))
-                                               (m-args form))
-                                       (- 80 start-pos 2)
+           (method-and-args (dwim-join (mapcar #'ps-print-indent args)
+                                       (max-length)
                                        :start last
                                        :end ")"
                                        :join-after ","))
            (ensure-no-newline-before-dot (concatenate 'string
                                                       (car (last butlast))
                                                       (first method-and-args))))
-      (nconc (butlast butlast)
-             (list ensure-no-newline-before-dot)
-             (rest method-and-args)))))
+      (append (butlast butlast) (list ensure-no-newline-before-dot) (cdr method-and-args)))))
 
-;;; optimization that gets rid of nested blocks, which have no meaningful effect
-;;; in javascript
-(defgeneric expanded-subblocks (block)
-  (:method (block)
-    (list block))
-  (:method ((block js-block))
-    (mapcan #'expanded-subblocks (block-statements block))))
-
-(defun consolidate-subblocks (block)
-  (setf (block-statements block) (expanded-subblocks block))
-  block)
-
-
-(defmethod js-to-statement-strings ((body js-block) start-pos)
-  (consolidate-subblocks body)
-  (dwim-join (mapcar #'(lambda (x) (js-to-statement-strings x (+ start-pos 2)))
-		     (block-statements body))
-	     (- 80 start-pos 2)
-	     :join-after ";"
+(defprinter js-block (statement-p statements)
+  (dwim-join (mapcar #'ps-print-indent statements)
+	     (max-length)
+	     :join-after (if statement-p ";" ",")
 	     :append-to-last #'special-append-to-last
-	     :start (block-indent body) :collect nil
-	     :end ";"))
+	     :start (if statement-p "    " "")
+             :collect nil
+	     :end (if statement-p ";" "")))
 
-(defmethod js-to-strings ((body js-block) start-pos)
-  (dwim-join (mapcar #'(lambda (x) (js-to-strings x (+ start-pos 2)))
-		     (block-statements body))
-	     (- 80 start-pos 2)
-	     :append-to-last #'special-append-to-last
-	     :join-after ","
-	     :start (block-indent body)))
+(defprinter js-lambda (args body)
+  (print-fun-def nil args body %start-pos%))
 
+(defprinter js-defun (name args body)
+  (print-fun-def name args body %start-pos%))
 
-(defmethod js-to-statement-strings ((body js-sub-block) start-pos)
-  (declare (ignore start-pos))
-  (nconc (list "{") (call-next-method) (list "}")))
-
-;;; function definition
-(defmethod js-to-strings ((lambda js-lambda) start-pos)
-  (let ((fun-header (dwim-join (mapcar #'(lambda (x)
-                                           (list (js-translate-symbol x)))
-				       (lambda-args lambda))
-			       (- 80 start-pos 2)
-			       :start (function-start-string lambda)
-			       :end ") {" :join-after ","))
-	(fun-body (js-to-statement-strings (lambda-body lambda) (+ start-pos 2))))
-    (nconc fun-header fun-body (list "}"))))
-
-(defgeneric function-start-string (function)
-  (:documentation "Returns the string that starts the function - this varies according to whether
-this is a lambda or a defun"))
-
-(defmethod function-start-string ((lambda js-lambda))
-  "function (")
-
-(defmethod js-to-statement-strings ((lambda js-lambda) start-pos)
-  (js-to-strings lambda start-pos))
-
-(defmethod function-start-string ((defun js-defun))
-  (format nil "function ~A(" (js-translate-symbol (defun-name defun))))
+(defun print-fun-def (name args body %start-pos%)
+  (let ((fun-header (dwim-join (mapcar (lambda (x) (list (js-translate-symbol x)))
+				       args)
+			       (max-length)
+			       :start (format nil "function ~:[~;~A~](" name (js-translate-symbol name))
+                               :join-after ","
+			       :end ") {"))
+	(fun-body (ps-print-indent body)))
+    (append fun-header fun-body (list "}"))))
 
 ;;; object creation
-(defmethod js-to-strings ((object js-object) start-pos)
-  (let ((value-string-lists
-	 (mapcar #'(lambda (slot)
-		     (let* ((slot-name (first slot))
-			    (slot-string-name
-			    (if (typep slot-name 'script-quote)
-				(if (symbolp (value slot-name))
-				    (format nil "~A" (js-translate-symbol (value slot-name)))
-				    (format nil "~A" (first (js-to-strings slot-name 0))))
-				(car (js-to-strings slot-name 0)))))
-		       (dwim-join (list (js-to-strings (second slot) (+ start-pos 4)))
-				  (- 80 start-pos 2)
-				  :start (concatenate 'string slot-string-name  " : ")
-				  :white-space "    ")))
-		 (o-slots object)))
-	(max-length (- 80 start-pos 2)))
-    (dwim-join value-string-lists max-length
+(defprinter js-object (slot-defs)
+  (let ((value-string-lists (mapcar (lambda (slot)
+                                      (let* ((slot-name (first slot))
+                                             (slot-string-name
+                                              (if (and (listp slot-name) (eql 'script-quote (car slot-name)))
+                                                  (format nil "~A" (if (symbolp (second slot-name))
+                                                                       (js-translate-symbol (second slot-name))
+                                                                       (car (ps-print slot-name 0))))
+                                                  (car (ps-print slot-name 0)))))
+                                        (dwim-join (list (ps-print (second slot) (+ %start-pos% 4)))
+                                                   (max-length)
+                                                   :start (concatenate 'string slot-string-name  " : ")
+                                                   :white-space "    ")))
+                                    slot-defs)))
+    (dwim-join value-string-lists (max-length)
 	       :start "{ "
 	       :end " }"
 	       :join-after ", "
 	       :white-space "  "
 	       :collect nil)))
 
-(defmethod js-to-strings ((sv js-slot-value) start-pos)
-  (append-to-last (if (typep (sv-object sv) 'js-variable)
-                      (js-to-strings (sv-object sv) start-pos)
-                      (list (format nil "~A" (js-to-strings (sv-object sv) start-pos))))
-                  (if (typep (sv-slot sv) 'script-quote)
-                      (if (symbolp (value (sv-slot sv)))
-                          (format nil ".~A" (js-translate-symbol (value (sv-slot sv))))
-                          (format nil ".~A" (first (js-to-strings (sv-slot sv) 0))))
-                      (format nil "[~A]" (first (js-to-strings (sv-slot sv) 0))))))
+(defprinter js-slot-value (obj slot)
+  (append-to-last (if (eql 'js-variable (car obj))
+                      (ps-print obj %start-pos%)
+                      (list (format nil "~A" (ps-print obj %start-pos%))))
+                  (if (eql 'script-quote (car slot))
+                      (format nil ".~A" (if (symbolp (second slot))
+                                            (js-translate-symbol (second slot))
+                                            (first (ps-print slot 0))))
+                      (format nil "[~A]" (first (ps-print slot 0))))))
 
 ;;; cond
-(defmethod js-to-statement-strings ((cond js-cond) start-pos)
-  (loop :for body :on (cond-bodies cond)
-	:for first = (eq body (cond-bodies cond))
-	:for last = (not (cdr body))
-	:for test :in (cond-tests cond)
-	:append (if (and last (not first) (string= (value test) "true"))
-		    '("else {")
-		    (dwim-join (list (js-to-strings test 0)) (- 80 start-pos 2)
-			       :start (if first "if (" "else if (") :end ") {"))
-	:append (js-to-statement-strings (car body) (+ start-pos 2))
-	:collect "}"))
+(defprinter js-cond (clauses)
+  (loop for (test body-forms) in clauses
+        for start = "if (" then "else if ("
+        append (if (string= test "true")
+                   '("else {")
+                   (dwim-join (list (ps-print test 0)) (max-length)
+                              :start start :end ") {"))
+        append (mapcar #'ps-print-indent body-forms)
+        collect "}"))
 
-(defmethod js-to-statement-strings ((if js-if) start-pos)
-  (let ((if-strings (dwim-join (list (js-to-strings (if-test if) 0))
-			       (- 80 start-pos 2)
+(defprinter js-statement-if (test then else)
+  (let ((if-strings (dwim-join (list (ps-print test 0))
+			       (- 80 %start-pos% 2)
 			       :start "if ("
 			       :end ") {"))
-	(then-strings (js-to-statement-strings (if-then if) (+ start-pos 2)))
-	(else-strings (when (if-else if)
-			(js-to-statement-strings (if-else if)
-						 (+ start-pos 2)))))
-    (nconc if-strings then-strings (if else-strings
-				       (nconc (list "} else {") else-strings (list "}"))
-				       (list "}")))))
+	(then-strings (ps-print-indent then))
+	(else-strings (when else
+			(ps-print-indent else))))
+    (append if-strings then-strings (if else-strings
+                                        (append (list "} else {") else-strings (list "}"))
+                                        (list "}")))))
 
-(defmethod js-to-strings ((if js-if) start-pos)
-  (assert (typep (if-then if) 'expression))
-  (when (if-else if)
-    (assert (typep (if-else if) 'expression)))
-  (dwim-join (list (append-to-last (js-to-strings (if-test if) start-pos) " ?")
-		   (let* ((new-then (make-instance 'js-block
-						   :statements (block-statements (if-then if))
-						   :indent ""))
-			  (res (js-to-strings new-then start-pos)))
-		     (if (>= (expression-precedence (if-then if))
-			     (expression-precedence if))
-			     (klammer res)
-			     res))
+(defprinter js-expression-if (test then else)
+  (dwim-join (list (append-to-last (ps-print test %start-pos%) " ?")
+		   (let ((then-string (ps-print then %start-pos%)))
+		     (if (>= (expression-precedence then) (op-precedence 'js-expression-if))
+                         (parenthesize then-string)
+                         then-string))
 		   (list ":")
-		   (if (if-else if)
-		       (let* ((new-else (make-instance 'js-block
-						       :statements (block-statements (if-else if))
-						       :indent ""))
-			      (res (js-to-strings new-else start-pos)))
-			 (if (>= (expression-precedence (if-else if))
-				 (expression-precedence if))
-			     (klammer res)
-			     res))
+		   (if else
+		       (let ((else-string (ps-print else %start-pos%)))
+			 (if (>= (expression-precedence else) (op-precedence 'js-expression-if))
+			     (parenthesize else-string)
+			     else-string))
 		       (list "undefined")))
-	     (- 80 start-pos 2)
+	     (max-length)
 	     :white-space "  "))
 
-;;; setf
-(defmethod js-to-strings ((setf js-setf) start-pos)
-  (dwim-join (cons (js-to-strings (setf-lhs setf) start-pos)
-		   (mapcar #'(lambda (x) (js-to-strings x start-pos)) (setf-rhsides setf)))
-	     (- 80 start-pos 2)
+(defprinter js-assign (lhs rhs)
+  (dwim-join (list (ps-print lhs %start-pos%) (ps-print rhs %start-pos%))
+	     (max-length)
 	     :join-after " ="))
 
-;;; defvar
-(defmethod js-to-statement-strings ((defvar js-defvar) start-pos)
-  (dwim-join (nconc (mapcar #'(lambda (x) (list (js-translate-symbol x))) (var-names defvar))
-		    (when (var-value defvar)
-		      (list (js-to-strings (var-value defvar) start-pos))))
-	     (- 80 start-pos 2)
+(defprinter js-defvar (var-name &rest var-value)
+  (dwim-join (append (list (list (js-translate-symbol var-name)))
+                     (when var-value
+                       (list (ps-print (car var-value) %start-pos%))))
+	     (max-length)
 	     :join-after " ="
 	     :start "var " :end ";"))
 
 ;;; iteration
-(defmethod js-to-statement-strings ((for js-for) start-pos)
-  (let* ((init (dwim-join (mapcar #'(lambda (x)
-				      (dwim-join (list (list (js-translate-symbol (first (var-names x))))
-						       (js-to-strings (var-value x)
-								      (+ start-pos 2)))
-						 (- 80 start-pos 2)
-						 :join-after " ="))
-				  (for-vars for))
-			  (- 80 start-pos 2)
+(defprinter js-for (vars steps test body-block)
+  (let* ((init (dwim-join (mapcar (lambda (var-form)
+                                    (dwim-join (list (list (js-translate-symbol (car var-form)))
+                                                     (ps-print-indent (cdr var-form)))
+                                               (max-length)
+                                               :join-after " ="))
+				  vars)
+			  (max-length)
 			  :start "var " :join-after ","))
-	 (check (js-to-strings (for-check for) (+ start-pos 2)))
-	 (steps (dwim-join (mapcar #'(lambda (x var)
-				       (dwim-join
-					(list (list (js-translate-symbol (first (var-names var))))
-					      (js-to-strings x (- start-pos 2)))
-					(- 80 start-pos 2)
-					:join-after " ="))
-				   (for-steps for)
-				   (for-vars for))
-			   (- 80 start-pos 2)
-			   :join-after ","))
-	 (header (dwim-join (list init check steps)
-			    (- 80 start-pos 2)
+	 (test-string (ps-print-indent test))
+	 (step-strings (dwim-join (mapcar (lambda (x var-form)
+                                            (dwim-join
+                                             (list (list (js-translate-symbol (car var-form)))
+                                                   (ps-print x (- %start-pos% 2)))
+                                             (max-length)
+                                             :join-after " ="))
+                                          steps
+                                          vars)
+                                  (max-length)
+                                  :join-after ","))
+	 (header (dwim-join (list init test-string step-strings)
+			    (max-length)
 			    :start "for (" :end ") {"
 			    :join-after ";"))
-	 (body (js-to-statement-strings (for-body for) (+ start-pos 2))))
-    (nconc header body (list "}"))))
+	 (body (ps-print-indent body-block)))
+    (append header body (list "}"))))
 
-
-(defmethod js-to-statement-strings ((fe for-each) start-pos)
-  (let ((header (dwim-join (list (list (js-translate-symbol (fe-name fe)))
+(defprinter js-for-each (var object body-block)
+  (let ((header (dwim-join (list (list (js-translate-symbol var))
 				 (list "in")
-				 (js-to-strings (fe-value fe) (+ start-pos 2)))
-			   (- 80 start-pos 2)
+				 (ps-print-indent object))
+			   (max-length)
 			   :start "for (var "
 			   :end ") {"))
-	(body (js-to-statement-strings (fe-body fe) (+ start-pos 2))))
-    (nconc header body (list "}"))))
+	(body (ps-print-indent body-block)))
+    (append header body (list "}"))))
 
-(defmethod js-to-statement-strings ((while js-while) start-pos)
-  (let ((header (dwim-join (list (js-to-strings (while-check while) (+ start-pos 2)))
-			   (- 80 start-pos 2)
+(defprinter js-while (test body-block)
+  (let ((header-strings (dwim-join (list (ps-print-indent test))
+			   (max-length)
 			   :start "while ("
 			   :end ") {"))
-	(body (js-to-statement-strings (while-body while) (+ start-pos 2))))
-    (nconc header body (list "}"))))
+	(body-strings (ps-print-indent body-block)))
+    (append header-strings body-strings (list "}"))))
 
-;;; with
-(defmethod js-to-statement-strings ((with js-with) start-pos)
-  (nconc (dwim-join (list (js-to-strings (with-obj with) (+ start-pos 2)))
-		    (- 80 start-pos 2)
-		    :start "with (" :end ") {")
-	 (js-to-statement-strings (with-body with) (+ start-pos 2))
-	 (list "}")))
+(defprinter js-with (expression body-block)
+  (append (dwim-join (list (ps-print-indent expression))
+                     (max-length)
+                     :start "with (" :end ") {")
+          (ps-print-indent body-block)
+          (list "}")))
 
-;;; switch
-(defmethod js-to-statement-strings ((case js-switch) start-pos)
-  (let ((body 	 (mapcan #'(lambda (clause)
-		     (let ((val (car clause))
-			   (body (second clause)))
-		       (dwim-join (list (if (eql val 'default)
-					    (list "")
-					    (js-to-strings val (+ start-pos 2)))
-					(js-to-statement-strings body (+ start-pos 2)))
-				  (- 80 start-pos 2)
-				  :start (if (eql val 'default) "  default" "  case ")
-				  :white-space "   "
-				  :join-after ":"))) (case-clauses case))))
-    (nconc (dwim-join (list (js-to-strings (case-value case) (+ start-pos 2)))
-		    (- 80 start-pos 2)
-		    :start "switch (" :end ") {")
-	   body
-	   (list "}"))))
+(defprinter js-switch (test clauses)
+  (let ((body-strings (mapcar (lambda (clause)
+                                (let ((val (first clause))
+                                      (body-block (second clause)))
+                                  (dwim-join (list (if (eql val 'default)
+                                                       (list "")
+                                                       (ps-print-indent val))
+                                                   (ps-print-indent body-block))
+                                             (max-length)
+                                             :start (if (eql val 'default) "  default" "  case ")
+                                             :white-space "   "
+                                             :join-after ":")))
+                              clauses)))
+    (append (dwim-join (list (ps-print-indent test))
+                       (max-length)
+                       :start "switch (" :end ") {")
+            (reduce #'append body-strings)
+            (list "}"))))
 
-;;; try-catch
-(defmethod js-to-statement-strings ((try js-try) start-pos)
-  (let* ((catch (try-catch try))
-	 (finally (try-finally try))
-	 (catch-list (when catch
-		       (nconc
-			(dwim-join (list (list (js-translate-symbol (first catch))))
-				   (- 80 start-pos 2)
-				   :start "} catch ("
-				   :end ") {")
-			(js-to-statement-strings (second catch) (+ start-pos 2)))))
-	 (finally-list (when finally
-			 (nconc (list "} finally {")
-				(js-to-statement-strings finally (+ start-pos 2))))))
-    (nconc (list "try {")
-	   (js-to-statement-strings (try-body try) (+ start-pos 2))
-	   catch-list
-	   finally-list
-	   (list "}"))))
+(defprinter js-try (body &key catch finally)
+  (let ((catch-strings (when catch
+                      (append (dwim-join (list (list (js-translate-symbol (first catch))))
+                                         (max-length)
+                                         :start "} catch ("
+                                         :end ") {")
+                              (ps-print-indent (second catch)))))
+        (finally-strings (when finally
+                           (append (list "} finally {")
+                                   (ps-print-indent finally)))))
+    (append (list "try {")
+            (ps-print-indent body)
+            catch-strings
+            finally-strings
+            (list "}"))))
 
 ;;; regex
-(defun first-slash-p (string)
-  (and (> (length string) 0)
-       (eq (char string 0) '#\/)))
+(defprinter js-regex (regex)
+  (flet ((first-slash-p (string)
+           (and (> (length string) 0) (eql (char string 0) '#\/))))
+    (let ((slash (unless (first-slash-p regex) "/")))
+      (list (format nil (concatenate 'string slash "~A" slash) regex)))))
 
-(defmethod js-to-strings ((regex regex) start-pos)
-   (declare (ignore start-pos))
-   (let ((slash (if (first-slash-p (value regex)) nil "/")))
-     (list (format nil (concatenate 'string slash "~A" slash) (value regex)))))
+(defprinter js-return (value)
+  (let ((printed-value (ps-print value 0)))
+    (cons (concatenate 'string "return " (car printed-value)) (cdr printed-value))))
 
 ;;; conditional compilation
-(defmethod js-to-statement-strings ((cc cc-if) start-pos)
-  (nconc (list (format nil "/*@if ~A" (cc-if-test cc)))
-	 (mapcan #'(lambda (x) (js-to-strings x start-pos)) (cc-if-body cc))
-	 (list "@end @*/")))
-
+(defprinter cc-if (test body-forms)
+  (append (list (format nil "/*@if ~A" test))
+          (mapcar (lambda (x) (ps-print x %start-pos%)) body-forms)
+          (list "@end @*/")))
 
 ;;; TODO instanceof
-(defmethod js-to-strings ((instanceof js-instanceof) start-pos)
-  (dwim-join
-   (list (js-to-strings (value instanceof) (+ start-pos 2))
-         (list "instanceof")
-         (js-to-strings (slot-value instanceof 'type) (+ start-pos 2)))
-   (- 80 start-pos 2)
-   :start "("
-   :end ")"
-   :white-space
-   "  "))
+(defprinter js-instanceof (value type)
+  (dwim-join (list (ps-print-indent value)
+                   (list "instanceof")
+                   (ps-print-indent type))
+             (max-length)
+             :start "("
+             :end ")"
+             :white-space "  "))
 
-;;; single operations
-(defmacro define-translate-js-single-op (name &optional (superclass 'expression))
-    (let ((script-name (intern (concatenate 'string "JS-" (symbol-name name)) #.*package*)))
-      `(defmethod ,(if (eql superclass 'expression)
-                       'js-to-strings
-		       'js-to-statement-strings)
-	((,name ,script-name) start-pos)
-	(dwim-join (list (js-to-strings (value ,name) (+ start-pos 2)))
-	 (- 80 start-pos 2)
-	 :start ,(concatenate 'string (string-downcase (symbol-name name)) " ")
-	 :white-space "  "))))
-
-(define-translate-js-single-op return statement)
-(define-translate-js-single-op throw statement)
-(define-translate-js-single-op delete)
-(define-translate-js-single-op void)
-(define-translate-js-single-op typeof)
-(define-translate-js-single-op new)
+(defprinter js-named-operator (op value)
+  (dwim-join (list (ps-print-indent value))
+             (max-length)
+             :start (concatenate 'string (string-downcase (symbol-name op)) " ")
+             :white-space "  "))

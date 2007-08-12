@@ -28,7 +28,7 @@
 
 (defmacro defjsmacro (&rest args)
   (warn-deprecated 'defjsmacro 'defpsmacro)
-  `(defscriptmacro ,@args))
+  `(defpsmacro ,@args))
 
 (defmacro js-file (&rest body)
   (warn-deprecated 'js-file)
@@ -58,8 +58,10 @@
 
 (defmacro gen-js-name (&rest args)
   (warn-deprecated 'gen-js-name 'gen-ps-name)
-  `(gen-ps-name ,@args))
+  `(ps-gensym ,@args))
 
-(defmacro gen-js-name-string (&rest args)
-  (warn-deprecated 'gen-js-name-string 'gen-script-name-string)
-  `(gen-script-name-string ,@args))
+(defmacro js (&rest args)
+  `(ps ,@args))
+
+(defmacro js* (&rest args)
+  `(ps ,@args))

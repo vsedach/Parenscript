@@ -383,15 +383,10 @@ a-variable  => aVariable
 (* 1 (+ 2 3 4) 4 (/ 6 7))
   => 1 * (2 + 3 + 4) * 4 * (6 / 7)
 
-;;; The pre/post increment and decrement operators are also
+;;; The pre increment and decrement operators are also
 ;;; available. `INCF' and `DECF' are the pre-incrementing and
-;;; pre-decrementing operators, and `++' and `--' are the
-;;; post-decrementing version of the operators. These operators can
+;;; pre-decrementing operators. These operators can
 ;;; take only one argument.
-
-(++ i)   => i++
-
-(-- i)   => i--
 
 (incf i) => ++i
 
@@ -728,19 +723,16 @@ a-variable  => aVariable
 
 ;;; The `DOLIST' form is a shortcut for iterating over an array. Note
 ;;; that this form creates temporary variables using a function called
-;;; `JS-GENSYM', which is similar to its Lisp counterpart `GENSYM'.
+;;; `PS-GENSYM', which is similar to its Lisp counterpart `GENSYM'.
 
 (dolist (l blorg)
   (document.write (+ "L is " l)))
-   => {
-        var tmpArr1 = blorg;
+   =>   var tmpArr1 = blorg;
         for (var tmpI2 = 0; tmpI2 < tmpArr1.length;
           tmpI2 = tmpI2 + 1) {
           var l = tmpArr1[tmpI2];
           document.write('L is ' + l);
         };
-      }
-
 
 ;;; The `DOEACH' form is converted to a `for (var .. in ..)' form in
 ;;; JavaScript. It is used to iterate over the enumerable properties
@@ -890,7 +882,7 @@ a-variable  => aVariable
 
 (document.write
   (html ((:a :href "#"
-            :onclick (js-inline (transport))) "link")))
+            :onclick (ps-inline (transport))) "link")))
   => document.write
      ('<a href=\"#\" onclick=\"' + 'javascript:transport();' + '\">link</a>')
 
@@ -902,14 +894,12 @@ a-variable  => aVariable
    (setf element.inner-h-t-m-l
          (html ((:textarea (or disabled (not authorized)) :disabled "disabled")
                 "Edit me"))))
-  =>  {
-        var disabled = null;
+  =>    var disabled = null;
         var authorized = true;
         element.innerHTML =
         '<textarea'
         + (disabled || !authorized ? ' disabled=\"' + 'disabled' + '\"' : '')
         + '>Edit me</textarea>';
-      }
 
 ; (CSS-INLINE css-expression)
 
@@ -965,13 +955,13 @@ a-variable  => aVariable
 ;;; of the `DOLIST' form (note how `JS-GENSYM', the ParenScript of
 ;;; `GENSYM', is used to generate new ParenScript variable names):
 
-(defjsmacro dolist (i-array &rest body)
+(defpsmacro dolist (i-array &rest body)
   (let ((var (first i-array))
         (array (second i-array))
         (arrvar (js-gensym "arr"))
         (idx (js-gensym "i")))
     `(let ((,arrvar ,array))
-      (do ((,idx 0 (++ ,idx)))
+      (do ((,idx 0 (incf ,idx)))
           ((>= ,idx (slot-value ,arrvar 'length)))
         (let ((,var (aref ,arrvar ,idx)))
           ,@body)))))

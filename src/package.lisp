@@ -189,6 +189,11 @@ both the Lisp package and the script package for Parenscript."))
    #:with-ps-gensyms
    #:*ps-gensym-counter*
 
+   ;; naming and namespaces
+   #:*obfuscate-identifiers*
+   #:*package-prefix-style*
+   #:ps-package-prefix
+
    ;; deprecated interface
    #:gen-js-name
    #:gen-js-name-string

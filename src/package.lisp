@@ -120,7 +120,6 @@ that are also valid as Parenscript symbols for the corresponding script packages
        #:&aux
        #:&environment
        #:&key-object
-       #:optional-args
 
        ;; slot access
        #:with-slots

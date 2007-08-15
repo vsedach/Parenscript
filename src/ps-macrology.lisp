@@ -211,7 +211,7 @@ the given lambda-list and body."
 				    more? more-context more-count key-object)
 	(parse-lambda-list lambda-list)
       (declare (ignore allow? aux? aux more? more-context more-count))
-      (let* ((options-var (or key-object 'optional-args))
+      (let* ((options-var (or key-object (ps-gensym)))
 	     ;; optionals are of form (var default-value)
 	     (effective-args
 	      (remove-if

@@ -310,18 +310,25 @@ x = 2 + sideEffect() + x + 5;")
   (defun foo (&rest bar) (alert bar[1]))
   "function foo() {
     var bar = [];
-    for (var _js1 = 0; _js1 < arguments.length - 0; _js1 = _js1 + 1) {
-        bar[_js1] = arguments[_js1 + 0];
+    for (var _js2 = 0; _js2 < arguments.length - 0; _js2 = _js2 + 1) {
+        bar[_js2] = arguments[_js2 + 0];
     };
     alert(bar[1]);
 }")
 
 (test-ps-js defun-rest2
   (defun foo (baz &rest bar) (return (+ baz (aref bar 1))))
-"function foo(baz) {
+  "function foo(baz) {
     var bar = [];
-    for (var _js1 = 0; _js1 < arguments.length - 1; _js1 = _js1 + 1) {
-        bar[_js1] = arguments[_js1 + 1];
+    for (var _js2 = 0; _js2 < arguments.length - 1; _js2 = _js2 + 1) {
+        bar[_js2] = arguments[_js2 + 1];
     };
     return baz + bar[1];
+}")
+
+(test-ps-js defun-keyword1
+  (defun zoo (foo bar &key baz) (return (+ foo bar baz)))
+  "function zoo(foo, bar, _js1) {
+    _js1 = undefined === _js1 && {  } || _js1;
+    return foo + bar + _js1.baz;
 }")

@@ -3,9 +3,14 @@
 (defvar *ps-output-stream*)
 
 (defmethod parenscript-print (ps-form &optional *ps-output-stream*)
+  (setf *indent-level* 0)
   (flet ((print-ps (form)
            (let ((*standard-output* *ps-output-stream*))
-             (ps-print form))))
+             (if (and (listp form) (eql 'js-block (car form))) ;; ignore top-level block
+                 (dolist (statement (third form))
+                   (ps-print statement)
+                   (format *ps-output-stream* ";~%"))
+                 (ps-print form)))))
     (if *ps-output-stream*
         (print-ps ps-form)
         (with-output-to-string (*ps-output-stream*)
@@ -30,6 +35,16 @@ arguments, defines a printer for that form using the given body."
   "Prints the given compiled ParenScript form starting at the given
 indent position."
   (ps-print% (car compiled-form) (cdr compiled-form)))
+
+;;; indenter
+
+(defparameter *indent-level* 0)
+(defparameter *indent-num-space* 4)
+
+(defun newline-and-indent ()
+  (when (fresh-line)
+    (loop repeat (* *indent-level* *indent-num-space*)
+          do (write-char #\Space))))
 
 ;;; string literals
 (defvar *js-quote-char* #\'
@@ -70,9 +85,6 @@ vice-versa.")
 (defun expression-precedence (expr)
   (if (consp expr)
       (case (car expr)
-        (js-block (if (= (length (cdr expr)) 1)
-                      (expression-precedence (first (cdr expr)))
-                      (op-precedence 'comma)))
         (js-expression-if (op-precedence 'js-expression-if))
         (js-assign (op-precedence '=))
         (operator (op-precedence (second expr)))
@@ -208,7 +220,7 @@ vice-versa.")
   ;; TODO: this may not be the best way to add ()'s around lambdas
   ;; probably there is or should be a more general solution working
   ;; in other situations involving lambda's
-  (if (or (numberp object) (and (consp object) (member (car object) '(js-lambda js-object operator js-expression-if js-block))))
+  (if (or (numberp object) (and (consp object) (member (car object) '(js-lambda js-object operator js-expression-if))))
       (parenthesize-print object)
       (ps-print object))
   (write-string (js-translate-symbol method))
@@ -217,16 +229,23 @@ vice-versa.")
   (write-char #\)))
 
 (defprinter js-block (statement-p statements)
-  (loop for (statement . rest) on statements
-        with indent = (if statement-p "    " "")
-        with after = (if statement-p
-                         ";
-"
-                         ", ")
-        unless rest do (setf after (if statement-p after ""))
-        do (progn (write-string indent)
-                  (ps-print statement)
-                  (write-string after))))
+  (if statement-p
+      (progn (write-char #\{)
+             (incf *indent-level*)
+             (loop for statement in statements
+                   do (progn (newline-and-indent)
+                             (ps-print statement)
+                             (write-char #\;)))
+             (decf *indent-level*)
+             (newline-and-indent)
+             (write-char #\}))
+      (progn (write-char #\()
+             (loop for (statement . rest) on statements
+                   with after = ", "
+                   unless rest do (setf after "")
+                   do (progn (ps-print statement)
+                             (write-string after)))
+             (write-char #\)))))
 
 (defprinter js-lambda (args body)
   (print-fun-def nil args body))
@@ -234,17 +253,15 @@ vice-versa.")
 (defprinter js-defun (name args body)
   (print-fun-def name args body))
 
-(defun print-fun-def (name args body)
+(defun print-fun-def (name args body-block)
   (format *ps-output-stream* "function ~:[~;~A~](" name (js-translate-symbol name))
   (loop for (arg . rest) on args
         with after = ", "
         unless rest do (setf after "")
         do (progn (write-string (js-translate-symbol arg))
                   (write-string after))
-        finally (write-string ") {"))
-  (fresh-line)
-  (ps-print body)
-  (write-char #\}))
+        finally (write-string ") "))
+  (ps-print body-block))
 
 ;;; object creation
 (defprinter js-object (slot-defs)
@@ -261,7 +278,7 @@ vice-versa.")
   (write-string " }"))
 
 (defprinter js-slot-value (obj slot)
-  (if (and (listp obj) (member (car obj) '(js-block js-expression-if)))
+  (if (and (listp obj) (member (car obj) '(js-expression-if)))
       (parenthesize-print obj)
       (ps-print obj))
   (if (and (listp slot) (eql 'script-quote (car slot)))
@@ -276,28 +293,21 @@ vice-versa.")
 ;;; cond
 (defprinter js-cond (clauses)
   (loop for (test body-block) in clauses
-        for start = "if (" then "else if ("
+        for start = "if (" then " else if ("
         do (progn (if (string= test "true")
-                      (progn (write-string "else {")
-                             (fresh-line))
+                      (write-string " else ")
                       (progn (ps-print test)
-                             (write-string ") {")
-                             (fresh-line)))
-                  (ps-print body-block)
-                  (write-char #\}))))
+                             (write-string ") ")))
+                  (ps-print body-block))))
 
-(defprinter js-statement-if (test then else)
+(defprinter js-statement-if (test then-block else-block)
   (write-string "if (")
   (ps-print test)
-  (write-string ") {")
-  (fresh-line)
-  (ps-print then)
-  (fresh-line)
-  (when else
-      (write-string "} else {")
-      (fresh-line)
-      (ps-print else))
-  (write-char #\}))
+  (write-string ") ")
+  (ps-print then-block)
+  (when else-block
+      (write-string " else ")
+      (ps-print else-block)))
 
 (defprinter js-expression-if (test then else)
   (ps-print test)
@@ -347,66 +357,63 @@ vice-versa.")
                   (write-string " = ")
                   (ps-print step)
                   (write-string after)))
-  (write-string ") {")
-  (fresh-line)
-  (ps-print body-block)
-  (write-char #\}))
+  (write-string ") ")
+  (ps-print body-block))
 
 (defprinter js-for-each (var object body-block)
   (write-string "for (var ")
   (write-string (js-translate-symbol var))
   (write-string " in ")
   (ps-print object)
-  (write-string ") {")
-  (fresh-line)
-  (ps-print body-block)
-  (write-char #\}))
+  (write-string ") ")
+  (ps-print body-block))
 
 (defprinter js-while (test body-block)
   (write-string "while (")
   (ps-print test)
-  (write-string ") {")
-  (fresh-line)
-  (ps-print body-block)
-  (write-char #\}))
+  (write-string ") ")
+  (ps-print body-block))
 
 (defprinter js-with (expression body-block)
   (write-string "with (")
   (ps-print expression)
-  (write-string ") {")
-  (fresh-line)
-  (ps-print body-block)
-  (write-char #\}))
+  (write-string ") ")
+  (ps-print body-block))
 
 (defprinter js-switch (test clauses)
-  (write-string "switch (")
-  (ps-print test)
-  (write-string ") {")
-  (fresh-line)
-  (loop for (val body-block) in clauses
-        do (if (eql val 'default)
-               (progn (write-string "default: ")
-                      (ps-print body-block))
-               (progn (write-string "case ")
-                      (ps-print val)
-                      (write-char #\:)
-                      (fresh-line)
-                      (ps-print body-block))))
-  (write-char #\}))
-
-(defprinter js-try (body &key catch finally)
-  (write-string "try {")
-  (fresh-line)
-  (ps-print body)
-  (when catch
-    (write-string "} catch (")
-    (write-string (js-translate-symbol (first catch)))
+  (flet ((print-body-statements (body-statements)
+           (incf *indent-level*)
+           (loop for statement in body-statements do
+                 (progn (newline-and-indent)
+                        (ps-print statement)
+                        (write-char #\;)))
+           (decf *indent-level*)))
+    (write-string "switch (")
+    (ps-print test)
     (write-string ") {")
+    (loop for (val body-block) in clauses
+          for body-statements = (third body-block)
+          do (progn (newline-and-indent)
+                    (if (eql val 'default)
+                        (progn (write-string "default: ")
+                               (print-body-statements body-statements))
+                        (progn (write-string "case ")
+                               (ps-print val)
+                               (write-char #\:)
+                               (print-body-statements body-statements)))))
+    (write-char #\})))
+
+(defprinter js-try (body-block &key catch finally)
+  (write-string "try ")
+  (ps-print body-block)
+  (when catch
+    (write-string " catch (")
+    (write-string (js-translate-symbol (first catch)))
+    (write-string ") ")
     (ps-print (second catch)))
   (when finally
-    (write-string "} finally {")
-    (ps-print finally))
-  (write-char #\}))
+    (write-string " finally ")
+    (ps-print finally)))
 
 ;;; regex
 (defprinter js-regex (regex)
@@ -423,10 +430,13 @@ vice-versa.")
 (defprinter cc-if (test body-forms)
   (write-string "/*@if ")
   (ps-print test)
-  (fresh-line)
+  (incf *indent-level*)
   (dolist (form body-forms)
-    (ps-print form))
-  (fresh-line)
+    (newline-and-indent)    
+    (ps-print form)
+    (write-char #\;))
+  (decf *indent-level*)
+  (newline-and-indent)
   (write-string "@end @*/"))
 
 (defprinter js-instanceof (value type)

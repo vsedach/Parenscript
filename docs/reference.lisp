@@ -222,7 +222,7 @@ an-object.foo => anObject.foo
 
 (with-slots (a b c) this
   (+ a b c))
-    => (this).a + (this).b + (this).c;
+    => this.a + this.b + this.c;
 
 ;;;## Regular Expression literals
 ;;;t \index{REGEX}
@@ -633,7 +633,7 @@ a-variable  => aVariable
 ;;; Lisp. The `DEFVAR' is converted to "var ... = ..." form in
 ;;; JavaScript.
 
-(defvar *a* (array 1 2 3)) => var A = [ 1, 2, 3 ];
+(defvar *a* (array 1 2 3)) => var A = [ 1, 2, 3 ]
 
 (if (= i 1)
     (progn (defvar blorg "hallo")
@@ -775,7 +775,7 @@ a-variable  => aVariable
   (2 (alert "two"))
   (t (alert "default clause")))
     => switch (blorg[i]) {
-         case 1:   ;
+         case 1:   
          case 'one':
                    alert('one');
                    break;
@@ -883,8 +883,7 @@ a-variable  => aVariable
 (document.write
   (html ((:a :href "#"
             :onclick (ps-inline (transport))) "link")))
-  => document.write
-     ('<a href=\"#\" onclick=\"' + 'javascript:transport();' + '\">link</a>')
+  => document.write('<a href=\"#\" onclick=\"' + 'javascript:transport();' + '\">link</a>')
 
 ;;; Forms may be used in attribute lists to conditionally generate
 ;;; the next attribute. In this example the textarea is sometimes disabled.

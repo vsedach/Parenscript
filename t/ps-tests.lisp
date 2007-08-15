@@ -65,7 +65,7 @@ x = 2 + sideEffect() + x + 5;")
             "( function () { alert(10); } ).toString()")
 (test-ps-js method-call-lambda-call
             (.to-string ((lambda (x) (return x)) 10))
-            "(function (x) { return x; }) (10).toString()")
+            "(function (x) { return x; })(10).toString()")
 
 (test no-whitespace-before-dot
   (let* ((str (compile-script '(.to-string ((lambda (x) (return x)) 10))))
@@ -82,8 +82,7 @@ x = 2 + sideEffect() + x + 5;")
                                           :font-size "x-small"
                                           :height (* 2 200)
                                           :width (* 2 300))))))
-   "alert
-('<div id=\"777\" style=\"'
+   "alert('<div id=\"777\" style=\"'
  + ('border:1pxsssssssssss;font-size:x-small;height:' + 2 * 200 + ';width:'
  + 2 * 300)
  + '\"></div>')") ;";This line should start with a plus character.
@@ -147,7 +146,7 @@ x = 2 + sideEffect() + x + 5;")
       (3 (alert "Three"))
       (t (alert "Something else")))
    "switch (blorg[i]) {
-         case 1:   ;
+         case 1:
          case 2:
                    alert('Below three');
                    break;
@@ -261,7 +260,7 @@ x = 2 + sideEffect() + x + 5;")
 
 (test-ps-js set-timeout
   (do-set-timeout (10) (alert "foo"))
-  "setTimeout (function () { alert('foo'); }, 10)")
+  "setTimeout(function () { alert('foo'); }, 10)")
 
 (test-ps-js operator-precedence
   (* 3 (+ 4 5) 6)
@@ -290,3 +289,19 @@ x = 2 + sideEffect() + x + 5;")
 (test-ps-js slot-value-string
   (slot-value foo "bar")
   "foo['bar']")
+
+(test-ps-js slot-value-progn
+  (slot-value (progn "abc" "123") "length")
+  "('abc', '123')['length']")
+
+(test-ps-js method-call-block
+  (.to-string (progn "abc" "123"))
+  "('abc', '123').toString()")
+
+(test-ps-js create-blank
+  (create)
+  "{ }")
+
+(test-ps-js blank-object-literal
+  {}
+  "{ }")

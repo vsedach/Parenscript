@@ -110,7 +110,7 @@
 (test-ps-js object-literals-5
   (with-slots (a b c) this
   (+ a b c))
-  "(this).a + (this).b + (this).c;")
+  "this.a + this.b + this.c;")
 
 (test-ps-js regular-expression-literals-1
   (regex "foobar")
@@ -320,7 +320,7 @@ x = a + b + c;")
 
 (test-ps-js variable-declaration-1
   (defvar *a* (array 1 2 3))
-  "var A = [ 1, 2, 3 ];")
+  "var A = [ 1, 2, 3 ]")
 
 (test-ps-js variable-declaration-2
   (if (= i 1)
@@ -399,7 +399,7 @@ x = a + b + c;")
   (2 (alert "two"))
   (t (alert "default clause")))
   "switch (blorg[i]) {
-  case 1:   ;
+  case 1:   
   case 'one':
             alert('one');
             break;
@@ -454,8 +454,7 @@ x = a + b + c;")
   (document.write
   (html ((:a :href "#"
             :onclick (ps-inline (transport))) "link")))
-  "document.write
-('<a href=\"#\" onclick=\"' + 'javascript:transport();' + '\">link</a>')")
+  "document.write('<a href=\"#\" onclick=\"' + 'javascript:transport();' + '\">link</a>')")
 
 (test-ps-js the-html-generator-4
   (let ((disabled nil)

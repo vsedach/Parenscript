@@ -243,8 +243,10 @@ the given lambda-list and body."
 		      initform-pairs))
 	     (rest-form
 	      (if rest?
-		  `(defvar ,rest (:.slice (to-array arguments)
-				  ,(length effective-args)))
+                  (with-ps-gensyms (i)
+                    `(progn (defvar ,rest array)
+                            (dotimes (,i (- arguments.length ,(length effective-args)))
+                              (setf (aref ,rest ,i) (aref arguments (+ ,i ,(length effective-args)))))))
 		  `(progn)))
 	     (effective-body   (append initform-forms (list rest-form) body-paren-forms))
 	     (effective-body

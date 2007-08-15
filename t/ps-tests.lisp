@@ -305,3 +305,23 @@ x = 2 + sideEffect() + x + 5;")
 (test-ps-js blank-object-literal
   {}
   "{ }")
+
+(test-ps-js defun-rest1
+  (defun foo (&rest bar) (alert bar[1]))
+  "function foo() {
+    var bar = [];
+    for (var _js1 = 0; _js1 < arguments.length - 0; _js1 = _js1 + 1) {
+        bar[_js1] = arguments[_js1 + 0];
+    };
+    alert(bar[1]);
+}")
+
+(test-ps-js defun-rest2
+  (defun foo (baz &rest bar) (return (+ baz (aref bar 1))))
+"function foo(baz) {
+    var bar = [];
+    for (var _js1 = 0; _js1 < arguments.length - 1; _js1 = _js1 + 1) {
+        bar[_js1] = arguments[_js1 + 1];
+    };
+    return baz + bar[1];
+}")

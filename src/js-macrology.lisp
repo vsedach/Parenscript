@@ -74,19 +74,19 @@
 (define-ps-special-form ~ (expecting x)
   (list 'unary-operator "~" (compile-parenscript-form x :expecting :expressin) :prefix t))
 
-(defun flatten-progns (body)
-  (unless (null body)
+(defun flatten-blocks (body)
+  (when body
     (if (and (listp (car body))
-             (eql 'progn (caar body)))
-        (append (cdar body) (flatten-progns (cdr body)))
-        (cons (car body) (flatten-progns (cdr body))))))
+             (eql 'js-block (caar body)))
+        (append (third (car body)) (flatten-blocks (cdr body)))
+        (cons (car body) (flatten-blocks (cdr body))))))
 
 (define-ps-special-form progn (expecting &rest body)
   (list 'js-block
         (if (eql expecting :statement) t nil)
-        (remove nil (mapcar (lambda (form)
-                              (compile-parenscript-form form :expecting :statement))
-                            (flatten-progns body)))))
+        (flatten-blocks (remove nil (mapcar (lambda (form)
+                                              (compile-parenscript-form form :expecting :statement))
+                                            body)))))
 
 ;;; function definition
 (define-ps-special-form %js-lambda (expecting args &rest body)
@@ -123,8 +123,7 @@
                            (destructuring-bind (test &rest body)
                                clause
                              (list (compile-parenscript-form test :expecting :expression)
-                                   (mapcar (lambda (form) (compile-parenscript-form form :expecting :statement))
-                                           body))))
+                                   (compile-parenscript-form `(progn ,@body)))))
                          clauses)))
 
 (define-ps-special-form if (expecting test then &optional else)
@@ -232,6 +231,8 @@
   (let ((catch (cdr (assoc :catch clauses)))
         (finally (cdr (assoc :finally clauses))))
     (assert (not (cdar catch)) nil "Sorry, currently only simple catch forms are supported.")
+    (assert (or catch finally) ()
+            "Try form should have either a catch or a finally clause or both.")
     (list 'js-try (compile-parenscript-form `(progn ,form))
           :catch (when catch (list (compile-parenscript-form (caar catch) :expecting :symbol)
                                    (compile-parenscript-form `(progn ,@(cdr catch)))))
@@ -270,17 +271,17 @@
 (defpsmacro 1+ (form)
   `(+ ,form 1))
 
-;;; helper macros
+;;; inlining macros
 (define-ps-special-form js (expecting &rest body)
-  (string-join (ps-print (compile-parenscript-form `(progn ,@body)) 0) " "))
+  (parenscript-print (compile-parenscript-form `(progn ,@body))))
 
 (define-ps-special-form ps-inline (expecting &rest body)
   (concatenate 'string
                "javascript:"
-               (string-join (reduce #'append (mapcar (lambda (form)
-                                                       (ps-print (compile-parenscript-form form :expecting :statement)
-                                                                 0))
-                                                     body))
-                            ";")
+               (reduce (lambda (str1 str2)
+                         (concatenate 'string str1 ";" str2))
+                       (mapcar (lambda (form)
+                                 (parenscript-print (compile-parenscript-form form :expecting :statement)))
+                               body))
                ";"))
 

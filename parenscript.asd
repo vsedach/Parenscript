@@ -24,8 +24,7 @@
 			     (:file "js-macrology" :depends-on ("parser"))
 			     (:file "ps-macrology" :depends-on ("js-macrology" "parse-lambda-list"))
 			     (:file "js-translation" :depends-on ("ps-macrology"))
-;			     (:file "js-ugly-translation" :depends-on ("js-translation"))
-			     (:file "compilation-interface" :depends-on ("package" "js-translation")); "js-ugly-translation"))
+			     (:file "compilation-interface" :depends-on ("package" "js-translation"))
                              (:file "deprecated-interface" :depends-on ("compilation-interface"))
 			     ;; standard library
                              (:module :lib

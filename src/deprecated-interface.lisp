@@ -17,14 +17,15 @@
 
 ;;; DEPRECATED INTERFACE ;;;
 
-(defun-js js-equal script-equal (a b)
-  (script-equal a b))
+(defun js-equal (ps-form1 ps-form2)
+  (warn-deprecated 'js-equal)
+  (equalp ps-form1 ps-form2))
 
 (defun-js js-compile compile-script (form)
-  (compile-script form :output-spec :javascript))
+  (compile-script form))
 
 (defun-js js-compile-list compile-script (form)
-  (compile-script form :output-spec :javascript))
+  (compile-script form))
 
 (defmacro defjsmacro (&rest args)
   (warn-deprecated 'defjsmacro 'defpsmacro)
@@ -44,24 +45,22 @@
     (:princ (format nil "~%// ]]>~%"))))
 
 (defmacro js-inline (&rest body)
-  (warn-deprecated 'js-inline)
+  (warn-deprecated 'js-inline 'ps-inline)
   `(js-inline* '(progn ,@body)))
 
-(defmacro js-inline* (&rest body)
-  (warn-deprecated 'js-inline*)
-  `(concatenate 'string "javascript:"
-    (string-join (js-to-statement-strings (compile-script-form (list 'progn ,@body)) 0) " ")))
+(defun-js js-inline* ps-inline* (&rest body)
+  (apply #'ps-inline* body))
 
 (defmacro with-unique-js-names (&rest args)
-  (warn-deprecated 'with-unique-js-names 'with-unique-ps-names)
-  `(with-unique-ps-names ,@args))
+  (warn-deprecated 'with-unique-js-names 'with-ps-gensyms)
+  `(with-ps-gensyms ,@args))
 
-(defmacro gen-js-name (&rest args)
-  (warn-deprecated 'gen-js-name 'gen-ps-name)
-  `(ps-gensym ,@args))
+(defun-js gen-js-name ps-gensym (&optional (prefix "_js_"))
+  (ps-gensym prefix))
 
 (defmacro js (&rest args)
+  (warn-deprecated 'js 'ps)
   `(ps ,@args))
 
-(defmacro js* (&rest args)
-  `(ps ,@args))
+(defun-js js* ps* (&rest args)
+  (apply #'ps* args))

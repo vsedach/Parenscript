@@ -15,3 +15,13 @@ is output to the OUTPUT-STREAM stream."
   "Return the javascript string representing BODY.
 Body is evaluated."
   (compile-script `(progn ,@body)))
+
+(defun ps-inline* (form)
+  (concatenate 'string
+               "javascript:"
+               (remove #\Newline
+                       (parenscript-print (compile-parenscript-form form :expecting :statement))
+                       :from-end t)))
+
+(defmacro ps-inline (&body body)
+  `(ps-inline* '(progn ,@body)))

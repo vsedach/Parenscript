@@ -161,6 +161,8 @@
    #:compile-script
    #:ps
    #:ps*
+   #:ps-inline
+   #:ps-inline*
    
    ;; for parenscript macro definition within lisp
    #:defpsmacro
@@ -192,4 +194,3 @@
    #:js
    #:js*
    ))
-

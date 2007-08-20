@@ -270,18 +270,3 @@
 
 (defpsmacro 1+ (form)
   `(+ ,form 1))
-
-;;; inlining macros
-(define-ps-special-form js (expecting &rest body)
-  (parenscript-print (compile-parenscript-form `(progn ,@body))))
-
-(define-ps-special-form ps-inline (expecting &rest body)
-  (concatenate 'string
-               "javascript:"
-               (reduce (lambda (str1 str2)
-                         (concatenate 'string str1 ";" str2))
-                       (mapcar (lambda (form)
-                                 (parenscript-print (compile-parenscript-form form :expecting :statement)))
-                               body))
-               ";"))
-

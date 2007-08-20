@@ -1,10 +1,7 @@
 (in-package :cl-user)
-;;;; Package definitions for the Parenscript 
-;; #: 
 
-(eval-when (:compile-toplevel :load-toplevel)
-  ;; exports shared between PARENSCRIPT and PARENSCRIPT.JAVASCRIPT
-  (defparameter *shared-symbols-ps-js*
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (defparameter *parenscript-lang-exports*
     '(
       ;; literals
       #:t
@@ -42,7 +39,6 @@
       #:\|\| #:or
       #:>>= #:<<=
       #:*= #:/= #:%= #:+= #:\&= #:^= #:\|= #:~=
-      #:++ #:--
       #:1+ #:1-
       #:incf #:decf
       
@@ -73,8 +69,11 @@
       #:instanceof
       #:new
       
-      ;; assignment
+      ;; assignment and binding
       #:setf
+      #:defaultf
+      #:defsetf
+      #:let
       
       ;; variables
       #:defvar
@@ -99,78 +98,64 @@
       #:regex
       
       ;; conditional compilation (IE)
-      #:cc-if)
-    "Symbols exported from both the Parenscript and Javascript packages 
-that are also valid as Parenscript symbols for the corresponding script packages."))
-
-(eval-when (:compile-toplevel :load-toplevel :execute)
-  (defparameter *parenscript-lang-exports*
-    (append 
-     *shared-symbols-ps-js*
-     '(
-       ;; function definition
-       #:defun
-       #:lambda
+      #:cc-if
        
-       ;; lambda lists
-       #:&key
-       #:&rest
-       #:&body
-       #:&optional
-       #:&aux
-       #:&environment
-       #:&key-object
-
-       ;; slot access
-       #:with-slots
-       #:slot-value
-
-       ;; macros
-       #:macrolet
-       #:symbol-macrolet
-       #:define-symbol-macro
-       #:define-script-symbol-macro
-       #:defmacro
+      ;; function definition
+      #:defun
+      #:lambda
        
-       ;; lisp eval
-       #:lisp
-       
-       ;; assignment
-       #:setf
-       #:defaultf
+      ;; lambda lists
+      #:&key
+      #:&rest
+      #:&body
+      #:&optional
+      #:&aux
+      #:&environment
+      #:&key-object
 
-       #:let
-       
-       ;; iteration
-       #:do
-       #:dotimes
-       #:dolist
-       #:doeach
-       #:while
-       
-       ;; v v v STUFF WE SHOULD PROBABLY MOVE TO OTHER LIBS v v v
-       
-       ;; CSS
-       #:css
-       #:css-to-string
-       #:css-inline
-       #:css-file
+      ;; slot access
+      #:with-slots
+      #:slot-value
 
-       ;; html generator for javascript
-       #:html
+      ;; macros
+      #:macrolet
+      #:symbol-macrolet
+      #:define-symbol-macro
+      #:define-script-symbol-macro
+      #:defmacro
+       
+      ;; lisp eval
+      #:lisp
+       
+      ;; iteration
+      #:do
+      #:dotimes
+      #:dolist
+      #:doeach
+      #:while
+       
+      ;; v v v STUFF WE SHOULD PROBABLY MOVE TO OTHER LIBS v v v
+       
+      ;; CSS
+      #:css
+      #:css-to-string
+      #:css-inline
+      #:css-file
 
-       ;; utils
-       #:do-set-timeout
-       ))
-    "List of (uninterned) symbols. Contains all symbols considerred
-part of the Parenscript language.  These should be exported within
-both the Lisp package and the script package for Parenscript."))
+      ;; html generator for javascript
+      #:ps-html
+
+      ;; utils
+      #:do-set-timeout
+      ))
+  "All symbols considerred part of the Parenscript language.")
 
 (defpackage :parenscript
   (:use :common-lisp)
   (:nicknames :js :ps)
-  #.(cons :export *shared-symbols-ps-js*)
   #.(cons :export *parenscript-lang-exports*)
+
+  ;;; symbols that form the interface to the Parenscript compiler
   (:export
    ;; compiler
    #:compile-script

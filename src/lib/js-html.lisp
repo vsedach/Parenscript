@@ -1,5 +1,4 @@
-;; Description:
-;;   Javascript html generator
+;;; Macros for generating HTML from ParenScript code.
 
 (in-package :parenscript)
 
@@ -71,7 +70,7 @@
       (map nil #'handle-form forms))
     (cons '+ (optimize-string-list (nreverse res)))))
 
-(define-ps-special-form html (expecting &rest forms)
+(define-ps-special-form ps-html (expecting &rest forms)
   (compile-parenscript-form (process-html-forms forms)))
 
 (defun process-css-forms (proplist)

@@ -77,11 +77,11 @@ x = 2 + sideEffect() + x + 5;")
 ;; A problem with long nested operator, when the statement spanned several rows
 ;; the rows would not be joined together correctly.
 (test-ps-js bug-dwim-join
-   (alert (html ((:div :id 777
-                       :style (css-inline :border "1pxsssssssssss"
-                                          :font-size "x-small"
-                                          :height (* 2 200)
-                                          :width (* 2 300))))))
+   (alert (ps-html ((:div :id 777
+                          :style (css-inline :border "1pxsssssssssss"
+                                             :font-size "x-small"
+                                             :height (* 2 200)
+                                             :width (* 2 300))))))
    "alert('<div id=\"777\" style=\"'
  + ('border:1pxsssssssssss;font-size:x-small;height:' + 2 * 200 + ';width:'
  + 2 * 300)

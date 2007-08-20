@@ -443,24 +443,24 @@ x = a + b + c;")
 }")
 
 (test-ps-js the-html-generator-1
-  (html ((:a :href "foobar") "blorg"))
+  (ps-html ((:a :href "foobar") "blorg"))
   "'<a href=\"foobar\">blorg</a>'")
 
 (test-ps-js the-html-generator-2
-  (html ((:a :href (generate-a-link)) "blorg"))
+  (ps-html ((:a :href (generate-a-link)) "blorg"))
   "'<a href=\"' + generateALink() + '\">blorg</a>'")
 
 (test-ps-js the-html-generator-3
   (document.write
-  (html ((:a :href "#"
-            :onclick (ps-inline (transport))) "link")))
+  (ps-html ((:a :href "#"
+                :onclick (lisp (ps-inline (transport)))) "link")))
   "document.write('<a href=\"#\" onclick=\"' + 'javascript:transport();' + '\">link</a>')")
 
 (test-ps-js the-html-generator-4
   (let ((disabled nil)
       (authorized t))
    (setf element.inner-h-t-m-l
-         (html ((:textarea (or disabled (not authorized)) :disabled "disabled")
+         (ps-html ((:textarea (or disabled (not authorized)) :disabled "disabled")
                 "Edit me"))))
   "   var disabled = null;
    var authorized = true;
@@ -476,7 +476,7 @@ x = a + b + c;")
 
 (test-ps-js the-html-generator-6
   (defun make-color-div(color-name)
-    (return (html ((:div :style (css-inline :color color-name))
+    (return (ps-html ((:div :style (css-inline :color color-name))
                    color-name " looks like this."))))
   "function makeColorDiv(colorName) {
   return '<div style=\"' + ('color:' + colorName) + '\">' + colorName

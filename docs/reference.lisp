@@ -866,23 +866,23 @@ a-variable  => aVariable
 
 ; (HTML html-expression)
 
-;;; The HTML generator of ParenScript is very similar to the HTML
-;;; generator included in AllegroServe. It accepts the same input
-;;; forms as the AllegroServer HTML generator. However, non-HTML
-;;; construct are compiled to JavaScript by the ParenScript
+;;; The HTML generator of ParenScript is very similar to the htmlgen
+;;; HTML generator library included with AllegroServe. It accepts the
+;;; same input forms as the AllegroServer HTML generator. However,
+;;; non-HTML construct are compiled to JavaScript by the ParenScript
 ;;; compiler. The resulting expression is a JavaScript expression.
 
-(html ((:a :href "foobar") "blorg"))
+(ps-html ((:a :href "foobar") "blorg"))
   => '<a href=\"foobar\">blorg</a>'
 
-(html ((:a :href (generate-a-link)) "blorg"))
+(ps-html ((:a :href (generate-a-link)) "blorg"))
   => '<a href=\"' + generateALink() + '\">blorg</a>'
 
 ;;; We can recursively call the JS compiler in a HTML expression.
 
 (document.write
-  (html ((:a :href "#"
-            :onclick (ps-inline (transport))) "link")))
+  (ps-html ((:a :href "#"
+                :onclick (lisp (ps-inline (transport)))) "link")))
   => document.write('<a href=\"#\" onclick=\"' + 'javascript:transport();' + '\">link</a>')
 
 ;;; Forms may be used in attribute lists to conditionally generate
@@ -891,7 +891,7 @@ a-variable  => aVariable
 (let ((disabled nil)
       (authorized t))
    (setf element.inner-h-t-m-l
-         (html ((:textarea (or disabled (not authorized)) :disabled "disabled")
+         (ps-html ((:textarea (or disabled (not authorized)) :disabled "disabled")
                 "Edit me"))))
   =>    var disabled = null;
         var authorized = true;
@@ -909,7 +909,7 @@ a-variable  => aVariable
   => 'color:red;font-size:x-small'
 
 (defun make-color-div(color-name)
-    (return (html ((:div :style (css-inline :color color-name))
+    (return (ps-html ((:div :style (css-inline :color color-name))
                    color-name " looks like this."))))
   => function makeColorDiv(colorName) {
        return '<div style=\"' + ('color:' + colorName) + '\">' + colorName

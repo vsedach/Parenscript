@@ -28,11 +28,6 @@
 
 (in-package :js-tutorial)
 
-;;; Since we will not be using ParenScript's package system for this
-;;; tutorial, disable it for now.
-
-(setf *enable-package-system* nil)
-
 ;;; The next command starts the webserver on the port 8000.
 
 (start :port 8000)

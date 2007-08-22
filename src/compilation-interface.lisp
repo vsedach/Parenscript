@@ -5,7 +5,7 @@
 Non-null PRETTY-PRINT values result in a pretty-printed output code.
 If OUTPUT-STREAM is NIL, then the result is a string; otherwise code
 is output to the OUTPUT-STREAM stream."
-  (parenscript-print (compile-parenscript-form script-form) output-stream))
+  (parenscript-print (compile-parenscript-form script-form :expecting :statement) output-stream))
 
 (defmacro ps (&body body)
   "A macro that returns a Javascript string of the supplied Parenscript forms."

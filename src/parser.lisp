@@ -193,7 +193,7 @@ compiled to an :expression (the default), a :statement, or a
       (multiple-value-bind (expanded-form expanded-p)
           (ps-macroexpand form)
         (if expanded-p
-            (compile-parenscript-form expanded-form)
+            (compile-parenscript-form expanded-form :expecting expecting)
             (call-next-method)))))
 
 (defun compile-to-symbol (form)

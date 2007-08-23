@@ -332,3 +332,18 @@ x = 2 + sideEffect() + x + 5;")
     _js1 = undefined === _js1 && {  } || _js1;
     return foo + bar + _js1.baz;
 }")
+
+(test-ps-js cond1
+  (cond ((= x 1) 1))
+  "if (x == 1) {
+    1;
+}")
+
+(test-ps-js cond2
+  (cond ((= x 1) 2) ((= y (* x 4)) "blah" (* x y)))
+  "if (x == 1) {
+    2;
+} else if (y == x * 4) {
+    'blah';
+    x * y;
+}")

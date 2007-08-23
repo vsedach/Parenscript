@@ -294,9 +294,10 @@ vice-versa.")
 (defprinter js-cond (clauses)
   (loop for (test body-block) in clauses
         for start = "if (" then " else if ("
-        do (progn (if (string= test "true")
+        do (progn (if (equalp test "true")
                       (write-string " else ")
-                      (progn (ps-print test)
+                      (progn (write-string start)
+                             (ps-print test)
                              (write-string ") ")))
                   (ps-print body-block))))
 

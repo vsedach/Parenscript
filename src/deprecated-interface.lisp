@@ -31,19 +31,6 @@
   (warn-deprecated 'defjsmacro 'defpsmacro)
   `(defpsmacro ,@args))
 
-(defmacro js-file (&rest body)
-  (warn-deprecated 'js-file)
-  `(html
-    (:princ
-     (js ,@body))))
-
-(defmacro js-script (&rest body)
-  (warn-deprecated 'js-script)
-  `((:script :type "text/javascript")
-    (:princ (format nil "~%// <![CDATA[~%"))
-    (:princ (js ,@body))
-    (:princ (format nil "~%// ]]>~%"))))
-
 (defmacro js-inline (&rest body)
   (warn-deprecated 'js-inline 'ps-inline)
   `(js-inline* '(progn ,@body)))

@@ -355,3 +355,27 @@ x = 2 + sideEffect() + x + 5;")
 (test-ps-js progn-expression-single-statement
   (return (progn (* x y)))
   "return x * y")
+
+(test-ps-js cond-expression1
+  (defun foo () (return (cond ((< 1 2) "foo" (* 4 5)))))
+  "function foo() {
+    return 1 < 2 ? ('foo', 4 * 5) : null;
+}")
+
+(test-ps-js cond-expression2
+  (defun foo () (return (cond ((< 2 1) "foo") ((= 7 7) "bar"))))
+  "function foo() {
+    return 2 < 1 ? 'foo' : (7 == 7 ? 'bar' : null);
+}")
+
+(test-ps-js cond-expression-final-t-clause
+  (defun foo () (return (cond ((< 1 2) "foo" (* 4 5)) ((= a b) (+ c d)) ((< 1 2 3 4 5) x) (t "foo"))))
+  "function foo() {
+    return 1 < 2 ? ('foo', 4 * 5) : (a == b ? c + d : (1 < 2 < 3 < 4 < 5 ? x : 'foo'));
+}")
+
+(test-ps-js cond-expression-middle-t-clause ;; should this signal a warning?
+  (defun foo () (return (cond ((< 2 1) 5) (t "foo") ((< 1 2) "bar"))))
+  "function foo() {
+    return 2 < 1 ? 5 : 'foo';
+}")

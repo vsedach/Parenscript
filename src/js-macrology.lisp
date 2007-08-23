@@ -121,12 +121,26 @@
       (compile-parenscript-form obj :expecting :expression)))
 
 (define-ps-special-form cond (expecting &rest clauses)
-  (list 'js-cond (mapcar (lambda (clause)
-                           (destructuring-bind (test &rest body)
-                               clause
-                             (list (compile-parenscript-form test :expecting :expression)
-                                   (compile-parenscript-form `(progn ,@body)))))
-                         clauses)))
+  (ecase expecting
+    (:statement (list 'js-cond-statement
+                      (mapcar (lambda (clause)
+                                (destructuring-bind (test &rest body)
+                                    clause
+                                  (list (compile-parenscript-form test :expecting :expression)
+                                        (compile-parenscript-form `(progn ,@body)))))
+                              clauses)))
+    (:expression (make-cond-clauses-into-nested-ifs clauses))))
+
+(defun make-cond-clauses-into-nested-ifs (clauses)
+  (if clauses
+      (destructuring-bind (test &rest body)
+          (car clauses)
+        (if (eq t test)
+            (compile-parenscript-form `(progn ,@body) :expecting :expression)
+            (list 'js-expression-if (compile-parenscript-form test :expecting :expression)
+                  (compile-parenscript-form `(progn ,@body) :expecting :expression)
+                  (make-cond-clauses-into-nested-ifs (cdr clauses)))))
+      (compile-parenscript-form nil :expecting :expression)))
 
 (define-ps-special-form if (expecting test then &optional else)
   (ecase expecting

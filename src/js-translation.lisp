@@ -291,7 +291,7 @@ vice-versa.")
              (write-char #\]))))
 
 ;;; cond
-(defprinter js-cond (clauses)
+(defprinter js-cond-statement (clauses)
   (loop for (test body-block) in clauses
         for start = "if (" then " else if ("
         do (progn (if (equalp test "true")

@@ -82,11 +82,13 @@
         (cons (car body) (flatten-blocks (cdr body))))))
 
 (define-ps-special-form progn (expecting &rest body)
-  (list 'js-block
-        (if (eql expecting :statement) t nil)
-        (flatten-blocks (remove nil (mapcar (lambda (form)
-                                              (compile-parenscript-form form :expecting :statement))
-                                            body)))))
+  (if (and (eql expecting :expression) (= 1 (length body)))
+      (compile-parenscript-form (car body) :expecting :expression)
+      (list 'js-block
+            (if (eql expecting :statement) t nil)
+            (flatten-blocks (remove nil (mapcar (lambda (form)
+                                                  (compile-parenscript-form form :expecting :statement))
+                                                body))))))
 
 ;;; function definition
 (define-ps-special-form %js-lambda (expecting args &rest body)

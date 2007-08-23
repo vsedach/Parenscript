@@ -242,7 +242,8 @@ into a single options argument via CREATE."
 	   "If the given compiled expression is supposed to be a keyword argument, returns
 the keyword for it."
 	   (when (and (listp arg) (eql (first arg) 'script-quote)) (second arg))))
-    (let ((compiled-args (mapcar #'compile-parenscript-form arg-forms)))
+    (let ((compiled-args (mapcar (lambda (arg) (compile-parenscript-form arg :expecting :expression))
+                                 arg-forms)))
       (do ((effective-expressions nil)
            (expressions-subl compiled-args))
           ((not expressions-subl) (reverse effective-expressions))

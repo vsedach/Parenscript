@@ -379,3 +379,12 @@ x = 2 + sideEffect() + x + 5;")
   "function foo() {
     return 2 < 1 ? 5 : 'foo';
 }")
+
+(test-ps-js funcall-if-expression
+  (document.write
+   (if (= *linkornot* 1)
+       (ps-html ((:a :href "#"
+                     :onclick (lisp (ps-inline (transport))))
+                 img))
+       img))
+  "document.write(LINKORNOT == 1 ? '<a href=\"#\" onclick=\"' + 'javascript:transport();' + '\">' + img + '</a>' : img)")

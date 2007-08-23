@@ -28,9 +28,9 @@
 
 (in-package :js-tutorial)
 
-;;; The next command starts the webserver on the port 8000.
+;;; The next command starts the webserver on the port 8080.
 
-(start :port 8000)
+(start :port 8080)
 
 ;;; We are now ready to generate the first JavaScript-enabled webpages
 ;;; using ParenScript.
@@ -51,12 +51,12 @@
 
 (publish :path "/tutorial1"
          :content-type "text/html; charset=ISO-8859-1"
-         :function #'(lambda (req ent)
-                       (with-http-response (req ent)
-                         (with-http-body (req ent)
-                           (tutorial1 req ent)))))
+         :function (lambda (req ent)
+                     (with-http-response (req ent)
+                       (with-http-body (req ent)
+                         (tutorial1 req ent)))))
 
-;;; Browsing "http://localhost:8000/tutorial1" should return an empty
+;;; Browsing "http://localhost:8080/tutorial1" should return an empty
 ;;; HTML page. It's now time to fill this rather page with
 ;;; content. ParenScript features a macro that generates a string that
 ;;; can be used as an attribute value of HTML nodes.
@@ -68,11 +68,11 @@
     (:head (:title "ParenScript tutorial: 1st example"))
     (:body (:h1 "ParenScript tutorial: 1st example")
            (:p "Please click the link below." :br
-               ((:a :href "#" :onclick (js-inline
-                                        (alert "Hello World")))
+               ((:a :href "#" :onclick (ps-inline
+                                         (alert "Hello World")))
                 "Hello World"))))))
 
-;;; Browsing "http://localhost:8000/tutorial1" should return the
+;;; Browsing "http://localhost:8080/tutorial1" should return the
 ;;; following HTML:
 
 <html><head><title>ParenScript tutorial: 1st example</title>
@@ -90,9 +90,17 @@
 ;;; Suppose we now want to have a general greeting function. One way
 ;;; to do this is to add the javascript in a `SCRIPT' element at the
 ;;; top of the HTML page. This is done using the `JS-SCRIPT' macro
-;;; which will generate the necessary XML and comment tricks to
-;;; cleanly embed JavaScript. We will redefine our `TUTORIAL1'
-;;; function and add a few links:
+;;; (defined below) which will generate the necessary XML and comment
+;;; tricks to cleanly embed JavaScript. We will redefine our
+;;; `TUTORIAL1' function and add a few links:
+
+(defmacro js-script (&rest body)
+  "Utility macro for including ParenScript into the HTML notation
+of net.html.generator library that comes with AllegroServe."
+  `((:script :type "text/javascript")
+    (:princ (format nil "~%// <![CDATA[~%"))
+    (:princ (ps ,@body))
+    (:princ (format nil "~%// ]]>~%"))))
 
 (defun tutorial1 (req ent)
   (declare (ignore req ent))
@@ -106,13 +114,13 @@
     (:body
      (:h1 "ParenScript tutorial: 2nd example")
      (:p "Please click the link below." :br
-         ((:a :href "#" :onclick (js-inline (greeting-callback)))
+         ((:a :href "#" :onclick (ps-inline (greeting-callback)))
           "Hello World")
          :br "And maybe this link too." :br
-         ((:a :href "#" :onclick (js-inline (greeting-callback)))
+         ((:a :href "#" :onclick (ps-inline (greeting-callback)))
           "Knock knock")
          :br "And finally a third link." :br
-         ((:a :href "#" :onclick (js-inline (greeting-callback)))
+         ((:a :href "#" :onclick (ps-inline (greeting-callback)))
           "Hello there"))))))
 
 ;;; This will generate the following HTML page, with the embedded
@@ -151,22 +159,21 @@ And finally a third link.<br/>
 ;;; The best way to integrate ParenScript into a Lisp application is
 ;;; to generate a JavaScript file from ParenScript code. This file can
 ;;; be cached by intermediate proxies, and webbrowsers won't have to
-;;; reload the javascript code on each pageview. A standalone
-;;; JavaScript can be generated using the macro `JS-FILE'. We will
-;;; publish the tutorial JavaScript under "/tutorial.js".
+;;; reload the JavaScript code on each pageview. We will publish the
+;;; tutorial JavaScript under "/tutorial.js".
 
 (defun tutorial1-file (req ent)
   (declare (ignore req ent))
-  (js-file
-   (defun greeting-callback ()
-     (alert "Hello World"))))
+  (html (:princ
+         (ps (defun greeting-callback ()
+               (alert "Hello World"))))))
 
 (publish :path "/tutorial1.js"
          :content-type "text/javascript; charset=ISO-8859-1"
-         :function #'(lambda (req ent)
-                       (with-http-response (req ent)
-                         (with-http-body (req ent)
-                           (tutorial1-file req ent)))))
+         :function (lambda (req ent)
+                     (with-http-response (req ent)
+                       (with-http-body (req ent)
+                         (tutorial1-file req ent)))))
 
 (defun tutorial1 (req ent)
   (declare (ignore req ent))
@@ -178,13 +185,13 @@ And finally a third link.<br/>
     (:body
      (:h1 "ParenScript tutorial: 3rd example")
      (:p "Please click the link below." :br
-         ((:a :href "#" :onclick (js-inline (greeting-callback)))
+         ((:a :href "#" :onclick (ps-inline (greeting-callback)))
           "Hello World")
          :br "And maybe this link too." :br
-         ((:a :href "#" :onclick (js-inline (greeting-callback)))
+         ((:a :href "#" :onclick (ps-inline (greeting-callback)))
           "Knock knock")
          :br "And finally a third link." :br
-         ((:a :href "#" :onclick (js-inline (greeting-callback)))
+         ((:a :href "#" :onclick (ps-inline (greeting-callback)))
           "Hello there"))))))
 
 ;;; This will generate the following JavaScript code under
@@ -232,27 +239,27 @@ And finally a third link.<br/>
 
 (publish :path "/slideshow"
          :content-type "text/html"
-         :function #'(lambda (req ent)
-                       (with-http-response (req ent)
-                         (with-http-body (req ent)
-                           (slideshow req ent)))))
+         :function (lambda (req ent)
+                     (with-http-response (req ent)
+                       (with-http-body (req ent)
+                         (slideshow req ent)))))
 
 (publish :path "/slideshow.js"
          :content-type "text/html"
-         :function #'(lambda (req ent)
-                       (with-http-response (req ent)
-                         (with-http-body (req ent)
-                           (js-slideshow req ent)))))
+         :function (lambda (req ent)
+                     (with-http-response (req ent)
+                       (with-http-body (req ent)
+                         (js-slideshow req ent)))))
 
-;;; The images are just random images I found on my harddrive. We will
+;;; The images are just random files I found on my harddrive. We will
 ;;; publish them by hand for now.
 
-(publish-file :path "/photo1.png"
-              :file "/home/manuel/bknr-sputnik.png")
-(publish-file :path "/photo2.png"
-              :file "/home/manuel/bknrlogo_red648.png")
-(publish-file :path "/photo3.png"
-              :file "/home/manuel/bknr-sputnik.png")
+(publish-file :path "/photo1.jpg"
+              :file "/home/viper/photo1.jpg")
+(publish-file :path "/photo2.jpg"
+              :file "/home/viper/photo2.jpg")
+(publish-file :path "/photo3.jpg"
+              :file "/home/viper/photo3.jpg")
 
 ;;; The function `SLIDESHOW' generates the HTML code for the main
 ;;; slideshow page. It also features little bits of ParenScript. These
@@ -279,9 +286,9 @@ And finally a third link.<br/>
                      :src "/slideshow.js"))
            (js-script
             (defvar *linkornot* 0)
-            (defvar photos (array "photo1.png"
-                                  "photo2.png"
-                                  "photo3.png"))))
+            (defvar photos (array "photo1.jpg"
+                                  "photo2.jpg"
+                                  "photo3.jpg"))))
     (:body (:h1 "ParenScript slideshow")
          (:body (:h2 "Hello")
                 ((:table :border 0
@@ -290,31 +297,30 @@ And finally a third link.<br/>
                  (:tr ((:td :width "100%" :colspan 2 :height 22)
            (:center
             (js-script
-             (let ((img
-                    (html
-                     ((:img :src (aref photos 0)
-                            :name "photoslider"
-                            :style ( + "filter:"
-                                       (js (reveal-trans
-                                            (setf duration 2)
-                                            (setf transition 23))))
-                               :border 0)))))
+             (let ((img (ps-html
+                         ((:img :src (aref photos 0)
+                                :name "photoslider"
+                                :style (+ "filter:"
+                                          (lisp (ps (reveal-trans
+                                                     (setf duration 2)
+                                                     (setf transition 23)))))
+                                :border 0)))))
                (document.write
                 (if (= *linkornot* 1)
-                    (html ((:a :href "#"
-                               :onclick (js-inline (transport)))
-                           img))
+                    (ps-html ((:a :href "#"
+                                  :onclick (lisp (ps-inline (transport))))
+                              img))
                     img)))))))
                  (:tr ((:td :width "50%" :height "21")
                        ((:p :align "left")
                         ((:a :href "#"
-                             :onclick (js-inline (backward)
+                             :onclick (ps-inline (backward)
                                                  (return false)))
                          "Previous Slide")))
                       ((:td :width "50%" :height "21")
                        ((:p :align "right")
                         ((:a :href "#"
-                             :onclick (js-inline (forward)
+                             :onclick (ps-inline (forward)
                                                  (return false)))
                          "Next Slide"))))))))))
 
@@ -326,7 +332,7 @@ And finally a third link.<br/>
 <script type="text/javascript">
 // <![CDATA[
 var LINKORNOT = 0;
-var photos = [ "photo1.png", "photo2.png", "photo3.png" ];
+var photos = [ "photo1.jpg", "photo2.jpg", "photo3.jpg" ];
 // ]]>
 </script>
 </head>
@@ -369,62 +375,63 @@ document.write(LINKORNOT == 1 ?
 </html>
 
 ;;; The actual slideshow application is generated by the function
-;;; `JS-SLIDESHOW', which generates a ParenScript file. The code is
-;;; pretty straightforward for a lisp savy person. Symbols are
+;;; `JS-SLIDESHOW', which generates a ParenScript file. Symbols are
 ;;; converted to JavaScript variables, but the dot "." is left as
-;;; is. This enables us to access object "slots" without using the
-;;; `SLOT-VALUE' function all the time. However, when the object we
-;;; are referring to is not a variable, but for example an element of
-;;; an array, we have to revert to `SLOT-VALUE'.
+;;; is. This enables convenient access to object slots without using
+;;; the `SLOT-VALUE' function all the time. However, when the object
+;;; we are referring to is not a variable, but for example an element
+;;; of an array, we have to revert to `SLOT-VALUE'.
 
 (defun js-slideshow (req ent)
   (declare (ignore req ent))
-  (js-file
-   (defvar *preloaded-images* (make-array))
-   (defun preload-images (photos)
-     (dotimes (i photos.length)
-       (setf (aref *preloaded-images* i) (new *Image)
-             (slot-value (aref *preloaded-images* i) 'src)
-             (aref photos i))))
+  (html
+   (:princ
+    (ps
+      (defvar *preloaded-images* (make-array))
+      (defun preload-images (photos)
+        (dotimes (i photos.length)
+          (setf (aref *preloaded-images* i) (new *Image)
+                (slot-value (aref *preloaded-images* i) 'src)
+                (aref photos i))))
+      
+      (defun apply-effect ()
+        (when (and document.all photoslider.filters)
+          (let ((trans photoslider.filters.reveal-trans))
+            (setf (slot-value trans '*Transition)
+                  (floor (* (random) 23)))
+            (trans.stop)
+            (trans.apply))))
+      
+      (defun play-effect ()
+        (when (and document.all photoslider.filters)
+          (photoslider.filters.reveal-trans.play)))
+      
+      (defvar *which* 0)
 
-   (defun apply-effect ()
-     (when (and document.all photoslider.filters)
-       (let ((trans photoslider.filters.reveal-trans))
-         (setf (slot-value trans '*Transition)
-               (floor (* (random) 23)))
-         (trans.stop)
-         (trans.apply))))
+      (defun keep-track ()
+        (setf window.status
+              (+ "Image " (1+ *which*) " of " photos.length)))
+      
+      (defun backward ()
+        (when (> *which* 0)
+          (decf *which*)
+          (apply-effect)
+          (setf document.images.photoslider.src
+                (aref photos *which*))
+          (play-effect)
+          (keep-track)))
+      
+      (defun forward ()
+        (when (< *which* (1- photos.length))
+          (incf *which*)
+          (apply-effect)
+          (setf document.images.photoslider.src
+                (aref photos *which*))
+          (play-effect)
+          (keep-track)))
 
-   (defun play-effect ()
-     (when (and document.all photoslider.filters)
-       (photoslider.filters.reveal-trans.play)))
-
-   (defvar *which* 0)
-
-   (defun keep-track ()
-     (setf window.status
-           (+ "Image " (1+ *which*) " of " photos.length)))
-
-   (defun backward ()
-     (when (> *which* 0)
-       (decf *which*)
-       (apply-effect)
-       (setf document.images.photoslider.src
-             (aref photos *which*))
-       (play-effect)
-       (keep-track)))
-
-   (defun forward ()
-     (when (< *which* (1- photos.length))
-       (incf *which*)
-       (apply-effect)
-       (setf document.images.photoslider.src
-             (aref photos *which*))
-       (play-effect)
-       (keep-track)))
-
-   (defun transport ()
-     (setf window.location (aref photoslink *which*)))))
+      (defun transport ()
+        (setf window.location (aref photoslink *which*)))))))
 
 ;;; `JS-SLIDESHOW' generates the following JavaScript code:
 
@@ -489,26 +496,26 @@ function transport() {
   (let* ((js-url (format nil "~Aslideshow.js" prefix))
          (html-url (format nil "~Aslideshow" prefix))
          (image-urls
-          (mapcar #'(lambda (image)
-                      (format nil "~A~A.~A" prefix
-                              (pathname-name image)
-                              (pathname-type image)))
+          (mapcar (lambda (image)
+                    (format nil "~A~A.~A" prefix
+                            (pathname-name image)
+                            (pathname-type image)))
                   images)))
     (publish :path html-url
              :content-type "text/html"
-             :function #'(lambda (req ent)
-                           (with-http-response (req ent)
-                             (with-http-body (req ent)
-                               (slideshow2 req ent image-urls)))))
+             :function (lambda (req ent)
+                         (with-http-response (req ent)
+                           (with-http-body (req ent)
+                             (slideshow2 req ent image-urls)))))
     (publish :path js-url
              :content-type "text/html"
-             :function #'(lambda (req ent)
-                           (with-http-response (req ent)
-                             (with-http-body (req ent)
-                               (js-slideshow req ent)))))
-    (map nil #'(lambda (image url)
-                 (publish-file :path url
-                               :file image))
+             :function (lambda (req ent)
+                         (with-http-response (req ent)
+                           (with-http-body (req ent)
+                             (js-slideshow req ent)))))
+    (map nil (lambda (image url)
+               (publish-file :path url
+                             :file image))
          images image-urls)))
 
 (defun slideshow2 (req ent image-urls)
@@ -520,9 +527,8 @@ function transport() {
                      :src "/slideshow.js"))
            ((:script :type "text/javascript")
             (:princ (format nil "~%// <![CDATA[~%"))
-            (:princ (js (defvar *linkornot* 0)))
-            (:princ (js-to-string `(defvar photos
-                                    (array ,@image-urls))))
+            (:princ (ps (defvar *linkornot* 0)))
+            (:princ (ps* `(defvar photos (array ,@image-urls))))
             (:princ (format nil "~%// ]]>~%"))))
     (:body (:h1 "ParenScript slideshow")
          (:body (:h2 "Hello")
@@ -532,31 +538,30 @@ function transport() {
                  (:tr ((:td :width "100%" :colspan 2 :height 22)
          (:center
           (js-script
-           (let ((img
-                  (html
-                   ((:img :src (aref photos 0)
-                          :name "photoslider"
-                          :style ( + "filter:"
-                                     (js (reveal-trans
-                                          (setf duration 2)
-                                          (setf transition 23))))
-                          :border 0)))))
+           (let ((img (ps-html
+                       ((:img :src (aref photos 0)
+                              :name "photoslider"
+                              :style (+ "filter:"
+                                         (lisp (ps (reveal-trans
+                                                    (setf duration 2)
+                                                    (setf transition 23)))))
+                              :border 0)))))
                 (document.write
                  (if (= *linkornot* 1)
-                     (html ((:a :href "#"
-                                :onclick (js-inline (transport)))
-                            img))
+                     (ps-html ((:a :href "#"
+                                   :onclick (lisp (ps-inline (transport))))
+                               img))
                      img)))))))
                  (:tr ((:td :width "50%" :height "21")
                        ((:p :align "left")
                         ((:a :href "#"
-                             :onclick (js-inline (backward)
+                             :onclick (ps-inline (backward)
                                                  (return false)))
                          "Previous Slide")))
                       ((:td :width "50%" :height "21")
                        ((:p :align "right")
                         ((:a :href "#"
-                             :onclick (js-inline (forward)
+                             :onclick (ps-inline (forward)
                                                  (return false)))
                          "Next Slide"))))))))))
 
@@ -564,11 +569,9 @@ function transport() {
 ;;; "/bknr/" prefix:
 
 (publish-slideshow "/bknr/"
-  `("/home/manuel/bknr-sputnik.png"
-    "/home/manuel/bknrlogo_red648.png"
-    "/home/manuel/screenshots/screenshot-14.03.2005-11.54.33.png"))
+  `("/home/viper/photo1.jpg" "/home/viper/photo2.jpg" "/home/viper/photo3.jpg"))
 
 ;;; That's it, we can now access our customized slideshow under
 
-   http://localhost:8000/bknr/slideshow
+   http://localhost:8080/bknr/slideshow
 

@@ -133,7 +133,7 @@
                       (when else (compile-parenscript-form `(progn ,else)))))
     (:expression (list 'js-expression-if (compile-parenscript-form test :expecting :expression)
                        (compile-parenscript-form then :expecting :expression)
-                       (when else (compile-parenscript-form else :expecting :expression))))))
+                       (compile-parenscript-form else :expecting :expression)))))
 
 (define-ps-special-form switch (expecting test-expr &rest clauses)
   (let ((clauses (mapcar (lambda (clause)

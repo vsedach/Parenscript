@@ -347,3 +347,11 @@ x = 2 + sideEffect() + x + 5;")
     'blah';
     x * y;
 }")
+
+(test-ps-js if-exp-without-else-returns-null
+  (return (if x 1))
+  "return x ? 1 : null")
+
+(test-ps-js progn-expression-single-statement
+  (return (progn (* x y)))
+  "return x * y")

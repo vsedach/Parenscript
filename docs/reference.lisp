@@ -1042,6 +1042,35 @@ a-variable  => aVariable
                              slots)
     ,@body))
 
+
+;;;# The ParenScript namespace system
+;;;t \index{package}
+;;;t \index{namespace}
+;;;t \index{PS-PACKAGE-PREFIX}
+
+;;; (setf (PS-PACKAGE-PREFIX lisp-package) string)
+
+;;; Although JavaScript does not offer namespacing or a package
+;;; system, ParenScript does provide a namespace mechanism for
+;;; generated JavaScript by integrating with the Common Lisp package
+;;; system. Since ParenScript code is normally read in by the Lisp
+;;; reader, all symbols (except for uninterned ones, ie - those
+;;; specified with the #: reader macro) have a Lisp package. By
+;;; default, no packages are prefixed. You can specify that symbols in
+;;; a particular package receive a prefix when translated to
+;;; JavaScript with the `PS-PACKAGE-PREFIX' place.
+
+(lisp (defpackage "MY-LIBRARY"
+        (:use #:parenscript))
+      (setf (ps-package-prefix :my-library) "my_library_"))
+  => 'my_library_'
+
+(defun my-library::library-function (x y)
+  (return (+ x y)))
+  => function my_library_libraryFunction(x, y) {
+        return x + y;
+     }
+
 ;;;# The ParenScript Compiler
 ;;;t \index{compiler}
 ;;;t \index{ParenScript compiler}

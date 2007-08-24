@@ -12,7 +12,7 @@ is output to the OUTPUT-STREAM stream."
   `(ps* '(progn ,@body)))
 
 (defun ps* (&rest body)
-  "Return the javascript string representing BODY.
+  "Compiles BODY to a JavaScript string.
 Body is evaluated."
   (compile-script `(progn ,@body)))
 

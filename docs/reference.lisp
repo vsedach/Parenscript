@@ -374,7 +374,7 @@ a-variable  => aVariable
 
 (eql 1 2) => 1 == 2
 
-;;; Note that the resulting expression is correctly parenthized,
+;;; Note that the resulting expression is correctly parenthesized,
 ;;; according to the JavaScript operator precedence that can be found
 ;;; in table form at:
 
@@ -648,8 +648,10 @@ a-variable  => aVariable
         alert(blorg);
       }
 
-;;; A more lispy way to declare local variable is to use the `LET'
-;;; form, which is similar to its Lisp form.
+;;; Another way to declare local variables is to use the `LET' form.
+;;; Note that the ParenScript `LET' compiles to a straightforward
+;;; assignment and does not have lexical-scoping semantics, unlike its
+;;; Lisp cousin.
 
 (if (= i 1)
     (let ((blorg "hallo"))
@@ -664,7 +666,7 @@ a-variable  => aVariable
         alert(blorg);
       }
 
-;;; However, beware that scoping in Lisp and JavaScript are quite
+;;; Moreover, beware that scoping in Lisp and JavaScript are quite
 ;;; different. For example, don't rely on closures capturing local
 ;;; variables in the way you'd think they would.
 
@@ -858,13 +860,13 @@ a-variable  => aVariable
       }
 
 ;;;# The HTML Generator
-;;;t \index{HTML}
+;;;t \index{PS-HTML}
 ;;;t \index{HTML generation}
 ;;;t \index{CSS}
 ;;;t \index{CSS generation}
 
 
-; (HTML html-expression)
+; (PS-HTML html-expression)
 
 ;;; The HTML generator of ParenScript is very similar to the htmlgen
 ;;; HTML generator library included with AllegroServe. It accepts the
@@ -878,7 +880,8 @@ a-variable  => aVariable
 (ps-html ((:a :href (generate-a-link)) "blorg"))
   => '<a href=\"' + generateALink() + '\">blorg</a>'
 
-;;; We can recursively call the JS compiler in a HTML expression.
+;;; We can recursively call the ParenScript compiler in an HTML
+;;; expression.
 
 (document.write
   (ps-html ((:a :href "#"
@@ -919,16 +922,16 @@ a-variable  => aVariable
 ;;;# Macrology
 ;;;t \index{macro}
 ;;;t \index{macrology}
-;;;t \index{DEFJSMACRO}
+;;;t \index{DEFPSMACRO}
 ;;;t \index{MACROLET}
 ;;;t \index{SYMBOL-MACROLET}
-;;;t \index{JS-GENSYM}
+;;;t \index{PS-GENSYM}
 ;;;t \index{compiler}
 
-; (DEFJSMACRO name lambda-list macro-body)
+; (DEFPSMACRO name lambda-list macro-body)
 ; (MACROLET ({name lambda-list macro-body}*) body)
 ; (SYMBOL-MACROLET ({name macro-body}*) body)
-; (JS-GENSYM {string}?)
+; (PS-GENSYM {string}?)
 ;
 ; name        ::= a Lisp symbol
 ; lambda-list ::= a lambda list
@@ -938,62 +941,60 @@ a-variable  => aVariable
 
 ;;; ParenScript can be extended using macros, just like Lisp can be
 ;;; extended using Lisp macros. Using the special Lisp form
-;;; `DEFJSMACRO', the ParenScript language can be
-;;; extended. `DEFJSMACRO' adds the new macro to the toplevel macro
+;;; `DEFPSMACRO', the ParenScript language can be
+;;; extended. `DEFPSMACRO' adds the new macro to the toplevel macro
 ;;; environment, which is always accessible during ParenScript
 ;;; compilation. For example, the `1+' and `1-' operators are
 ;;; implemented using macros.
 
-(defjsmacro 1- (form)
+(defpsmacro 1- (form)
   `(- ,form 1))
 
-(defjsmacro 1+ (form)
+(defpsmacro 1+ (form)
   `(+ ,form 1))
 
 ;;; A more complicated ParenScript macro example is the implementation
-;;; of the `DOLIST' form (note how `JS-GENSYM', the ParenScript of
+;;; of the `DOLIST' form (note how `PS-GENSYM', the ParenScript of
 ;;; `GENSYM', is used to generate new ParenScript variable names):
 
 (defpsmacro dolist (i-array &rest body)
   (let ((var (first i-array))
         (array (second i-array))
-        (arrvar (js-gensym "arr"))
-        (idx (js-gensym "i")))
+        (arrvar (ps-gensym "arr"))
+        (idx (ps-gensym "i")))
     `(let ((,arrvar ,array))
       (do ((,idx 0 (incf ,idx)))
           ((>= ,idx (slot-value ,arrvar 'length)))
         (let ((,var (aref ,arrvar ,idx)))
           ,@body)))))
 
-;;; Macros can be defined in ParenScript itself (as opposed to Lisp)
-;;; by using the ParenScript `MACROLET' and 'DEFMACRO' forms.
+;;; Macros can be defined in ParenScript code itself (as opposed to
+;;; from Lisp) by using the ParenScript `MACROLET' and `DEFMACRO'
+;;; forms.
 
 ;;; ParenScript also supports the use of macros defined in the
-;;; underlying Lisp. Existing Lisp macros can be imported into the
-;;; ParenScript macro environment by 'IMPORT-MACROS-FROM-LISP'. This
-;;; functionality enables code sharing between ParenScript and Lisp,
-;;; and is useful in debugging since the full power of Lisp
-;;; macroexpanders, editors and other supporting facilities can be
-;;; used. However, it is important to note that the macroexpansion of
-;;; Lisp macros and ParenScript macros takes place in their own
-;;; respective environments, and many Lisp macros (especially those
-;;; provided by the Lisp implementation) expand into code that is not
-;;; usable by ParenScript. To make it easy for users to take advantage
-;;; of these features, two additional macro definition facilities are
-;;; provided by ParenScript: 'DEFMACRO/JS' and
-;;; 'DEFMACRO+JS'. 'DEFMACRO/JS' defines a Lisp macro and then imports
-;;; it into the ParenScript macro environment, while 'DEFMACRO+JS'
-;;; defines two macros with the same name and expansion, one in
-;;; ParenScript and one in Lisp. 'DEFMACRO+JS' is used when the full
-;;; 'macroexpand' of the Lisp macro yields code that cannot be used by
-;;; ParenScript.
+;;; underlying Lisp environment. Existing Lisp macros can be imported
+;;; into the ParenScript macro environment by
+;;; `IMPORT-MACROS-FROM-LISP'. This functionality enables code sharing
+;;; between ParenScript and Lisp, and is useful in debugging since the
+;;; full power of Lisp macroexpanders, editors and other supporting
+;;; facilities can be used. However, it is important to note that the
+;;; macroexpansion of Lisp macros and ParenScript macros takes place
+;;; in their own respective environments, and many Lisp macros
+;;; (especially those provided by the Lisp implementation) expand into
+;;; code that is not usable by ParenScript. To make it easy for users
+;;; to take advantage of these features, two additional macro
+;;; definition facilities are provided by ParenScript: `DEFMACRO/PS'
+;;; and `DEFMACRO+PS'. `DEFMACRO/PS' defines a Lisp macro and then
+;;; imports it into the ParenScript macro environment, while
+;;; `DEFMACRO+PS' defines two macros with the same name and expansion,
+;;; one in ParenScript and one in Lisp. `DEFMACRO+PS' is used when the
+;;; full 'macroexpand' of the Lisp macro yields code that cannot be
+;;; used by ParenScript.
 
 ;;; ParenScript also supports symbol macros, which can be introduced
-;;; using the ParenScript form `SYMBOL-MACROLET'. A new macro
-;;; environment is created and added to the current macro environment
-;;; list while compiling the body of the `SYMBOL-MACROLET' form. For
-;;; example, the ParenScript `WITH-SLOTS' is implemented using symbol
-;;; macros.
+;;; using the ParenScript form `SYMBOL-MACROLET'.For example, the
+;;; ParenScript `WITH-SLOTS' is implemented using symbol macros.
 
 (defjsmacro with-slots (slots object &rest body)
   `(symbol-macrolet ,(mapcar #'(lambda (slot)
@@ -1004,77 +1005,37 @@ a-variable  => aVariable
 ;;;# The ParenScript Compiler
 ;;;t \index{compiler}
 ;;;t \index{ParenScript compiler}
-;;;t \index{JS-COMPILE}
-;;;t \index{JS-TO-STRINGS}
-;;;t \index{JS-TO-STATEMENT-STRINGS}
-;;;t \index{JS-TO-STRING}
-;;;t \index{JS-TO-LINE}
-;;;t \index{JS}
-;;;t \index{JS-INLINE}
-;;;t \index{JS-FILE}
-;;;t \index{JS-SCRIPT}
+;;;t \index{COMPILE-SCRIPT}
+;;;t \index{PS}
+;;;t \index{PS*}
+;;;t \index{PS-INLINE}
+;;;t \index{LISP}
 ;;;t \index{nested compilation}
 
-; (JS-COMPILE expr)
-; (JS-TO-STRINGS compiled-expr position)
-; (JS-TO-STATEMENT-STRINGS compiled-expr position)
+; (COMPILE-SCRIPT script-form &key (output-stream nil))
+; (PS &body body)
+; (PS* &body body)
+; (PS-INLINE &body body)
+; (LISP &body lisp-forms)
 ;
-; compiled-expr ::= a compiled ParenScript expression
-; position      ::= a column number
-;
-; (JS-TO-STRING expression)
-; (JS-TO-LINE expression)
-;
-; expression ::= a Lisp list of ParenScript code
-;
-; (JS body)
-; (JS-INLINE body)
-; (JS-FILE body)
-; (JS-SCRIPT body)
-;
-; body ::= a list of ParenScript statements
+; body ::= ParenScript statements comprising an implicit `PROGN'
 
-;;; The ParenScript compiler can be invoked from withing Lisp and from
-;;; within ParenScript itself. The primary API function is
-;;; `JS-COMPILE', which takes a list of ParenScript, and returns an
-;;; internal object representing the compiled ParenScript.
+;;; For static ParenScript code, the macros `PS' and `PS-INLINE',
+;;; avoid the need to quote the ParenScript expression. `PS*' and
+;;; `COMPILE-SCRIPT' evaluate their arguments. All these forms except
+;;; for `COMPILE-SCRIPT' treat the given forms as an implicit
+;;; `PROGN'. `PS' and `PS*' return a string of the compiled body,
+;;; while `COMPILE-SCRIPT' takes an optional output-stream parameter
+;;; that can be used to specify a stream to which the generated
+;;; JavaScript will be written. `PS-INLINE' generates a string that
+;;; can be used in HTML node attributes.
 
-(js-compile '(foobar 1 2))
-  => #<JS::FUNCTION-CALL {584AA5DD}>
-
-;;; This internal object can be transformed to a string using the
-;;; methods `JS-TO-STRINGS' and `JS-TO-STATEMENT-STRINGS', which
-;;; interpret the ParenScript in expression and in statement context
-;;; respectively. They take an additional parameter indicating the
-;;; start-position on a line (please note that the indentation code is
-;;; not perfect, and this string interface will likely be
-;;; changed). They return a list of strings, where each string
-;;; represents a new line of JavaScript code. They can be joined
-;;; together to form a single string.
-
-(js-to-strings (js-compile '(foobar 1 2)) 0)
-  => ("foobar(1, 2)")
-
-;;; As a shortcut, ParenScript provides the functions `JS-TO-STRING'
-;;; and `JS-TO-LINE', which return the JavaScript string of the
-;;; compiled expression passed as an argument.
-
-(js-to-string '(foobar 1 2))
-  => "foobar(1, 2)"
-
-;;; For static ParenScript code, the macros `JS', `JS-INLINE',
-;;; `JS-FILE' and `JS-SCRIPT' avoid the need to quote the ParenScript
-;;; expression. All these forms add an implicit `PROGN' form around
-;;; the body. `JS' returns a string of the compiled body, where the
-;;; other expression return an expression that can be embedded in a
-;;; HTML generation construct using the AllegroServe HTML
-;;; generator. `JS-SCRIPT' generates a "SCRIPT" node, `JS-INLINE'
-;;; generates a string to be used in node attributs, and `JS-FILE'
-;;; prints the compiled ParenScript code to the HTML stream.
-
-;;; These macros are also available inside ParenScript itself, and
-;;; generate strings that can be used inside ParenScript code. Note
-;;; that `JS-INLINE' in ParenScript is not the same `JS-INLINE' form
-;;; as in Lisp, for example. The same goes for the other compilation
-;;; macros.
-
+;;; ParenScript can also call out to arbitrary Lisp code at
+;;; compile-time using the special form `LISP'. This is typically used
+;;; to insert the values of Lisp special variables into ParenScript
+;;; code at compile-time, and can also be used to make nested calls to
+;;; the ParenScript compiler, which comes in useful when you want to
+;;; use the result of `PS-INLINE' in `PS-HTML' forms, for
+;;; example. Alternatively the same thing can be accomplished by
+;;; constructing ParenScript programs as lists and passing them to
+;;; `PS*' or `COMPILE-SCRIPT'.

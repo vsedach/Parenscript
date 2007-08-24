@@ -31,6 +31,9 @@ arguments, defines a printer for that form using the given body."
 
 (defgeneric ps-print (compiled-form))
 
+(defmethod ps-print ((form null)) ;; don't print nils (ex: result of defining macros, etc.)
+  )
+
 (defmethod ps-print ((compiled-form cons))
   "Prints the given compiled ParenScript form starting at the given
 indent position."

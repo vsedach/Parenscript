@@ -10,19 +10,22 @@
     (otherwise (symbol-name symbol))))
 
 ;;; Symbol obfuscation
-(defvar *obfuscate-identifiers* nil)
+(defvar *obfuscation-table* (make-hash-table))
 
-(defparameter *obfuscation-table* (make-hash-table))
+(defun obfuscate-package (package-designator)
+  (setf (gethash (find-package package-designator) *obfuscation-table*) (make-hash-table)))
 
-(defun obfuscated-symbol (symbol)
-  (or (gethash symbol *obfuscation-table*)
-      (setf (gethash symbol *obfuscation-table*) (string (gensym)))))
+(defun unobfuscate-package (package-designator)
+  (remhash (find-package package-designator) *obfuscation-table*))
+
+(defun maybe-obfuscate-symbol (symbol)
+  (let ((obfuscated-symbol-table (gethash (symbol-package symbol) *obfuscation-table*)))
+    (if obfuscated-symbol-table
+        (or (gethash symbol obfuscated-symbol-table)
+            (setf (gethash symbol obfuscated-symbol-table) (ps-gensym "G")))
+        symbol)))
 
 ;;; Interface for printing identifiers
-
-(defvar *package-prefix-style* :prefix
-  "Determines how package symbols are serialized to JavaScript identifiers.  NIL for
-no prefixes.  :prefix to prefix variables with something like packagename_identifier.")
 
 (defvar *package-prefix-table* (make-hash-table))
 
@@ -32,8 +35,7 @@ designated package when translating ParenScript code."
   `(gethash (find-package ,package) *package-prefix-table*))
 
 (defun js-translate-symbol (symbol)
-  (cond (*obfuscate-identifiers* (obfuscated-symbol symbol))
-        ((and (eql *package-prefix-style* :prefix) (ps-package-prefix (symbol-package symbol)))
-         (format nil "~A~A" (ps-package-prefix (symbol-package symbol)) (symbol-to-js symbol)))
-        (t (symbol-to-js symbol))))
-
+  (let ((possibly-obfuscated-symbol (maybe-obfuscate-symbol symbol)))
+    (if (ps-package-prefix (symbol-package symbol))
+        (format nil "~A~A" (ps-package-prefix (symbol-package symbol)) (symbol-to-js possibly-obfuscated-symbol))
+        (symbol-to-js possibly-obfuscated-symbol))))

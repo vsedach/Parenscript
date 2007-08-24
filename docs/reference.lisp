@@ -1048,7 +1048,7 @@ a-variable  => aVariable
 ;;;t \index{namespace}
 ;;;t \index{PS-PACKAGE-PREFIX}
 
-;;; (setf (PS-PACKAGE-PREFIX lisp-package) string)
+; (setf (PS-PACKAGE-PREFIX package-designator) string)
 
 ;;; Although JavaScript does not offer namespacing or a package
 ;;; system, ParenScript does provide a namespace mechanism for
@@ -1060,16 +1060,37 @@ a-variable  => aVariable
 ;;; a particular package receive a prefix when translated to
 ;;; JavaScript with the `PS-PACKAGE-PREFIX' place.
 
-(lisp (defpackage "MY-LIBRARY"
-        (:use #:parenscript))
-      (setf (ps-package-prefix :my-library) "my_library_"))
-  => 'my_library_'
+(defpackage "MY-LIBRARY"
+  (:use #:parenscript))
+(setf (ps-package-prefix :my-library) "my_library_")
 
 (defun my-library::library-function (x y)
   (return (+ x y)))
-  => function my_library_libraryFunction(x, y) {
+  -> function my_library_libraryFunction(x, y) {
         return x + y;
      }
+
+;;;# Identifier obfuscation
+;;;t \index{obfuscation}
+;;;t \index{identifiers}
+;;;t \index{OBFUSCATE-PACKAGE}
+;;;t \index{UNOBFUSCATE-PACKAGE}
+
+; (OBFUSCATE-PACKAGE package-designator)
+; (UNOBFUSCATE-PACKAGE package-designator)
+
+;;; Similar to the namespace mechanism, ParenScript provides a
+;;; facility to generate obfuscated identifiers in certain Lisp
+;;; packages.
+
+(defpackage "OBFUSCATE-ME")
+(obfuscate-package :obfuscate-me)
+
+(defun obfuscate-me::library-function2 (a b obfuscate-me::foo)
+  (+ a (my-library::library-function b obfuscate-me::foo)))
+
+;;; The obfuscation and namespace facilities can be used on packages
+;;; at the same time.
 
 ;;;# The ParenScript Compiler
 ;;;t \index{compiler}

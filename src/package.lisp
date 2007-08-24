@@ -176,9 +176,9 @@
    #:*ps-gensym-counter*
 
    ;; naming and namespaces
-   #:*obfuscate-identifiers*
-   #:*package-prefix-style*
    #:ps-package-prefix
+   #:obfuscate-package
+   #:unobfuscate-package
 
    ;; deprecated interface
    #:gen-js-name

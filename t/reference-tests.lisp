@@ -513,16 +513,3 @@ _js2.style.left = _js1;")
     + ' looks like this.</div>';
 }")
 
-(test-ps-js the-parenscript-namespace-system-1
-  (lisp (defpackage "MY-LIBRARY"
-        (:use #:parenscript))
-      (setf (ps-package-prefix :my-library) "my_library_"))
-  "'my_library_'")
-
-(test-ps-js the-parenscript-namespace-system-2
-  (defun my-library::library-function (x y)
-  (return (+ x y)))
-  "function my_library_libraryFunction(x, y) {
-   return x + y;
-}")
-

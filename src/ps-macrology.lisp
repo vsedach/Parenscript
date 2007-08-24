@@ -6,7 +6,7 @@
 (defvar *ps-gensym-counter* 0)
 
 (defun ps-gensym (&optional (prefix "_js"))
-  (make-symbol (format nil "~A-~A" prefix (incf *ps-gensym-counter*))))
+  (make-symbol (format nil "~A~A" prefix (incf *ps-gensym-counter*))))
 
 (defmacro with-ps-gensyms (symbols &body body)
   "Evaluate BODY with SYMBOLS bound to unique ParenScript identifiers.

@@ -476,6 +476,7 @@ a-variable  => aVariable
 ;;;# Assignment
 ;;;t \index{assignment}
 ;;;t \index{SETF}
+;;;t \index{DEFSETF}
 ;;;t \index{assignment operator}
 
 ; (SETF {lhs rhs}*)
@@ -503,6 +504,45 @@ a-variable  => aVariable
 (setf a (+ a 2 3 4 a))   => a += 2 + 3 + 4 + a;
 
 (setf a (- 1 a))         => a = 1 - a;
+
+;;; New types of setf places can be defined in one of two ways: using
+;;; `DEFSETF' or using `DEFUN' with a setf function name; both are
+;;; analogous to their Common Lisp counterparts.
+
+;;; `DEFSETF' supports both long and short forms, while `DEFUN' of a
+;;; setf place generates a JavaScript function name with the __setf_
+;;; prefix:
+
+(defun (setf color) (new-color el)
+  (setf (slot-value (slot-value el 'style) 'color) new-color))
+  => function __setf_color(newColor, el) {
+       el.style.color = newColor;
+     };
+
+(setf (color some-div) (+ 23 "em"))
+  => var _js2 = someDiv;
+     var _js1 = 23 + 'em';
+     __setf_color(_js1, _js2);
+
+
+;;; Note that temporary variables are generated to preserve evaluation
+;;; order of the arguments as they would be in Lisp.
+
+;;; The following example illustrates how setf places can be used to
+;;; provide a uniform protocol for positioning elements in HTML pages:
+
+(defsetf left (el) (offset)
+  `(setf (slot-value (slot-value ,el 'style) 'left) ,offset)) => null
+
+(setf (left some-div) (+ 123 "px"))
+  => var _js2 = someDiv;
+     var _js1 = 123 + 'px';
+     _js2.style.left = _js1;
+
+(progn (defmacro left (el)
+         `(slot-value ,el 'offset-left))
+       (left some-div))
+  => someDiv.offsetLeft;
 
 ;;;# Single argument statements
 ;;;t \index{single-argument statement}

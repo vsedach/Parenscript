@@ -275,6 +275,14 @@ x = 2 + sideEffect() + x + 5;")
   (decf foo bar)
   "foo -= bar")
 
+(test-ps-js incf2
+  (incf x 5)
+  "x += 5")
+
+(test-ps-js decf2
+  (decf y 10)
+  "y -= 10")
+
 (test-ps-js setf-conditional
   (setf foo (if x 1 2))
   "foo = x ? 1 : 2;")
@@ -389,3 +397,7 @@ x = 2 + sideEffect() + x + 5;")
                  img))
        img))
   "document.write(LINKORNOT == 1 ? '<a href=\"#\" onclick=\"' + 'javascript:transport();' + '\">' + img + '</a>' : img)")
+
+(test-ps-js negate-number-literal ;; ok, this was broken and fixed before, but no one bothered to add the test!
+  (- 1)
+  "-1")

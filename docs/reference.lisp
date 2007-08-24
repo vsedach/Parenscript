@@ -971,7 +971,7 @@ a-variable  => aVariable
 ; (DEFPSMACRO name lambda-list macro-body)
 ; (MACROLET ({name lambda-list macro-body}*) body)
 ; (SYMBOL-MACROLET ({name macro-body}*) body)
-; (PS-GENSYM {string}?)
+; (PS-GENSYM {string})
 ;
 ; name        ::= a Lisp symbol
 ; lambda-list ::= a lambda list

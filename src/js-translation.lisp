@@ -199,7 +199,7 @@ vice-versa.")
 (defprinter unary-operator (op arg &key prefix)
   (when prefix
     (write-string op))
-  (if (eql 'operator (car arg))
+  (if (and (listp arg) (eql 'operator (car arg)))
       (parenthesize-print arg)
       (ps-print arg))
   (unless prefix

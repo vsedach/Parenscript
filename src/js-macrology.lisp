@@ -86,9 +86,14 @@
       (compile-parenscript-form (car body) :expecting :expression)
       (list 'js-block
             (if (eql expecting :statement) t nil)
-            (flatten-blocks (remove nil (mapcar (lambda (form)
-                                                  (compile-parenscript-form form :expecting :statement))
-                                                body))))))
+            (let* ((block (mapcar (lambda (form)
+                                    (compile-parenscript-form form :expecting :statement))
+                                  body))
+                   (clean-block (remove nil block))
+                   (flat-block (flatten-blocks clean-block))
+                   (reachable-block (append (remove-if #'constant-literal-form-p (butlast flat-block))
+                                            (last flat-block))))
+              reachable-block))))
 
 ;;; function definition
 (define-ps-special-form %js-lambda (expecting args &rest body)

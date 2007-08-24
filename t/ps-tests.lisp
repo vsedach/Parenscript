@@ -1,5 +1,6 @@
 (in-package :ps-test)
-;; Other tests not in the reference
+
+;;; Hand-written unit tests
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (def-suite ps-tests))
@@ -243,7 +244,7 @@ x = 2 + sideEffect() + x + 5;")
 (test defun-setf1
   (is (and (string= (normalize-js-code (ps:ps (defun (setf some-thing) (new-val i1 i2)
                                            (setf (aref *some-thing* i1 i2) new-val))))
-               "null; function __setf_someThing(newVal, i1, i2) { SOMETHING[i1][i2] = newVal; };")
+               "function __setf_someThing(newVal, i1, i2) { SOMETHING[i1][i2] = newVal; };")
            (string= (let ((ps:*ps-gensym-counter* 0)) (normalize-js-code (ps:ps (setf (some-thing 1 2) "foo"))))
                "var _js2 = 1; var _js3 = 2; var _js1 = 'foo'; __setf_someThing(_js1, _js2, _js3);"))))
 
@@ -291,12 +292,12 @@ x = 2 + sideEffect() + x + 5;")
   "foo['bar']")
 
 (test-ps-js slot-value-progn
-  (slot-value (progn "abc" "123") "length")
-  "('abc', '123')['length']")
+  (slot-value (progn (some-fun "abc") "123") "length")
+  "(someFun('abc'), '123')['length']")
 
 (test-ps-js method-call-block
-  (.to-string (progn "abc" "123"))
-  "('abc', '123').toString()")
+  (.to-string (progn (some-fun "abc") "123"))
+  "(someFun('abc'), '123').toString()")
 
 (test-ps-js create-blank
   (create)
@@ -340,11 +341,11 @@ x = 2 + sideEffect() + x + 5;")
 }")
 
 (test-ps-js cond2
-  (cond ((= x 1) 2) ((= y (* x 4)) "blah" (* x y)))
+  (cond ((= x 1) 2) ((= y (* x 4)) (foo "blah") (* x y)))
   "if (x == 1) {
     2;
 } else if (y == x * 4) {
-    'blah';
+    foo('blah');
     x * y;
 }")
 
@@ -357,9 +358,9 @@ x = 2 + sideEffect() + x + 5;")
   "return x * y")
 
 (test-ps-js cond-expression1
-  (defun foo () (return (cond ((< 1 2) "foo" (* 4 5)))))
+  (defun foo () (return (cond ((< 1 2) (bar "foo") (* 4 5)))))
   "function foo() {
-    return 1 < 2 ? ('foo', 4 * 5) : null;
+    return 1 < 2 ? (bar('foo'), 4 * 5) : null;
 }")
 
 (test-ps-js cond-expression2
@@ -369,9 +370,9 @@ x = 2 + sideEffect() + x + 5;")
 }")
 
 (test-ps-js cond-expression-final-t-clause
-  (defun foo () (return (cond ((< 1 2) "foo" (* 4 5)) ((= a b) (+ c d)) ((< 1 2 3 4 5) x) (t "foo"))))
+  (defun foo () (return (cond ((< 1 2) (bar "foo") (* 4 5)) ((= a b) (+ c d)) ((< 1 2 3 4 5) x) (t "foo"))))
   "function foo() {
-    return 1 < 2 ? ('foo', 4 * 5) : (a == b ? c + d : (1 < 2 < 3 < 4 < 5 ? x : 'foo'));
+    return 1 < 2 ? (bar('foo'), 4 * 5) : (a == b ? c + d : (1 < 2 < 3 < 4 < 5 ? x : 'foo'));
 }")
 
 (test-ps-js cond-expression-middle-t-clause ;; should this signal a warning?

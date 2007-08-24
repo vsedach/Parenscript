@@ -24,6 +24,12 @@ gensym-prefix-string)."
                   symbols)
      ,@body))
 
+(defun constant-literal-form-p (form)
+  (or (numberp form)
+      (stringp form)
+      (and (listp form)
+           (eql 'js-literal (car form)))))
+
 (defpsmacro defaultf (place value)
   `(setf ,place (or (and (=== undefined ,place) ,value)
 		 ,place)))

@@ -271,11 +271,12 @@ And finally a third link.<br/>
 ;;; `SLIDESHOW' also generates a static array called `PHOTOS' which
 ;;; holds the links to the photos of the slideshow. This array is
 ;;; handled by the ParenScript code in "slideshow.js". Note how the
-;;; HTML code issued by the JavaScript is generated using the `HTML'
-;;; construct. In fact, we have two different HTML generators in the
-;;; example below, one is the standard Lisp HTML generator, and the
-;;; other is the JavaScript HTML generator, which generates a
-;;; JavaScript expression.
+;;; HTML code issued by ParenScrip is generated using the `PS-HTML'
+;;; construct. In fact, there are two different HTML generators in the
+;;; example below, one is the AllegroServe HTML generator, and the
+;;; other is the ParenScript standard library HTML generator, which
+;;; produces a JavaScript expression which evaluates to an HTML
+;;; string.
 
 (defun slideshow (req ent)
   (declare (ignore req ent))
@@ -325,7 +326,7 @@ And finally a third link.<br/>
                          "Next Slide"))))))))))
 
 ;;; `SLIDESHOW' generates the following HTML code (long lines have
-;;; been broken down):
+;;; been broken):
 
 <html><head><title>ParenScript slideshow</title>
 <script language="JavaScript" src="/slideshow.js"></script>

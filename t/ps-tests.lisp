@@ -400,3 +400,18 @@ x = 2 + sideEffect() + x + 5;")
 (test-ps-js negate-number-literal ;; ok, this was broken and fixed before, but no one bothered to add the test!
   (- 1)
   "-1")
+
+(test macro-environment1
+  (is (string= (normalize-js-code (let ((macroname (gensym)))
+                                    (ps* `(defmacro ,macroname (x) `(+ ,x 123))
+                                         `(defun test1 ()
+                                           (macrolet ((,macroname (x) `(aref data ,x)))
+                                             (when (,macroname x)
+                                               (setf (,macroname x) 123)))))))
+               (normalize-js-code
+"function test1() {
+    if (data[x]) {
+        data[x] = 123;
+    };
+};
+"))))

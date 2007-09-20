@@ -262,7 +262,6 @@ x = 2 + sideEffect() + x + 5;")
 (test-ps-js set-timeout
   (do-set-timeout (10) (alert "foo"))
   "setTimeout(function () { alert('foo'); }, 10)")
-
 (test-ps-js operator-precedence
   (* 3 (+ 4 5) 6)
   "3 * (4 + 5) * 6")

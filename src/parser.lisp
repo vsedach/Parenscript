@@ -162,12 +162,7 @@ whether any expansion was performed on the form or not."
 		(if (equalp '(nil) args) nil form) ;; leave quotes alone, unless it's a quoted nil
 		nil))
               ((script-macro-p op) ;; recursively expand parenscript macros in parent env.
-	       (multiple-value-bind (expansion-function macro-env)
-		   (lookup-macro-expansion-function op)
-		 (values
-		  (ps-macroexpand (let ((*script-macro-env* macro-env))
-					(apply expansion-function args)))
-		  t)))
+               (values (ps-macroexpand (apply (lookup-macro-expansion-function op) args)) t))
               (t (values form nil))))
       (cond ((script-symbol-macro-p form)
 	     ;; recursively expand symbol macros in parent env.

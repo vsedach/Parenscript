@@ -415,3 +415,10 @@ x = 2 + sideEffect() + x + 5;")
     };
 };
 "))))
+
+(test-ps-js ampersand-whole-1
+  (macrolet ((foo (&whole foo bar baz)
+               (declare (ignore bar baz))
+               (format nil "~a" foo)))
+    (foo 1 2))
+  "'(FOO 1 2)';")

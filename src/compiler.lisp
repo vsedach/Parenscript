@@ -1,6 +1,6 @@
 (in-package :parenscript)
 
-;;;; The mechanisms for defining macros & parsing Parenscript.
+;;;; The mechanisms for parsing Parenscript.
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (defvar *toplevel-special-forms* (make-hash-table :test #'equal)
     "A hash-table containing functions that implement Parenscript special forms,
@@ -105,16 +105,21 @@ function and the parent macro environment of the macro."
     (values (cdr macro-spec) parent-env)))
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
+  (defun make-ps-macro-function (args body)
+    (let* ((whole-var (when (eql '&whole (first args)) (second args)))
+           (effective-lambda-list (if whole-var (cddr args) args))
+           (form-arg (or whole-var (gensym "ps-macro-form-arg-")))
+           (body (if (and (cdr body) (stringp (first body))) (rest body) body))) ;; drop docstring
+      (compile nil `(lambda (,form-arg)
+                     (destructuring-bind ,effective-lambda-list
+                         (cdr ,form-arg)
+                       ,@body)))))
+      
   (defun define-script-macro% (name args body &key symbol-macro-p)
-    (let ((lambda-list (gensym "ps-lambda-list-"))
-	  (body (if (and (cdr body) (stringp (first body))) (rest body) body))) ;; drop docstring
-      (undefine-ps-special-form name)
-      (setf (get-macro-spec name *script-macro-toplevel*)
-	    (cons symbol-macro-p (compile nil `(lambda (&rest ,lambda-list)
-						(destructuring-bind ,args
-						    ,lambda-list
-						  ,@body)))))
-      nil)))
+    (undefine-ps-special-form name)
+    (setf (get-macro-spec name *script-macro-toplevel*)
+          (cons symbol-macro-p (make-ps-macro-function args body)))
+    nil))
 
 (defmacro defpsmacro (name args &body body)
   "Define a ParenScript macro, and store it in the toplevel ParenScript
@@ -162,7 +167,7 @@ whether any expansion was performed on the form or not."
 		(if (equalp '(nil) args) nil form) ;; leave quotes alone, unless it's a quoted nil
 		nil))
               ((script-macro-p op) ;; recursively expand parenscript macros in parent env.
-               (values (ps-macroexpand (apply (lookup-macro-expansion-function op) args)) t))
+               (values (ps-macroexpand (funcall (lookup-macro-expansion-function op) form)) t))
               (t (values form nil))))
       (cond ((script-symbol-macro-p form)
 	     ;; recursively expand symbol macros in parent env.

@@ -108,11 +108,7 @@ gensym-prefix-string)."
       (destructuring-bind (name arglist &body body)
           macro
 	(setf (get-macro-spec name macro-env-dict)
-	      (cons nil (let ((args (gensym "ps-macrolet-args-")))
-                          (compile nil `(lambda (&rest ,args)
-                                         (destructuring-bind ,arglist
-                                             ,args
-                                           ,@body))))))))
+	      (cons nil (make-ps-macro-function arglist body)))))
     (compile-parenscript-form `(progn ,@body))))
 
 (define-ps-special-form symbol-macrolet (expecting symbol-macros &body body)

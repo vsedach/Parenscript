@@ -103,7 +103,7 @@
         (compile-parenscript-form `(progn ,@body))))
 
 (define-ps-special-form %js-defun (expecting name args &rest body)
-  (list 'js-defun (compile-parenscript-form name :expecting :symbol)
+  (list 'js-defun name
         (mapcar (lambda (val) (compile-parenscript-form val :expecting :symbol)) args)
 	(compile-parenscript-form `(progn ,@body))))
 
@@ -210,7 +210,7 @@
   (smart-setf (compile-parenscript-form lhs :expecting :expression) (compile-parenscript-form rhs :expecting :expression)))
 
 (define-ps-special-form defvar (expecting name &rest value)
-  (append (list 'js-defvar (compile-parenscript-form name :expecting :symbol))
+  (append (list 'js-defvar name)
           (when value
             (assert (= (length value) 1) () "Wrong number of arguments to defvar: ~s" `(defvar ,name ,@value))
            (list (compile-parenscript-form (car value) :expecting :expression)))))
@@ -236,7 +236,7 @@
 
 (define-ps-special-form doeach (expecting decl &rest body)
   (list 'js-for-each
-        (compile-parenscript-form (first decl) :expecting :symbol)
+        (first decl)
         (compile-parenscript-form (second decl) :expecting :expression)
 	(compile-parenscript-form `(progn ,@body))))
 

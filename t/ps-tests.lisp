@@ -422,3 +422,7 @@ x = 2 + sideEffect() + x + 5;")
                (format nil "~a" foo)))
     (foo 1 2))
   "'(FOO 1 2)';")
+
+(test-ps-js keyword-consistent
+  :x
+  "x")

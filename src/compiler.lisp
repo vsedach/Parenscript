@@ -229,9 +229,6 @@ the form cannot be compiled to a symbol."
   ;; is this the correct behavior?
   (let ((special-symbol (get-ps-special-form symbol)))
     (cond (special-symbol (funcall special-symbol :symbol))
-          ;; the following emulates the lisp behavior that a keyword is bound to itself
-          ;; see http://clhs.lisp.se/Body/t_kwd.htm
-          ((keywordp symbol) (compile-parenscript-form `(quote ,symbol)))
           (t (list 'js-variable symbol)))))
 
 (defun compile-function-argument-forms (arg-forms)

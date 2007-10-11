@@ -162,22 +162,11 @@ whether any expansion was performed on the form or not."
   (if (consp form)
       (let ((op (car form))
             (args (cdr form)))
-        (cond ((equal op 'quote)
-	       (values 
-		(if (equalp '(nil) args) nil form) ;; leave quotes alone, unless it's a quoted nil
-		nil))
-              ((script-macro-p op) ;; recursively expand parenscript macros in parent env.
-               (values (ps-macroexpand (funcall (lookup-macro-expansion-function op) form)) t))
+        (cond ((equal op 'quote) (values (if (equalp '(nil) args) nil form) ;; leave quotes alone, unless it's a quoted nil
+                                         nil))
+              ((script-macro-p op) (values (ps-macroexpand (funcall (lookup-macro-expansion-function op) form)) t))
               (t (values form nil))))
-      (cond ((script-symbol-macro-p form)
-	     ;; recursively expand symbol macros in parent env.
-	     (multiple-value-bind (expansion-function macro-env)
-		 (lookup-macro-expansion-function form)
-	       (values
-		(ps-macroexpand (let ((*script-macro-env* macro-env))
-				      (funcall expansion-function)))
-		t)))
-	    ;; leave anything else alone
+      (cond ((script-symbol-macro-p form) (values (ps-macroexpand (funcall (lookup-macro-expansion-function form))) t))
             (t (values form nil)))))
 
 ;;;; compiler interface

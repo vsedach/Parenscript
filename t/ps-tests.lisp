@@ -426,3 +426,13 @@ x = 2 + sideEffect() + x + 5;")
 (test-ps-js keyword-consistent
   :x
   "x")
+
+(test-ps-js simple-symbol-macrolet
+  (symbol-macrolet ((x 1)) x)
+  "1;")
+
+(test-ps-js compound-symbol-macrolet
+  (symbol-macrolet ((x 123)
+                    (y (* 2 x)))
+     y)
+  "2 * 123;")

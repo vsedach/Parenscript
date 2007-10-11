@@ -51,7 +51,7 @@ gensym-prefix-string)."
   (flet ((slot-var (slot) (if (listp slot) (first slot) slot))
 	 (slot-symbol (slot) (if (listp slot) (second slot) slot)))
     `(symbol-macrolet ,(mapcar #'(lambda (slot)
-				   `(,(slot-var slot) '(slot-value ,object ',(slot-symbol slot))))
+				   `(,(slot-var slot) (slot-value ,object ',(slot-symbol slot))))
 			       slots)
       ,@body)))
 
@@ -114,10 +114,10 @@ gensym-prefix-string)."
 (define-ps-special-form symbol-macrolet (expecting symbol-macros &body body)
   (with-temp-macro-environment (macro-env-dict)
     (dolist (macro symbol-macros)
-      (destructuring-bind (name &body expansion)
+      (destructuring-bind (name expansion)
           macro
 	(setf (get-macro-spec name macro-env-dict)
-	      (cons t (compile nil `(lambda () ,@expansion))))))
+	      (cons t (compile nil `(lambda () ',expansion))))))
     (compile-parenscript-form `(progn ,@body))))
 
 (define-ps-special-form defmacro (expecting name args &body body)

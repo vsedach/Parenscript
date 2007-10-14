@@ -71,6 +71,7 @@ gensym-prefix-string)."
                               clauses))))
 
 (define-ps-special-form let (expecting bindings &rest body)
+  (declare (ignore expecting))
   (let ((defvars (mapcar (lambda (binding) (if (atom binding)
                                                `(defvar ,binding)
                                                `(defvar ,@binding)))
@@ -103,6 +104,7 @@ gensym-prefix-string)."
     ,@body))
 
 (define-ps-special-form macrolet (expecting macros &body body)
+  (declare (ignore expecting))
   (with-temp-macro-environment (macro-env-dict)
     (dolist (macro macros)
       (destructuring-bind (name arglist &body body)
@@ -112,6 +114,7 @@ gensym-prefix-string)."
     (compile-parenscript-form `(progn ,@body))))
 
 (define-ps-special-form symbol-macrolet (expecting symbol-macros &body body)
+  (declare (ignore expecting))
   (with-temp-macro-environment (macro-env-dict)
     (dolist (macro symbol-macros)
       (destructuring-bind (name expansion)
@@ -121,10 +124,12 @@ gensym-prefix-string)."
     (compile-parenscript-form `(progn ,@body))))
 
 (define-ps-special-form defmacro (expecting name args &body body)
+  (declare (ignore expecting))
   (define-script-macro% name args body :symbol-macro-p nil)
   nil)
 
 (define-ps-special-form define-symbol-macro (expecting name &body body)
+  (declare (ignore expecting))
   (define-script-macro% name () body :symbol-macro-p t)
   nil)
 

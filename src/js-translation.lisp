@@ -1,6 +1,7 @@
 (in-package :parenscript)
 
 (defvar *ps-output-stream*)
+(defparameter *indent-level* 0)
 
 (defmethod parenscript-print (ps-form &optional *ps-output-stream*)
   (setf *indent-level* 0)
@@ -41,7 +42,6 @@ indent position."
 
 ;;; indenter
 
-(defparameter *indent-level* 0)
 (defparameter *indent-num-space* 4)
 
 (defun newline-and-indent ()
@@ -351,7 +351,7 @@ vice-versa.")
   (write-string "; ")
   (ps-print test)
   (write-string "; ")
-  (loop for ((var-name . var-init) . rest) on vars
+  (loop for ((var-name . nil) . rest) on vars
         for step in steps
         with after = ", "
         unless rest do (setf after "")

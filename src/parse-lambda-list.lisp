@@ -194,7 +194,7 @@
 
     ;; Check validity of parameters.
     (flet ((need-symbol (x why)
-             (unless (or (symbolp x) t)
+             (unless (symbolp x)
                (format t "~A is not a symbol: ~S" why x))))
       (dolist (i required)
         (need-symbol i "Required argument"))

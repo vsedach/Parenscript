@@ -484,7 +484,7 @@ _js2.style.left = _js1;")
   (document.write
   (ps-html ((:a :href "#"
                 :onclick (lisp (ps-inline (transport)))) "link")))
-  "document.write('<a href=\"#\" onclick=\"' + 'javascript:transport();' + '\">link</a>')")
+  "document.write('<a href=\"#\" onclick=\"' + 'javascript:transport()' + '\">link</a>')")
 
 (test-ps-js the-html-generator-4
   (let ((disabled nil)

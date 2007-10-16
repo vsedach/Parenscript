@@ -926,7 +926,7 @@ a-variable  => aVariable
 (document.write
   (ps-html ((:a :href "#"
                 :onclick (lisp (ps-inline (transport)))) "link")))
-  => document.write('<a href=\"#\" onclick=\"' + 'javascript:transport();' + '\">link</a>')
+  => document.write('<a href=\"#\" onclick=\"' + 'javascript:transport()' + '\">link</a>')
 
 ;;; Forms may be used in attribute lists to conditionally generate
 ;;; the next attribute. In this example the textarea is sometimes disabled.

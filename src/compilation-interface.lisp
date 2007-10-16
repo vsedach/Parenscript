@@ -16,12 +16,13 @@ is output to the OUTPUT-STREAM stream."
 Body is evaluated."
   (compile-script `(progn ,@body)))
 
-(defun ps-inline* (form)
-  (concatenate 'string
-               "javascript:"
-               (remove #\Newline
-                       (parenscript-print (compile-parenscript-form form :expecting :statement))
-                       :from-end t)))
+(defun ps-inline* (form &optional (quote-char #\"))
+  (let ((*js-quote-char* quote-char))
+    (concatenate 'string
+                 "javascript:"
+                 (remove #\Newline
+                         (parenscript-print (compile-parenscript-form form :expecting :statement))
+                         :from-end t))))
 
-(defmacro ps-inline (&body body)
-  `(ps-inline* '(progn ,@body)))
+(defmacro ps-inline (form &optional (quote-char #\"))
+  `(ps-inline* ',form ,quote-char))

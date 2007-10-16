@@ -395,7 +395,7 @@ x = 2 + sideEffect() + x + 5;")
                      :onclick (lisp (ps-inline (transport))))
                  img))
        img))
-  "document.write(LINKORNOT == 1 ? '<a href=\"#\" onclick=\"' + 'javascript:transport();' + '\">' + img + '</a>' : img)")
+  "document.write(LINKORNOT == 1 ? '<a href=\"#\" onclick=\"' + 'javascript:transport()' + '\">' + img + '</a>' : img)")
 
 (test-ps-js negate-number-literal ;; ok, this was broken and fixed before, but no one bothered to add the test!
   (- 1)

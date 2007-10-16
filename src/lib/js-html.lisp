@@ -71,6 +71,7 @@
     (cons '+ (optimize-string-list (nreverse res)))))
 
 (define-ps-special-form ps-html (expecting &rest forms)
+  (declare (ignore expecting))
   (compile-parenscript-form (process-html-forms forms)))
 
 (defun process-css-forms (proplist)
@@ -83,4 +84,5 @@
 
 
 (define-ps-special-form css-inline (expecting &rest forms)
+  (declare (ignore expecting))
   (compile-parenscript-form (cons '+ (process-css-forms forms))))

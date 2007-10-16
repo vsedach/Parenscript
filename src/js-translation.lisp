@@ -25,7 +25,7 @@ arguments, defines a printer for that form using the given body."
   (let ((sf (gensym))
         (sf-args (gensym)))
     `(defmethod ps-print% ((,sf (eql ',special-form)) ,sf-args)
-      (declare (ignore ,sf))
+      (declare (ignorable ,sf))
       (destructuring-bind ,content-args
           ,sf-args
         ,@body))))

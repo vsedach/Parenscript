@@ -23,8 +23,8 @@
 			     (:file "compiler" :depends-on ("namespace"))
 			     (:file "js-macrology" :depends-on ("compiler"))
 			     (:file "ps-macrology" :depends-on ("utils" "js-macrology" "parse-lambda-list"))
-			     (:file "js-translation" :depends-on ("ps-macrology"))
-			     (:file "compilation-interface" :depends-on ("package" "js-translation"))
+			     (:file "printer" :depends-on ("ps-macrology"))
+			     (:file "compilation-interface" :depends-on ("package" "printer"))
                              (:file "deprecated-interface" :depends-on ("compilation-interface"))
 			     ;; standard library
                              (:module :lib

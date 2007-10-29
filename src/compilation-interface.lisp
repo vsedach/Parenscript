@@ -8,7 +8,8 @@ is output to the OUTPUT-STREAM stream."
   (parenscript-print (compile-parenscript-form script-form :expecting :statement) output-stream))
 
 (defmacro ps (&body body)
-  "A macro that returns a Javascript string of the supplied Parenscript forms."
+  "Given Parenscript forms (an implicit progn), expands to code which
+compiles those forms to a JavaScript string."
   `(ps* '(progn ,@body)))
 
 (defun ps* (&rest body)
@@ -16,13 +17,13 @@ is output to the OUTPUT-STREAM stream."
 Body is evaluated."
   (compile-script `(progn ,@body)))
 
-(defun ps-inline* (form &optional (quote-char #\"))
-  (let ((*js-quote-char* quote-char))
-    (concatenate 'string
-                 "javascript:"
-                 (remove #\Newline
-                         (parenscript-print (compile-parenscript-form form :expecting :statement))
-                         :from-end t))))
+(defvar *js-inline-string-delimiter* #\"
+  "Controls the string delimiter char used when compiling Parenscript in ps-inline.")
 
-(defmacro ps-inline (form &optional (quote-char #\"))
-  `(ps-inline* ',form ,quote-char))
+(defun ps-inline* (form &optional (*js-string-delimiter* *js-inline-string-delimiter*))
+  (concatenate 'string
+               "javascript:"
+               (parenscript-print (compile-parenscript-form form :expecting :statement))))
+
+(defmacro ps-inline (form &optional (string-delimiter '*js-inline-string-delimiter*))
+  `(ps-inline* ',form ,string-delimiter))

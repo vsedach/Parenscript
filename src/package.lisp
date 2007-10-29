@@ -180,6 +180,12 @@
    #:obfuscate-package
    #:unobfuscate-package
 
+   ;; printer
+   #:*js-string-delimiter*
+   #:*js-inline-string-delimiter*
+   #:*ps-print-pretty*
+   #:*indent-num-spaces*
+
    ;; deprecated interface
    #:gen-js-name
    #:gen-js-name-string

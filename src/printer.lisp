@@ -16,9 +16,7 @@
           (print-ps ps-form)))))
 
 (defun psw (obj) ;; parenscript-write
-  (cond ((stringp obj) (write-string obj *ps-output-stream*))
-        ((characterp obj) (write-char obj *ps-output-stream*))
-        (t (princ obj *ps-output-stream*))))    
+  (princ obj *ps-output-stream*))    
 
 (defgeneric ps-print% (special-form-name special-form-args))
 
@@ -35,7 +33,7 @@ arguments, defines a printer for that form using the given body."
 
 (defgeneric ps-print (compiled-form))
 
-(defmethod ps-print ((form null)) ;; don't print nils (ex: result of defining macros, etc.)
+(defmethod ps-print ((form null)) ;; don't print top-level nils (ex: result of defining macros, etc.)
   )
 
 (defmethod ps-print ((compiled-form cons))
@@ -43,20 +41,20 @@ arguments, defines a printer for that form using the given body."
 indent position."
   (ps-print% (car compiled-form) (cdr compiled-form)))
 
-;;; indenter
-
-(defparameter *indent-num-space* 4)
+;;; indentation
+(defvar *ps-print-pretty* t)
+(defvar *indent-num-spaces* 4)
 
 (defun newline-and-indent ()
-  (when (fresh-line *ps-output-stream*)
-    (loop repeat (* *indent-level* *indent-num-space*)
+  (when (and (fresh-line *ps-output-stream*) *ps-print-pretty*)
+    (loop repeat (* *indent-level* *indent-num-spaces*)
           do (psw #\Space))))
 
 ;;; string literals
-(defvar *js-quote-char* #\'
-  "Specifies which character JS should use for delimiting strings.
+(defvar *js-string-delimiter* #\'
+  "Specifies which character should be used for delimiting strings.
 
-This variable is useful when have to embed some javascript code
+This variable is used when you want to embed the resulting JavaScript
 in an html attribute delimited by #\\\" as opposed to #\\', or
 vice-versa.")
 
@@ -72,16 +70,15 @@ vice-versa.")
 (defmethod ps-print ((string string))
   (flet ((lisp-special-char-to-js (lisp-char)
            (car (rassoc lisp-char *js-lisp-escaped-chars*))))
-    (psw *js-quote-char*)
+    (psw *js-string-delimiter*)
     (loop for char across string
           for code = (char-code char)
           for special = (lisp-special-char-to-js char)
-          do (cond (special (psw #\\)
-                            (psw special))
+          do (cond (special (psw #\\) (psw special))
                    ((or (<= code #x1f) (>= code #x80))
                     (format *ps-output-stream* "\\u~4,'0x" code))
-                   (t (psw char)))
-          finally (psw *js-quote-char*))))
+                   (t (psw char))))
+    (psw *js-string-delimiter*)))
 
 (defmethod ps-print ((number number))
   (format *ps-output-stream* (if (integerp number) "~S" "~F") number))

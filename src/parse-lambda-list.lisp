@@ -1,6 +1,6 @@
-(in-package parenscript)
-;;;; This software was taken from the SBCL system.  there are very few 
-;;;; changes, and one SBCL-specific thing left (sb-c::collect
+(in-package :parenscript)
+
+;;;; This software was taken from the SBCL system, mostly verbatim.
 
 ;;; if you have found this on google, THIS IS NOT AN SBCL SOURCE FILE
 
@@ -25,9 +25,8 @@
 ;;; 14. the &KEY-OBJECT var
 ;;;
 ;;; The top level lambda list syntax is checked for validity, but the
-;;; arg specifiers are just passed through untouched. If something is
-;;; wrong, we use COMPILER-ERROR, aborting compilation to the last
-;;; recovery point.
+;;; arg specifiers are just passed through untouched.
+
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (defun collect-list-expander (n-value n-tail forms)
     (let ((n-res (gensym)))
@@ -119,10 +118,8 @@
                (unless (member state
                                '(:required :optional :post-rest :post-more))
                  (format t "misplaced &KEY in lambda list: ~S" list))
-               #-sb-xc-host
                (when (optional)
-                 (format t
-                  "&OPTIONAL and &KEY found in the same lambda list: ~S" list))
+                 (format t "&OPTIONAL and &KEY found in the same lambda list: ~S" list))
                (setq keyp t
                      state :key))
               (&allow-other-keys

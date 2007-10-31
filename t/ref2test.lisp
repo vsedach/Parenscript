@@ -102,5 +102,4 @@
                                               (list #\Newline))
                                             line))))))))))
 
-
 (make-reference-tests-dot-lisp)

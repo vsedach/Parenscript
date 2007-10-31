@@ -1,47 +1,12 @@
 (in-package :parenscript)
 
-(defun list-join (list elt)
-  (let (res)
-    (dolist (i list)
-      (push i res)
-      (push elt res))
-    (pop res)
-    (nreverse res)))
-
-(defun list-to-string (list)
-  (with-output-to-string (str)
-    (dolist (el list)
-      (write-string el str))))
-
-(defun append-to-last (form elt)
-  (cond ((stringp form)
-	 (concatenate 'string form elt))
-	((consp form)
-	 (let ((last (last form)))
-	   (if (stringp (car last))
-	       (rplaca last (concatenate 'string (car last) elt))
-	       (append-to-last (car last) elt))
-	   form))
-	(t (error "unsupported form ~S" form))))
-
-(defun prepend-to-first (form elt)
-  (cond ((stringp form)
-	 (concatenate 'string elt form))
-	((consp form)
-	 (let ((first (first form)))
-	   (if (stringp first)
-	       (rplaca form (concatenate 'string elt first))
-	       (prepend-to-first first elt))
-	   form))
-	(t (error "unsupported form ~S" form))))
-
-(defun string-join (strings elt)
-  (list-to-string (list-join strings elt)))
+(defun string-join (strings separator)
+  (format nil "~{~}" (format nil "~~a~~^~a" separator) strings))
 
 (defun val-to-string (val)
-  (cond ((stringp val) val)
-	((symbolp val) (string-downcase (symbol-name val)))
-	(t (princ-to-string val))))
+  (if (symbolp val)
+      (string-downcase (symbol-name val))
+      (princ-to-string val)))
 
 (defun string-split (string separators &key (keep-separators nil) (remove-empty-subseqs nil))
   (do ((len (length string))
@@ -70,11 +35,7 @@
     (#\* . "Star")
     (#\/ . "Slash")))
 
-
 ;;; Parenscript-style symbol -> Javascript-style symbol
-
-(defun string-chars (string)
-  (coerce string 'list))
 
 (defun constant-string-p (string)
   (let ((len (length string))
@@ -92,8 +53,10 @@
        (char= #\: (char string 0))))
 
 (defun symbol-to-js (symbol)
-  "Changes a Parenscript-style symbol or string and converts it to a Javascript-style string.
-For example, paren-script becomes parenScript, *some-global* becomes SOMEGLOBAL."
+  "Given a Lisp symbol or string, produces to a valid JavaScript
+identifier by following transformation heuristics case conversion. For
+example, paren-script becomes parenScript, *some-global* becomes
+SOMEGLOBAL."
   (when (symbolp symbol)
     (setf symbol (symbol-name symbol)))
   (let ((symbols (string-split symbol '(#\. #\[ #\]) :keep-separators t :remove-empty-subseqs t)))
@@ -132,17 +95,6 @@ For example, paren-script becomes parenScript, *some-global* becomes SOMEGLOBAL.
 	     (coerce (nreverse res) 'string)))
 	  (t (string-join (mapcar #'symbol-to-js symbols) "")))))
 
-(defun compose (&rest fns)
-  "(funcall (compose #'x #'y #'z) 'foo) is (x (y (z 'foo)))"
-  (if fns
-      (let ((fn1 (car (last fns)))
-	    (fns (butlast fns)))
-	#'(lambda (&rest args)
-	    (reduce #'funcall fns 
-		    :from-end t
-		    :initial-value (apply fn1 args))))
-      #'identity))
-
-(defun ordered-set-difference (list1 list2 &key (test #'eql))
+(defun ordered-set-difference (list1 list2 &key (test #'eql)) ;; because the CL set-difference may not preserve order
   (reduce (lambda (list el) (remove el list :test test))
           (cons list1 list2)))

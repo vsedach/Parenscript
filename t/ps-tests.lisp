@@ -436,3 +436,8 @@ x = 2 + sideEffect() + x + 5;")
                     (y (* 2 x)))
      y)
   "2 * 123;")
+
+(test-ps-js define-symbol-macro
+  (progn (define-symbol-macro tst-sym-macro 2)
+         tst-sym-macro)
+  "2;")

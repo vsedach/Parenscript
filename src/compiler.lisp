@@ -166,7 +166,7 @@ whether any expansion was performed on the form or not."
                                          nil))
               ((script-macro-p op) (values (ps-macroexpand (funcall (lookup-macro-expansion-function op) form)) t))
               (t (values form nil))))
-      (cond ((script-symbol-macro-p form) (values (ps-macroexpand (funcall (lookup-macro-expansion-function form))) t))
+      (cond ((script-symbol-macro-p form) (values (ps-macroexpand (funcall (lookup-macro-expansion-function form) (list form))) t))
             (t (values form nil)))))
 
 ;;;; compiler interface

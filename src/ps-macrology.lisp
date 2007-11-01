@@ -120,7 +120,7 @@ gensym-prefix-string)."
       (destructuring-bind (name expansion)
           macro
 	(setf (get-macro-spec name macro-env-dict)
-	      (cons t (compile nil `(lambda () ',expansion))))))
+	      (cons t (make-ps-macro-function () (list `',expansion))))))
     (compile-parenscript-form `(progn ,@body))))
 
 (define-ps-special-form defmacro (expecting name args &body body)
@@ -128,9 +128,9 @@ gensym-prefix-string)."
   (define-script-macro% name args body :symbol-macro-p nil)
   nil)
 
-(define-ps-special-form define-symbol-macro (expecting name &body body)
+(define-ps-special-form define-symbol-macro (expecting name expansion)
   (declare (ignore expecting))
-  (define-script-macro% name () body :symbol-macro-p t)
+  (define-script-macro% name () (list `',expansion) :symbol-macro-p t)
   nil)
 
 (defpsmacro lisp (&body forms)

@@ -4,7 +4,8 @@
 ;;; provide standard Lisp functionality.
 
 (defparameter *ps-lisp-library*
-  '((defun mapcar (fun &rest as)
+  '(progn
+    (defun mapcar (fun &rest as)
       (let ((result-array (make-array)))
         (if (= 1 (length as))
             (dolist (element (aref as 0))

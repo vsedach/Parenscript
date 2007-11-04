@@ -147,6 +147,31 @@
 
       ;; utils
       #:do-set-timeout
+      #:min
+      #:max
+      #:ceiling
+      #:abs
+      #:sin
+      #:cos
+      #:tan
+      #:acos
+      #:asin
+      #:atan
+      #:exp
+      #:floor
+      #:expt
+      #:round
+      #:random
+      #:oddp
+      #:evenp
+      #:ignore-errors
+      #:length
+      #:null
+      #:@
+
+      ;; libries
+      #:*ps-lisp-library*
+      #:mapcar
       ))
   "All symbols considerred part of the Parenscript language.")
 

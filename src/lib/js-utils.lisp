@@ -37,7 +37,24 @@
 (defpsmacro ignore-errors (&body body)
   `(try (progn ,@body) (:catch (e))))
 
+;;; Data structures
+
+(defpsmacro length (a)
+  `(.size ,a))
+
 ;;; Misc
 
 (defpsmacro null (x)
   `(= ,x nil))
+
+(defpsmacro @ (obj &rest props)
+  "Handy slot-value/aref composition macro."
+  (if (null props)
+      obj
+      `(@ (slot-value
+           ,(if (stringp obj) `($ ,obj) obj)
+           ,(let ((prop (macroexpand (first props))))
+                 (if (symbolp prop)
+                     `',prop
+                     prop)))
+        ,@(cdr props))))

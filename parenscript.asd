@@ -31,7 +31,8 @@
                                       :components ((:static-file "functional.lisp")
 						   (:file "js-html")
 						   (:file "css"    )
-						   (:file "js-utils"))
+						   (:file "js-utils")
+                                                   (:file "js-lib"))
 				      :depends-on ("compilation-interface")))))
   :depends-on ())
 

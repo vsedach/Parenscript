@@ -84,7 +84,7 @@
 
 (define-ps-special-form ~ (expecting x)
   (declare (ignore expecting))
-  (list 'unary-operator "~" (compile-parenscript-form x :expecting :expressin) :prefix t))
+  (list 'unary-operator "~" (compile-parenscript-form x :expecting :expression) :prefix t))
 
 (defun flatten-blocks (body)
   (when body
@@ -97,9 +97,9 @@
   (if (and (eql expecting :expression) (= 1 (length body)))
       (compile-parenscript-form (car body) :expecting :expression)
       (list 'js-block
-            (if (eql expecting :statement) t nil)
+            expecting
             (let* ((block (mapcar (lambda (form)
-                                    (compile-parenscript-form form :expecting :statement))
+                                    (compile-parenscript-form form :expecting expecting))
                                   body))
                    (clean-block (remove nil block))
                    (flat-block (flatten-blocks clean-block))
@@ -108,18 +108,22 @@
               reachable-block))))
 
 ;;; function definition
+(defun compile-function-definition (args body)
+  (list (mapcar (lambda (arg) (compile-parenscript-form arg :expecting :symbol)) args)
+        (let ((*enclosing-lexical-block-declarations* ()))
+          ;; the first compilation will produce a list of variables we need to declare in the function body
+          (compile-parenscript-form `(progn ,@body) :expecting :statement)
+          ;; now declare and compile
+          (compile-parenscript-form `(progn ,@(loop for var in *enclosing-lexical-block-declarations* collect `(defvar ,var))
+                                      ,@body) :expecting :statement))))
+
 (define-ps-special-form %js-lambda (expecting args &rest body)
   (declare (ignore expecting))
-  (list 'js-lambda (mapcar (lambda (arg)
-                             (compile-parenscript-form arg :expecting :symbol))
-                           args)
-        (compile-parenscript-form `(progn ,@body))))
+  (cons 'js-lambda (compile-function-definition args body)))
 
 (define-ps-special-form %js-defun (expecting name args &rest body)
   (declare (ignore expecting))
-  (list 'js-defun name
-        (mapcar (lambda (val) (compile-parenscript-form val :expecting :symbol)) args)
-	(compile-parenscript-form `(progn ,@body))))
+  (append (list 'js-defun name) (compile-function-definition args body)))
 
 ;;; object creation
 (define-ps-special-form create (expecting &rest args)
@@ -148,7 +152,7 @@
                                 (destructuring-bind (test &rest body)
                                     clause
                                   (list (compile-parenscript-form test :expecting :expression)
-                                        (compile-parenscript-form `(progn ,@body)))))
+                                        (compile-parenscript-form `(progn ,@body) :expecting :statement))))
                               clauses)))
     (:expression (make-cond-clauses-into-nested-ifs clauses))))
 
@@ -177,10 +181,11 @@
   (let ((clauses (mapcar (lambda (clause)
 			     (let ((val (car clause))
 				   (body (cdr clause)))
-			       (list (if (eql val 'default)
+			       (cons (if (eql val 'default)
 					 'default
 					 (compile-parenscript-form val :expecting :expression))
-                                     (compile-parenscript-form `(progn ,@body)))))
+                                     (mapcar (lambda (statement) (compile-parenscript-form statement :expecting :statement))
+                                             body))))
 			 clauses))
 	(expr (compile-parenscript-form test-expr :expecting :expression)))
     (list 'js-switch expr clauses)))

@@ -441,3 +441,16 @@ x = 2 + sideEffect() + x + 5;")
   (progn (define-symbol-macro tst-sym-macro 2)
          tst-sym-macro)
   "2;")
+
+(test-ps-js expression-progn
+  (defun f () (return (progn (foo) (if x 1 2))))
+  "function f() {
+    return (foo(), x ? 1 : 2);
+}")
+
+(test-ps-js let-decl-in-expression
+  (defun f (x) (return (if x 1 (let ((foo x)) foo))))
+  "function f(x) {
+    var foo;
+    return x ? 1 : (foo = x, foo);
+}")

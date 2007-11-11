@@ -1,6 +1,5 @@
 (in-package :parenscript)
 
-;;;; The mechanisms for parsing Parenscript.
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (defvar *toplevel-special-forms* (make-hash-table :test #'equal)
     "A hash-table containing functions that implement Parenscript special forms,
@@ -24,6 +23,16 @@ types are appended to the ongoing javascript compilation."
 (defun get-ps-special-form (name)
   "Returns the special form function corresponding to the given name."
   (gethash (lisp-symbol-to-ps-identifier name :special-form) *toplevel-special-forms*))
+
+(defvar *enclosing-lexical-block-declarations* ()
+  "This special variable is expected to be bound to a fresh list by
+special forms that introduce a new JavaScript lexical block (currently
+function definitions and lambdas). Enclosed special forms are expected
+to push variable declarations onto the list when the variables
+declaration cannot be made by the enclosed form (for example, a
+(x,y,z) expression progn). It is then the responsibility of the
+enclosing special form to introduce the variable bindings in its
+lexical block.")
 
 ;;; ParenScript form predicates
 (defun ps-special-form-p (form)
@@ -177,6 +186,7 @@ compiled to an :expression (the default), a :statement, or a
 :symbol."))
 
 (defmethod compile-parenscript-form :around (form &key expecting)
+  (assert (if expecting (member expecting '(:expression :statement :symbol)) t))
   (if (eql expecting :symbol)
       (compile-to-symbol form)
       (multiple-value-bind (expanded-form expanded-p)

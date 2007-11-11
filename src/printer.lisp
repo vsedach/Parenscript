@@ -203,26 +203,28 @@ vice-versa.")
 (defprinter js-method-call (method object args)
   ;; TODO: this may not be the best way to add ()'s around lambdas
   ;; probably there is or should be a more general solution working
-  ;; in other situations involving lambda's
+  ;; in other situations involving lambdas
   (if (or (numberp object) (and (consp object) (member (car object) '(js-lambda js-object operator js-expression-if))))
       (parenthesize-print object)
       (ps-print object))
   (psw (js-translate-symbol method))
   (psw #\() (print-comma-delimited-list args) (psw #\)))
 
-(defprinter js-block (statement-p statements)
-  (if statement-p
-      (progn (psw #\{)
-             (incf *indent-level*)
-             (dolist (statement statements)
-               (newline-and-indent) (ps-print statement) (psw #\;))
-             (decf *indent-level*)
-             (newline-and-indent)
-             (psw #\}))
-      (progn (psw #\()
-             (loop for (statement . remaining) on statements do
-                   (ps-print statement) (when remaining (psw ", ")))
-             (psw #\)))))
+(defprinter js-block (block-type statements)
+  (case block-type
+    (:statement
+     (psw #\{)
+     (incf *indent-level*)
+     (dolist (statement statements)
+       (newline-and-indent) (ps-print statement) (psw #\;))
+     (decf *indent-level*)
+     (newline-and-indent)
+     (psw #\}))
+    (:expression
+     (psw #\()
+     (loop for (statement . remaining) on statements do
+           (ps-print statement) (when remaining (psw ", ")))
+     (psw #\)))))
 
 (defprinter js-lambda (args body)
   (print-fun-def nil args body))
@@ -334,16 +336,16 @@ vice-versa.")
                         (psw #\;)))
            (decf *indent-level*)))
     (psw "switch (") (ps-print test) (psw ") {")
-    (loop for (val body-block) in clauses
-          for body-statements = (third body-block)
+    (loop for (val . statements) in clauses
           do (progn (newline-and-indent)
                     (if (eql val 'default)
                         (progn (psw "default: ")
-                               (print-body-statements body-statements))
+                               (print-body-statements statements))
                         (progn (psw "case ")
                                (ps-print val)
                                (psw #\:)
-                               (print-body-statements body-statements)))))
+                               (print-body-statements statements)))))
+    (newline-and-indent)
     (psw #\})))
 
 (defprinter js-try (body-block &key catch finally)

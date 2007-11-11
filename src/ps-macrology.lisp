@@ -71,12 +71,18 @@ gensym-prefix-string)."
                               clauses))))
 
 (define-ps-special-form let (expecting bindings &rest body)
-  (declare (ignore expecting))
-  (let ((defvars (mapcar (lambda (binding) (if (atom binding)
-                                               `(defvar ,binding)
-                                               `(defvar ,@binding)))
-                         bindings)))
-    (compile-parenscript-form `(progn ,@defvars ,@body))))
+  (ecase expecting
+    (:statement
+     (let ((defvars (mapcar (lambda (binding) (if (atom binding)
+                                                  `(defvar ,binding)
+                                                  `(defvar ,@binding)))
+                            bindings)))
+       (compile-parenscript-form `(progn ,@defvars ,@body) :expecting :statement)))
+    (:expression
+     (let ((declared-variables (mapcar (lambda (binding) (if (atom binding) binding (car binding))) bindings))
+           (variable-assignments (loop for b in bindings when (listp b) collect (cons 'setf b))))
+       (setf *enclosing-lexical-block-declarations* (append declared-variables *enclosing-lexical-block-declarations*))
+       (compile-parenscript-form `(progn ,@variable-assignments ,@body) :expecting :expression)))))
 
 ;;; iteration
 (defpsmacro dotimes (iter &rest body)
@@ -278,12 +284,12 @@ lambda-list::=
   [&key {var | ({var | (keyword-name var)} [init-form [supplied-p-parameter]])}* [&allow-other-keys]] 
   [&aux {var | (var [init-form])}*])"
   (if (symbolp name)
-      `(defun-normal ,name ,lambda-list ,@body)
+      `(defun-function ,name ,lambda-list ,@body)
       (progn (assert (and (= (length name) 2) (eql 'setf (car name))) ()
                      "(defun ~s ~s ...) needs to have a symbol or (setf symbol) for a name." name lambda-list)
              `(defun-setf ,name ,lambda-list ,@body))))
 
-(defpsmacro defun-normal (name lambda-list &body body)
+(defpsmacro defun-function (name lambda-list &body body)
   (multiple-value-bind (effective-args effective-body)
       (parse-extended-function lambda-list body name)
     `(%js-defun ,name ,effective-args

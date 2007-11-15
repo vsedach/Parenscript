@@ -276,3 +276,23 @@ the keyword for it."
                  (compile-function-argument-forms args)))
           (t (error "Cannot compile ~S to a ParenScript form." form)))))
 
+(defvar *ps-gensym-counter* 0)
+
+(defun ps-gensym (&optional (prefix "_js"))
+  (make-symbol (format nil "~A~A" prefix (incf *ps-gensym-counter*))))
+
+(defmacro with-ps-gensyms (symbols &body body)
+  "Evaluate BODY with SYMBOLS bound to unique ParenScript identifiers.
+
+Each element of SYMBOLS is either a symbol or a list of (symbol
+gensym-prefix-string)."
+  `(let* ,(mapcar (lambda (symbol)
+                    (destructuring-bind (symbol &optional prefix)
+                        (if (consp symbol)
+                            symbol
+                            (list symbol))
+                      (if prefix
+                          `(,symbol (ps-gensym ,prefix))
+                          `(,symbol (ps-gensym)))))
+                  symbols)
+     ,@body))

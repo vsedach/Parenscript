@@ -71,9 +71,9 @@
       
       ;; assignment and binding
       #:setf
-      #:defaultf
       #:defsetf
       #:let
+      #:lexical-let
       
       ;; variables
       #:defvar

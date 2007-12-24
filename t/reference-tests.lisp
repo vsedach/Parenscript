@@ -373,11 +373,21 @@ _js2.style.left = _js1;")
     (let ((blorg "blitzel"))
       (alert blorg)))
   "if (i == 1) {
-  var blorg = 'hallo';
-  alert(blorg);
+    (function () {
+        var newlexicalcontext1 = new Object;
+        newlexicalcontext1['blorg'] = 'hallo';
+        with (newlexicalcontext1) {
+            alert(blorg);
+        };
+     })();
 } else {
-  var blorg = 'blitzel';
-  alert(blorg);
+    (function () {
+        var newlexicalcontext3 = new Object;
+        newlexicalcontext3['blorg'] = 'blitzel';
+        with (newlexicalcontext3) {
+            alert(blorg);
+        };
+    })();
 }")
 
 (test-ps-js iteration-constructs-1

@@ -293,6 +293,6 @@ gensym-prefix-string)."
                             (list symbol))
                       (if prefix
                           `(,symbol (ps-gensym ,prefix))
-                          `(,symbol (ps-gensym)))))
+                          `(,symbol (ps-gensym ,(symbol-to-js symbol))))))
                   symbols)
      ,@body))

@@ -318,8 +318,8 @@ x = 2 + sideEffect() + x + 5;")
   (defun foo (&rest bar) (alert bar[1]))
   "function foo() {
     var bar = [];
-    for (var _js2 = 0; _js2 < arguments.length - 0; _js2 = _js2 + 1) {
-        bar[_js2] = arguments[_js2 + 0];
+    for (var i2 = 0; i2 < arguments.length - 0; i2 = i2 + 1) {
+        bar[i2] = arguments[i2 + 0];
     };
     alert(bar[1]);
 }")
@@ -328,8 +328,8 @@ x = 2 + sideEffect() + x + 5;")
   (defun foo (baz &rest bar) (return (+ baz (aref bar 1))))
   "function foo(baz) {
     var bar = [];
-    for (var _js2 = 0; _js2 < arguments.length - 1; _js2 = _js2 + 1) {
-        bar[_js2] = arguments[_js2 + 1];
+    for (var i2 = 0; i2 < arguments.length - 1; i2 = i2 + 1) {
+        bar[i2] = arguments[i2 + 1];
     };
     return baz + bar[1];
 }")

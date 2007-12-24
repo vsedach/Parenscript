@@ -136,9 +136,6 @@ vice-versa.")
 (defprinter js-literal (str)
   (psw str))
 
-(defprinter js-keyword (str)
-  (psw str))
-
 (defun print-comma-delimited-list (ps-forms)
   (loop for (form . remaining) on ps-forms do
         (ps-print form) (when remaining (psw ", "))))

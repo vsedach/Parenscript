@@ -15,13 +15,8 @@
 (defpsliteral nil       "null")
 (defpsliteral undefined "undefined")
 
-(defmacro defpskeyword (name string)
-  `(define-ps-special-form ,name (expecting)
-    (declare (ignore expecting))
-    (list 'js-keyword ,string)))
-
-(defpskeyword break    "break")
-(defpskeyword continue "continue")
+(defpsliteral break     "break")
+(defpsliteral continue  "continue")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; unary operators

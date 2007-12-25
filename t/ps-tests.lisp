@@ -254,6 +254,13 @@ x = 2 + sideEffect() + x + 5;")
   return x ? 'yes' : 'no';
 }")
 
+(test-ps-js defun-optional2
+  (defun foo (x &optional y) (+ x y))
+  "function foo(x, y) {
+    y = undefined === y && null || y;
+    x + y;
+}")
+
 (test-ps-js return-nothing
   (return)
   "return null")
@@ -310,8 +317,8 @@ x = 2 + sideEffect() + x + 5;")
   "{ }")
 
 (test-ps-js blank-object-literal
-  ({})
-  "{ }")
+  {}
+  "{}")
 
 (test-ps-js defun-rest1
   (defun foo (&rest bar) (alert bar[1]))
@@ -478,3 +485,11 @@ try {
 } finally {
     FOO = tempstackvar1;
 };")
+
+(test-ps-js literal1
+  (setf x undefined)
+  "x = undefined;")
+
+(test-ps-js literal2
+  (aref this x)
+  "this[x]")

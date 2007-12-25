@@ -3,10 +3,10 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; literals
 (defmacro defpsliteral (name string)
-  (pushnew name *ps-literals*)
-  `(define-ps-special-form ,name (expecting)
-    (declare (ignore expecting))
-    (list 'js-literal ,string)))
+  `(progn (pushnew ',name *ps-literals*)
+    (define-ps-special-form ,name (expecting)
+      (declare (ignore expecting))
+      (list 'js-literal ,string))))
 
 (defpsliteral this      "this")
 (defpsliteral t         "true")

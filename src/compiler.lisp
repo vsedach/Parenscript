@@ -1,12 +1,12 @@
 (in-package :parenscript)
 
 (defvar *ps-literals* ())
-
-(defun ps-literal-p (symbol)
-  (member symbol *ps-literals*))
+(defvar *ps-special-forms* ())
 
 (defun undefine-ps-special-form (name)
   "Undefines the special form with the given name (name is a symbol)."
+  (setf *ps-special-forms* (delete name *ps-special-forms*)
+        *ps-literals* (delete name *ps-literals*))
   (unintern (lisp-symbol-to-ps-identifier name :special-form) :parenscript-special-forms))
 
 (defmacro define-ps-special-form (name lambda-list &rest body)
@@ -15,10 +15,11 @@ form is a keyword indicating whether the form is expected to produce
 an :expression or a :statement. The resulting Parenscript language
 types are appended to the ongoing javascript compilation."
   (let ((arglist (gensym "ps-arglist-")))
-    `(defun ,(lisp-symbol-to-ps-identifier name :special-form) (&rest ,arglist)
-      (destructuring-bind ,lambda-list
-          ,arglist
-        ,@body))))
+    `(progn (pushnew ',name *ps-special-forms*)
+      (defun ,(lisp-symbol-to-ps-identifier name :special-form) (&rest ,arglist)
+        (destructuring-bind ,lambda-list
+            ,arglist
+          ,@body)))))
 
 (defun get-ps-special-form (name)
   "Returns the special form function corresponding to the given name."
@@ -40,7 +41,10 @@ lexical block.")
 (defun ps-special-form-p (form)
   (and (consp form)
        (symbolp (car form))
-       (find-symbol (symbol-name (car form)) :parenscript-special-forms)))
+       (member (car form) *ps-special-forms*)))
+
+(defun ps-literal-p (symbol)
+  (member symbol *ps-literals*))
 
 (defun op-form-p (form)
   (and (listp form)

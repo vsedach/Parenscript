@@ -1,12 +1,13 @@
 (in-package :parenscript)
 
-(eval-when (:compile-toplevel :load-toplevel :execute)
-  (defvar *toplevel-special-forms* (make-hash-table :test #'equal)
-    "A hash-table containing functions that implement Parenscript special forms,
-indexed by name (as symbols)")
-  (defun undefine-ps-special-form (name)
-    "Undefines the special form with the given name (name is a symbol)."
-    (remhash (lisp-symbol-to-ps-identifier name :special-form) *toplevel-special-forms*)))
+(defvar *ps-literals* ())
+
+(defun ps-literal-p (symbol)
+  (member symbol *ps-literals*))
+
+(defun undefine-ps-special-form (name)
+  "Undefines the special form with the given name (name is a symbol)."
+  (unintern (lisp-symbol-to-ps-identifier name :special-form) :parenscript-special-forms))
 
 (defmacro define-ps-special-form (name lambda-list &rest body)
   "Define a special form NAME. The first argument given to the special
@@ -14,15 +15,14 @@ form is a keyword indicating whether the form is expected to produce
 an :expression or a :statement. The resulting Parenscript language
 types are appended to the ongoing javascript compilation."
   (let ((arglist (gensym "ps-arglist-")))
-    `(setf (gethash (lisp-symbol-to-ps-identifier ',name :special-form) *toplevel-special-forms*)
-      (lambda (&rest ,arglist)
-        (destructuring-bind ,lambda-list
-            ,arglist
-          ,@body)))))
+    `(defun ,(lisp-symbol-to-ps-identifier name :special-form) (&rest ,arglist)
+      (destructuring-bind ,lambda-list
+          ,arglist
+        ,@body))))
 
 (defun get-ps-special-form (name)
   "Returns the special form function corresponding to the given name."
-  (gethash (lisp-symbol-to-ps-identifier name :special-form) *toplevel-special-forms*))
+  (lisp-symbol-to-ps-identifier name :special-form))
 
 (defvar *enclosing-lexical-block-declarations* ()
   "This special variable is expected to be bound to a fresh list by
@@ -38,7 +38,7 @@ lexical block.")
 (defun ps-special-form-p (form)
   (and (consp form)
        (symbolp (car form))
-       (get-ps-special-form (car form))))
+       (find-symbol (symbol-name (car form)) :parenscript-special-forms)))
 
 (defun op-form-p (form)
   (and (listp form)
@@ -225,10 +225,11 @@ the form cannot be compiled to a symbol."
 
 (defmethod compile-parenscript-form ((symbol symbol) &key expecting)
   (declare (ignore expecting))
-  ;; is this the correct behavior?
-  (let ((special-symbol (get-ps-special-form symbol)))
-    (cond (special-symbol (funcall special-symbol :symbol))
-          (t (list 'js-variable symbol)))))
+  (cond ((ps-special-form-p (list symbol))
+         (if (ps-literal-p symbol)
+             (funcall (get-ps-special-form symbol) :symbol)
+             (error "Attempting to use Parenscript special form ~a as variable" symbol)))
+        (t (list 'js-variable symbol))))
 
 (defun compile-function-argument-forms (arg-forms)
   "Compiles a bunch of Parenscript forms from a funcall form to an effective set of

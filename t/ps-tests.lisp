@@ -311,7 +311,7 @@ x = 2 + sideEffect() + x + 5;")
   "{ }")
 
 (test-ps-js blank-object-literal
-  {}
+  ({})
   "{ }")
 
 (test-ps-js defun-rest1

@@ -5,7 +5,7 @@
 
 (defun lisp-symbol-to-ps-identifier (symbol context)
   (case context
-    (:special-form (symbol-name symbol))
+    (:special-form (intern (symbol-name symbol) :parenscript-special-forms))
     (:macro symbol)
     (otherwise (symbol-name symbol))))
 

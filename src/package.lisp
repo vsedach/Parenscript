@@ -225,3 +225,6 @@
    #:js
    #:js*
    ))
+
+(defpackage :parenscript-special-forms
+  (:use))

@@ -3,6 +3,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; literals
 (defmacro defpsliteral (name string)
+  (pushnew name *ps-literals*)
   `(define-ps-special-form ,name (expecting)
     (declare (ignore expecting))
     (list 'js-literal ,string)))
@@ -316,7 +317,7 @@ the given lambda-list and body."
            (rest-form
             (if rest?
                 (with-ps-gensyms (i)
-                  `(progn (defvar ,rest array)
+                  `(progn (var ,rest (array))
                     (dotimes (,i (- arguments.length ,(length effective-args)))
                       (setf (aref ,rest ,i) (aref arguments (+ ,i ,(length effective-args)))))))
                 `(progn)))

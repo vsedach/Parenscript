@@ -44,7 +44,7 @@
 
 (test namespace1 ()
   (setf (ps-package-prefix "PSTSTPKG") "prefix_")
-  (is (string= "prefix_var;" (normalize-js-code (ps pststpkg::var)))))
+  (is (string= "prefix_foo;" (normalize-js-code (ps pststpkg::foo)))))
 
 (common-lisp:in-package "PSTSTPKG")
 

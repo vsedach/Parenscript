@@ -49,7 +49,7 @@
 (common-lisp:in-package "PSTSTPKG")
 
 (ps-test::test-ps-js namespace-and-special-forms
-  (let ((foo (create :bar 1 not-a-keyword something)))
+  (let* ((foo (create :bar 1 not-a-keyword something)))
     (return (and (not foo) (+ (slot-value foo bar) some-other-var))))
   "        var prefix_foo =
             { bar : 1, 

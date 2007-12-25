@@ -34,6 +34,8 @@ declaration cannot be made by the enclosed form (for example, a
 enclosing special form to introduce the variable bindings in its
 lexical block.")
 
+(defvar *ps-special-variables* ())
+
 ;;; ParenScript form predicates
 (defun ps-special-form-p (form)
   (and (consp form)

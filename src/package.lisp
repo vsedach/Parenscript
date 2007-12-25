@@ -72,10 +72,11 @@
       ;; assignment and binding
       #:setf
       #:defsetf
-      #:let
-      #:lexical-let
+      #:let*
+      #:lexical-let*
       
       ;; variables
+      #:var
       #:defvar
       
       ;; iteration
@@ -224,6 +225,7 @@
    #:js-to-statement-strings
    #:js
    #:js*
+   #:let
    ))
 
 (defpackage :parenscript-special-forms

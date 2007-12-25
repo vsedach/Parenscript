@@ -79,17 +79,17 @@ foobar.slot
 ;;; The following keywords and symbols are reserved in ParenScript,
 ;;; and should not be used as variable names.
 
-! ~ ++ -- * / % + - << >> >>> < > <= >= == != ==== !== & ^ | && ||
-*= /= %= += -= <<= >>= >>>= &= ^= |= 1- 1+
-ABSTRACT AND AREF ARRAY BOOLEAN BREAK BYTE CASE CATCH CC-IF CHAR CLASS
-COMMA CONST CONTINUE CREATE DEBUGGER DECF DEFAULT DEFUN DEFVAR DELETE
-DO DOEACH DOLIST DOTIMES DOUBLE ELSE ENUM EQL EXPORT EXTENDS FALSE
-FINAL FINALLY FLOAT FLOOR FOR FUNCTION GOTO IF IMPLEMENTS IMPORT IN INCF
-INSTANCEOF INT INTERFACE JS LAMBDA LET LISP LIST LONG MAKE-ARRAY NATIVE NEW
-NIL NOT OR PACKAGE PRIVATE PROGN PROTECTED PUBLIC RANDOM REGEX RETURN
-SETF SHORT SLOT-VALUE STATIC SUPER SWITCH SYMBOL-MACROLET SYNCHRONIZED T
-THIS THROW THROWS TRANSIENT TRY TYPEOF UNDEFINED UNLESS VAR VOID VOLATILE
-WHEN WHILE WITH WITH-SLOTS
+! ~ ++ -- * / % + - << >> >>> < > <= >= == != ==== !== & ^ | && || *=
+/= %= += -= <<= >>= >>>= &= ^= |= 1- 1+ ABSTRACT AND AREF ARRAY
+BOOLEAN BREAK BYTE CASE CATCH CC-IF CHAR CLASS COMMA CONST CONTINUE
+CREATE DEBUGGER DECF DEFAULT DEFUN DEFVAR DELETE DO DOEACH DOLIST
+DOTIMES DOUBLE ELSE ENUM EQL EXPORT EXTENDS FALSE FINAL FINALLY FLOAT
+FLOOR FOR FUNCTION GOTO IF IMPLEMENTS IMPORT IN INCF INSTANCEOF INT
+INTERFACE JS LAMBDA LET* LEXICAL-LET* LISP LIST LONG MAKE-ARRAY NATIVE
+NEW NIL NOT OR PACKAGE PRIVATE PROGN PROTECTED PUBLIC RANDOM REGEX
+RETURN SETF SHORT SLOT-VALUE STATIC SUPER SWITCH SYMBOL-MACROLET
+SYNCHRONIZED T THIS THROW THROWS TRANSIENT TRY TYPEOF UNDEFINED UNLESS
+VAR VOID VOLATILE WHEN WHILE WITH WITH-SLOTS
 
 ;;;# Literal values
 ;;;t \index{literal value}
@@ -659,44 +659,43 @@ a-variable  => aVariable
 ;;;t \index{binding}
 ;;;t \index{scoping}
 ;;;t \index{DEFVAR}
-;;;t \index{LET}
+;;;t \index{VAR}
+;;;t \index{LET*}
+;;;t \index{LEXICAL-LET*}
 
 ; (DEFVAR var {value}?)
-; (LET ({var | (var value)) body)
+; (VAR var {value}?)
+; (LET* ({var | (var value)}) body)
+; (LEXICAL-LET* ({var | (var value)}) body)
 ;
 ; var   ::= a Lisp symbol
 ; value ::= a ParenScript expression
 ; body  ::= a list of ParenScript statements
 
-;;; Variables (either local or global) can be declared using the
-;;; `DEFVAR' form, which is similar to its equivalent form in
-;;; Lisp. The `DEFVAR' is converted to "var ... = ..." form in
-;;; JavaScript.
+;;; Parenscript special variables can be declared using the `DEFVAR'
+;;; special form, which is similar to its equivalent form in
+;;; Lisp. Note that the result is undefined if `DEFVAR' is not used as
+;;; a top-level form.
 
 (defvar *a* (array 1 2 3)) => var A = [ 1, 2, 3 ]
 
-(if (= i 1)
-    (progn (defvar blorg "hallo")
-           (alert blorg))
-    (progn (defvar blorg "blitzel")
-           (alert blorg)))
-   => if (i == 1) {
-        var blorg = 'hallo';
-        alert(blorg);
-      } else {
-        var blorg = 'blitzel';
-        alert(blorg);
-      }
+;;; One feature present in Parenscript that is not part of Common Lisp
+;;; are lexically-scoped global variables, which are declared using
+;;; the `VAR' special form.
 
-;;; Another way to declare local variables is to use the `LET' form.
-;;; Note that the ParenScript `LET' compiles to a straightforward
-;;; assignment and does not have lexical-scoping semantics, unlike its
-;;; Lisp cousin.
+;;; Parenscript provides two special forms for manipulating local
+;;; variables: `LET*' and `LEXICAL-LET*'. Both bind their variable
+;;; lists sequentially, as indicated by the '*' at the end of their
+;;; names, however `LET*' does so using a simple JavaScript
+;;; assignment, while `LEXICAL-LET*' actually introduces a new lexical
+;;; environment for the variable bindings by creating and populating a
+;;; new object and using it as the lexical context for the JavaScript
+;;; 'with' form.
 
 (if (= i 1)
-    (let ((blorg "hallo"))
+    (let* ((blorg "hallo"))
       (alert blorg))
-    (let ((blorg "blitzel"))
+    (let* ((blorg "blitzel"))
       (alert blorg)))
    => if (i == 1) {
         var blorg = 'hallo';
@@ -706,9 +705,32 @@ a-variable  => aVariable
         alert(blorg);
       }
 
-;;; Moreover, beware that scoping in Lisp and JavaScript are quite
-;;; different. For example, don't rely on closures capturing local
-;;; variables in the way you'd think they would.
+(if (= i 1)
+    (lexical-let* ((blorg "hallo"))
+      (alert blorg))
+    (lexical-let* ((blorg "blitzel"))
+      (alert blorg)))
+   => if (i == 1) {
+          (function () {
+              var newlexicalcontext1 = new Object;
+              newlexicalcontext1['blorg'] = 'hallo';
+              with (newlexicalcontext1) {
+                  alert(blorg);
+              };
+           })();
+      } else {
+          (function () {
+              var newlexicalcontext3 = new Object;
+              newlexicalcontext3['blorg'] = 'blitzel';
+              with (newlexicalcontext3) {
+                  alert(blorg);
+              };
+          })();
+      }
+
+;;; Moreover, beware that scoping rules in Lisp and JavaScript are
+;;; quite different. For example, don't rely on closures capturing
+;;; local variables in the way that you would normally expect.
 
 ;;;# Iteration constructs
 ;;;t \index{iteration}
@@ -931,7 +953,7 @@ a-variable  => aVariable
 ;;; Forms may be used in attribute lists to conditionally generate
 ;;; the next attribute. In this example the textarea is sometimes disabled.
 
-(let ((disabled nil)
+(let* ((disabled nil)
       (authorized t))
    (setf element.inner-h-t-m-l
          (ps-html ((:textarea (or disabled (not authorized)) :disabled "disabled")
@@ -1002,10 +1024,10 @@ a-variable  => aVariable
         (array (second i-array))
         (arrvar (ps-gensym "arr"))
         (idx (ps-gensym "i")))
-    `(let ((,arrvar ,array))
+    `(let* ((,arrvar ,array))
       (do ((,idx 0 (incf ,idx)))
           ((>= ,idx (slot-value ,arrvar 'length)))
-        (let ((,var (aref ,arrvar ,idx)))
+        (let* ((,var (aref ,arrvar ,idx)))
           ,@body)))))
 
 ;;; Macros can be defined in ParenScript code itself (as opposed to

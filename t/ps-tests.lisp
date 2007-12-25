@@ -15,20 +15,19 @@
    "x += 'middle' + 'after';")
 
 (test-ps-js setf-side-effects
-            (progn
-              (let ((x 10))
-                (defun side-effect() 
-                  (setf x 4)
-                  (return 3))
-                (setf x (+ 2 (side-effect) x 5))))
-            "
-var x = 10;
+  (progn
+    (let* ((x 10))
+      (defun side-effect() 
+        (setf x 4)
+        (return 3))
+      (setf x (+ 2 (side-effect) x 5))))
+  "var x = 10;
 function sideEffect() {
   x = 4;
   return 3;
 };
 x = 2 + sideEffect() + x + 5;")
-;; Parenscript used to optimize to much:
+;; Parenscript used to optimize too much:
 ;;   var x = 10;
 ;;   function sideEffect() {
 ;;     x = 4;
@@ -90,13 +89,13 @@ x = 2 + sideEffect() + x + 5;")
 
 
 (test-ps-js simple-slot-value
-  (let ((foo (create :a 1)))
+  (let* ((foo (create :a 1)))
    (alert (slot-value foo 'a)))
   "var foo = { a : 1 };
    alert(foo.a);")
 
 (test-ps-js buggy-slot-value
-   (let ((foo (create :a 1))
+   (let* ((foo (create :a 1))
         (slot-name "a"))
     (alert (slot-value foo slot-name)))
   " var foo = { a : 1 };
@@ -181,7 +180,7 @@ x = 2 + sideEffect() + x + 5;")
                    ("u0080" . ,(code-char 128)) ;;Character over 127. Actually valid, parenscript escapes them to be sure.
                    ("uABCD" . ,(code-char #xabcd)))));; Really above ascii.
     (loop for (js-escape . lisp-char) in escapes
-	  for generated = (compile-script `(let ((x ,(format nil "hello~ahi" lisp-char)))))
+	  for generated = (compile-script `(let* ((x ,(format nil "hello~ahi" lisp-char)))))
 	  for wanted = (format nil "var x = 'hello\\~ahi';" js-escape)
 	  do (is (string= (normalize-js-code generated) wanted)))))
   
@@ -234,7 +233,7 @@ x = 2 + sideEffect() + x + 5;")
 (test defsetf1
   (ps (defsetf baz (x y) (newval) `(set-baz ,x ,y ,newval)))
   (is (string= "var _js2 = 1; var _js3 = 2; var _js1 = 3; setBaz(_js2, _js3, _js1);"
-               (normalize-js-code (let ((ps:*ps-gensym-counter* 0))
+               (normalize-js-code (let* ((ps:*ps-gensym-counter* 0))
                                     (ps (setf (baz 1 2) 3)))))))
 
 (test defsetf-short
@@ -402,7 +401,7 @@ x = 2 + sideEffect() + x + 5;")
   "-1")
 
 (test macro-environment1
-  (is (string= (normalize-js-code (let ((macroname (gensym)))
+  (is (string= (normalize-js-code (let* ((macroname (gensym)))
                                     (ps* `(defmacro ,macroname (x) `(+ ,x 123))
                                          `(defun test1 ()
                                            (macrolet ((,macroname (x) `(aref data ,x)))
@@ -449,8 +448,33 @@ x = 2 + sideEffect() + x + 5;")
 }")
 
 (test-ps-js let-decl-in-expression
-  (defun f (x) (return (if x 1 (let ((foo x)) foo))))
+  (defun f (x) (return (if x 1 (let* ((foo x)) foo))))
   "function f(x) {
     var foo;
     return x ? 1 : (foo = x, foo);
 }")
+
+(test-ps-js special-var1
+  (progn (defvar *foo*) (let* ((*foo* 2)) (* *foo* 2)))
+  "var FOO;
+var tempstackvar1;
+try {
+    tempstackvar1 = FOO;
+    FOO = 2;
+    FOO * 2;
+} finally {
+    FOO = tempstackvar1;
+};")
+
+(test-ps-js special-var2
+  (progn (defvar *foo*) (let* ((*baz* 3) (*foo* 2)) (* *foo* 2 *baz*)))
+  "var FOO;
+var BAZ = 3;
+var tempstackvar1;
+try {
+    tempstackvar1 = FOO;
+    FOO = 2;
+    FOO * 2 * BAZ;
+} finally {
+    FOO = tempstackvar1;
+};")

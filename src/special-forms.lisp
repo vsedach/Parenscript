@@ -210,7 +210,7 @@
           ;; the first compilation will produce a list of variables we need to declare in the function body
           (compile-parenscript-form `(progn ,@body) :expecting :statement)
           ;; now declare and compile
-          (compile-parenscript-form `(progn ,@(loop for var in *enclosing-lexical-block-declarations* collect `(defvar ,var))
+          (compile-parenscript-form `(progn ,@(loop for var in *enclosing-lexical-block-declarations* collect `(var ,var))
                                       ,@body) :expecting :statement))))
 
 (define-ps-special-form %js-lambda (expecting args &rest body)
@@ -390,8 +390,8 @@ lambda-list::=
                               (gensymed-arg-bindings (mapcar #'list gensymed-names (list ,@var-bindings))))
                          (destructuring-bind ,var-bindings
                              gensymed-names
-                           `(let (,@gensymed-arg-bindings
-                                  (,,store-var ,store-form))
+                           `(let* (,@gensymed-arg-bindings
+                                   (,,store-var ,store-form))
                              ,,form))))))))
   nil)
 
@@ -536,37 +536,59 @@ lambda-list::=
             "~s does not have an even number of arguments." (cons 'setf args))
     `(progn ,@(loop for (place value) on args by #'cddr collect (process-setf-clause place value)))))
 
-(define-ps-special-form defvar (expecting name &rest value)
+(define-ps-special-form var (expecting name &rest value)
   (declare (ignore expecting))
-  (append (list 'js-defvar name)
+  (append (list 'js-var name)
           (when value
-            (assert (= (length value) 1) () "Wrong number of arguments to defvar: ~s" `(defvar ,name ,@value))
-           (list (compile-parenscript-form (car value) :expecting :expression)))))
+            (assert (= (length value) 1) () "Wrong number of arguments to var: ~s" `(var ,name ,@value))
+            (list (compile-parenscript-form (car value) :expecting :expression)))))
 
-(defpsmacro lexical-let (bindings &body body)
+(defpsmacro defvar (name &rest value)
+  "Note: this must be used as a top-level form, otherwise the result will be undefined behavior."
+  (pushnew name *ps-special-variables*)
+  (assert (or (null value) (= (length value) 1)) () "Wrong number of arguments to defvar: ~s" `(defvar ,name ,@value))
+  `(var ,name ,@value))
+
+(defpsmacro lexical-let* (bindings &body body)
   "A let form that does actual lexical binding of variables. This is
 currently expensive in JavaScript since we have to cons up and call a
 lambda."
-  `((lambda ()
-      (let ((new-context (new *object)))
-        ,@(loop for binding in bindings
-                collect `(setf (slot-value new-context ,(symbol-to-js (if (atom binding) binding (first binding))))
-                               ,(when (listp binding) (second binding))))
-        (with new-context ,@body)))))
+  (with-ps-gensyms (new-lexical-context)
+    `((lambda ()
+        (let* ((,new-lexical-context (new *object)))
+          ,@(loop for binding in bindings
+                  collect `(setf (slot-value ,new-lexical-context ,(symbol-to-js (if (atom binding) binding (first binding))))
+                            ,(when (listp binding) (second binding))))
+          (with ,new-lexical-context ,@body))))))
 
-(define-ps-special-form let (expecting bindings &rest body)
+(defpsmacro let* (bindings &rest body)
+  (if bindings
+      (let ((var (if (listp (car bindings)) (caar bindings) (car bindings))))
+        `(,(if (member var *ps-special-variables*) 'let1-dynamic 'let1) ,(car bindings)
+          (let* ,(cdr bindings) ,@body)))
+      `(progn ,@body)))
+
+(defpsmacro let (&rest stuff)
+  "Right now, let doesn't do parallel assignment."
+  `(let* ,@stuff))
+
+(define-ps-special-form let1 (expecting binding &rest body)
   (ecase expecting
     (:statement
-     (let ((defvars (mapcar (lambda (binding) (if (atom binding)
-                                                  `(defvar ,binding)
-                                                  `(defvar ,@binding)))
-                            bindings)))
-       (compile-parenscript-form `(progn ,@defvars ,@body) :expecting :statement)))
+     (compile-parenscript-form `(progn ,(if (atom binding) `(var ,binding) `(var ,@binding)) ,@body) :expecting :statement))
     (:expression
-     (let ((declared-variables (mapcar (lambda (binding) (if (atom binding) binding (car binding))) bindings))
-           (variable-assignments (loop for b in bindings when (listp b) collect (cons 'setf b))))
-       (setf *enclosing-lexical-block-declarations* (append declared-variables *enclosing-lexical-block-declarations*))
-       (compile-parenscript-form `(progn ,@variable-assignments ,@body) :expecting :expression)))))
+     (let ((var (if (atom binding) binding (car binding)))
+           (variable-assignment (when (listp binding) (cons 'setf binding))))
+       (push var *enclosing-lexical-block-declarations*)
+       (compile-parenscript-form `(progn ,variable-assignment ,@body) :expecting :expression)))))
+
+(defpsmacro let1-dynamic ((var value) &rest body)
+  (with-ps-gensyms (temp-stack-var)
+    `(progn (var ,temp-stack-var)
+      (try (progn (setf ,temp-stack-var ,var)
+                  (setf ,var ,value)
+                  ,@body)
+       (:finally (setf ,var ,temp-stack-var))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; iteration
@@ -613,10 +635,10 @@ lambda."
 	(array (second i-array))
 	(arrvar (ps-gensym "tmp-arr"))
 	(idx (ps-gensym "tmp-i")))
-    `(let ((,arrvar ,array))
+    `(let* ((,arrvar ,array))
       (do ((,idx 0 (1+ ,idx)))
 	  ((>= ,idx (slot-value ,arrvar 'length)))
-	(let ((,var (aref ,arrvar ,idx)))
+	(let* ((,var (aref ,arrvar ,idx)))
 	  ,@body)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -652,13 +674,3 @@ macro-expansion time. The value of the last form is treated as a
 ParenScript expression and is inserted into the generated Javascript
 \(use nil for no-op)."
   (eval (cons 'progn forms)))
-
-(defpsmacro dynamic-bind (bindings &body body)
-  `(macrolet ((dynamic-bind ((var expr) body)
-               (with-ps-gensyms (temp)
-                 `(progn (defvar ,temp nil)
-                   (try (progn (setf ,temp ,var)
-                               (setf ,var ,expr)
-                               ,@body)
-                    (:finally (setf ,var ,temp))))))) 
-    ,(cons 'progn (wrap-expr bindings body))))

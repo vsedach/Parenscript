@@ -290,7 +290,7 @@ vice-versa.")
 (defprinter js-assign (lhs rhs)
   (ps-print lhs) (psw " = ") (ps-print rhs))
 
-(defprinter js-defvar (var-name &rest var-value)
+(defprinter js-var (var-name &rest var-value)
   (psw "var ")
   (psw (js-translate-symbol var-name))
   (when var-value

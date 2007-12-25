@@ -354,10 +354,10 @@ _js2.style.left = _js1;")
 
 (test-ps-js variable-declaration-2
   (if (= i 1)
-    (progn (defvar blorg "hallo")
-           (alert blorg))
-    (progn (defvar blorg "blitzel")
-           (alert blorg)))
+    (let* ((blorg "hallo"))
+      (alert blorg))
+    (let* ((blorg "blitzel"))
+      (alert blorg)))
   "if (i == 1) {
   var blorg = 'hallo';
   alert(blorg);
@@ -368,9 +368,9 @@ _js2.style.left = _js1;")
 
 (test-ps-js variable-declaration-3
   (if (= i 1)
-    (let ((blorg "hallo"))
+    (lexical-let* ((blorg "hallo"))
       (alert blorg))
-    (let ((blorg "blitzel"))
+    (lexical-let* ((blorg "blitzel"))
       (alert blorg)))
   "if (i == 1) {
     (function () {
@@ -497,7 +497,7 @@ _js2.style.left = _js1;")
   "document.write('<a href=\"#\" onclick=\"' + 'javascript:transport()' + '\">link</a>')")
 
 (test-ps-js the-html-generator-4
-  (let ((disabled nil)
+  (let* ((disabled nil)
       (authorized t))
    (setf element.inner-h-t-m-l
          (ps-html ((:textarea (or disabled (not authorized)) :disabled "disabled")

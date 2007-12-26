@@ -170,9 +170,15 @@
       #:null
       #:@
 
-      ;; libries
+      ;; js runtime utils
       #:*ps-lisp-library*
       #:mapcar
+      #:map-into
+      #:map
+      #:map-until
+      #:member
+      #:append
+      #:set-difference
       ))
   "All symbols considerred part of the Parenscript language.")
 

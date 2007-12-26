@@ -1,24 +1,7 @@
-;;; Macros for generating HTML from ParenScript code.
-
 (in-package :parenscript)
 
-(defun optimize-string-list (list)
-  (let (res
-	cur)
-    (dolist (node list)
-      (when (numberp node)
-	(setf node (format nil "~A" node)))
-      (cond ((null cur) (setf cur node))
-	    ((and (stringp cur)
-		  (stringp node))
-	     (setf cur (concatenate 'string cur node)))
-	    (t (push cur res)
-	       (setf cur node))))
-    (push cur res)
-    (nreverse res)))
-
-(defun process-html-forms (forms)
-  (let (res)
+(defun process-html-forms (forms) ;; this needs a rewrite
+  (let ((res ()))
     (labels ((handle-form (form)
                (cond ((keywordp form)
                       (push (format nil "<~A/>"
@@ -67,10 +50,11 @@
 
                      ((consp form)
                       (push form res)))))
-      (map nil #'handle-form forms))
-    (cons '+ (optimize-string-list (nreverse res)))))
+      (map nil #'handle-form forms)
+      (concat-constant-strings (reverse res)))))
 
-(define-ps-special-form ps-html (expecting &rest forms)
-  (declare (ignore expecting))
-  (compile-parenscript-form (process-html-forms forms)))
+(defpsmacro ps-html (&rest html-forms)
+  (cons '+ (process-html-forms html-forms)))
 
+(defmacro ps-html (&rest html-forms)
+  `(format nil "~@{~A~}" ,@(process-html-forms html-forms)))

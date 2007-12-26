@@ -160,6 +160,7 @@
       #:oddp
       #:evenp
       #:ignore-errors
+      #:concatenate
       #:length
       #:null
       #:@

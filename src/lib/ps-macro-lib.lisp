@@ -58,3 +58,7 @@
                      `',prop
                      prop)))
         ,@(cdr props))))
+
+(defpsmacro concatenate (result-type &rest sequences)
+  (assert (equal result-type ''string) () "Right now Parenscript 'concatenate' only support strings.")
+  (cons '+ sequences))

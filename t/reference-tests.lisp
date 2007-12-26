@@ -509,17 +509,3 @@ _js2.style.left = _js1;")
    + (disabled || !authorized ? ' disabled=\"' + 'disabled' + '\"' : '')
    + '>Edit me</textarea>';")
 
-(test-ps-js the-html-generator-5
-  (css-inline :color "red"
-            :font-size "x-small")
-  "'color:red;font-size:x-small'")
-
-(test-ps-js the-html-generator-6
-  (defun make-color-div(color-name)
-    (return (ps-html ((:div :style (css-inline :color color-name))
-                   color-name " looks like this."))))
-  "function makeColorDiv(colorName) {
-  return '<div style=\"' + ('color:' + colorName) + '\">' + colorName
-    + ' looks like this.</div>';
-}")
-

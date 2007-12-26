@@ -74,20 +74,6 @@ x = 2 + sideEffect() + x + 5;")
          (a-parenthesis #\)))
     (is (char= char-before a-parenthesis))))
 
-;; A problem with long nested operator, when the statement spanned several rows
-;; the rows would not be joined together correctly.
-(test-ps-js bug-dwim-join
-   (alert (ps-html ((:div :id 777
-                          :style (css-inline :border "1pxsssssssssss"
-                                             :font-size "x-small"
-                                             :height (* 2 200)
-                                             :width (* 2 300))))))
-   "alert('<div id=\"777\" style=\"'
- + ('border:1pxsssssssssss;font-size:x-small;height:' + 2 * 200 + ';width:'
- + 2 * 300)
- + '\"></div>')") ;";This line should start with a plus character.
-
-
 (test-ps-js simple-slot-value
   (let* ((foo (create :a 1)))
    (alert (slot-value foo 'a)))

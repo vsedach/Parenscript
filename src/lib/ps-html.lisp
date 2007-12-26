@@ -74,15 +74,3 @@
   (declare (ignore expecting))
   (compile-parenscript-form (process-html-forms forms)))
 
-(defun process-css-forms (proplist)
-  (optimize-string-list (butlast
-                         (loop for propval on proplist by #'cddr appending
-                              (list (string-downcase (symbol-name (first propval)))
-                                    ":"
-                                    (second propval)
-                                    ";")))))
-
-
-(define-ps-special-form css-inline (expecting &rest forms)
-  (declare (ignore expecting))
-  (compile-parenscript-form (cons '+ (process-css-forms forms))))

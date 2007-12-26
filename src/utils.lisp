@@ -25,6 +25,13 @@
       (when keep-separators (push (string (char string i)) res))
       (setf last (1+ i)))))
 
+(defun concat-constant-strings (list)
+  (reverse (reduce (lambda (optimized-list next-obj)
+                     (if (and (or (numberp next-obj) (stringp next-obj)) (stringp (car optimized-list)))
+                         (cons (format nil "~a~a" (car optimized-list) next-obj) (cdr optimized-list))
+                         (cons next-obj optimized-list)))
+                   (cons () list))))
+
 (defparameter *special-chars*
   '((#\! . "Bang")
     (#\? . "What")

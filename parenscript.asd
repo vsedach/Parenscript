@@ -12,7 +12,7 @@
   :author "Manuel Odendahl <manuel@bl0rg.net>"
   :maintainer "Vladimir Sedach <vsedach@gmail.com>"
   :licence "BSD"
-  :description "Parenscript is a lispy language that compiles to Javascript."
+  :description "Parenscript is a Lispy language that compiles to JavaScript."
   :components ((:static-file "parenscript.asd")
                (:module :src
                         :serial t
@@ -27,11 +27,9 @@
                                      (:file "deprecated-interface")
                                      ;; standard library
                                      (:module :lib
-                                              :components ((:static-file "functional.lisp")
-                                                           (:file "js-html")
-                                                           (:file "css"    )
-                                                           (:file "js-utils")
-                                                           (:file "js-lib"))
+                                              :components ((:file "ps-html")
+                                                           (:file "ps-macro-lib")
+                                                           (:file "ps-runtime-lib"))
                                               :depends-on ("compilation-interface")))))
   :depends-on ())
 

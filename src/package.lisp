@@ -136,12 +136,6 @@
       #:while
        
       ;; v v v STUFF WE SHOULD PROBABLY MOVE TO OTHER LIBS v v v
-       
-      ;; CSS
-      #:css
-      #:css-to-string
-      #:css-inline
-      #:css-file
 
       ;; html generator for javascript
       #:ps-html

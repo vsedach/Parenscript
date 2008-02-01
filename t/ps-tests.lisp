@@ -487,3 +487,7 @@ try {
 (test-ps-js setf-dec2
   (setf x (- x 1 2))
   "x = x - 1 - 2;")
+
+(test-ps-js special-char-equals
+  blah=
+  "blahequals")

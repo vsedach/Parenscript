@@ -40,7 +40,8 @@
     (#\% . "Percent")
     (#\+ . "Plus")
     (#\* . "Star")
-    (#\/ . "Slash")))
+    (#\/ . "Slash")
+    (#\= . "Equals")))
 
 ;;; Parenscript-style symbol -> Javascript-style symbol
 

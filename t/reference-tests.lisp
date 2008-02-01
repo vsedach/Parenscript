@@ -254,42 +254,38 @@ c = 4;
 x = a + b + c;")
 
 (test-ps-js assignment-3
-  (setf a (1+ a))
-  "a++;")
-
-(test-ps-js assignment-4
   (setf a (+ a 2 3 4 a))
   "a += 2 + 3 + 4 + a;")
 
-(test-ps-js assignment-5
+(test-ps-js assignment-4
   (setf a (- 1 a))
   "a = 1 - a;")
 
-(test-ps-js assignment-6
+(test-ps-js assignment-5
   (defun (setf color) (new-color el)
   (setf (slot-value (slot-value el 'style) 'color) new-color))
   "function __setf_color(newColor, el) {
   el.style.color = newColor;
 };")
 
-(test-ps-js assignment-7
+(test-ps-js assignment-6
   (setf (color some-div) (+ 23 "em"))
   "var _js2 = someDiv;
 var _js1 = 23 + 'em';
 __setf_color(_js1, _js2);")
 
-(test-ps-js assignment-8
+(test-ps-js assignment-7
   (defsetf left (el) (offset)
   `(setf (slot-value (slot-value ,el 'style) 'left) ,offset))
   "null")
 
-(test-ps-js assignment-9
+(test-ps-js assignment-8
   (setf (left some-div) (+ 123 "px"))
   "var _js2 = someDiv;
 var _js1 = 123 + 'px';
 _js2.style.left = _js1;")
 
-(test-ps-js assignment-10
+(test-ps-js assignment-9
   (progn (defmacro left (el)
          `(slot-value ,el 'offset-left))
        (left some-div))

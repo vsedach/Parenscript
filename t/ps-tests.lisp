@@ -479,3 +479,11 @@ try {
 (test-ps-js literal2
   (aref this x)
   "this[x]")
+
+(test-ps-js setf-dec1
+  (setf x (- 1 x 2))
+  "x = 1 - x - 2;")
+
+(test-ps-js setf-dec2
+  (setf x (- x 1 2))
+  "x = x - 1 - 2;")

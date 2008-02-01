@@ -499,8 +499,6 @@ a-variable  => aVariable
 ;;; operator expression using this variable into a more "efficient"
 ;;; assignment operator form. For example:
 
-(setf a (1+ a))          => a++;
-
 (setf a (+ a 2 3 4 a))   => a += 2 + 3 + 4 + a;
 
 (setf a (- 1 a))         => a = 1 - a;

@@ -11,17 +11,17 @@
       #:this
       #:false
       #:undefined
-      
+
       ;; keywords
       #:break
       #:continue
-      
+
       ;; array literals
       #:array
       #:list
       #:aref
       #:make-array
-      
+
       ;; operators
       #:! #:not #:~
       #:* #:/ #:%
@@ -41,70 +41,70 @@
       #:*= #:/= #:%= #:+= #:\&= #:^= #:\|= #:~=
       #:1+ #:1-
       #:incf #:decf
-      
+
       ;; body forms
       #:progn
-      
+
       ;; object literals
       #:create
       #:with-slots
-      
+
       ;; macros
       #:macrolet
       #:symbol-macrolet
-      
+
       ;; if
       #:if
       #:when
       #:unless
-      
+
       ;; single argument statements
       #:return
       #:throw
-      
+
       ;; single argument expressions
       #:delete
       #:void
       #:typeof
       #:instanceof
       #:new
-      
+
       ;; assignment and binding
       #:setf
       #:defsetf
       #:let*
       #:lexical-let*
-      
+
       ;; variables
       #:var
       #:defvar
-      
+
       ;; iteration
       #:for
       #:doeach
       #:while
-      
+
       ;; with
       #:with
-      
+
       ;; case
       #:switch
       #:case
       #:default
-      
+
       ;; try throw catch
       #:try
-      
+
       ;; regex literals
       #:regex
-      
+
       ;; conditional compilation (IE)
       #:cc-if
-       
+
       ;; function definition
       #:defun
       #:lambda
-       
+
       ;; lambda lists
       #:&key
       #:&rest
@@ -124,17 +124,17 @@
       #:define-symbol-macro
       #:define-script-symbol-macro
       #:defmacro
-       
+
       ;; lisp eval
       #:lisp
-       
+
       ;; iteration
       #:do
       #:dotimes
       #:dolist
       #:doeach
       #:while
-       
+
       ;; v v v STUFF WE SHOULD PROBABLY MOVE TO OTHER LIBS v v v
 
       ;; html generator for javascript
@@ -190,13 +190,13 @@
    #:ps*
    #:ps-inline
    #:ps-inline*
-   
+
    ;; for parenscript macro definition within lisp
    #:defpsmacro
    #:defmacro/ps
    #:defmacro+ps
    #:import-macros-from-lisp
-   
+
    ;; gensym
    #:ps-gensym
    #:with-ps-gensyms

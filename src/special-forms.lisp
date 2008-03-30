@@ -622,7 +622,9 @@ lambda-list::=
       (try (progn (setf ,temp-stack-var ,var)
                   (setf ,var ,value)
                   ,@body)
-       (:finally (setf ,var ,temp-stack-var))))))
+       (:finally
+        (setf ,var ,temp-stack-var)
+        (delete ,temp-stack-var))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; iteration

@@ -534,6 +534,13 @@ lambda-list::=
             "~s does not have an even number of arguments." (cons 'setf args))
     `(progn ,@(loop for (place value) on args by #'cddr collect (process-setf-clause place value)))))
 
+(defpsmacro psetf (&rest args)
+  (let ((vars (loop for x in args by #'cddr collect x))
+        (vals (loop for x in (cdr args) by #'cddr collect x)))
+    (let ((gensyms (mapcar (lambda (x) (declare (ignore x)) (ps-gensym)) vars)))
+      `(simple-let* ,(mapcar #'list gensyms vals)
+         (setf ,@(mapcan #'list vars gensyms))))))
+
 (define-ps-special-form var (expecting name &rest value)
   (declare (ignore expecting))
   (append (list 'js-var name)

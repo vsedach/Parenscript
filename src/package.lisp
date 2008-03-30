@@ -72,6 +72,7 @@
       ;; assignment and binding
       #:setf
       #:defsetf
+      #:simple-let*
       #:let*
       #:lexical-let*
       #:lexical-let

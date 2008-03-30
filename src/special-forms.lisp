@@ -563,12 +563,15 @@ lambda-list::=
       ,@body)
     ,@(make-let-vals bindings)))
 
-(defpsmacro let* (bindings &rest body)
+(defpsmacro simple-let* (bindings &body body)
   (if bindings
       (let ((var (if (listp (car bindings)) (caar bindings) (car bindings))))
         `(,(if (member var *ps-special-variables*) 'let1-dynamic 'let1) ,(car bindings)
-          (let* ,(cdr bindings) ,@body)))
+           (simple-let* ,(cdr bindings) ,@body)))
       `(progn ,@body)))
+
+(defpsmacro let* (bindings &body body)
+  `(simple-let* ,bindings ,@body))
 
 (defpsmacro let (&rest stuff)
   "Right now, let doesn't do parallel assignment."

@@ -77,9 +77,10 @@
       #:psetq
       #:simple-let*
       #:simple-let
-      #:let*
       #:lexical-let*
       #:lexical-let
+      #:let*
+      #:let
 
       ;; variables
       #:var
@@ -89,8 +90,12 @@
       #:labeled-for
       #:for
       #:for-in
-      #:doeach
       #:while
+      #:do
+      #:do*
+      #:dotimes
+      #:dolist
+      #:doeach
 
       ;; with
       #:with
@@ -135,14 +140,6 @@
 
       ;; lisp eval
       #:lisp
-
-      ;; iteration
-      #:do
-      #:do*
-      #:dotimes
-      #:dolist
-      #:doeach
-      #:while
 
       ;; v v v STUFF WE SHOULD PROBABLY MOVE TO OTHER LIBS v v v
 
@@ -235,7 +232,6 @@
    #:js-to-statement-strings
    #:js
    #:js*
-   #:let
    ))
 
 (defpackage :parenscript-special-forms

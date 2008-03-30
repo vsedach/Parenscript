@@ -582,9 +582,8 @@ lambda-list::=
 (defpsmacro let* (bindings &body body)
   `(simple-let* ,bindings ,@body))
 
-(defpsmacro let (&rest stuff)
-  "Right now, let doesn't do parallel assignment."
-  `(let* ,@stuff))
+(defpsmacro let (bindings &body body)
+  `(simple-let ,bindings ,@body))
 
 (define-ps-special-form let1 (expecting binding &rest body)
   (ecase expecting

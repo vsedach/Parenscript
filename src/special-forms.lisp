@@ -548,16 +548,9 @@ lambda-list::=
   `(var ,name ,@value))
 
 (defpsmacro lexical-let* (bindings &body body)
-  "A let form that does actual lexical binding of variables. This is
-currently expensive in JavaScript since we have to cons up and call a
-lambda."
-  (with-ps-gensyms (new-lexical-context)
-    `((lambda ()
-        (let* ((,new-lexical-context (new *object)))
-          ,@(loop for binding in bindings
-                  collect `(setf (slot-value ,new-lexical-context ,(symbol-to-js (if (atom binding) binding (first binding))))
-                            ,(when (listp binding) (second binding))))
-          (with ,new-lexical-context ,@body))))))
+  `((lambda ()
+      (let* ,bindings
+        ,@body))))
 
 (defpsmacro let* (bindings &rest body)
   (if bindings

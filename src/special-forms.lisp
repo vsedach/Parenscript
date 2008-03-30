@@ -16,8 +16,14 @@
 (defpsliteral nil       "null")
 (defpsliteral undefined "undefined")
 
-(defpsliteral break     "break")
-(defpsliteral continue  "continue")
+(macrolet ((def-for-literal (name printer)
+             `(progn
+                (pushnew ',name *ps-literals*)
+                (define-ps-special-form ,name (expecting &optional label)
+                  (declare (ignore expecting))
+                  (list ',printer label)))))
+  (def-for-literal break js-break)
+  (def-for-literal continue js-continue))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; unary operators

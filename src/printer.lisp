@@ -297,6 +297,18 @@ vice-versa.")
     (psw " = ")
     (ps-print (car var-value))))
 
+(defprinter js-break (&optional label)
+  (psw "break")
+  (when label
+    (psw " ")
+    (psw (js-translate-symbol label))))
+
+(defprinter js-continue (&optional label)
+  (psw "continue")
+  (when label
+    (psw " ")
+    (psw (js-translate-symbol label))))
+
 ;;; iteration
 (defprinter js-for (vars steps test body-block)
   (psw "for (")

@@ -14,9 +14,9 @@
 (test-ps-js statements-and-expressions-2
   (if 1 2 3)
   "if (1) {
-  2;
+    2;
 } else {
-  3;
+    3;
 }")
 
 (test-ps-js symbol-conversion-1
@@ -88,8 +88,7 @@
 
 (test-ps-js object-literals-1
   (create :foo "bar" :blorg 1)
-  "{ foo : 'bar',
-  blorg : 1 }")
+  "{ foo : 'bar', blorg : 1 }")
 
 (test-ps-js object-literals-2
   (create :foo "hihi"
@@ -196,31 +195,31 @@
   (eql 1 2)
   "1 == 2")
 
-(test-ps-js operator-expressions-5
+(test-ps-js operator-expressions-4
   (* 1 (+ 2 3 4) 4 (/ 6 7))
   "1 * (2 + 3 + 4) * 4 * (6 / 7)")
 
-(test-ps-js operator-expressions-6
+(test-ps-js operator-expressions-5
   (incf i)
   "++i")
 
-(test-ps-js operator-expressions-7
+(test-ps-js operator-expressions-6
   (decf i)
   "--i")
 
-(test-ps-js operator-expressions-8
+(test-ps-js operator-expressions-7
   (1- i)
   "i - 1")
 
-(test-ps-js operator-expressions-9
+(test-ps-js operator-expressions-8
   (1+ i)
   "i + 1")
 
-(test-ps-js operator-expressions-10
+(test-ps-js operator-expressions-9
   (not (< i 2))
   "i >= 2")
 
-(test-ps-js operator-expressions-11
+(test-ps-js operator-expressions-10
   (not (eql i 2))
   "i != 2")
 
@@ -237,13 +236,13 @@ blafoo(i);")
   (defun a-function (a b)
   (return (+ a b)))
   "function aFunction(a, b) {
-  return a + b;
+    return a + b;
 }")
 
 (test-ps-js function-definition-2
   (lambda (a b) (return (+ a b)))
   "function (a, b) {
-  return a + b;
+    return a + b;
 }")
 
 (test-ps-js assignment-1
@@ -279,31 +278,31 @@ b = _js2;")
   (setq a 1)
   "a = 1;")
 
-(test-ps-js assignment-9
+(test-ps-js assignment-8
   (defun (setf color) (new-color el)
   (setf (slot-value (slot-value el 'style) 'color) new-color))
   "function __setf_color(newColor, el) {
-  el.style.color = newColor;
+    el.style.color = newColor;
 };")
 
-(test-ps-js assignment-10
+(test-ps-js assignment-9
   (setf (color some-div) (+ 23 "em"))
   "var _js2 = someDiv;
 var _js1 = 23 + 'em';
 __setf_color(_js1, _js2);")
 
-(test-ps-js assignment-11
+(test-ps-js assignment-10
   (defsetf left (el) (offset)
   `(setf (slot-value (slot-value ,el 'style) 'left) ,offset))
   "null")
 
-(test-ps-js assignment-12
+(test-ps-js assignment-11
   (setf (left some-div) (+ 123 "px"))
   "var _js2 = someDiv;
 var _js1 = 123 + 'px';
 _js2.style.left = _js1;")
 
-(test-ps-js assignment-13
+(test-ps-js assignment-12
   (progn (defmacro left (el)
          `(slot-value ,el 'offset-left))
        (left some-div))
@@ -326,9 +325,9 @@ _js2.style.left = _js1;")
     (alert (+ "blorg is a string: " blorg))
     (alert "blorg is not a string"))
   "if (typeof blorg == String) {
-  alert('blorg is a string: ' + blorg);
+    alert('blorg is a string: ' + blorg);
 } else {
-  alert('blorg is not a string');
+    alert('blorg is not a string');
 }")
 
 (test-ps-js conditional-statements-1
@@ -336,10 +335,10 @@ _js2.style.left = _js1;")
     (progn (carry-on) (return i))
     (alert "blorg is not correct!"))
   "if (blorg.isCorrect()) {
-  carryOn();
-  return i;
+    carryOn();
+    return i;
 } else {
-  alert('blorg is not correct!');
+    alert('blorg is not correct!');
 }")
 
 (test-ps-js conditional-statements-2
@@ -351,15 +350,15 @@ _js2.style.left = _js1;")
   (carry-on)
   (return i))
   "if (blorg.isCorrect()) {
-  carryOn();
-  return i;
+    carryOn();
+    return i;
 }")
 
 (test-ps-js conditional-statements-4
   (unless (blorg.is-correct)
   (alert "blorg is not correct!"))
   "if (!blorg.isCorrect()) {
-  alert('blorg is not correct!');
+    alert('blorg is not correct!');
 }")
 
 (test-ps-js variable-declaration-1
@@ -526,7 +525,7 @@ for (var k in obj) {
   (while (film.is-not-finished)
   (this.eat (new *popcorn)))
   "while (film.isNotFinished()) {
-  this.eat(new Popcorn);
+    this.eat(new Popcorn);
 }")
 
 (test-ps-js the-case-statement-1
@@ -535,15 +534,16 @@ for (var k in obj) {
   (2 (alert "two"))
   (t (alert "default clause")))
   "switch (blorg[i]) {
-  case 1:   
-  case 'one':
-            alert('one');
-            break;
-  case 2:
-            alert('two');
-            break;
-  default:   alert('default clause');
-}")
+    case 1:
+    case 'one':
+        alert('one');
+        break;
+    case 2:
+        alert('two');
+        break;
+    default: 
+        alert('default clause');
+    }")
 
 (test-ps-js the-case-statement-2
   (switch (aref blorg i)
@@ -551,17 +551,16 @@ for (var k in obj) {
   (2 (alert "I also get here"))
   (default (alert "I always get here")))
   "switch (blorg[i]) {
-  case 1:   alert('If I get here');
-  case 2:   alert('I also get here');
-  default:   alert('I always get here');
+    case 1: alert('If I get here');
+    case 2: alert('I also get here');
+    default: alert('I always get here');
 }")
 
 (test-ps-js the-with-statement-1
   (with (create :foo "foo" :i "i")
   (alert (+ "i is now intermediary scoped: " i)))
-  "with ({ foo : 'foo',
-        i : 'i' }) {
-  alert('i is now intermediary scoped: ' + i);
+  "with ({ foo : 'foo', i : 'i' }) {
+    alert('i is now intermediary scoped: ' + i);
 }")
 
 (test-ps-js the-try-statement-1
@@ -571,11 +570,11 @@ for (var k in obj) {
  (:finally
    (alert "Leaving the try form")))
   "try {
-  throw 'i';
+    throw 'i';
 } catch (error) {
-  alert('an error happened: ' + error);
+    alert('an error happened: ' + error);
 } finally {
-  alert('Leaving the try form');
+    alert('Leaving the try form');
 }")
 
 (test-ps-js the-html-generator-1
@@ -598,10 +597,10 @@ for (var k in obj) {
    (setf element.inner-h-t-m-l
          (ps-html ((:textarea (or disabled (not authorized)) :disabled "disabled")
                 "Edit me"))))
-  "   var disabled = null;
-   var authorized = true;
-   element.innerHTML =
-   '<textarea'
-   + (disabled || !authorized ? ' disabled=\"' + 'disabled' + '\"' : '')
-   + '>Edit me</textarea>';")
+  "var disabled = null;
+var authorized = true;
+element.innerHTML =
+'<textarea'
++ (disabled || !authorized ? ' disabled=\"' + 'disabled' + '\"' : '')
++ '>Edit me</textarea>';")
 

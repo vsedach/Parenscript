@@ -29,11 +29,11 @@
 (+ i (if 1 2 3)) => i + (1 ? 2 : 3)
 
 (if 1 2 3)
-   => if (1) {
-        2;
-      } else {
-        3;
-      }
+=> if (1) {
+       2;
+   } else {
+       3;
+   }
 
 ;;;# Symbol conversion
 ;;;t \index{symbol}
@@ -157,7 +157,7 @@ WHEN WHILE WITH WITH-SLOTS
 
 (array (array 2 3)
        (array "foobar" "bratzel bub"))
-   => [ [ 2, 3 ], [ 'foobar', 'bratzel bub' ] ]
+=> [ [ 2, 3 ], [ 'foobar', 'bratzel bub' ] ]
 
 ;;; Arrays can also be created with a call to the `Array' function
 ;;; using the `MAKE-ARRAY'. The two forms have the exact same semantic
@@ -170,7 +170,7 @@ WHEN WHILE WITH WITH-SLOTS
 (make-array
  (make-array 2 3)
  (make-array "foobar" "bratzel bub"))
-  => new Array(new Array(2, 3), new Array('foobar', 'bratzel bub'))
+=> new Array(new Array(2, 3), new Array('foobar', 'bratzel bub'))
 
 ;;; Indexing arrays in ParenScript is done using the form `AREF'. Note
 ;;; that JavaScript knows of no such thing as an array. Subscripting
@@ -203,15 +203,14 @@ WHEN WHILE WITH WITH-SLOTS
 ;;; more "lispy", the property names can be keywords.
 
 (create :foo "bar" :blorg 1)
-   => { foo : 'bar',
-        blorg : 1 }
+=> { foo : 'bar', blorg : 1 }
 
 (create :foo "hihi"
         :blorg (array 1 2 3)
         :another-object (create :schtrunz 1))
-   => { foo : 'hihi',
-        blorg : [ 1, 2, 3 ],
-        anotherObject : { schtrunz : 1 } }
+=> { foo : 'hihi',
+     blorg : [ 1, 2, 3 ],
+     anotherObject : { schtrunz : 1 } }
 
 ;;; Object properties can be accessed using the `SLOT-VALUE' form,
 ;;; which takes an object and a slot-name.
@@ -228,7 +227,7 @@ an-object.foo => anObject.foo
 
 (with-slots (a b c) this
   (+ a b c))
-    => this.a + this.b + this.c;
+=> this.a + this.b + this.c;
 
 ;;;## Regular Expression literals
 ;;;t \index{REGEX}
@@ -334,7 +333,7 @@ a-variable  => aVariable
 (blorg 1 2) => blorg(1, 2)
 
 (foobar (blorg 1 2) (blabla 3 4) (array 2 3 4))
-   => foobar(blorg(1, 2), blabla(3, 4), [ 2, 3, 4 ])
+=> foobar(blorg(1, 2), blabla(3, 4), [ 2, 3, 4 ])
 
 ((aref foo i) 1 2) => foo[i](1, 2)
 
@@ -350,7 +349,7 @@ a-variable  => aVariable
 (this.blorg 1 2) => this.blorg(1, 2)
 
 (.blorg (aref foobar 1) NIL T)
-   => foobar[1].blorg(null, true)
+=> foobar[1].blorg(null, true)
 
 ;;;# Operator Expressions
 ;;;t \index{operator}
@@ -387,10 +386,10 @@ a-variable  => aVariable
 ;;; according to the JavaScript operator precedence that can be found
 ;;; in table form at:
 
-    http://www.codehouse.com/javascript/precedence/
+;;;    http://www.codehouse.com/javascript/precedence/
 
 (* 1 (+ 2 3 4) 4 (/ 6 7))
-  => 1 * (2 + 3 + 4) * 4 * (6 / 7)
+=> 1 * (2 + 3 + 4) * 4 * (6 / 7)
 
 ;;; The pre increment and decrement operators are also
 ;;; available. `INCF' and `DECF' are the pre-incrementing and
@@ -436,13 +435,13 @@ a-variable  => aVariable
 ;;; For example, in a statement context:
 
 (progn (blorg i) (blafoo i))
-   => blorg(i);
-      blafoo(i);
+=> blorg(i);
+   blafoo(i);
 
 ;;; In an expression context:
 
 (+ i (progn (blorg i) (blafoo i)))
-   => i + (blorg(i), blafoo(i))
+=> i + (blorg(i), blafoo(i))
 
 ;;; A `PROGN' form doesn't lead to additional indentation or
 ;;; additional braces around it's body.
@@ -469,18 +468,18 @@ a-variable  => aVariable
 
 (defun a-function (a b)
   (return (+ a b)))
-  => function aFunction(a, b) {
+=> function aFunction(a, b) {
        return a + b;
-     }
+   }
 
 ;;; Anonymous functions can be created using the `LAMBDA' form, which
 ;;; is the same as `DEFUN', but without function name. In fact,
 ;;; `LAMBDA' creates a `DEFUN' with an empty function name.
 
 (lambda (a b) (return (+ a b)))
-  => function (a, b) {
+=> function (a, b) {
        return a + b;
-     }
+   }
 
 ;;;# Assignment
 ;;;t \index{assignment}
@@ -510,10 +509,10 @@ a-variable  => aVariable
 (setf a 1) => a = 1;
 
 (setf a 2 b 3 c 4 x (+ a b c))
-   => a = 2;
-      b = 3;
-      c = 4;
-      x = a + b + c;
+=> a = 2;
+   b = 3;
+   c = 4;
+   x = a + b + c;
 
 ;;; The `SETF' form can transform assignments of a variable with an
 ;;; operator expression using this variable into a more "efficient"
@@ -529,12 +528,12 @@ a-variable  => aVariable
 
 (let* ((a 1) (b 2))
   (psetf a b b a))
-  => var a = 1;
-     var b = 2;
-     var _js1 = b;
-     var _js2 = a;
-     a = _js1;
-     b = _js2;
+=> var a = 1;
+   var b = 2;
+   var _js1 = b;
+   var _js2 = a;
+   a = _js1;
+   b = _js2;
 
 ;;; The `SETQ' and `PSETQ' forms operate identically to `SETF' and
 ;;; `PSETF', but throw a compile-time error if the left-hand side form
@@ -545,10 +544,7 @@ a-variable  => aVariable
 ;; but...
 
 (setq (aref a 0) 1)
-
-;; results in:
-
-ERROR: The value (AREF A 0) is not of type SYMBOL.
+;; => ERROR: The value (AREF A 0) is not of type SYMBOL.
 
 ;;; New types of setf places can be defined in one of two ways: using
 ;;; `DEFSETF' or using `DEFUN' with a setf function name; both are
@@ -560,14 +556,14 @@ ERROR: The value (AREF A 0) is not of type SYMBOL.
 
 (defun (setf color) (new-color el)
   (setf (slot-value (slot-value el 'style) 'color) new-color))
-  => function __setf_color(newColor, el) {
+=> function __setf_color(newColor, el) {
        el.style.color = newColor;
-     };
+   };
 
 (setf (color some-div) (+ 23 "em"))
-  => var _js2 = someDiv;
-     var _js1 = 23 + 'em';
-     __setf_color(_js1, _js2);
+=> var _js2 = someDiv;
+   var _js1 = 23 + 'em';
+   __setf_color(_js1, _js2);
 
 ;;; Note that temporary variables are generated to preserve evaluation
 ;;; order of the arguments as they would be in Lisp.
@@ -576,17 +572,18 @@ ERROR: The value (AREF A 0) is not of type SYMBOL.
 ;;; provide a uniform protocol for positioning elements in HTML pages:
 
 (defsetf left (el) (offset)
-  `(setf (slot-value (slot-value ,el 'style) 'left) ,offset)) => null
+  `(setf (slot-value (slot-value ,el 'style) 'left) ,offset))
+=> null
 
 (setf (left some-div) (+ 123 "px"))
-  => var _js2 = someDiv;
-     var _js1 = 123 + 'px';
-     _js2.style.left = _js1;
+=> var _js2 = someDiv;
+   var _js1 = 123 + 'px';
+   _js2.style.left = _js1;
 
 (progn (defmacro left (el)
          `(slot-value ,el 'offset-left))
        (left some-div))
-  => someDiv.offsetLeft;
+=> someDiv.offsetLeft;
 
 ;;;# Single argument statements
 ;;;t \index{single-argument statement}
@@ -638,11 +635,11 @@ ERROR: The value (AREF A 0) is not of type SYMBOL.
 (if (= (typeof blorg) *string)
     (alert (+ "blorg is a string: " blorg))
     (alert "blorg is not a string"))
-  => if (typeof blorg == String) {
+=> if (typeof blorg == String) {
        alert('blorg is a string: ' + blorg);
-     } else {
+   } else {
        alert('blorg is not a string');
-     }
+   }
 
 ;;;# Conditional Statements
 ;;;t \index{conditional statements}
@@ -670,15 +667,15 @@ ERROR: The value (AREF A 0) is not of type SYMBOL.
 (if (blorg.is-correct)
     (progn (carry-on) (return i))
     (alert "blorg is not correct!"))
-   => if (blorg.isCorrect()) {
-        carryOn();
-        return i;
-      } else {
-        alert('blorg is not correct!');
-      }
+=> if (blorg.isCorrect()) {
+       carryOn();
+       return i;
+   } else {
+       alert('blorg is not correct!');
+   }
 
 (+ i (if (blorg.add-one) 1 2))
-   => i + (blorg.addOne() ? 1 : 2)
+=> i + (blorg.addOne() ? 1 : 2)
 
 ;;; The `WHEN' and `UNLESS' forms can be used as shortcuts for the
 ;;; `IF' form.
@@ -686,16 +683,16 @@ ERROR: The value (AREF A 0) is not of type SYMBOL.
 (when (blorg.is-correct)
   (carry-on)
   (return i))
-    => if (blorg.isCorrect()) {
-         carryOn();
-         return i;
-       }
+=> if (blorg.isCorrect()) {
+       carryOn();
+       return i;
+   }
 
 (unless (blorg.is-correct)
   (alert "blorg is not correct!"))
-    => if (!blorg.isCorrect()) {
-         alert('blorg is not correct!');
-       }
+=> if (!blorg.isCorrect()) {
+       alert('blorg is not correct!');
+   }
 
 ;;;# Variable declaration
 ;;;t \index{variable}
@@ -753,46 +750,46 @@ ERROR: The value (AREF A 0) is not of type SYMBOL.
 
 (simple-let* ((a 0) (b 1))
   (alert (+ a b)))
-   => var a = 0;
-      var b = 1;
-      alert(a + b);
+=> var a = 0;
+   var b = 1;
+   alert(a + b);
 
 (simple-let* ((a "World") (b "Hello"))
   (simple-let ((a b) (b a))
     (alert (+ a b))))
-   => var a = 'World';
-      var b = 'Hello';
-      var _js_a1 = b;
-      var _js_b2 = a;
-      var a = _js_a1;
-      var b = _js_b2;
-      delete _js_a1;
-      delete _js_b2;
-      alert(a + b);
+=> var a = 'World';
+   var b = 'Hello';
+   var _js_a1 = b;
+   var _js_b2 = a;
+   var a = _js_a1;
+   var b = _js_b2;
+   delete _js_a1;
+   delete _js_b2;
+   alert(a + b);
 
 (simple-let* ((a 0) (b 1))
   (lexical-let* ((a 9) (b 8))
     (alert (+ a b)))
   (alert (+ a b)))
-   => var a = 0;
-      var b = 1;
-      (function () {
-          var a = 9;
-          var b = 8;
-          alert(a + b);
-      })();
-      alert(a + b);
+=> var a = 0;
+   var b = 1;
+   (function () {
+       var a = 9;
+       var b = 8;
+       alert(a + b);
+   })();
+   alert(a + b);
 
 (simple-let* ((a "World") (b "Hello"))
   (lexical-let ((a b) (b a))
     (alert (+ a b)))
   (alert (+ a b)))
-   => var a = 'World';
-      var b = 'Hello';
-      (function (a, b) {
-          alert(a + b);
-      })(b, a);
-      alert(a + b);
+=> var a = 'World';
+   var b = 'Hello';
+   (function (a, b) {
+       alert(a + b);
+   })(b, a);
+   alert(a + b);
 
 ;;; Moreover, beware that scoping rules in Lisp and JavaScript are
 ;;; quite different. For example, don't rely on closures capturing
@@ -842,11 +839,11 @@ ERROR: The value (AREF A 0) is not of type SYMBOL.
      ((or (= d c.length) (eql e "x")))
   (setf a d b e)
   (document.write (+ "a: " a " b: " b "<br/>")))
-   => for (var a = null, b = null, c = ['a', 'b', 'c', 'd', 'e'], d = 0, e = c[d]; !(d == c.length || e == 'x'); d += 1, e = c[d]) {
-          a = d;
-          b = e;
-          document.write('a: ' + a + ' b: ' + b + '<br/>');
-      };
+=> for (var a = null, b = null, c = ['a', 'b', 'c', 'd', 'e'], d = 0, e = c[d]; !(d == c.length || e == 'x'); d += 1, e = c[d]) {
+       a = d;
+       b = e;
+       document.write('a: ' + a + ' b: ' + b + '<br/>');
+   };
 
 ;;; `DO' (note the parallel assignment):
 
@@ -854,19 +851,19 @@ ERROR: The value (AREF A 0) is not of type SYMBOL.
      (s 0 (+ s i (1+ i))))
     ((> i 10))
   (document.write (+ "i: " i " s: " s "<br/>")))
-   => var _js_i1 = 0;
-      var _js_s2 = 0;
-      var i = _js_i1;
-      var s = _js_s2;
-      delete _js_i1;
-      delete _js_s2;
-      for (; i <= 10; ) {
-          document.write('i: ' + i + ' s: ' + s + '<br/>');
-          var _js3 = i + 1;
-          var _js4 = s + i + (i + 1);
-          i = _js3;
-          s = _js4;
-      };
+=> var _js_i1 = 0;
+   var _js_s2 = 0;
+   var i = _js_i1;
+   var s = _js_s2;
+   delete _js_i1;
+   delete _js_s2;
+   for (; i <= 10; ) {
+       document.write('i: ' + i + ' s: ' + s + '<br/>');
+       var _js3 = i + 1;
+       var _js4 = s + i + (i + 1);
+       i = _js3;
+       s = _js4;
+   };
 
 ;;; compare to `DO*':
 
@@ -874,19 +871,19 @@ ERROR: The value (AREF A 0) is not of type SYMBOL.
       (s 0 (+ s i (1- i))))
      ((> i 10))
   (document.write (+ "i: " i " s: " s "<br/>")))
-   => for (var i = 0, s = 0; i <= 10; i += 1, s += i + (i - 1)) {
-          document.write('i: ' + i + ' s: ' + s + '<br/>');
-      };
+=> for (var i = 0, s = 0; i <= 10; i += 1, s += i + (i - 1)) {
+       document.write('i: ' + i + ' s: ' + s + '<br/>');
+   };
 
 ;;; `DOTIMES':
 
 (let* ((arr (array "a" "b" "c" "d" "e")))
   (dotimes (i arr.length)
     (document.write (+ "i: " i " arr[i]: " (aref arr i) "<br/>"))))
-   => var arr = ['a', 'b', 'c', 'd', 'e'];
-      for (var i = 0; i < arr.length; i += 1) {
-          document.write('i: ' + i + ' arr[i]: ' + arr[i] + '<br/>');
-      };
+=> var arr = ['a', 'b', 'c', 'd', 'e'];
+   for (var i = 0; i < arr.length; i += 1) {
+       document.write('i: ' + i + ' arr[i]: ' + arr[i] + '<br/>');
+   };
 
 ;;; `DOTIMES' with return value:
 
@@ -894,13 +891,13 @@ ERROR: The value (AREF A 0) is not of type SYMBOL.
   (alert (+ "Summation to 10 is "
             (dotimes (i 10 res)
               (incf res (1+ i))))))
-   => var res = 0;
-      alert('Summation to 10 is ' + (function () {
-          for (var i = 0; i < 10; i += 1) {
-              res += i + 1;
-          };
-          return res;
-      })());
+=> var res = 0;
+   alert('Summation to 10 is ' + (function () {
+       for (var i = 0; i < 10; i += 1) {
+           res += i + 1;
+       };
+       return res;
+   })());
 
 ;;; `DOLIST' is like CL:DOLIST, but that it operates on numbered JS
 ;;; arrays/vectors.
@@ -908,26 +905,26 @@ ERROR: The value (AREF A 0) is not of type SYMBOL.
 (let* ((l (list 1 2 4 8 16 32)))
   (dolist (c l)
     (document.write (+ "c: " c "<br/>"))))
-   => var l = [1, 2, 4, 8, 16, 32];
-      for (var c = null, _js_arrvar2 = l, _js_idx1 = 0; _js_idx1 < _js_arrvar2.length; _js_idx1 += 1) {
-          c = _js_arrvar2[_js_idx1];
-          document.write('c: ' + c + '<br/>');
-      };
+=> var l = [1, 2, 4, 8, 16, 32];
+   for (var c = null, _js_arrvar2 = l, _js_idx1 = 0; _js_idx1 < _js_arrvar2.length; _js_idx1 += 1) {
+       c = _js_arrvar2[_js_idx1];
+       document.write('c: ' + c + '<br/>');
+   };
 
 (let* ((l (list 1 2 4 8 16 32))
        (s 0))
   (alert (+ "Sum of " l " is: "
             (dolist (c l s)
               (incf s c)))))
-   => var l = [1, 2, 4, 8, 16, 32];
-      var s = 0;
-      alert('Sum of ' + l + ' is: ' + (function () {
-          for (var c = null, _js_arrvar2 = l, _js_idx1 = 0; _js_idx1 < _js_arrvar2.length; _js_idx1 += 1) {
-              c = _js_arrvar2[_js_idx1];
-              s += c;
-          };
-          return s;
-      })());
+=> var l = [1, 2, 4, 8, 16, 32];
+   var s = 0;
+   alert('Sum of ' + l + ' is: ' + (function () {
+       for (var c = null, _js_arrvar2 = l, _js_idx1 = 0; _js_idx1 < _js_arrvar2.length; _js_idx1 += 1) {
+           c = _js_arrvar2[_js_idx1];
+           s += c;
+       };
+       return s;
+   })());
 
 ;;; `DOEACH' iterates across the enumerable properties of JS objects,
 ;;; binding either simply the key of each slot, or alternatively, both
@@ -936,29 +933,29 @@ ERROR: The value (AREF A 0) is not of type SYMBOL.
 (let* ((obj (create :a 1 :b 2 :c 3)))
   (doeach (i obj)
     (document.write (+ i ": " (aref obj i) "<br/>"))))
-   => var obj = { a : 1, b : 2, c : 3 };
-      for (var i in obj) {
-          document.write(i + ': ' + obj[i] + '<br/>');
-      };
+=> var obj = { a : 1, b : 2, c : 3 };
+   for (var i in obj) {
+       document.write(i + ': ' + obj[i] + '<br/>');
+   };
 
 (let* ((obj (create :a 1 :b 2 :c 3)))
   (doeach ((k v) obj)
     (document.write (+ k ": " v "<br/>"))))
-   => var obj = { a : 1, b : 2, c : 3 };
-      var v;
-      for (var k in obj) {
-          v = obj[k];
-          document.write(k + ': ' + v + '<br/>');
-      };
+=> var obj = { a : 1, b : 2, c : 3 };
+   var v;
+   for (var k in obj) {
+       v = obj[k];
+       document.write(k + ': ' + v + '<br/>');
+   };
 
 ;;; The `WHILE' form is transformed to the JavaScript form `while',
 ;;; and loops until a termination test evaluates to false.
 
 (while (film.is-not-finished)
   (this.eat (new *popcorn)))
-   => while (film.isNotFinished()) {
-        this.eat(new Popcorn);
-      }
+=> while (film.isNotFinished()) {
+       this.eat(new Popcorn);
+   }
 
 ;;;# The `CASE' statement
 ;;;t \index{CASE}
@@ -981,15 +978,16 @@ ERROR: The value (AREF A 0) is not of type SYMBOL.
   ((1 "one") (alert "one"))
   (2 (alert "two"))
   (t (alert "default clause")))
-    => switch (blorg[i]) {
-         case 1:   
-         case 'one':
-                   alert('one');
-                   break;
-         case 2:
-                   alert('two');
-                   break;
-         default:   alert('default clause');
+=> switch (blorg[i]) {
+       case 1:
+       case 'one':
+           alert('one');
+           break;
+       case 2:
+           alert('two');
+           break;
+       default: 
+           alert('default clause');
        }
 
 ; (SWITCH case-value clause*)
@@ -1003,12 +1001,11 @@ ERROR: The value (AREF A 0) is not of type SYMBOL.
   (1 (alert "If I get here"))
   (2 (alert "I also get here"))
   (default (alert "I always get here")))
-    => switch (blorg[i]) {
-         case 1:   alert('If I get here');
-         case 2:   alert('I also get here');
-         default:   alert('I always get here');
-       }
-
+=> switch (blorg[i]) {
+       case 1: alert('If I get here');
+       case 2: alert('I also get here');
+       default: alert('I always get here');
+   }
 
 ;;;# The `WITH' statement
 ;;;t \index{WITH}
@@ -1028,10 +1025,9 @@ ERROR: The value (AREF A 0) is not of type SYMBOL.
 
 (with (create :foo "foo" :i "i")
   (alert (+ "i is now intermediary scoped: " i)))
-   => with ({ foo : 'foo',
-              i : 'i' }) {
-        alert('i is now intermediary scoped: ' + i);
-      }
+=> with ({ foo : 'foo', i : 'i' }) {
+       alert('i is now intermediary scoped: ' + i);
+   }
 
 ;;;# The `TRY' statement
 ;;;t \index{TRY}
@@ -1056,13 +1052,13 @@ ERROR: The value (AREF A 0) is not of type SYMBOL.
    (alert (+ "an error happened: " error)))
  (:finally
    (alert "Leaving the try form")))
-   => try {
-        throw 'i';
-      } catch (error) {
-        alert('an error happened: ' + error);
-      } finally {
-        alert('Leaving the try form');
-      }
+=> try {
+       throw 'i';
+   } catch (error) {
+       alert('an error happened: ' + error);
+   } finally {
+       alert('Leaving the try form');
+   }
 
 ;;;# The HTML Generator
 ;;;t \index{PS-HTML}
@@ -1077,10 +1073,10 @@ ERROR: The value (AREF A 0) is not of type SYMBOL.
 ;;; compiler. The resulting expression is a JavaScript expression.
 
 (ps-html ((:a :href "foobar") "blorg"))
-  => '<a href=\"foobar\">blorg</a>'
+=> '<a href=\"foobar\">blorg</a>'
 
 (ps-html ((:a :href (generate-a-link)) "blorg"))
-  => '<a href=\"' + generateALink() + '\">blorg</a>'
+=> '<a href=\"' + generateALink() + '\">blorg</a>'
 
 ;;; We can recursively call the ParenScript compiler in an HTML
 ;;; expression.
@@ -1088,7 +1084,7 @@ ERROR: The value (AREF A 0) is not of type SYMBOL.
 (document.write
   (ps-html ((:a :href "#"
                 :onclick (lisp (ps-inline (transport)))) "link")))
-  => document.write('<a href=\"#\" onclick=\"' + 'javascript:transport()' + '\">link</a>')
+=> document.write('<a href=\"#\" onclick=\"' + 'javascript:transport()' + '\">link</a>')
 
 ;;; Forms may be used in attribute lists to conditionally generate
 ;;; the next attribute. In this example the textarea is sometimes disabled.
@@ -1098,12 +1094,12 @@ ERROR: The value (AREF A 0) is not of type SYMBOL.
    (setf element.inner-h-t-m-l
          (ps-html ((:textarea (or disabled (not authorized)) :disabled "disabled")
                 "Edit me"))))
-  =>    var disabled = null;
-        var authorized = true;
-        element.innerHTML =
-        '<textarea'
-        + (disabled || !authorized ? ' disabled=\"' + 'disabled' + '\"' : '')
-        + '>Edit me</textarea>';
+=> var disabled = null;
+   var authorized = true;
+   element.innerHTML =
+   '<textarea'
+   + (disabled || !authorized ? ' disabled=\"' + 'disabled' + '\"' : '')
+   + '>Edit me</textarea>';
 
 ;;;# Macrology
 ;;;t \index{macro}

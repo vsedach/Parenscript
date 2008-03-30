@@ -221,15 +221,11 @@
 
    ;; deprecated interface
    #:gen-js-name
-   #:gen-js-name-string
    #:with-unique-js-names
    #:defjsmacro
    #:js-compile
    #:js-inline
    #:js-inline*
-   #:js-file
-   #:js-script
-   #:js-to-statement-strings
    #:js
    #:js*
    ))

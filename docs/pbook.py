@@ -218,14 +218,14 @@ class Pbook:
                     lines.pop(0)
                     self.lineCounter += 1
                     continue
-		elif self.figureRe.match(line):
+                elif self.figureRe.match(line):
                     line = lines.pop(0)
                     self.doFigure(line)
-		    self.lineCounter += 1
-		elif self.escapeRe.match(line):
+                    self.lineCounter += 1
+                elif self.escapeRe.match(line):
                     line = lines.pop(0)
                     self.doEscape(line)
-		    self.lineCounter += 1
+                    self.lineCounter += 1
                 elif self.headingRe.match(line):
                     line = lines.pop(0)
                     self.doHeading(line)

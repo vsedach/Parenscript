@@ -31,42 +31,42 @@
   (defun collect-list-expander (n-value n-tail forms)
     (let ((n-res (gensym)))
       `(progn
-	,@(mapcar (lambda (form)
-		    `(let ((,n-res (cons ,form nil)))
-		      (cond (,n-tail
-			     (setf (cdr ,n-tail) ,n-res)
-			     (setq ,n-tail ,n-res))
-			    (t
-			     (setq ,n-tail ,n-res  ,n-value ,n-res)))))
-		  forms)
-	,n-value))))
+        ,@(mapcar (lambda (form)
+                    `(let ((,n-res (cons ,form nil)))
+                      (cond (,n-tail
+                             (setf (cdr ,n-tail) ,n-res)
+                             (setq ,n-tail ,n-res))
+                            (t
+                             (setq ,n-tail ,n-res  ,n-value ,n-res)))))
+                  forms)
+        ,n-value))))
   
 (defmacro collect (collections &body body)
   (let ((macros ())
-	(binds ()))
+        (binds ()))
     (dolist (spec collections)
-					;      (unless (proper-list-of-length-p spec 1 3)
-					;        (error "malformed collection specifier: ~S" spec))
+                                        ;      (unless (proper-list-of-length-p spec 1 3)
+                                        ;        (error "malformed collection specifier: ~S" spec))
       (let* ((name (first spec))
-	     (default (second spec))
-	     (kind (or (third spec) 'collect))
-	     (n-value (gensym (concatenate 'string
-					   (symbol-name name)
-					   "-N-VALUE-"))))
-	(push `(,n-value ,default) binds)
-	(if (eq kind 'collect)
-	    (let ((n-tail (gensym (concatenate 'string
-					       (symbol-name name)
-					       "-N-TAIL-"))))
-	      (if default
-		  (push `(,n-tail (last ,n-value)) binds)
-		  (push n-tail binds))
-		(push `(,name (&rest args)
-			(collect-list-expander ',n-value ',n-tail args))
-		      macros))
-	    (push `(,name (&rest args)
-		    (collect-normal-expander ',n-value ',kind args))
-		  macros))))
+             (default (second spec))
+             (kind (or (third spec) 'collect))
+             (n-value (gensym (concatenate 'string
+                                           (symbol-name name)
+                                           "-N-VALUE-"))))
+        (push `(,n-value ,default) binds)
+        (if (eq kind 'collect)
+            (let ((n-tail (gensym (concatenate 'string
+                                               (symbol-name name)
+                                               "-N-TAIL-"))))
+              (if default
+                  (push `(,n-tail (last ,n-value)) binds)
+                  (push n-tail binds))
+                (push `(,name (&rest args)
+                        (collect-list-expander ',n-value ',n-tail args))
+                      macros))
+            (push `(,name (&rest args)
+                    (collect-normal-expander ',n-value ',kind args))
+                  macros))))
     `(macrolet ,macros (let* ,(nreverse binds) ,@body))))
   
 (defparameter *lambda-list-keywords*
@@ -87,7 +87,7 @@
           (keyp nil)
           (auxp nil)
           (allowp nil)
-	  (key-object nil)
+          (key-object nil)
           (state :required))
       (declare (type (member :allow-other-keys :aux
                              :key
@@ -95,7 +95,7 @@
                              :optional
                              :post-more :post-rest
                              :required :rest
-			     :key-object :post-key)
+                             :key-object :post-key)
                      state))
       (dolist (arg list)
         (if (member arg *lambda-list-keywords*)
@@ -103,7 +103,7 @@
               (&optional
                (unless (eq state :required)
                  (format t "misplaced &OPTIONAL in lambda list: ~S"
-			 list))
+                         list))
                (setq state :optional))
               (&rest
                (unless (member state '(:required :optional))
@@ -136,10 +136,10 @@
                  (format t "multiple &AUX in lambda list: ~S" list))
                (setq auxp t
                      state :aux))
-	      (&key-object
-	       (unless (member state '(:key :allow-other-keys))
-		 (format t "&key-object misplaced in lmabda list: ~S. Belongs after &key" list))
-	       (setf state :key-object))
+              (&key-object
+               (unless (member state '(:key :allow-other-keys))
+                 (format t "&key-object misplaced in lmabda list: ~S. Belongs after &key" list))
+               (setf state :key-object))
               (t (format t "unknown LAMBDA-LIST-KEYWORD in lambda list: ~S." arg)))
             (progn
               (when (symbolp arg)
@@ -162,7 +162,7 @@
                  (setq more-count arg
                        state :post-more))
                 (:key (keys arg))
-		(:key-object (setf key-object arg) (setf state :post-key))
+                (:key-object (setf key-object arg) (setf state :post-key))
                 (:aux (aux arg))
                 (t
                  (format t "found garbage in lambda list when expecting ~
@@ -174,7 +174,7 @@
       (values (required) (optional) restp rest keyp (keys) allowp auxp (aux)
               morep more-context more-count
               (not (eq state :required))
-	      key-object))))
+              key-object))))
 
 ;;; like PARSE-LAMBDA-LIST-LIKE-THING, except our LAMBDA-LIST argument
 ;;; really *is* a lambda list, not just a "lambda-list-like thing", so

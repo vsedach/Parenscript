@@ -15,8 +15,8 @@
        res)
       ((= i len)
        (let ((split (if (> i last)
-		     (cons (subseq string last i) res)
-		     res)))
+                     (cons (subseq string last i) res)
+                     res)))
          (nreverse (if remove-empty-subseqs
                        (delete "" split :test #'string-equal)
                        split))))
@@ -69,39 +69,39 @@ SOMEGLOBAL."
     (setf symbol (symbol-name symbol)))
   (let ((symbols (string-split symbol '(#\. #\[ #\]) :keep-separators t :remove-empty-subseqs t)))
     (cond ((null symbols) "")
-	  ((= (length symbols) 1)
-	   (let (res
+          ((= (length symbols) 1)
+           (let (res
                  (do-not-touch nil)
-		 (lowercase t)
-		 (all-uppercase nil))
-	     (cond ((constant-string-p symbol)
-		    (setf all-uppercase t
-			  symbol (subseq symbol 1 (1- (length symbol)))))
-		   ((first-uppercase-p symbol)
-		    (setf lowercase nil
-			  symbol (subseq symbol 1)))
+                 (lowercase t)
+                 (all-uppercase nil))
+             (cond ((constant-string-p symbol)
+                    (setf all-uppercase t
+                          symbol (subseq symbol 1 (1- (length symbol)))))
+                   ((first-uppercase-p symbol)
+                    (setf lowercase nil
+                          symbol (subseq symbol 1)))
                    ((untouchable-string-p symbol)
                     (setf do-not-touch t
                           symbol (subseq symbol 1))))
-	     (flet ((reschar (c)
-		      (push (cond
+             (flet ((reschar (c)
+                      (push (cond
                               (do-not-touch c)
                               ((and lowercase (not all-uppercase))
                                (char-downcase c))
                               (t (char-upcase c)))
                             res)
-		      (setf lowercase t)))
-	       (dotimes (i (length symbol))
-		 (let ((c (char symbol i)))
-		   (cond
-		     ((eql c #\-)
-		      (setf lowercase (not lowercase)))
-		     ((assoc c *special-chars*)
-		      (dolist (i (coerce (cdr (assoc c *special-chars*)) 'list))
-			(reschar i)))
-		     (t (reschar c))))))
-	     (coerce (nreverse res) 'string)))
-	  (t (string-join (mapcar #'symbol-to-js symbols) "")))))
+                      (setf lowercase t)))
+               (dotimes (i (length symbol))
+                 (let ((c (char symbol i)))
+                   (cond
+                     ((eql c #\-)
+                      (setf lowercase (not lowercase)))
+                     ((assoc c *special-chars*)
+                      (dolist (i (coerce (cdr (assoc c *special-chars*)) 'list))
+                        (reschar i)))
+                     (t (reschar c))))))
+             (coerce (nreverse res) 'string)))
+          (t (string-join (mapcar #'symbol-to-js symbols) "")))))
 
 (defun ordered-set-difference (list1 list2 &key (test #'eql)) ;; because the CL set-difference may not preserve order
   (reduce (lambda (list el) (remove el list :test test))

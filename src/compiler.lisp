@@ -109,7 +109,7 @@ NAME must be a symbol."
   "True if there is a Parenscript macro named by the symbol NAME."
   (and (symbolp name)
        (let ((macro-spec (lookup-macro-spec name environment)))
-	 (and macro-spec (not (car macro-spec))))))
+         (and macro-spec (not (car macro-spec))))))
 
 (defun lookup-macro-expansion-function (name &optional (environment *script-macro-env*))
   "Lookup NAME in the given macro expansion environment (which
@@ -159,7 +159,7 @@ then that expansion is further expanded by ParenScript."
 (defmacro defmacro/ps (name args &body body)
   "Define a Lisp macro and import it into the ParenScript macro environment."
   `(progn (defmacro ,name ,args ,@body)
-	  (ps:import-macros-from-lisp ',name)))
+          (ps:import-macros-from-lisp ',name)))
 
 (defmacro defmacro+ps (name args &body body)
   "Define a Lisp macro and a ParenScript macro in their respective
@@ -242,9 +242,9 @@ the form cannot be compiled to a symbol."
 Javascript arguments.  The only extra processing this does is makes :keyword arguments
 into a single options argument via CREATE."
   (flet ((keyword-arg (arg)
-	   "If the given compiled expression is supposed to be a keyword argument, returns
+           "If the given compiled expression is supposed to be a keyword argument, returns
 the keyword for it."
-	   (when (and (listp arg) (eql (first arg) 'script-quote)) (second arg))))
+           (when (and (listp arg) (eql (first arg) 'script-quote)) (second arg))))
     (let ((compiled-args (mapcar (lambda (arg) (compile-parenscript-form arg :expecting :expression))
                                  arg-forms)))
       (do ((effective-expressions nil)
@@ -263,7 +263,7 @@ the keyword for it."
 
 (defmethod compile-parenscript-form ((form cons) &key (expecting :statement))
   (let* ((name (car form))
-	 (args (cdr form)))
+         (args (cdr form)))
     (cond ((eql name 'quote)
            (assert (= 1 (length args)) () "Wrong number of arguments to quote: ~s" args)
            (list 'script-quote (first args)))

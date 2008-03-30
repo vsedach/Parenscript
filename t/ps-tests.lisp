@@ -47,7 +47,7 @@ x = 2 + sideEffect() + x + 5;")
 (test-ps-js method-call-string (.to-string "hi") "'hi'.toString()")
 (test-ps-js method-call-lit-object
             (.to-string (create :to-string (lambda ()
-					     (return "it works"))))
+                                             (return "it works"))))
             "( { toString : function () { return 'it works'; } } ).toString()")
 
 (test-ps-js method-call-variable
@@ -166,9 +166,9 @@ x = 2 + sideEffect() + x + 5;")
                    ("u0080" . ,(code-char 128)) ;;Character over 127. Actually valid, parenscript escapes them to be sure.
                    ("uABCD" . ,(code-char #xabcd)))));; Really above ascii.
     (loop for (js-escape . lisp-char) in escapes
-	  for generated = (compile-script `(let* ((x ,(format nil "hello~ahi" lisp-char)))))
-	  for wanted = (format nil "var x = 'hello\\~ahi';" js-escape)
-	  do (is (string= (normalize-js-code generated) wanted)))))
+          for generated = (compile-script `(let* ((x ,(format nil "hello~ahi" lisp-char)))))
+          for wanted = (format nil "var x = 'hello\\~ahi';" js-escape)
+          do (is (string= (normalize-js-code generated) wanted)))))
   
 (test-ps-js complicated-symbol-name1
   grid-rows[foo].bar

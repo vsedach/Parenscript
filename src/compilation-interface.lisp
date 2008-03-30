@@ -11,6 +11,12 @@ is output to the OUTPUT-STREAM stream."
 compiles those forms to a JavaScript string."
   `(ps* '(progn ,@body)))
 
+(defmacro ps-doc (&body body)
+  "Expands Parenscript forms in a clean environment."
+  `(let ((*ps-gensym-counter* 0)
+         (*ps-special-variables* nil))
+     (ps ,@body)))
+
 (defun ps* (&rest body)
   "Compiles BODY to a JavaScript string.
 Body is evaluated."

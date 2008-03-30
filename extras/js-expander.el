@@ -45,3 +45,4 @@
 
 ;;; This actually defines the expander. If the code above belongs in slime.el, the code below would go into .emacs
 (slime-add-custom-expander "j" 'ps:ps "*ParenScript generated Javascript*" 'c-mode #'read)
+(slime-add-custom-expander "d" 'ps:ps-doc "*ParenScript generated Javascript*" 'c-mode #'read)

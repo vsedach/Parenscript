@@ -193,6 +193,7 @@
    ;; compiler
    #:compile-script
    #:ps
+   #:ps-doc
    #:ps*
    #:ps-inline
    #:ps-inline*

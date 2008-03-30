@@ -10,12 +10,12 @@
 
 (defmacro defun-js (old-name new-name args &body body)
   `(defun ,old-name ,args
-    ,(when (and (stringp (car body)) (< 1 (length body))) ;; docstring
+    ,(when (and (stringp (car body)) (< 1 (length body))) ; docstring
            (car body))
     (warn-deprecated ',old-name ',new-name)
     ,@body))
 
-;;; DEPRECATED INTERFACE ;;;
+;;; DEPRECATED INTERFACE
 
 (defun js-equal (ps-form1 ps-form2)
   (warn-deprecated 'js-equal)

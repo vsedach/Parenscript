@@ -314,8 +314,7 @@ the given lambda-list and body."
                             (declare (ignore x y))
                             (when specified? (cons var val))))
                       keys))))
-           (body-paren-forms (parse-function-body body)) ;remove documentation
-           ;;
+           (body-paren-forms (parse-function-body body)) ; remove documentation
            (initform-forms
             (mapcar #'(lambda (default-pair)
                         `(defaultf ,(car default-pair) ,(cdr default-pair)))

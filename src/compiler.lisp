@@ -177,7 +177,7 @@ whether any expansion was performed on the form or not."
   (if (consp form)
       (let ((op (car form))
             (args (cdr form)))
-        (cond ((equal op 'quote) (values (if (equalp '(nil) args) nil form) ;; leave quotes alone, unless it's a quoted nil
+        (cond ((equal op 'quote) (values (if (equalp '(nil) args) nil form) ; leave quotes alone, unless it's a quoted nil
                                          nil))
               ((script-macro-p op) (values (ps-macroexpand (funcall (lookup-macro-expansion-function op) form)) t))
               (t (values form nil))))

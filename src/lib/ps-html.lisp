@@ -1,6 +1,6 @@
 (in-package :parenscript)
 
-(defun process-html-forms (forms) ;; this needs a rewrite
+(defun process-html-forms (forms) ; this needs a rewrite
   (let ((res ()))
     (labels ((handle-form (form)
                (cond ((keywordp form)

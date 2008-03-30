@@ -7,7 +7,7 @@
       #:t
       #:f
       #:true
-      #.(symbol-name 'nil) ;; for case-sensitive Lisps like some versions of Allegro
+      #.(symbol-name 'nil) ; for case-sensitive Lisps like some versions of Allegro
       #:this
       #:false
       #:undefined

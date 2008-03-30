@@ -45,8 +45,8 @@
   (let ((macros ())
         (binds ()))
     (dolist (spec collections)
-                                        ;      (unless (proper-list-of-length-p spec 1 3)
-                                        ;        (error "malformed collection specifier: ~S" spec))
+      ;;(unless (proper-list-of-length-p spec 1 3)
+      ;;  (error "malformed collection specifier: ~S" spec))
       (let* ((name (first spec))
              (default (second spec))
              (kind (or (third spec) 'collect))
@@ -182,13 +182,11 @@
 ;;; even if they could conceivably be legal in not-quite-a-lambda-list
 ;;; weirdosities
 (defun parse-lambda-list (lambda-list)
-
   ;; Classify parameters without checking their validity individually.
   (multiple-value-bind (required optional restp rest keyp keys allowp auxp aux
                         morep more-context more-count beyond-requireds? key-object)
       (parse-lambda-list-like-thing lambda-list)
     (declare (ignore beyond-requireds?))
-
     ;; Check validity of parameters.
     (flet ((need-symbol (x why)
              (unless (symbolp x)
@@ -222,7 +220,6 @@
             (t
              (format t "&KEY parameter is not a symbol or cons: ~S"
                              i))))))
-
     ;; Voila.
     (values required optional restp rest keyp keys allowp auxp aux
             morep more-context more-count key-object)))

@@ -52,7 +52,7 @@ function foobar(a, b) {
       ((>= i 10))
     (alert (+ "i is " i " and j is " j))))
 
-; compiles to
+;; compiles to
 "
 for (var i = 0, j = arr[i]; i < 10; i = ++i, j = arr[i]) {
   alert('i is ' + i + ' and j is ' + j);
@@ -74,7 +74,7 @@ for (var i = 0, j = arr[i]; i < 10; i = ++i, j = arr[i]) {
   (create :foo "foo"
           :bla "bla"))
 
-; compiles to
+;; compiles to
 "
 { foo : 'foo',
   bla : 'bla' }
@@ -92,7 +92,7 @@ for (var i = 0, j = arr[i]; i < 10; i = ++i, j = arr[i]) {
                "The link is: "
                ((:a :href href) link-text))))))
 
-; compiles to
+;; compiles to
 "
 function addDiv(name, href, linkText) {
   document.write('<div id=\"' + name + '\">The link is: <a href=\"'
@@ -117,7 +117,7 @@ function addDiv(name, href, linkText) {
           (div.bl0rg :font-family "serif")
           (("a:active" "a:hoover") :color "black" :size "200%"))))))
 
-; which produces
+;; which produces
 
 <html><head><style type="text/css">
 <!--

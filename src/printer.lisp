@@ -6,7 +6,7 @@
 (defmethod parenscript-print (ps-form &optional *ps-output-stream*)
   (setf *indent-level* 0)
   (flet ((print-ps (form)
-           (if (and (listp form) (eql 'js-block (car form))) ;; ignore top-level block
+           (if (and (listp form) (eql 'js-block (car form))) ; ignore top-level block
                (loop for (statement . remaining) on (third form) do
                      (ps-print statement) (psw ";") (when remaining (psw #\Newline)))
                (ps-print form))))
@@ -15,7 +15,7 @@
         (with-output-to-string (*ps-output-stream*)
           (print-ps ps-form)))))
 
-(defun psw (obj) ;; parenscript-write
+(defun psw (obj) ; parenscript-write
   (princ obj *ps-output-stream*))    
 
 (defgeneric ps-print% (special-form-name special-form-args))
@@ -33,7 +33,7 @@ arguments, defines a printer for that form using the given body."
 
 (defgeneric ps-print (compiled-form))
 
-(defmethod ps-print ((form null)) ;; don't print top-level nils (ex: result of defining macros, etc.)
+(defmethod ps-print ((form null)) ; don't print top-level nils (ex: result of defining macros, etc.)
   )
 
 (defmethod ps-print ((compiled-form cons))

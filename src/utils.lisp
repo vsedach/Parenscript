@@ -103,6 +103,6 @@ SOMEGLOBAL."
              (coerce (nreverse res) 'string)))
           (t (string-join (mapcar #'symbol-to-js symbols) "")))))
 
-(defun ordered-set-difference (list1 list2 &key (test #'eql)) ;; because the CL set-difference may not preserve order
+(defun ordered-set-difference (list1 list2 &key (test #'eql)) ; because the CL set-difference may not preserve order
   (reduce (lambda (list el) (remove el list :test test))
           (cons list1 list2)))

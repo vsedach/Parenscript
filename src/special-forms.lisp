@@ -541,6 +541,20 @@ lambda-list::=
       `(simple-let* ,(mapcar #'list gensyms vals)
          (setf ,@(mapcan #'list vars gensyms))))))
 
+(defun check-setq-args (args)
+  (let ((vars (loop for x in args by #'cddr collect x)))
+    (let ((non-var (find-if (complement #'symbolp) vars)))
+      (when non-var
+        (error 'type-error :datum non-var :expected-type 'symbol)))))
+
+(defpsmacro setq (&rest args)
+  (check-setq-args args)
+  `(setf ,@args))
+
+(defpsmacro psetq (&rest args)
+  (check-setq-args args)
+  `(psetf ,@args))
+
 (define-ps-special-form var (expecting name &rest value)
   (declare (ignore expecting))
   (append (list 'js-var name)

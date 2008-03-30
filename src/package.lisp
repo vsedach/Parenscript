@@ -73,6 +73,8 @@
       #:setf
       #:defsetf
       #:psetf
+      #:setq
+      #:psetq
       #:simple-let*
       #:simple-let
       #:let*

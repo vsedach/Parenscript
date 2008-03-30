@@ -310,7 +310,7 @@ x = 2 + sideEffect() + x + 5;")
   (defun foo (&rest bar) (alert bar[1]))
   "function foo() {
     var bar = [];
-    for (var i2 = 0; i2 < arguments.length - 0; i2 = i2 + 1) {
+    for (var i2 = 0; i2 < arguments.length - 0; i2 += 1) {
         bar[i2] = arguments[i2 + 0];
     };
     alert(bar[1]);
@@ -320,7 +320,7 @@ x = 2 + sideEffect() + x + 5;")
   (defun foo (baz &rest bar) (return (+ baz (aref bar 1))))
   "function foo(baz) {
     var bar = [];
-    for (var i2 = 0; i2 < arguments.length - 1; i2 = i2 + 1) {
+    for (var i2 = 0; i2 < arguments.length - 1; i2 += 1) {
         bar[i2] = arguments[i2 + 1];
     };
     return baz + bar[1];
@@ -457,6 +457,7 @@ try {
     FOO * 2;
 } finally {
     FOO = tempstackvar1;
+    delete tempstackvar1;
 };")
 
 (test-ps-js special-var2
@@ -470,7 +471,9 @@ try {
     FOO * 2 * BAZ;
 } finally {
     FOO = tempstackvar1;
-};")
+    delete tempstackvar1;
+};
+")
 
 (test-ps-js literal1
   (setf x undefined)

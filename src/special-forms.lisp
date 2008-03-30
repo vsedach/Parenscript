@@ -570,6 +570,15 @@ lambda-list::=
            (simple-let* ,(cdr bindings) ,@body)))
       `(progn ,@body)))
 
+(defpsmacro simple-let (bindings &body body)
+  (let ((vars (mapcar (lambda (x) (if (atom x) x (first x))) bindings))
+        (vals (mapcar (lambda (x) (if (or (atom x) (endp (cdr x))) nil (second x))) bindings)))
+    (let ((gensyms (mapcar (lambda (x) (ps-gensym (format nil "_js_~a" x))) vars)))
+      `(simple-let* ,(mapcar #'list gensyms vals)
+         (simple-let* ,(mapcar #'list vars gensyms)
+           ,@(mapcar (lambda (x) `(delete ,x)) gensyms)
+           ,@body)))))
+
 (defpsmacro let* (bindings &body body)
   `(simple-let* ,bindings ,@body))
 

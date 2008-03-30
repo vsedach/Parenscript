@@ -73,6 +73,7 @@
       #:setf
       #:defsetf
       #:simple-let*
+      #:simple-let
       #:let*
       #:lexical-let*
       #:lexical-let

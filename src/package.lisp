@@ -86,7 +86,9 @@
       #:defvar
 
       ;; iteration
+      #:labeled-for
       #:for
+      #:for-in
       #:doeach
       #:while
 
@@ -136,6 +138,7 @@
 
       ;; iteration
       #:do
+      #:do*
       #:dotimes
       #:dolist
       #:doeach

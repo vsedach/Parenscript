@@ -310,22 +310,23 @@ vice-versa.")
     (psw (js-translate-symbol label))))
 
 ;;; iteration
-(defprinter js-for (vars steps test body-block)
+(defprinter js-for (label vars tests steps body-block)
+  (when label (psw (js-translate-symbol label)) (psw ": ") (newline-and-indent))
   (psw "for (")
   (loop for ((var-name . var-init) . remaining) on vars
         for decl = "var " then "" do
         (psw decl) (psw (js-translate-symbol var-name)) (psw " = ") (ps-print var-init) (when remaining (psw ", ")))
   (psw "; ")
-  (ps-print test)
+  (loop for (test . remaining) on tests do
+       (ps-print test) (when remaining (psw ", ")))
   (psw "; ")
-  (loop for ((var-name . nil) . remaining) on vars
-        for step in steps do
-        (psw (js-translate-symbol var-name)) (psw " = ") (ps-print step) (when remaining (psw ", ")))
+  (loop for (step . remaining) on steps do
+       (ps-print step) (when remaining (psw ", ")))
   (psw ") ")
   (ps-print body-block))
 
-(defprinter js-for-each (var object body-block)
-  (psw "for (var ") (psw (js-translate-symbol var)) (psw " in ") (ps-print object) (psw ") ")
+(defprinter js-for-in (var object body-block)
+  (psw "for (") (ps-print var) (psw " in ") (ps-print object) (psw ") ")
   (ps-print body-block))
 
 (defprinter js-while (test body-block)

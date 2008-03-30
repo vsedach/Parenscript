@@ -628,54 +628,131 @@ lambda-list::=
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; iteration
-(defun make-for-vars (decls)
-  (loop for decl in decls
-	for var = (if (atom decl) decl (first decl))
-	for init-value = (if (atom decl) nil (second decl))
-	collect (cons (compile-parenscript-form var :expecting :symbol) (compile-parenscript-form init-value))))
+(defun make-for-vars/inits (init-forms)
+  (mapcar (lambda (x)
+            (cons (compile-parenscript-form (if (atom x) x (first x)) :expecting :symbol)
+                  (compile-parenscript-form (if (atom x) nil (second x)))))
+          init-forms))
 
-(defun make-for-steps (decls)
-  (loop for decl in decls
-	when (= (length decl) 3)
-	collect (compile-parenscript-form (third decl) :expecting :expression)))
-
-(define-ps-special-form do (expecting decls termination-test &rest body)
+(define-ps-special-form labeled-for (expecting label init-forms cond-forms step-forms &rest body)
   (declare (ignore expecting))
-  (let ((vars (make-for-vars decls))
-	(steps (make-for-steps decls))
-	(test (compile-parenscript-form `(not ,(first termination-test)) :expecting :expression))
-	(body (compile-parenscript-form `(progn ,@body))))
-    (list 'js-for vars steps test body)))
+  (let ((vars (make-for-vars/inits init-forms))
+        (steps (mapcar (lambda (x) (compile-parenscript-form x :expecting :expression)) step-forms))
+        (tests (mapcar (lambda (x) (compile-parenscript-form x :expecting :expression)) cond-forms))
+        (body (compile-parenscript-form `(progn ,@body))))
+    (list 'js-for label vars tests steps body)))
 
-(define-ps-special-form doeach (expecting decl &rest body)
+(defpsmacro for (init-forms cond-forms step-forms &body body)
+  `(labeled-for nil ,init-forms ,cond-forms ,step-forms ,@body))
+
+(defun do-make-let-bindings (decls)
+  (mapcar (lambda (x)
+            (if (atom x) x
+                (if (endp (cdr x)) (list (car x))
+                    (subseq x 0 2))))
+          decls))
+
+(defun do-make-init-vars (decls)
+  (mapcar (lambda (x) (if (atom x) x (first x))) decls))
+
+(defun do-make-init-vals (decls)
+  (mapcar (lambda (x) (if (or (atom x) (endp (cdr x))) nil (second x))) decls))
+
+(defun do-make-for-vars/init (decls)
+  (mapcar (lambda (x)
+            (if (atom x) x
+                (if (endp (cdr x)) x
+                    (subseq x 0 2))))
+          decls))
+
+(defun do-make-for-steps (decls)
+  (mapcar (lambda (x)
+            `(setf ,(first x) ,(third x)))
+          (remove-if (lambda (x) (or (atom x) (< (length x) 3))) decls)))
+
+(defun do-make-iter-psteps (decls)
+  `(psetq
+    ,@(mapcan (lambda (x) (list (first x) (third x)))
+              (remove-if (lambda (x) (or (atom x) (< (length x) 3))) decls))))
+
+(defpsmacro do* (decls (termination &optional (result nil result?)) &body body)
+  (if result?
+      `((lambda ()
+          (for ,(do-make-for-vars/init decls) ((not ,termination)) ,(do-make-for-steps decls)
+               ,@body)
+          (return ,result)))
+      `(progn
+         (for ,(do-make-for-vars/init decls) ((not ,termination)) ,(do-make-for-steps decls)
+              ,@body))))
+
+(defpsmacro do (decls (termination &optional (result nil result?)) &body body)
+  (if result?
+      `((lambda ,(do-make-init-vars decls)
+          (for () ((not ,termination)) ()
+               ,@body
+               ,(do-make-iter-psteps decls))
+          (return ,result))
+        ,@(do-make-init-vals decls))
+      `(let ,(do-make-let-bindings decls)
+         (for () ((not ,termination)) ()
+              ,@body
+              ,(do-make-iter-psteps decls)))))
+
+(define-ps-special-form for-in (expecting decl &rest body)
   (declare (ignore expecting))
-  (list 'js-for-each
-        (first decl)
+  (list 'js-for-in
+        (compile-parenscript-form (first decl) :expecting :expression)
         (compile-parenscript-form (second decl) :expecting :expression)
 	(compile-parenscript-form `(progn ,@body))))
+
+(defpsmacro doeach ((var array &optional (result (values) result?)) &body body)
+  "Iterates over `array'.  If `var' is a symbol, binds `var' to each
+element key.  If `var' is a list, it must be a list of two
+symbols, (key value), which will be bound to each successive key/value
+pair in `array'."
+  (if result?
+      (if (consp var)
+          (destructuring-bind (key val) var
+            `((lambda ()
+                (let* (,val)
+                  (for-in ((var ,key) ,array)
+                    (setf ,val (aref ,array ,key))
+                    ,@body)
+                  (return ,result)))))
+          `((lambda ()
+              (for-in ((var ,var) ,array)
+                ,@body)
+              (return ,result))))
+      (if (consp var)
+          (destructuring-bind (key val) var
+            `(progn
+               (let* (,val)
+                 (for-in ((var ,key) ,array)
+                   (setf ,val (aref ,array ,key))
+                   ,@body))))
+          `(progn
+             (for-in ((var ,var) ,array) ,@body)))))
 
 (define-ps-special-form while (expecting test &rest body)
   (declare (ignore expecting))
   (list 'js-while (compile-parenscript-form test :expecting :expression)
                   (compile-parenscript-form `(progn ,@body))))
 
-(defpsmacro dotimes (iter &rest body)
-  (let ((var (first iter))
-        (times (second iter)))
-  `(do ((,var 0 (1+ ,var)))
-       ((>= ,var ,times))
-     ,@body)))
+(defpsmacro dotimes ((var count &optional (result nil result?)) &rest body)
+  `(do* ((,var 0 (1+ ,var)))
+        ((>= ,var ,count) ,@(when result? (list result)))
+     ,@body))
 
-(defpsmacro dolist (i-array &rest body)
-  (let ((var (first i-array))
-	(array (second i-array))
-	(arrvar (ps-gensym "tmp-arr"))
-	(idx (ps-gensym "tmp-i")))
-    `(let* ((,arrvar ,array))
-      (do ((,idx 0 (1+ ,idx)))
-	  ((>= ,idx (slot-value ,arrvar 'length)))
-	(let* ((,var (aref ,arrvar ,idx)))
-	  ,@body)))))
+(defpsmacro dolist ((var array &optional (result nil result?)) &body body)
+  (let ((idx (ps-gensym "_js_idx"))
+        (arrvar (ps-gensym "_js_arrvar")))
+    `(do* (,var
+           (,arrvar ,array)
+           (,idx 0 (1+ ,idx)))
+          ((>= ,idx (slot-value ,arrvar 'length))
+           ,@(when result? (list result)))
+       (setq ,var (aref ,arrvar ,idx))
+       ,@body)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; misc

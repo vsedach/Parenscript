@@ -74,6 +74,7 @@
       #:defsetf
       #:let*
       #:lexical-let*
+      #:lexical-let
 
       ;; variables
       #:var

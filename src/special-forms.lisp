@@ -547,10 +547,21 @@ lambda-list::=
   (assert (or (null value) (= (length value) 1)) () "Wrong number of arguments to defvar: ~s" `(defvar ,name ,@value))
   `(var ,name ,@value))
 
+(defun make-let-vars (bindings)
+  (mapcar (lambda (x) (if (listp x) (car x) x)) bindings))
+
+(defun make-let-vals (bindings)
+  (mapcar (lambda (x) (if (or (atom x) (endp (cdr x))) nil (second x))) bindings))
+
 (defpsmacro lexical-let* (bindings &body body)
   `((lambda ()
       (let* ,bindings
         ,@body))))
+
+(defpsmacro lexical-let (bindings &body body)
+  `((lambda ,(make-let-vars bindings)
+      ,@body)
+    ,@(make-let-vals bindings)))
 
 (defpsmacro let* (bindings &rest body)
   (if bindings

@@ -49,6 +49,7 @@
                      (normalize-js-code js-code)))))))
 
 (defmacro defpstest (testname (&key (optimize t)) parenscript javascript)
+  (declare (ignore optimize))
   `(test ,testname
     (setf ps:*ps-gensym-counter* 0)
     (let* ((generated-code (compile-script ',parenscript))

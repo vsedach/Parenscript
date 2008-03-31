@@ -29,6 +29,7 @@
           `(/ (log ,n) (log ,base))))
     (floor (n &optional divisor) `(*math.floor ,(if divisor `(/ ,n ,divisor) n)))
     (expt (base power) `(*math.pow ,base ,power))
+    (sqrt (n) `(*math.sqrt ,n))
     (round (n &optional divisor) `(*math.round ,(if divisor `(/ ,n ,divisor) n)))
     (random (&optional upto) (if upto
                                  `(floor (* ,upto (*math.random)))

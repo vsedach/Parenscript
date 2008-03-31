@@ -162,6 +162,7 @@
       #:log
       #:floor
       #:expt
+      #:sqrt
       #:round
       #:random
       #:oddp

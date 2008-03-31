@@ -50,6 +50,7 @@
                   (compile-parenscript-form form :expecting :expression))
                 coords)))
 
+(pushnew '{} *ps-literals*)
 (define-ps-special-form {} (expecting &rest arrows)
   (declare (ignore expecting))
   (cons 'object-literal (loop for (key value) on arrows by #'cddr

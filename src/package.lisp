@@ -159,6 +159,7 @@
       #:asin
       #:atan
       #:exp
+      #:log
       #:floor
       #:expt
       #:round

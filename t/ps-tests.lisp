@@ -306,6 +306,14 @@ x = 2 + sideEffect() + x + 5;")
   {}
   "{ }")
 
+(test-ps-js object-literal-1
+  ({})
+  "{ }")
+
+(test-ps-js object-literal-2
+  ({} a 1 b 2)
+  "{a: 1, b: 2 }")
+
 (test-ps-js defun-rest1
   (defun foo (&rest bar) (alert bar[1]))
   "function foo() {

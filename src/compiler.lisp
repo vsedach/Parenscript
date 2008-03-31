@@ -46,7 +46,9 @@ lexical block.")
                    *ps-special-forms*))))
 
 (defun ps-literal-p (symbol)
-  (member symbol *ps-literals*))
+  (or (member symbol *ps-literals*)
+      (member (intern (symbol-name symbol) #.(find-package :parenscript))
+              *ps-literals*)))
 
 (defun op-form-p (form)
   (and (listp form)

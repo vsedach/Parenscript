@@ -21,7 +21,7 @@
     (tan (n) `(*math.tan ,n))
     (acos (n) `(*math.acos ,n))
     (asin (n) `(*math.asin ,n))
-    (atan (n) `(*math.atan ,n))
+    (atan (y &optional x) (if x `(*math.atan2 ,y ,x) `(*math.atan ,y)))
     (exp (n) `(*math.exp ,n))
     (floor (n &optional divisor) `(*math.floor ,(if divisor `(/ ,n ,divisor) n)))
     (expt (base power) `(*math.pow ,base ,power))

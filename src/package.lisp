@@ -158,6 +158,7 @@
       #:asin
       #:acos
       #:atan
+      #:pi
       #:sinh
       #:cosh
       #:tanh

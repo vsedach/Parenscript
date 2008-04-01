@@ -158,6 +158,12 @@
       #:asin
       #:acos
       #:atan
+      #:sinh
+      #:cosh
+      #:tanh
+      #:asinh
+      #:acosh
+      #:atanh
       #:1+
       #:1-
       #:abs

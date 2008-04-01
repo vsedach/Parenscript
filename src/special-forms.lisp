@@ -108,12 +108,6 @@
   (declare (ignore expecting))
   (list 'unary-operator "~" (compile-parenscript-form x :expecting :expression) :prefix t))
 
-(defpsmacro 1- (form)
-  `(- ,form 1))
-
-(defpsmacro 1+ (form)
-  `(+ ,form 1))
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; control structures
 (defun flatten-blocks (body)

@@ -29,6 +29,8 @@
     (asinh (n) `((lambda (x) (return (log (+ x (sqrt (1+ (* x x))))))) ,n))
     (acosh (n) `((lambda (x) (return (* 2 (log (+ (sqrt (/ (1+ x) 2)) (sqrt (/ (1- x) 2))))))) ,n))
     (atanh (n) `((lambda (x) (return (/ (- (log (+ 1 x)) (log (- 1 x))) 2))) ,n))
+    (1+ (n) `(+ ,n 1))
+    (1- (n) `(- ,n 1))
     (abs (n) `(*math.abs ,n))
     (evenp (n) `(not (oddp ,n)))
     (oddp (n) `(% ,n 2))

@@ -45,6 +45,8 @@
                                  `(floor (* ,upto (*math.random)))
                                  '(*math.random))))
 
+(define-script-symbol-macro pi '*math.*pi*)
+
 ;;; Exception handling
 
 (defpsmacro ignore-errors (&body body)

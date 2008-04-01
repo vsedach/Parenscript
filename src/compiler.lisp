@@ -307,3 +307,16 @@ gensym-prefix-string)."
                           `(,symbol (ps-gensym ,(symbol-to-js symbol))))))
                   symbols)
      ,@body))
+
+(defun %check-once-only-vars (vars)
+  (let ((bad-var (find-if (lambda (x) (or (not (symbolp x)) (keywordp x))) vars)))
+    (when bad-var
+      (error "PS-ONLY-ONCE expected a non-keyword symbol but got ~s" bad-var))))
+
+(defmacro ps-once-only ((&rest vars) &body body)
+  (%check-once-only-vars vars)
+  (let ((gensyms (mapcar (lambda (x) (ps-gensym (string x))) vars)))
+    `(let ,(mapcar (lambda (g v) `(,g (ps-gensym ,(string v)))) gensyms vars)
+       `(let* (,,@(mapcar (lambda (g v) ``(,,g ,,v)) gensyms vars))
+          ,(let ,(mapcar (lambda (g v) `(,v ,g)) gensyms vars)
+             ,@body)))))

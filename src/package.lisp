@@ -209,6 +209,7 @@
    ;; gensym
    #:ps-gensym
    #:with-ps-gensyms
+   #:ps-once-only
    #:*ps-gensym-counter*
 
    ;; naming and namespaces

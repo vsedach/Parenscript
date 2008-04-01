@@ -3,10 +3,11 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; literals
 (defmacro defpsliteral (name string)
-  `(progn (pushnew ',name *ps-literals*)
-    (define-ps-special-form ,name (expecting)
-      (declare (ignore expecting))
-      (list 'js-literal ,string))))
+  `(progn
+     (add-ps-literal ',name)
+     (define-ps-special-form ,name (expecting)
+       (declare (ignore expecting))
+       (list 'js-literal ,string))))
 
 (defpsliteral this      "this")
 (defpsliteral t         "true")
@@ -18,7 +19,7 @@
 
 (macrolet ((def-for-literal (name printer)
              `(progn
-                (pushnew ',name *ps-literals*)
+                (add-ps-literal ',name)
                 (define-ps-special-form ,name (expecting &optional label)
                   (declare (ignore expecting))
                   (list ',printer label)))))
@@ -50,7 +51,7 @@
                   (compile-parenscript-form form :expecting :expression))
                 coords)))
 
-(pushnew '{} *ps-literals*)
+(add-ps-literal '{})
 (define-ps-special-form {} (expecting &rest arrows)
   (declare (ignore expecting))
   (cons 'object-literal (loop for (key value) on arrows by #'cddr

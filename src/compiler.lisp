@@ -3,27 +3,32 @@
 (defvar *ps-literals* ())
 (defvar *ps-special-forms* ())
 
+(defun get-ps-special-form (name)
+  "Returns the special form function corresponding to the given name."
+  (lisp-symbol-to-ps-identifier name :special-form))
+
+(defun add-ps-literal (symbol)
+  (pushnew (get-ps-special-form symbol) *ps-literals*))
+
 (defun undefine-ps-special-form (name)
   "Undefines the special form with the given name (name is a symbol)."
+  (setq name (get-ps-special-form name))
   (setf *ps-special-forms* (delete name *ps-special-forms*)
         *ps-literals* (delete name *ps-literals*))
-  (unintern (lisp-symbol-to-ps-identifier name :special-form) :parenscript-special-forms))
+  (unintern name :parenscript-special-forms))
 
 (defmacro define-ps-special-form (name lambda-list &rest body)
   "Define a special form NAME. The first argument given to the special
 form is a keyword indicating whether the form is expected to produce
 an :expression or a :statement. The resulting Parenscript language
 types are appended to the ongoing javascript compilation."
+  (setq name (get-ps-special-form name))
   (let ((arglist (gensym "ps-arglist-")))
     `(progn (pushnew ',name *ps-special-forms*)
-      (defun ,(lisp-symbol-to-ps-identifier name :special-form) (&rest ,arglist)
+      (defun ,name (&rest ,arglist)
         (destructuring-bind ,lambda-list
             ,arglist
           ,@body)))))
-
-(defun get-ps-special-form (name)
-  "Returns the special form function corresponding to the given name."
-  (lisp-symbol-to-ps-identifier name :special-form))
 
 (defvar *enclosing-lexical-block-declarations* ()
   "This special variable is expected to be bound to a fresh list by
@@ -41,14 +46,10 @@ lexical block.")
 (defun ps-special-form-p (form)
   (and (consp form)
        (symbolp (car form))
-       (or (member (car form) *ps-special-forms*)
-           (member (intern (symbol-name (car form)) #.(find-package :parenscript))
-                   *ps-special-forms*))))
+       (member (get-ps-special-form (car form)) *ps-special-forms*)))
 
 (defun ps-literal-p (symbol)
-  (or (member symbol *ps-literals*)
-      (member (intern (symbol-name symbol) #.(find-package :parenscript))
-              *ps-literals*)))
+  (member (get-ps-special-form symbol) *ps-literals*))
 
 (defun op-form-p (form)
   (and (listp form)

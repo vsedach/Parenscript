@@ -39,7 +39,6 @@
       #:\|\| #:or
       #:>>= #:<<=
       #:*= #:/= #:%= #:+= #:\&= #:^= #:\|= #:~=
-      #:1+ #:1-
       #:incf #:decf
 
       ;; body forms
@@ -148,25 +147,27 @@
 
       ;; utils
       #:do-set-timeout
-      #:min
       #:max
+      #:min
+      #:floor
       #:ceiling
-      #:abs
+      #:round
       #:sin
       #:cos
       #:tan
-      #:acos
       #:asin
+      #:acos
       #:atan
-      #:exp
-      #:log
-      #:floor
-      #:expt
-      #:sqrt
-      #:round
-      #:random
-      #:oddp
+      #:1+
+      #:1-
+      #:abs
       #:evenp
+      #:oddp
+      #:exp
+      #:expt
+      #:log
+      #:sqrt
+      #:random
       #:ignore-errors
       #:concatenate
       #:length

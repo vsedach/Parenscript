@@ -190,8 +190,8 @@
       #:member
       #:append
       #:set-difference
-      ))
-  "All symbols considered part of the Parenscript language.")
+      )
+    "All symbols considered part of the Parenscript language."))
 
 (defpackage :parenscript
   (:use :common-lisp)

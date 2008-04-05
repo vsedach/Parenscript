@@ -17,6 +17,10 @@
 
 ;;; DEPRECATED INTERFACE
 
+(defmacro define-script-symbol-macro (name &body body)
+  (warn-deprecated 'define-script-symbol-macro 'define-ps-symbol-macro)
+  `(define-ps-symbol-macro ,name ,@body))
+
 (defun js-equal (ps-form1 ps-form2)
   (warn-deprecated 'js-equal)
   (equalp ps-form1 ps-form2))

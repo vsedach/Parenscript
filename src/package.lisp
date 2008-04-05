@@ -224,6 +224,7 @@
       ))
   (defparameter *parenscript-interface-deprecated-exports*
     '(;; deprecated interface
+      #:define-script-symbol-macro
       #:gen-js-name
       #:with-unique-js-names
       #:defjsmacro

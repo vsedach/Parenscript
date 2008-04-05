@@ -157,7 +157,7 @@ environment. When the imported macro is macroexpanded by ParenScript,
 it is first fully macroexpanded in the Lisp macro environment, and
 then that expansion is further expanded by ParenScript."
   (dolist (name names)
-    (define-ps-macro% name '(&rest args) 
+    (define-ps-macro% name '(&rest args)
       (list `(common-lisp:macroexpand `(,',name ,@args)))
       :symbol-macro-p nil)))
 

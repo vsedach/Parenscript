@@ -1,34 +1,47 @@
 (in-package :parenscript)
 
-(defvar *ps-literals* ())
-(defvar *ps-special-forms* ())
+(defvar *ps-symbols* (make-hash-table :test 'equal))
+(defvar *ps-literals* (make-hash-table :test 'eq))
+(defvar *ps-special-forms* (make-hash-table :test 'eq))
+
+(defclass parenscript-symbol ()
+  ((name :initarg :name :accessor name-of)))
+
+(defmethod print-object ((obj parenscript-symbol) stream)
+  (format stream "~a" (name-of obj)))
+
+(defun ps-intern (thing)
+  (if (typep thing 'parenscript-symbol) thing
+      (let ((str (string thing)))
+        (multiple-value-bind (sym hit?) (gethash str *ps-symbols*)
+          (if hit? sym
+              (setf (gethash str *ps-symbols*)
+                    (make-instance 'parenscript-symbol :name str)))))))
 
 (defun get-ps-special-form (name)
   "Returns the special form function corresponding to the given name."
-  (lisp-symbol-to-ps-identifier name :special-form))
+  (gethash (ps-intern name) *ps-special-forms*))
 
-(defun add-ps-literal (symbol)
-  (pushnew (get-ps-special-form symbol) *ps-literals*))
+(defun add-ps-literal (name &aux (sym (ps-intern name)))
+  (setf (gethash sym *ps-literals*) sym))
 
-(defun undefine-ps-special-form (name)
+(defun undefine-ps-special-form (name &aux (sym (ps-intern name)))
   "Undefines the special form with the given name (name is a symbol)."
-  (setq name (get-ps-special-form name))
-  (setf *ps-special-forms* (delete name *ps-special-forms*)
-        *ps-literals* (delete name *ps-literals*))
-  (unintern name :parenscript-special-forms))
+  (remhash sym *ps-special-forms*)
+  (remhash sym *ps-literals*)
+  t)
 
 (defmacro define-ps-special-form (name lambda-list &rest body)
   "Define a special form NAME. The first argument given to the special
 form is a keyword indicating whether the form is expected to produce
 an :expression or a :statement. The resulting Parenscript language
 types are appended to the ongoing javascript compilation."
-  (setq name (get-ps-special-form name))
   (let ((arglist (gensym "ps-arglist-")))
-    `(progn (pushnew ',name *ps-special-forms*)
-      (defun ,name (&rest ,arglist)
-        (destructuring-bind ,lambda-list
-            ,arglist
-          ,@body)))))
+    `(setf (gethash (ps-intern ',name) *ps-special-forms*)
+           (lambda (&rest ,arglist)
+             (destructuring-bind ,lambda-list
+                 ,arglist
+               ,@body)))))
 
 (defvar *enclosing-lexical-block-declarations* ()
   "This special variable is expected to be bound to a fresh list by
@@ -46,10 +59,10 @@ lexical block.")
 (defun ps-special-form-p (form)
   (and (consp form)
        (symbolp (car form))
-       (member (get-ps-special-form (car form)) *ps-special-forms*)))
+       (gethash (ps-intern (car form)) *ps-special-forms*)))
 
 (defun ps-literal-p (symbol)
-  (member (get-ps-special-form symbol) *ps-literals*))
+  (gethash (ps-intern symbol) *ps-literals*))
 
 (defun op-form-p (form)
   (and (listp form)
@@ -86,10 +99,10 @@ stored as the second value.")
   (defun get-macro-spec (name env-dict)
     "Retrieves the macro spec of the given name with the given environment dictionary.
 SPEC is of the form (symbol-macro-p . expansion-function)."
-    (gethash (lisp-symbol-to-ps-identifier name :macro) env-dict))
+    (gethash (ps-intern name) env-dict))
   (defsetf get-macro-spec (name env-dict)
       (spec)
-    `(setf (gethash (lisp-symbol-to-ps-identifier ,name :macro) ,env-dict) ,spec)))
+    `(setf (gethash (ps-intern ,name) ,env-dict) ,spec)))
 
 (defun lookup-macro-spec (name &optional (environment *ps-macro-env*))
   "Looks up the macro spec associated with NAME in the given environment.  A

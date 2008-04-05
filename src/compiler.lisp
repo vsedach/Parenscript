@@ -10,6 +10,10 @@
 (defmethod print-object ((obj parenscript-symbol) stream)
   (format stream "~a" (name-of obj)))
 
+(defun find-ps-symbol (symbol)
+  (multiple-value-bind (sym hit?) (gethash (string symbol) *ps-symbols*)
+    (when hit? sym)))
+
 (defun ps-intern (thing)
   (if (typep thing 'parenscript-symbol) thing
       (let ((str (string thing)))
@@ -20,7 +24,7 @@
 
 (defun get-ps-special-form (name)
   "Returns the special form function corresponding to the given name."
-  (gethash (ps-intern name) *ps-special-forms*))
+  (gethash (find-ps-symbol name) *ps-special-forms*))
 
 (defun add-ps-literal (name &aux (sym (ps-intern name)))
   (setf (gethash sym *ps-literals*) sym))
@@ -59,10 +63,10 @@ lexical block.")
 (defun ps-special-form-p (form)
   (and (consp form)
        (symbolp (car form))
-       (gethash (ps-intern (car form)) *ps-special-forms*)))
+       (gethash (find-ps-symbol (car form)) *ps-special-forms*)))
 
 (defun ps-literal-p (symbol)
-  (gethash (ps-intern symbol) *ps-literals*))
+  (gethash (find-ps-symbol symbol) *ps-literals*))
 
 (defun op-form-p (form)
   (and (listp form)
@@ -99,7 +103,7 @@ stored as the second value.")
   (defun get-macro-spec (name env-dict)
     "Retrieves the macro spec of the given name with the given environment dictionary.
 SPEC is of the form (symbol-macro-p . expansion-function)."
-    (gethash (ps-intern name) env-dict))
+    (gethash (find-ps-symbol name) env-dict))
   (defsetf get-macro-spec (name env-dict)
       (spec)
     `(setf (gethash (ps-intern ,name) ,env-dict) ,spec)))

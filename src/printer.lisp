@@ -160,15 +160,6 @@ vice-versa.")
   (psw (js-translate-symbol var)))
 
 ;;; arithmetic operators
-(defun ps-convert-op-name (op)
-  (case (ensure-ps-symbol op)
-    (and '\&\&)
-    (or '\|\|)
-    (not '!)
-    (eql '\=\=)
-    (=   '\=\=)
-    (t op)))
-
 (defun parenthesize-print (ps-form)
   (psw #\() (ps-print ps-form) (psw #\)))
 

@@ -279,6 +279,15 @@ the keyword for it."
               (progn (push arg-expr effective-expressions)
                      (setf expressions-subl (rest expressions-subl)))))))))
 
+(defun ps-convert-op-name (op)
+  (case (ensure-ps-symbol op)
+    (and '\&\&)
+    (or '\|\|)
+    (not '!)
+    (eql '\=\=)
+    (=   '\=\=)
+    (t op)))
+
 (defmethod compile-parenscript-form ((form cons) &key (expecting :statement))
   (let* ((name (car form))
          (args (cdr form)))

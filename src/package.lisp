@@ -133,7 +133,7 @@
       #:macrolet
       #:symbol-macrolet
       #:define-symbol-macro
-      #:define-script-symbol-macro
+      #:define-ps-symbol-macro
       #:defmacro
 
       ;; lisp eval

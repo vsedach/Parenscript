@@ -71,13 +71,13 @@ lexical block.")
   (defun make-macro-env-dictionary ()
     "Creates a standard macro dictionary."
     (make-hash-table :test #'equal))
-  (defvar *script-macro-toplevel* (make-macro-env-dictionary)
+  (defvar *ps-macro-toplevel* (make-macro-env-dictionary)
     "Toplevel macro environment dictionary. Key is the symbol of the
 macro, value is (symbol-macro-p . expansion-function).")
-  (defvar *script-macro-env* (list *script-macro-toplevel*)
+  (defvar *ps-macro-env* (list *ps-macro-toplevel*)
     "Current macro environment.")
 
-  (defvar *script-setf-expanders* (make-macro-env-dictionary)
+  (defvar *ps-setf-expanders* (make-macro-env-dictionary)
     "Setf expander dictionary. Key is the symbol of the access
 function of the place, value is an expansion function that takes the
 arguments of the access functions as a first value and the form to be
@@ -91,7 +91,7 @@ SPEC is of the form (symbol-macro-p . expansion-function)."
       (spec)
     `(setf (gethash (lisp-symbol-to-ps-identifier ,name :macro) ,env-dict) ,spec)))
 
-(defun lookup-macro-spec (name &optional (environment *script-macro-env*))
+(defun lookup-macro-spec (name &optional (environment *ps-macro-env*))
   "Looks up the macro spec associated with NAME in the given environment.  A
 macro spec is of the form (symbol-macro-p . function). Returns two values:
 the SPEC and the parent macro environment.
@@ -104,19 +104,19 @@ NAME must be a symbol."
         (when val
           (return-from lookup-macro-spec
             (values val (or (cdr env)
-                            (list *script-macro-toplevel*)))))))))
+                            (list *ps-macro-toplevel*)))))))))
 
-(defun script-symbol-macro-p (name &optional (environment *script-macro-env*))
+(defun ps-symbol-macro-p (name &optional (environment *ps-macro-env*))
   "True if there is a Parenscript symbol macro named by the symbol NAME."
   (and (symbolp name) (car (lookup-macro-spec name environment))))
 
-(defun script-macro-p (name &optional (environment *script-macro-env*))
+(defun ps-macro-p (name &optional (environment *ps-macro-env*))
   "True if there is a Parenscript macro named by the symbol NAME."
   (and (symbolp name)
        (let ((macro-spec (lookup-macro-spec name environment)))
          (and macro-spec (not (car macro-spec))))))
 
-(defun lookup-macro-expansion-function (name &optional (environment *script-macro-env*))
+(defun lookup-macro-expansion-function (name &optional (environment *ps-macro-env*))
   "Lookup NAME in the given macro expansion environment (which
 defaults to the current macro environment). Returns the expansion
 function and the parent macro environment of the macro."
@@ -135,21 +135,21 @@ function and the parent macro environment of the macro."
                          (cdr ,form-arg)
                        ,@body)))))
       
-  (defun define-script-macro% (name args body &key symbol-macro-p)
+  (defun define-ps-macro% (name args body &key symbol-macro-p)
     (undefine-ps-special-form name)
-    (setf (get-macro-spec name *script-macro-toplevel*)
+    (setf (get-macro-spec name *ps-macro-toplevel*)
           (cons symbol-macro-p (make-ps-macro-function args body)))
     nil))
 
 (defmacro defpsmacro (name args &body body)
   "Define a ParenScript macro, and store it in the toplevel ParenScript
 macro environment."
-  `(define-script-macro% ',name ',args ',body :symbol-macro-p nil))
+  `(define-ps-macro% ',name ',args ',body :symbol-macro-p nil))
 
-(defmacro define-script-symbol-macro (name &body body)
+(defmacro define-ps-symbol-macro (name &body body)
   "Define a ParenScript symbol macro, and store it in the toplevel ParenScript
 macro environment.  BODY is a Lisp form that should return a ParenScript form."
-  `(define-script-macro% ',name () ',body :symbol-macro-p t))
+  `(define-ps-macro% ',name () ',body :symbol-macro-p t))
 
 (defun import-macros-from-lisp (&rest names)
   "Import the named Lisp macros into the ParenScript macro
@@ -157,7 +157,7 @@ environment. When the imported macro is macroexpanded by ParenScript,
 it is first fully macroexpanded in the Lisp macro environment, and
 then that expansion is further expanded by ParenScript."
   (dolist (name names)
-    (define-script-macro% name '(&rest args) 
+    (define-ps-macro% name '(&rest args) 
       (list `(common-lisp:macroexpand `(,',name ,@args)))
       :symbol-macro-p nil)))
 
@@ -184,9 +184,9 @@ whether any expansion was performed on the form or not."
             (args (cdr form)))
         (cond ((equal op 'quote) (values (if (equalp '(nil) args) nil form) ; leave quotes alone, unless it's a quoted nil
                                          nil))
-              ((script-macro-p op) (values (ps-macroexpand (funcall (lookup-macro-expansion-function op) form)) t))
+              ((ps-macro-p op) (values (ps-macroexpand (funcall (lookup-macro-expansion-function op) form)) t))
               (t (values form nil))))
-      (cond ((script-symbol-macro-p form) (values (ps-macroexpand (funcall (lookup-macro-expansion-function form) (list form))) t))
+      (cond ((ps-symbol-macro-p form) (values (ps-macroexpand (funcall (lookup-macro-expansion-function form) (list form))) t))
             (t (values form nil)))))
 
 ;;;; compiler interface
@@ -212,7 +212,7 @@ resultant symbol has an associated script-package. Raises an error if
 the form cannot be compiled to a symbol."
   (let ((exp (compile-parenscript-form form)))
     (when (or (eql (first exp) 'js-variable)
-              (eql (first exp) 'script-quote))
+              (eql (first exp) 'ps-quote))
       (setf exp (second exp)))
     (assert (symbolp exp) ()
             "~a is expected to be a symbol, but compiles to ~a (the ParenScript output for ~a alone is \"~a\"). This could be due to ~a being a special form." form exp form (ps* form) form)
@@ -249,7 +249,7 @@ into a single options argument via CREATE."
   (flet ((keyword-arg (arg)
            "If the given compiled expression is supposed to be a keyword argument, returns
 the keyword for it."
-           (when (and (listp arg) (eql (first arg) 'script-quote)) (second arg))))
+           (when (and (listp arg) (eql (first arg) 'ps-quote)) (second arg))))
     (let ((compiled-args (mapcar (lambda (arg) (compile-parenscript-form arg :expecting :expression))
                                  arg-forms)))
       (do ((effective-expressions nil)
@@ -271,11 +271,11 @@ the keyword for it."
          (args (cdr form)))
     (cond ((eql name 'quote)
            (assert (= 1 (length args)) () "Wrong number of arguments to quote: ~s" args)
-           (list 'script-quote (first args)))
+           (list 'ps-quote (first args)))
           ((ps-special-form-p form) (apply (get-ps-special-form name) (cons expecting args)))
           ((op-form-p form)
            (list 'operator
-                 (script-convert-op-name (compile-parenscript-form (first form) :expecting :symbol))
+                 (ps-convert-op-name (compile-parenscript-form (first form) :expecting :symbol))
                  (mapcar (lambda (form) (compile-parenscript-form form :expecting :expression)) (rest form))))
           ((method-call-p form)
            (list 'js-method-call

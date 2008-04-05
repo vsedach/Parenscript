@@ -380,7 +380,7 @@ lambda-list::=
       ,@effective-body)))
 
 (defpsmacro defsetf-long (access-fn lambda-list (store-var) form)
-  (setf (get-macro-spec access-fn *script-setf-expanders*)
+  (setf (get-macro-spec access-fn *ps-setf-expanders*)
         (compile nil
                  (let ((var-bindings (ordered-set-difference lambda-list lambda-list-keywords)))
                    `(lambda (access-fn-args store-form)
@@ -398,7 +398,7 @@ lambda-list::=
 
 (defpsmacro defsetf-short (access-fn update-fn &optional docstring)
   (declare (ignore docstring))
-  (setf (get-macro-spec access-fn *script-setf-expanders*)
+  (setf (get-macro-spec access-fn *ps-setf-expanders*)
         (lambda (access-fn-args store-form)
           `(,update-fn ,@access-fn-args ,store-form)))
   nil)
@@ -410,7 +410,7 @@ lambda-list::=
 ;;; macros
 (defmacro with-temp-macro-environment ((var) &body body)
   `(let* ((,var (make-macro-env-dictionary))
-          (*script-macro-env* (cons ,var *script-macro-env*)))
+          (*ps-macro-env* (cons ,var *ps-macro-env*)))
     ,@body))
 
 (define-ps-special-form macrolet (expecting macros &body body)
@@ -435,12 +435,12 @@ lambda-list::=
 
 (define-ps-special-form defmacro (expecting name args &body body)
   (declare (ignore expecting))
-  (define-script-macro% name args body :symbol-macro-p nil)
+  (define-ps-macro% name args body :symbol-macro-p nil)
   nil)
 
 (define-ps-special-form define-symbol-macro (expecting name expansion)
   (declare (ignore expecting))
-  (define-script-macro% name () (list `',expansion) :symbol-macro-p t)
+  (define-ps-macro% name () (list `',expansion) :symbol-macro-p t)
   nil)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -453,7 +453,7 @@ lambda-list::=
                                        (numberp name-expr)
                                        (and (listp name-expr)
                                             (or (eql 'js-variable (car name-expr))
-                                                (eql 'script-quote (car name-expr)))))
+                                                (eql 'ps-quote (car name-expr)))))
                                    ()
                                    "Slot ~s is not one of js-variable, keyword, string or number." name-expr)
                            (list name-expr (compile-parenscript-form val :expecting :expression))))))
@@ -519,11 +519,11 @@ lambda-list::=
 
 (defpsmacro setf (&rest args)
   (flet ((process-setf-clause (place value-form)
-           (if (and (listp place) (get-macro-spec (car place) *script-setf-expanders*))
-               (funcall (get-macro-spec (car place) *script-setf-expanders*) (cdr place) value-form)
+           (if (and (listp place) (get-macro-spec (car place) *ps-setf-expanders*))
+               (funcall (get-macro-spec (car place) *ps-setf-expanders*) (cdr place) value-form)
                (let ((exp-place (ps-macroexpand place)))
-                 (if (and (listp exp-place) (get-macro-spec (car exp-place) *script-setf-expanders*))
-                     (funcall (get-macro-spec (car exp-place) *script-setf-expanders*) (cdr exp-place) value-form)
+                 (if (and (listp exp-place) (get-macro-spec (car exp-place) *ps-setf-expanders*))
+                     (funcall (get-macro-spec (car exp-place) *ps-setf-expanders*) (cdr exp-place) value-form)
                      `(setf1% ,exp-place ,value-form))))))
     (assert (evenp (length args)) ()
             "~s does not have an even number of arguments." (cons 'setf args))

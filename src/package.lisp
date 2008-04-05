@@ -2,8 +2,7 @@
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (defparameter *parenscript-lang-exports*
-    '(
-      ;; literals
+    '(;; literals
       #:t
       #:f
       #:true
@@ -190,55 +189,57 @@
       #:member
       #:append
       #:set-difference
-      )
-    "All symbols considered part of the Parenscript language."))
+      ))
+  (defparameter *parenscript-interface-exports*
+    '(;; compiler
+      #:compile-script
+      #:ps
+      #:ps-doc
+      #:ps*
+      #:ps-inline
+      #:ps-inline*
+
+      ;; for parenscript macro definition within lisp
+      #:defpsmacro
+      #:defmacro/ps
+      #:defmacro+ps
+      #:import-macros-from-lisp
+
+      ;; gensym
+      #:ps-gensym
+      #:with-ps-gensyms
+      #:ps-once-only
+      #:*ps-gensym-counter*
+
+      ;; naming and namespaces
+      #:ps-package-prefix
+      #:obfuscate-package
+      #:unobfuscate-package
+
+      ;; printer
+      #:*js-string-delimiter*
+      #:*js-inline-string-delimiter*
+      #:*ps-print-pretty*
+      #:*indent-num-spaces*
+      ))
+  (defparameter *parenscript-interface-deprecated-exports*
+    '(;; deprecated interface
+      #:gen-js-name
+      #:with-unique-js-names
+      #:defjsmacro
+      #:js-compile
+      #:js-inline
+      #:js-inline*
+      #:js
+      #:js*
+      ))
+  )
 
 (defpackage :parenscript
   (:use :common-lisp)
   (:nicknames :js :ps)
   #.(cons :export *parenscript-lang-exports*)
-
-  ;;; symbols that form the interface to the Parenscript compiler
-  (:export
-   ;; compiler
-   #:compile-script
-   #:ps
-   #:ps-doc
-   #:ps*
-   #:ps-inline
-   #:ps-inline*
-
-   ;; for parenscript macro definition within lisp
-   #:defpsmacro
-   #:defmacro/ps
-   #:defmacro+ps
-   #:import-macros-from-lisp
-
-   ;; gensym
-   #:ps-gensym
-   #:with-ps-gensyms
-   #:ps-once-only
-   #:*ps-gensym-counter*
-
-   ;; naming and namespaces
-   #:ps-package-prefix
-   #:obfuscate-package
-   #:unobfuscate-package
-
-   ;; printer
-   #:*js-string-delimiter*
-   #:*js-inline-string-delimiter*
-   #:*ps-print-pretty*
-   #:*indent-num-spaces*
-
-   ;; deprecated interface
-   #:gen-js-name
-   #:with-unique-js-names
-   #:defjsmacro
-   #:js-compile
-   #:js-inline
-   #:js-inline*
-   #:js
-   #:js*
-   ))
+  #.(cons :export *parenscript-interface-exports*)
+  #.(cons :export *parenscript-interface-deprecated-exports*)
+  )
 

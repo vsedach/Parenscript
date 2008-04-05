@@ -161,7 +161,7 @@ vice-versa.")
 
 ;;; arithmetic operators
 (defun ps-convert-op-name (op)
-  (case op
+  (case (ensure-ps-symbol op)
     (and '\&\&)
     (or '\|\|)
     (not '!)
@@ -348,7 +348,7 @@ vice-versa.")
     (psw "switch (") (ps-print test) (psw ") {")
     (loop for (val . statements) in clauses
           do (progn (newline-and-indent)
-                    (if (eql val 'default)
+                    (if (eq val 'default)
                         (progn (psw "default: ")
                                (print-body-statements statements))
                         (progn (psw "case ")

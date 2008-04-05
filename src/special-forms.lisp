@@ -174,7 +174,8 @@
   (let ((clauses (mapcar (lambda (clause)
                              (let ((val (car clause))
                                    (body (cdr clause)))
-                               (cons (if (eql val 'default)
+                               (cons (if (and (symbolp val)
+                                              (eq (ensure-ps-symbol val) 'default))
                                          'default
                                          (compile-parenscript-form val :expecting :expression))
                                      (mapcar (lambda (statement) (compile-parenscript-form statement :expecting :statement))
@@ -346,7 +347,7 @@ lambda-list::=
   [&aux {var | (var [init-form])}*])"
   (if (symbolp name)
       `(defun-function ,name ,lambda-list ,@body)
-      (progn (assert (and (= (length name) 2) (eql 'setf (car name))) ()
+      (progn (assert (and (= (length name) 2) (eq 'setf (ensure-ps-symbol (car name)))) ()
                      "(defun ~s ~s ...) needs to have a symbol or (setf symbol) for a name." name lambda-list)
              `(defun-setf ,name ,lambda-list ,@body))))
 

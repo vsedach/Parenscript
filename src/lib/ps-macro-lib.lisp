@@ -45,7 +45,7 @@
                                  `(floor (* ,upto (*math.random)))
                                  '(*math.random))))
 
-(define-script-symbol-macro pi '*math.*pi*)
+(define-ps-symbol-macro pi '*math.*pi*)
 
 ;;; Exception handling
 

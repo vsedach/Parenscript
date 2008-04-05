@@ -35,8 +35,8 @@ types are appended to the ongoing javascript compilation."
 special forms that introduce a new JavaScript lexical block (currently
 function definitions and lambdas). Enclosed special forms are expected
 to push variable declarations onto the list when the variables
-declaration cannot be made by the enclosed form (for example, a
-(x,y,z) expression progn). It is then the responsibility of the
+declaration cannot be made by the enclosed form \(for example, a
+\(x,y,z\) expression progn\). It is then the responsibility of the
 enclosing special form to introduce the variable bindings in its
 lexical block.")
 

@@ -258,6 +258,10 @@ x = 2 + sideEffect() + x + 5;")
   (* 3 (+ 4 5) 6)
   "3 * (4 + 5) * 6")
 
+(test-ps-js operators-1
+  (in prop obj)
+  "prop in obj")
+
 (test-ps-js incf1
   (incf foo bar)
   "foo += bar")

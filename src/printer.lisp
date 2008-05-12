@@ -169,7 +169,7 @@ vice-versa.")
         (if (>= (expression-precedence arg) precedence)
             (parenthesize-print arg)
             (ps-print arg))
-        (when remaining (format *ps-output-stream* " ~A " op))))
+        (when remaining (format *ps-output-stream* " ~(~A~) " op))))
 
 (defprinter unary-operator (op arg &key prefix)
   (when prefix (psw op))

@@ -55,7 +55,7 @@
 ;;; Data structures
 
 (defpsmacro length (a)
-  `(.size ,a))
+  `(@ ,a length))
 
 ;;; Misc
 

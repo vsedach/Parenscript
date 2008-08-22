@@ -245,7 +245,7 @@ vice-versa.")
   (psw " }"))
 
 (defprinter js-slot-value (obj slot)
-  (if (and (listp obj) (member (car obj) '(js-expression-if)))
+  (if (>= (expression-precedence obj) #.(op-precedence 'js-slot-value))
       (parenthesize-print obj)
       (ps-print obj))
   (if (and (listp slot) (eql 'ps-quote (car slot)))

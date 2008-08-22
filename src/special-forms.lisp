@@ -30,7 +30,7 @@
 ;;; unary operators
 (mapcar (lambda (op) (eval `(define-ps-special-form ,op (expecting value)
                              (declare (ignore expecting))
-                             (list 'js-named-operator ',op (compile-parenscript-form value)))))
+                             (list 'js-named-operator ',op (compile-parenscript-form value :expecting :expression)))))
         '(throw delete void typeof new))
 
 (define-ps-special-form return (expecting &optional value)

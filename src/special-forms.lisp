@@ -186,7 +186,7 @@
 
 (defpsmacro case (value &rest clauses)
   (labels ((make-clause (val body more)
-             (cond ((listp val)
+             (cond ((and (listp val) (not (eq (car val) 'quote)))
                     (append (mapcar #'list (butlast val))
                             (make-clause (first (last val)) body more)))
                    ((member val '(t otherwise))

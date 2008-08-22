@@ -144,7 +144,9 @@ vice-versa.")
   (psw #\[) (print-comma-delimited-list initial-contents) (psw #\]))
 
 (defprinter js-aref (array indices)
-  (ps-print array)
+  (if (>= (expression-precedence array) #.(expression-precedence '(operator js-aref)))
+      (parenthesize-print array)
+      (ps-print array))
   (loop for idx in indices do
         (psw #\[) (ps-print idx) (psw #\])))
 

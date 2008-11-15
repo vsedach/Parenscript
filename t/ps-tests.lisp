@@ -236,14 +236,18 @@ x = 2 + sideEffect() + x + 5;")
 (test-ps-js defun-optional1
   (defun test-opt (&optional x) (return (if x "yes" "no")))
   "function testOpt(x) {
-  x = undefined === x && null || x;
-  return x ? 'yes' : 'no';
+    if (x === undefined) {
+        x = null;
+    };
+    return x ? 'yes' : 'no';
 }")
 
 (test-ps-js defun-optional2
   (defun foo (x &optional y) (+ x y))
   "function foo(x, y) {
-    y = undefined === y && null || y;
+    if (y === undefined) {
+        y = null;
+    };
     x + y;
 }")
 
@@ -341,7 +345,9 @@ x = 2 + sideEffect() + x + 5;")
 (test-ps-js defun-keyword1
   (defun zoo (foo bar &key baz) (return (+ foo bar baz)))
   "function zoo(foo, bar, _js1) {
-    _js1 = undefined === _js1 && {  } || _js1;
+    if (_js1 === undefined) {
+        _js1 = {  };
+    };
     return foo + bar + _js1.baz;
 }")
 

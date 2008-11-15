@@ -265,8 +265,8 @@ Syntax of key spec:
           (when (listp spec) (second spec))))
 
 (defpsmacro defaultf (place value)
-  `(setf ,place (or (and (=== undefined ,place) ,value)
-                 ,place)))
+  `(when (=== ,place undefined)
+     (setf ,place ,value)))
 
 (defun parse-extended-function (lambda-list body &optional name)
   "Returns two values: the effective arguments and body for a function with

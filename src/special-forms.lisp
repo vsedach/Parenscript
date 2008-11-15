@@ -28,14 +28,27 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; unary operators
-(mapcar (lambda (op) (eval `(define-ps-special-form ,op (expecting value)
-                             (declare (ignore expecting))
-                             (list 'js-named-operator ',op (compile-parenscript-form value :expecting :expression)))))
-        '(throw delete void typeof new))
+(macrolet ((def-unary-ops (&rest ops)
+             `(progn ,@(mapcar (lambda (op)
+                                 (let ((op (if (listp op) (car op) op))
+                                       (spacep (if (listp op) (second op) nil)))
+                                   `(define-ps-special-form ,op (expecting x)
+                                      (declare (ignore expecting))
+                                      (list 'unary-operator ',op
+                                            (compile-parenscript-form x :expecting :expression)
+                                            :prefix t :space ,spacep))))
+                               ops))))
+  (def-unary-ops ~ ! (new t) (delete t) (void t) (typeof t)))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; statements
 (define-ps-special-form return (expecting &optional value)
   (declare (ignore expecting))
   (list 'js-return (compile-parenscript-form value :expecting :expression)))
+
+(define-ps-special-form throw (expecting value)
+  (declare (ignore expecting))
+  (list 'js-throw (compile-parenscript-form value :expecting :expression)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; arrays
@@ -68,21 +81,21 @@
 (define-ps-special-form incf (expecting x &optional (delta 1))
   (declare (ignore expecting))
   (if (equal delta 1)
-      (list 'unary-operator "++" (compile-parenscript-form x :expecting :expression) :prefix t)
+      (list 'unary-operator '++ (compile-parenscript-form x :expecting :expression) :prefix t)
       (list 'operator '+= (list (compile-parenscript-form x :expecting :expression)
                                 (compile-parenscript-form delta :expecting :expression)))))
 
 (define-ps-special-form decf (expecting x &optional (delta 1))
   (declare (ignore expecting))
   (if (equal delta 1)
-      (list 'unary-operator "--" (compile-parenscript-form x :expecting :expression) :prefix t)
+      (list 'unary-operator '-- (compile-parenscript-form x :expecting :expression) :prefix t)
       (list 'operator '-= (list (compile-parenscript-form x :expecting :expression)
                                 (compile-parenscript-form delta :expecting :expression)))))
 
 (define-ps-special-form - (expecting first &rest rest)
   (declare (ignore expecting))
   (if (null rest)
-      (list 'unary-operator "-" (compile-parenscript-form first :expecting :expression) :prefix t)
+      (list 'unary-operator '- (compile-parenscript-form first :expecting :expression) :prefix t)
       (list 'operator '- (mapcar (lambda (val) (compile-parenscript-form val :expecting :expression))
                                  (cons first rest)))))
 
@@ -103,11 +116,7 @@
                             (!== '===)
                             (t nil))))
         (list 'operator not-op (third form))
-        (list 'unary-operator "!" form :prefix t))))
-
-(define-ps-special-form ~ (expecting x)
-  (declare (ignore expecting))
-  (list 'unary-operator "~" (compile-parenscript-form x :expecting :expression) :prefix t))
+        (list 'unary-operator '! form :prefix t))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; control structures

@@ -251,6 +251,16 @@ x = 2 + sideEffect() + x + 5;")
     x + y;
 }")
 
+(test-ps-js defun-optional3
+  (defun blah (&optional (x 0))
+    (return x))
+  "function blah(x) {
+    if (x === undefined) {
+        x = 0;
+    };
+    return x;
+}")
+
 (test-ps-js return-nothing
   (return)
   "return null")
@@ -512,3 +522,65 @@ try {
 (test-ps-js special-char-equals
   blah=
   "blahequals")
+
+(test-ps-js setf-operator-priority
+  (return (or (slot-value cache id)
+              (setf (slot-value cache id) (document.get-element-by-id id))))
+  "return cache[id] || (cache[id] = document.getElementById(id))")
+
+(test-ps-js aref-operator-priority
+  (aref (if (and x (> (length x) 0))
+            (aref x 0)
+            y)
+        z)
+  "(x && x.length > 0 ? x[0] : y)[z]")
+
+(test-ps-js aref-operator-priority1
+  (aref (or (slot-value x 'y)
+            (slot-value a 'b))
+        z)
+  "(x.y || a.b)[z]")
+
+(test-ps-js aref-operator-priority2
+  (aref (if a b c) 0)
+  "(a ? b : c)[0]")
+
+(test-ps-js negative-operator-priority
+  (- (if x y z))
+  "-(x ? y : z)")
+
+(test-ps-js op-p1
+  (new (or a b))
+  "new (a || b)")
+
+(test-ps-js op-p2
+  (delete (if a (or b c) d))
+  "delete (a ? b || c : d)")
+
+(test-ps-js op-p3
+  (not (if (or x (not y)) z))
+  "!(x || !y ? z : null)")
+
+(test-ps-js op-p4
+  (- (- (* 1 2) 3))
+  "-(1 * 2 - 3)")
+
+(test-ps-js op-p5
+  (instanceof (or a b) (if x y z))
+  "((a || b) instanceof (x ? y : z))")
+
+(test-ps-js op-p6
+  (doeach (x (or a b)))
+  "for (var x in (a || b)) { };")
+
+(test-ps-js op-p7
+  (or x (if (= x 0) "zero" "empty"))
+  "x || (x == 0 ? 'zero' : 'empty')")
+
+(test-ps-js named-op-expression
+  (throw (if a b c))
+  "throw a ? b : c")
+
+(test-ps-js named-op-expression1
+  (typeof (or x y))
+  "typeof (x || y)")

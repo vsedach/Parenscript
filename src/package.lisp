@@ -143,6 +143,7 @@
 
       ;; html generator for javascript
       #:ps-html
+      #:who-ps-html
 
       ;; utils
       #:do-set-timeout

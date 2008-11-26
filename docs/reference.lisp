@@ -1073,10 +1073,10 @@ a-variable  => aVariable
 ;;; compiler. The resulting expression is a JavaScript expression.
 
 (ps-html ((:a :href "foobar") "blorg"))
-=> '<a href=\"foobar\">blorg</a>'
+=> '<A HREF=\"foobar\">blorg</A>'
 
 (ps-html ((:a :href (generate-a-link)) "blorg"))
-=> '<a href=\"' + generateALink() + '\">blorg</a>'
+=> '<A HREF=\"' + generateALink() + '\">blorg</A>'
 
 ;;; We can recursively call the ParenScript compiler in an HTML
 ;;; expression.
@@ -1084,7 +1084,7 @@ a-variable  => aVariable
 (document.write
   (ps-html ((:a :href "#"
                 :onclick (lisp (ps-inline (transport)))) "link")))
-=> document.write('<a href=\"#\" onclick=\"' + 'javascript:transport()' + '\">link</a>')
+=> document.write('<A HREF=\"#\" ONCLICK=\"' + 'javascript:transport()' + '\">link</A>')
 
 ;;; Forms may be used in attribute lists to conditionally generate
 ;;; the next attribute. In this example the textarea is sometimes disabled.
@@ -1097,9 +1097,9 @@ a-variable  => aVariable
 => var disabled = null;
    var authorized = true;
    element.innerHTML =
-   '<textarea'
-   + (disabled || !authorized ? ' disabled=\"' + 'disabled' + '\"' : '')
-   + '>Edit me</textarea>';
+   '<TEXTAREA'
+   + (disabled || !authorized ? ' DISABLED=\"' + 'disabled' + '\"' : '')
+   + '>Edit me</TEXTAREA>';
 
 ;;;# Macrology
 ;;;t \index{macro}

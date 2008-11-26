@@ -77,3 +77,10 @@
 (defpsmacro concatenate (result-type &rest sequences)
   (assert (equal result-type ''string) () "Right now Parenscript 'concatenate' only support strings.")
   (cons '+ sequences))
+
+(defmacro concat-string (&rest things)
+  `(format nil "~@{~A~}" ,@things))
+
+(defpsmacro concat-string (&rest things)
+  (cons '+ things))
+

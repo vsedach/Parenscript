@@ -579,17 +579,17 @@ for (var k in obj) {
 
 (test-ps-js the-html-generator-1
   (ps-html ((:a :href "foobar") "blorg"))
-  "'<a href=\"foobar\">blorg</a>'")
+  "'<A HREF=\"foobar\">blorg</A>'")
 
 (test-ps-js the-html-generator-2
   (ps-html ((:a :href (generate-a-link)) "blorg"))
-  "'<a href=\"' + generateALink() + '\">blorg</a>'")
+  "'<A HREF=\"' + generateALink() + '\">blorg</A>'")
 
 (test-ps-js the-html-generator-3
   (document.write
   (ps-html ((:a :href "#"
                 :onclick (lisp (ps-inline (transport)))) "link")))
-  "document.write('<a href=\"#\" onclick=\"' + 'javascript:transport()' + '\">link</a>')")
+  "document.write('<A HREF=\"#\" ONCLICK=\"' + 'javascript:transport()' + '\">link</A>')")
 
 (test-ps-js the-html-generator-4
   (let* ((disabled nil)
@@ -600,7 +600,7 @@ for (var k in obj) {
   "var disabled = null;
 var authorized = true;
 element.innerHTML =
-'<textarea'
-+ (disabled || !authorized ? ' disabled=\"' + 'disabled' + '\"' : '')
-+ '>Edit me</textarea>';")
+'<TEXTAREA'
++ (disabled || !authorized ? ' DISABLED=\"' + 'disabled' + '\"' : '')
++ '>Edit me</TEXTAREA>';")
 

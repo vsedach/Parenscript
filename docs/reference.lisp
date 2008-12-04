@@ -725,7 +725,7 @@ a-variable  => aVariable
 (defvar *a* (array 1 2 3)) => var A = [ 1, 2, 3 ]
 
 ;;; One feature present in Parenscript that is not part of Common Lisp
-;;; is lexically-scoped function variables, which are declared using
+;;; are lexically-scoped global variables, which are declared using
 ;;; the `VAR' special form.
 
 ;;; Parenscript provides two versions of the `LET' and `LET*' special

@@ -79,6 +79,7 @@
   (cons '+ sequences))
 
 (defmacro concat-string (&rest things)
+  "Like concatenate but prints all of its arguments."
   `(format nil "~@{~A~}" ,@things))
 
 (defpsmacro concat-string (&rest things)

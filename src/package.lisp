@@ -177,6 +177,7 @@
       #:random
       #:ignore-errors
       #:concatenate
+      #:concat-string
       #:length
       #:null
       #:@

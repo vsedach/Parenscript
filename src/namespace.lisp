@@ -36,5 +36,5 @@ designated package when translating ParenScript code."
 (defun js-translate-symbol (symbol)
   (let ((possibly-obfuscated-symbol (maybe-obfuscate-symbol symbol)))
     (if (ps-package-prefix (symbol-package symbol))
-        (format nil "~A~A" (ps-package-prefix (symbol-package symbol)) (symbol-to-js possibly-obfuscated-symbol))
-        (symbol-to-js possibly-obfuscated-symbol))))
+        (format nil "~A~A" (ps-package-prefix (symbol-package symbol)) (symbol-to-js-string possibly-obfuscated-symbol))
+        (symbol-to-js-string possibly-obfuscated-symbol))))

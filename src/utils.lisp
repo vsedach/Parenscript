@@ -53,7 +53,7 @@
   (and (> (length string) 1)
        (char= #\: (char string 0))))
 
-(defun symbol-to-js (symbol)
+(defun symbol-to-js-string (symbol)
   "Given a Lisp symbol or string, produces to a valid JavaScript
 identifier by following transformation heuristics case conversion. For
 example, paren-script becomes parenScript, *some-global* becomes
@@ -94,7 +94,7 @@ SOMEGLOBAL."
                         (reschar i)))
                      (t (reschar c))))))
              (coerce (nreverse res) 'string)))
-          (t (string-join (mapcar #'symbol-to-js symbols) "")))))
+          (t (string-join (mapcar #'symbol-to-js-string symbols) "")))))
 
 (defun ordered-set-difference (list1 list2 &key (test #'eql)) ; because the CL set-difference may not preserve order
   (reduce (lambda (list el) (remove el list :test test))

@@ -218,6 +218,7 @@
       #:unobfuscate-package
 
       ;; printer
+      #:symbol-to-js-string
       #:*js-string-delimiter*
       #:*js-inline-string-delimiter*
       #:*ps-print-pretty*

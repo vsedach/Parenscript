@@ -1,39 +1,21 @@
 (in-package :parenscript)
 
-(defvar *ps-symbols* (make-hash-table :test 'equal))
-(defvar *ps-literals* (make-hash-table :test 'eq))
+;;; reserved symbols/literals
+
+(defvar *ps-reserved-symbol-names* ()) ;; symbol names reserved for PS/JS literals
+
+(defun add-ps-literal (name)
+  (push (symbol-name name) *ps-reserved-symbol-names*))
+
+(defun ps-literal-p (symbol)
+  (find (symbol-name symbol) *ps-reserved-symbol-names* :test #'equalp))
+
+;;; special forms
+
 (defvar *ps-special-forms* (make-hash-table :test 'eq))
 
-(defclass parenscript-symbol ()
-  ((name :initarg :name :accessor name-of)))
-
-(defmethod print-object ((obj parenscript-symbol) stream)
-  (format stream "~a" (name-of obj)))
-
-(defun find-ps-symbol (symbol)
-  (multiple-value-bind (sym hit?) (gethash (string symbol) *ps-symbols*)
-    (when hit? sym)))
-
-(defun ps-intern (thing)
-  (if (typep thing 'parenscript-symbol) thing
-      (let ((str (string thing)))
-        (multiple-value-bind (sym hit?) (gethash str *ps-symbols*)
-          (if hit? sym
-              (setf (gethash str *ps-symbols*)
-                    (make-instance 'parenscript-symbol :name str)))))))
-
 (defun get-ps-special-form (name)
-  "Returns the special form function corresponding to the given name."
-  (gethash (find-ps-symbol name) *ps-special-forms*))
-
-(defun add-ps-literal (name &aux (sym (ps-intern name)))
-  (setf (gethash sym *ps-literals*) sym))
-
-(defun undefine-ps-special-form (name &aux (sym (ps-intern name)))
-  "Undefines the special form with the given name (name is a symbol)."
-  (remhash sym *ps-special-forms*)
-  (remhash sym *ps-literals*)
-  t)
+  (gethash name *ps-special-forms*))
 
 (defmacro define-ps-special-form (name lambda-list &rest body)
   "Define a special form NAME. The first argument given to the special
@@ -41,11 +23,21 @@ form is a keyword indicating whether the form is expected to produce
 an :expression or a :statement. The resulting Parenscript language
 types are appended to the ongoing javascript compilation."
   (let ((arglist (gensym "ps-arglist-")))
-    `(setf (gethash (ps-intern ',name) *ps-special-forms*)
+    `(setf (gethash ',name *ps-special-forms*)
            (lambda (&rest ,arglist)
              (destructuring-bind ,lambda-list
                  ,arglist
                ,@body)))))
+
+(defun undefine-ps-special-form (name)
+  (remhash name *ps-special-forms*))
+
+(defun ps-special-form-p (form)
+  (and (consp form)
+       (symbolp (car form))
+       (gethash (car form) *ps-special-forms*)))
+
+;;; scoping
 
 (defvar *enclosing-lexical-block-declarations* ()
   "This special variable is expected to be bound to a fresh list by
@@ -59,14 +51,7 @@ lexical block.")
 
 (defvar *ps-special-variables* ())
 
-;;; ParenScript form predicates
-(defun ps-special-form-p (form)
-  (and (consp form)
-       (symbolp (car form))
-       (gethash (find-ps-symbol (car form)) *ps-special-forms*)))
-
-(defun ps-literal-p (symbol)
-  (gethash (find-ps-symbol symbol) *ps-literals*))
+;;; form predicates
 
 (defun op-form-p (form)
   (and (listp form)
@@ -86,11 +71,10 @@ lexical block.")
 ;;; macro expansion
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (defun make-macro-env-dictionary ()
-    "Creates a standard macro dictionary."
-    (make-hash-table :test #'equal))
+    (make-hash-table :test 'eq))
   (defvar *ps-macro-toplevel* (make-macro-env-dictionary)
-    "Toplevel macro environment dictionary. Key is the symbol of the
-macro, value is (symbol-macro-p . expansion-function).")
+    "Toplevel macro environment dictionary. Key is the symbol name of
+    the macro, value is (symbol-macro-p . expansion-function).")
   (defvar *ps-macro-env* (list *ps-macro-toplevel*)
     "Current macro environment.")
 
@@ -103,10 +87,10 @@ stored as the second value.")
   (defun get-macro-spec (name env-dict)
     "Retrieves the macro spec of the given name with the given environment dictionary.
 SPEC is of the form (symbol-macro-p . expansion-function)."
-    (gethash (find-ps-symbol name) env-dict))
+    (gethash name env-dict))
   (defsetf get-macro-spec (name env-dict)
       (spec)
-    `(setf (gethash (ps-intern ,name) ,env-dict) ,spec)))
+    `(setf (gethash ,name ,env-dict) ,spec)))
 
 (defun lookup-macro-spec (name &optional (environment *ps-macro-env*))
   "Looks up the macro spec associated with NAME in the given environment.  A

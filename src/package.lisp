@@ -10,6 +10,7 @@
       #:this
       #:false
       #:undefined
+      #:{}
 
       ;; keywords
       #:break

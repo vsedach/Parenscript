@@ -617,3 +617,15 @@ try {
 (test-ps-js named-op-expression1
   (typeof (or x y))
   "typeof (x || y)")
+
+(test-ps-js aref-array-expression
+  (aref (or a b c) 0)
+  "(a || b || c)[0]")
+
+(test-ps-js slot-value-operator
+  (slot-value (or a b c) 'd)
+  "(a || b || c).d")
+
+(test-ps-js slot-value-parens
+  (slot-value (slot-value foo 'bar) 'baz)
+  "foo.bar.baz")

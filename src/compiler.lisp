@@ -237,7 +237,8 @@ the form cannot be compiled to a symbol."
 
 (defmethod compile-parenscript-form ((symbol symbol) &key expecting)
   (declare (ignore expecting))
-  (cond ((ps-special-form-p (list symbol))
+  (cond ((keywordp symbol) symbol)
+        ((ps-special-form-p (list symbol))
          (if (ps-literal-p symbol)
              (funcall (get-ps-special-form symbol) :symbol)
              (error "Attempting to use Parenscript special form ~a as variable" symbol)))
@@ -247,25 +248,21 @@ the form cannot be compiled to a symbol."
   "Compiles a bunch of Parenscript forms from a funcall form to an effective set of
 Javascript arguments.  The only extra processing this does is makes :keyword arguments
 into a single options argument via CREATE."
-  (flet ((keyword-arg (arg)
-           "If the given compiled expression is supposed to be a keyword argument, returns
-the keyword for it."
-           (when (and (listp arg) (eql (first arg) 'ps-quote)) (second arg))))
-    (let ((compiled-args (mapcar (lambda (arg) (compile-parenscript-form arg :expecting :expression))
-                                 arg-forms)))
-      (do ((effective-expressions nil)
-           (expressions-subl compiled-args))
-          ((not expressions-subl) (reverse effective-expressions))
-        (let ((arg-expr (first expressions-subl)))
-          (if (keyword-arg arg-expr)
-              (progn (when (oddp (length expressions-subl))
-                       (error "Odd number of keyword arguments: ~A." arg-forms))
-                     (push (list 'js-object (loop for (name val) on expressions-subl by #'cddr
-                                                  collect (list name val)))
-                           effective-expressions)
-                     (setf expressions-subl nil))
-              (progn (push arg-expr effective-expressions)
-                     (setf expressions-subl (rest expressions-subl)))))))))
+  (let ((compiled-args (mapcar (lambda (arg) (compile-parenscript-form arg :expecting :expression))
+                               arg-forms)))
+    (do ((effective-expressions nil)
+         (expressions-subl compiled-args))
+        ((not expressions-subl) (reverse effective-expressions))
+      (let ((arg-expr (first expressions-subl)))
+        (if (keywordp arg-expr)
+            (progn (when (oddp (length expressions-subl))
+                     (error "Odd number of keyword arguments: ~A." arg-forms))
+                   (push (list 'js-object (loop for (name val) on expressions-subl by #'cddr
+                                             collect (list (list 'js-variable name) val)))
+                         effective-expressions)
+                   (setf expressions-subl nil))
+            (progn (push arg-expr effective-expressions)
+                   (setf expressions-subl (rest expressions-subl))))))))
 
 (defun ps-convert-op-name (op)
   (case (ensure-ps-symbol op)

@@ -459,6 +459,8 @@ lambda-list::=
   (declare (ignore expecting))
   (list 'js-object (loop for (name val) on args by #'cddr collecting
                          (let ((name-expr (compile-parenscript-form name :expecting :expression)))
+                           (when (keywordp name-expr)
+                             (setf name-expr (list 'js-variable name-expr)))
                            (assert (or (stringp name-expr)
                                        (numberp name-expr)
                                        (and (listp name-expr)

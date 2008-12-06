@@ -36,6 +36,10 @@ arguments, defines a printer for that form using the given body."
 (defmethod ps-print ((form null)) ; don't print top-level nils (ex: result of defining macros, etc.)
   )
 
+(defmethod ps-print ((s symbol))
+  (assert (keywordp s))
+  (ps-print (js-translate-symbol s)))
+
 (defmethod ps-print ((compiled-form cons))
   "Prints the given compiled ParenScript form starting at the given
 indent position."

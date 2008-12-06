@@ -76,13 +76,13 @@ x = 2 + sideEffect() + x + 5;")
 
 (test-ps-js simple-slot-value
   (let* ((foo (create :a 1)))
-   (alert (slot-value foo 'a)))
+    (alert (slot-value foo 'a)))
   "var foo = { a : 1 };
    alert(foo.a);")
 
 (test-ps-js buggy-slot-value
    (let* ((foo (create :a 1))
-        (slot-name "a"))
+          (slot-name "a"))
     (alert (slot-value foo slot-name)))
   " var foo = { a : 1 };
     var slotName = 'a';
@@ -361,6 +361,39 @@ x = 2 + sideEffect() + x + 5;")
     return foo + bar + _js1.baz;
 }")
 
+(test-ps-js defun-keyword2
+  (defun zoo (&key baz) (return (* baz baz)))
+  "function zoo(_js1) {
+    if (_js1 === undefined) {
+        _js1 = {  };
+    };
+    return _js1.baz * _js1.baz;
+}")
+
+(test-ps-js defun-keyword3
+  (defun zoo (&key baz (bar 4)) (return (* baz bar)))
+  "function zoo(_js1) {
+    if (_js1 === undefined) {
+        _js1 = {  };
+    };
+    if (_js1.bar === undefined) {
+        _js1.bar = 4;
+    };
+    return _js1.baz * _js1.bar;
+}")
+
+(test-ps-js keyword-funcall1
+  (func :baz 1)
+  "func({ baz : 1 })")
+
+(test-ps-js keyword-funcall2
+  (func :baz 1 :bar foo)
+  "func({ baz : 1, bar : foo })")
+
+(test-ps-js keyword-funcall3
+  (fun a b :baz c)
+  "fun(a, b, { baz : c })")
+  
 (test-ps-js cond1
   (cond ((= x 1) 1))
   "if (x == 1) {
@@ -445,7 +478,7 @@ x = 2 + sideEffect() + x + 5;")
 
 (test-ps-js keyword-consistent
   :x
-  "x")
+  "'x'")
 
 (test-ps-js simple-symbol-macrolet
   (symbol-macrolet ((x 1)) x)

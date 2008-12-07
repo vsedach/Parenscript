@@ -18,9 +18,8 @@
     (slime-eval-async
      (list 'swank:eval-and-grab-output (format "(%s %s)" expander exp-str))
      (lambda (expansion)
-       (with-current-buffer (slime-get-temp-buffer-create buffer-name :mode buffer-mode :reusep t)
-         (setq slime-buffer-connection (slime-connection))
-         (setq slime-buffer-package package)
+       (slime-with-popup-buffer (buffer-name)
+         (funcall buffer-mode)
          (setq buffer-read-only nil)
          (erase-buffer)
          (insert (funcall printer (second expansion)))
@@ -41,8 +40,13 @@
                                                       buffer-name
                                                       buffer-mode
                                                       printer)))
-                    :prefixed t :inferior t))
+                    :prefixed t))
 
 ;;; This actually defines the expander. If the code above belongs in slime.el, the code below would go into .emacs
-(slime-add-custom-expander "j" 'ps:ps "*ParenScript generated Javascript*" 'c-mode #'read)
-(slime-add-custom-expander "d" 'ps:ps-doc "*ParenScript generated Javascript*" 'c-mode #'read)
+(map nil (lambda (x)
+           (slime-add-custom-expander (car x)
+                                      (cdr x)
+                                      "*Parenscript generated Javascript*"
+                                      (if (featurep 'javascript-mode) 'javascript-mode 'c-mode)
+                                      #'read))
+     '(("j" . ps:ps) ("d" . ps:ps-doc)))

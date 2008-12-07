@@ -101,7 +101,7 @@ vice-versa.")
       0))
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
-  (defparameter *op-precedence-hash* (make-hash-table :test #'equal))
+  (defparameter *op-precedence-hash* (make-hash-table :test 'eq))
 
   ;;; generate the operator precedences from *OP-PRECEDENCES*
   (let ((precedence 1))
@@ -122,15 +122,11 @@ vice-versa.")
                    (= *= /= %= += -= <<= >>= >>>= \&\= ^= \|= js-assign)
                    (comma)))
       (dolist (op ops)
-        (let ((op-name (symbol-name op)))
-          (setf (gethash op-name *op-precedence-hash*) precedence)))
+        (setf (gethash op *op-precedence-hash*) precedence))
       (incf precedence)))
 
   (defun op-precedence (op)
-    (gethash (if (symbolp op)
-                 (symbol-name op)
-                 op)
-             *op-precedence-hash*)))
+    (gethash op *op-precedence-hash*)))
 
 (defprinter ps-quote (val)
   (if (null val)

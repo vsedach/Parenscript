@@ -5,6 +5,10 @@
 
 (in-suite package-system-tests)
 
+(test-ps-js operator-packages1
+  (#:new)
+  "new()")
+
 (defpackage "MY-LIBRARY"
   (:use #:parenscript))
 (setf (ps-package-prefix :my-library) "my_library_")
@@ -55,4 +59,3 @@
             { bar : 1, 
               prefix_notAKeyword : prefix_something };
         return !prefix_foo && prefix_foo[prefix_bar] + prefix_someOtherVar;")
-

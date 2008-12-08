@@ -54,6 +54,13 @@
 
 ;;; Data structures
 
+(defpsmacro [] (&rest args)
+  `(array ,@(mapcar (lambda (arg)
+                      (if (and (consp arg) (not (equal '[] (car arg))))
+                          (cons '[] arg)
+                          arg))
+                    args)))
+
 (defpsmacro length (a)
   `(@ ,a length))
 

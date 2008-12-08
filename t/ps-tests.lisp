@@ -332,6 +332,26 @@ x = 2 + sideEffect() + x + 5;")
   ({} a 1 b 2)
   "{a: 1, b: 2 }")
 
+(test-ps-js array-literal1
+  []
+  "[]")
+
+(test-ps-js array-literal2
+  ([])
+  "[]")
+
+(test-ps-js array-literal3
+  ([] 1 2 3)
+  "[1, 2, 3]")
+
+(test-ps-js array-literal4
+  ([] 1 (2 3))
+  "[1, [2, 3]]")
+
+(test-ps-js array-literal5
+  ([] (1 2) ("a" "b"))
+  "[[1, 2], ['a', 'b']]")
+
 (test-ps-js defun-rest1
   (defun foo (&rest bar) (alert bar[1]))
   "function foo() {

@@ -21,6 +21,7 @@
       #:list
       #:aref
       #:make-array
+      #:[]
 
       ;; operators
       #:! #:not #:~

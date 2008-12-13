@@ -53,7 +53,7 @@
                       (let (content)
                         (labels ((process-attributes (attrs)
                                    (cond ((null attrs) )
-                                         ((= 1 (length attrs)) (setf content (car attrs)))
+                                         ((= 1 (length attrs)) (setf content attrs))
                                          ((consp (car attrs))
                                           (push `(if ,(first attrs)
                                                      (concat-string ,(format nil " ~A=\"" (second attrs)) ,(third attrs) "\"")

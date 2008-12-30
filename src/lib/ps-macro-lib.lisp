@@ -92,3 +92,5 @@
 (defpsmacro concat-string (&rest things)
   (cons '+ things))
 
+(defpsmacro elt (array index)
+  `(aref ,array ,index))

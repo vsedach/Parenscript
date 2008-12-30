@@ -20,6 +20,7 @@
       #:array
       #:list
       #:aref
+      #:elt
       #:make-array
       #:[]
 

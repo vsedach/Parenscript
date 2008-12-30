@@ -28,9 +28,11 @@
                                      ;; standard library
                                      (:module :lib
                                               :components ((:file "ps-html")
-                                                           (:file "ps-macro-lib")
-                                                           (:file "ps-runtime-lib"))
-                                              :depends-on ("compilation-interface")))))
+                                                           (:file "ps-macro-lib"))
+                                              :depends-on ("compilation-interface"))))
+               (:module :runtime
+                        :components ((:file "ps-runtime-lib"))
+                        :depends-on (:src)))
   :depends-on ())
 
 (defmethod asdf:perform :after ((op asdf:load-op) (system (eql (asdf:find-system :parenscript)))) 

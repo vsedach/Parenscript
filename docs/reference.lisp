@@ -1,15 +1,15 @@
-;;;# ParenScript Language Reference
+;;;# Parenscript Language Reference
 
 ;;; Create a useful package for the code here...
 (in-package #:cl-user)
 (defpackage #:ps-ref (:use #:ps))
 (in-package #:ps-ref)
 
-;;; This chapters describes the core constructs of ParenScript, as
+;;; This chapters describes the core constructs of Parenscript, as
 ;;; well as its compilation model. This chapter is aimed to be a
-;;; comprehensive reference for ParenScript developers. Programmers
-;;; looking for how to tweak the ParenScript compiler itself should
-;;; turn to the ParenScript Internals chapter.
+;;; comprehensive reference for Parenscript developers. Programmers
+;;; looking for how to tweak the Parenscript compiler itself should
+;;; turn to the Parenscript Internals chapter.
 
 ;;;# Statements and Expressions
 ;;;t \index{statement}
@@ -19,9 +19,9 @@
 ;;; makes the difference between an expression, which evaluates to a
 ;;; value, and a statement, which has no value. Examples for
 ;;; JavaScript statements are `for', `with' and `while'. Most
-;;; ParenScript forms are expression, but certain special forms are
+;;; Parenscript forms are expression, but certain special forms are
 ;;; not (the forms which are transformed to a JavaScript
-;;; statement). All ParenScript expressions are statements
+;;; statement). All Parenscript expressions are statements
 ;;; though. Certain forms, like `IF' and `PROGN', generate different
 ;;; JavaScript constructs whether they are used in an expression
 ;;; context or a statement context. For example:
@@ -60,7 +60,7 @@ bla-foo-bar => blaFooBar
 *array => Array
 
 ;;; The `.' character is left as is in symbols. This allows the
-;;; ParenScript programmer to use a practical shortcut when accessing
+;;; Parenscript programmer to use a practical shortcut when accessing
 ;;; slots or methods of JavaScript objects. Instead of writing
 
 (slot-value foobar 'slot)
@@ -81,7 +81,7 @@ foobar.slot
 ;;;t \index{keyword}
 ;;;t \index{reserved keywords}
 
-;;; The following keywords and symbols are reserved in ParenScript,
+;;; The following keywords and symbols are reserved in Parenscript,
 ;;; and should not be used as variable names.
 
 ! ~ ++ -- * / % + - << >> >>> < > <= >= == != ==== !== & ^ | && || *=
@@ -107,7 +107,7 @@ WHEN WHILE WITH WITH-SLOTS
 ; number ::= a Lisp number
 
 ;;;
-;;; ParenScript supports the standard JavaScript literal
+;;; Parenscript supports the standard JavaScript literal
 ;;; values. Numbers are compiled into JavaScript numbers.
 
 1       => 1
@@ -145,9 +145,9 @@ WHEN WHILE WITH WITH-SLOTS
 ; (MAKE-ARRAY {values}*)
 ; (AREF array index)
 ; 
-; values ::= a ParenScript expression
-; array  ::= a ParenScript expression
-; index  ::= a ParenScript expression
+; values ::= a Parenscript expression
+; array  ::= a Parenscript expression
+; index  ::= a Parenscript expression
 
 ;;; Array literals can be created using the `ARRAY' form.
 
@@ -172,7 +172,7 @@ WHEN WHILE WITH WITH-SLOTS
  (make-array "foobar" "bratzel bub"))
 => new Array(new Array(2, 3), new Array('foobar', 'bratzel bub'))
 
-;;; Indexing arrays in ParenScript is done using the form `AREF'. Note
+;;; Indexing arrays in Parenscript is done using the form `AREF'. Note
 ;;; that JavaScript knows of no such thing as an array. Subscripting
 ;;; an array is in fact reading a property from an object. So in a
 ;;; semantic sense, there is no real difference between `AREF' and
@@ -191,11 +191,11 @@ WHEN WHILE WITH WITH-SLOTS
 ; (SLOT-VALUE object slot-name)
 ; (WITH-SLOTS ({slot-name}*) object body)
 ;
-; name      ::= a ParenScript symbol or a Lisp keyword
-; value     ::= a ParenScript expression
-; object    ::= a ParenScript object expression
+; name      ::= a Parenscript symbol or a Lisp keyword
+; value     ::= a Parenscript expression
+; object    ::= a Parenscript object expression
 ; slot-name ::= a quoted Lisp symbol
-; body      ::= a list of ParenScript statements
+; body      ::= a list of Parenscript statements
 
 ;;;
 ;;; Object literals can be create using the `CREATE' form. Arguments
@@ -299,7 +299,7 @@ THIS => this
 ;;; All the other literal Lisp values that are not recognized as
 ;;; special forms or symbol macros are converted to JavaScript
 ;;; variables. This extreme freedom is actually quite useful, as it
-;;; allows the ParenScript programmer to be flexible, as flexible as
+;;; allows the Parenscript programmer to be flexible, as flexible as
 ;;; JavaScript itself.
 
 variable    => variable
@@ -319,10 +319,10 @@ a-variable  => aVariable
 ; (function {argument}*)
 ; (method   object {argument}*)
 ;
-; function ::= a ParenScript expression or a Lisp symbol
+; function ::= a Parenscript expression or a Lisp symbol
 ; method   ::= a Lisp symbol beginning with .
-; object   ::= a ParenScript expression
-; argument ::= a ParenScript expression
+; object   ::= a Parenscript expression
+; argument ::= a Parenscript expression
 
 ;;; Any list passed to the JavaScript that is not recognized as a
 ;;; macro or a special form (see "Macro Expansion" below) is
@@ -366,14 +366,14 @@ a-variable  => aVariable
 ; operator ::= one of *, /, %, +, -, <<, >>, >>>, < >, EQL,
 ;              ==, !=, =, ===, !==, &, ^, |, &&, AND, ||, OR.
 ; single-operator ::= one of INCF, DECF, ++, --, NOT, !
-; argument ::= a ParenScript expression
+; argument ::= a Parenscript expression
 
 ;;; Operator forms are similar to function call forms, but have an
 ;;; operator as function name.
 ;;;
 ;;; Please note that `=' is converted to `==' in JavaScript. The `='
-;;; ParenScript operator is not the assignment operator. Unlike
-;;; JavaScript, ParenScript supports multiple arguments to the
+;;; Parenscript operator is not the assignment operator. Unlike
+;;; JavaScript, Parenscript supports multiple arguments to the
 ;;; operators.
 
 (* 1 2)   => 1 * 2
@@ -423,8 +423,8 @@ a-variable  => aVariable
 ; (PROGN {statement}*) in statement context
 ; (PROGN {expression}*) in expression context
 ;
-; statement  ::= a ParenScript statement
-; expression ::= a ParenScript expression
+; statement  ::= a Parenscript statement
+; expression ::= a Parenscript expression
 
 ;;; The `PROGN' special form defines a sequence of statements when
 ;;; used in a statement context, or sequence of expression when used
@@ -460,7 +460,7 @@ a-variable  => aVariable
 ;
 ; name     ::= a Lisp Symbol
 ; argument ::= a Lisp symbol
-; body     ::= a list of ParenScript statements
+; body     ::= a list of Parenscript statements
 
 ;;; As in Lisp, functions are defined using the `DEFUN' form, which
 ;;; takes a name, a list of arguments, and a function body. An
@@ -493,14 +493,14 @@ a-variable  => aVariable
 ; (SETF {lhs rhs}*)
 ; (PSETF {lhs rhs}*)
 ;
-; lhs ::= a ParenScript left hand side expression
-; rhs ::= a ParenScript expression
+; lhs ::= a Parenscript left hand side expression
+; rhs ::= a Parenscript expression
 
 ; (SETQ {lhs rhs}*)
 ; (PSETQ {lhs rhs}*)
 ;
-; lhs ::= a ParenScript symbol
-; rhs ::= a ParenScript expression
+; lhs ::= a Parenscript symbol
+; rhs ::= a Parenscript expression
 
 ;;; Assignment is done using the `SETF', `PSETF', `SETQ', and `PSETQ'
 ;;; forms, which are transformed into a series of assignments using
@@ -595,7 +595,7 @@ a-variable  => aVariable
 ; (RETURN {value}?)
 ; (THROW  {value}?)
 ;
-; value ::= a ParenScript expression
+; value ::= a Parenscript expression
 
 ;;; The single argument statements `return' and `throw' are generated
 ;;; by the form `RETURN' and `THROW'. `THROW' has to be used inside a
@@ -623,12 +623,12 @@ a-variable  => aVariable
 ; (INSTANCEOF {value})
 ; (NEW        {value})
 ;
-; value ::= a ParenScript expression
+; value ::= a Parenscript expression
 
 ;;; The single argument expressions `delete', `void', `typeof',
 ;;; `instanceof' and `new' are generated by the forms `DELETE',
 ;;; `VOID', `TYPEOF', `INSTANCEOF' and `NEW'. They all take a
-;;; ParenScript expression.
+;;; Parenscript expression.
 
 (delete (new (*foobar 2 3 4))) => delete new Foobar(2, 3, 4)
 
@@ -652,11 +652,11 @@ a-variable  => aVariable
 ; (WHEN condition then)
 ; (UNLESS condition then)
 ;
-; condition ::= a ParenScript expression
-; then      ::= a ParenScript statement in statement context, a
-;                 ParenScript expression in expression context
-; else      ::= a ParenScript statement in statement context, a
-;                 ParenScript expression in expression context
+; condition ::= a Parenscript expression
+; then      ::= a Parenscript statement in statement context, a
+;                 Parenscript expression in expression context
+; else      ::= a Parenscript statement in statement context, a
+;                 Parenscript expression in expression context
 
 ;;; The `IF' form compiles to the `if' javascript construct. An
 ;;; explicit `PROGN' around the then branch and the else branch is
@@ -714,8 +714,8 @@ a-variable  => aVariable
 ; (LEXICAL-LET* ({var | (var value)}*) body)
 ;
 ; var   ::= a Lisp symbol
-; value ::= a ParenScript expression
-; body  ::= a list of ParenScript statements
+; value ::= a Parenscript expression
+; body  ::= a list of Parenscript statements
 
 ;;; Parenscript special variables can be declared using the `DEFVAR'
 ;;; special form, which is similar to its equivalent form in
@@ -816,14 +816,14 @@ a-variable  => aVariable
 ; (WHILE end-test body)
 ;
 ; var          ::= a Lisp symbol
-; numeric-form ::= a ParenScript expression resulting in a number
-; list-form    ::= a ParenScript expression resulting in an array
-; object-form  ::= a ParenScript expression resulting in an object
-; init         ::= a ParenScript expression
-; step         ::= a ParenScript expression
-; end-test     ::= a ParenScript expression
-; result       ::= a ParenScript expression
-; body         ::= a list of ParenScript statements
+; numeric-form ::= a Parenscript expression resulting in a number
+; list-form    ::= a Parenscript expression resulting in an array
+; object-form  ::= a Parenscript expression resulting in an object
+; init         ::= a Parenscript expression
+; step         ::= a Parenscript expression
+; end-test     ::= a Parenscript expression
+; result       ::= a Parenscript expression
+; body         ::= a list of Parenscript statements
 
 ;;; All interation special forms are transformed into JavaScript `for'
 ;;; statements and, if needed, lambda expressions.
@@ -965,14 +965,14 @@ a-variable  => aVariable
 ; (CASE case-value clause*)
 ;
 ; clause     ::= (value body) | ((value*) body) | t-clause
-; case-value ::= a ParenScript expression
-; value      ::= a ParenScript expression
+; case-value ::= a Parenscript expression
+; value      ::= a Parenscript expression
 ; t-clause   ::= {t | otherwise | default} body
-; body       ::= a list of ParenScript statements
+; body       ::= a list of Parenscript statements
 
 ;;; The Lisp `CASE' form is transformed to a `switch' statement in
 ;;; JavaScript. Note that `CASE' is not an expression in
-;;; ParenScript. 
+;;; Parenscript. 
 
 (case (aref blorg i)
   ((1 "one") (alert "one"))
@@ -1016,8 +1016,8 @@ a-variable  => aVariable
 
 ; (WITH object body)
 ;
-; object ::= a ParenScript expression evaluating to an object
-; body   ::= a list of ParenScript statements
+; object ::= a Parenscript expression evaluating to an object
+; body   ::= a list of Parenscript statements
 
 ;;; The `WITH' form is compiled to a JavaScript `with' statements, and
 ;;; adds the object `object' as an intermediary scope objects when
@@ -1038,7 +1038,7 @@ a-variable  => aVariable
 
 ; (TRY body {(:CATCH (var) body)}? {(:FINALLY body)}?)
 ;
-; body ::= a list of ParenScript statements
+; body ::= a list of Parenscript statements
 ; var  ::= a Lisp symbol
 
 ;;; The `TRY' form is converted to a JavaScript `try' statement, and
@@ -1066,10 +1066,10 @@ a-variable  => aVariable
 
 ; (PS-HTML html-expression)
 
-;;; The HTML generator of ParenScript is very similar to the htmlgen
+;;; The HTML generator of Parenscript is very similar to the htmlgen
 ;;; HTML generator library included with AllegroServe. It accepts the
 ;;; same input forms as the AllegroServer HTML generator. However,
-;;; non-HTML construct are compiled to JavaScript by the ParenScript
+;;; non-HTML construct are compiled to JavaScript by the Parenscript
 ;;; compiler. The resulting expression is a JavaScript expression.
 
 (ps-html ((:a :href "foobar") "blorg"))
@@ -1078,7 +1078,7 @@ a-variable  => aVariable
 (ps-html ((:a :href (generate-a-link)) "blorg"))
 => '<A HREF=\"' + generateALink() + '\">blorg</A>'
 
-;;; We can recursively call the ParenScript compiler in an HTML
+;;; We can recursively call the Parenscript compiler in an HTML
 ;;; expression.
 
 (document.write
@@ -1117,15 +1117,15 @@ a-variable  => aVariable
 ;
 ; name        ::= a Lisp symbol
 ; lambda-list ::= a lambda list
-; macro-body  ::= a Lisp body evaluating to ParenScript code
-; body        ::= a list of ParenScript statements
+; macro-body  ::= a Lisp body evaluating to Parenscript code
+; body        ::= a list of Parenscript statements
 ; string      ::= a string
 
-;;; ParenScript can be extended using macros, just like Lisp can be
+;;; Parenscript can be extended using macros, just like Lisp can be
 ;;; extended using Lisp macros. Using the special Lisp form
-;;; `DEFPSMACRO', the ParenScript language can be
+;;; `DEFPSMACRO', the Parenscript language can be
 ;;; extended. `DEFPSMACRO' adds the new macro to the toplevel macro
-;;; environment, which is always accessible during ParenScript
+;;; environment, which is always accessible during Parenscript
 ;;; compilation. For example, the `1+' and `1-' operators are
 ;;; implemented using macros.
 
@@ -1135,9 +1135,9 @@ a-variable  => aVariable
 (defpsmacro 1+ (form)
   `(+ ,form 1))
 
-;;; A more complicated ParenScript macro example is the implementation
-;;; of the `DOLIST' form (note how `PS-GENSYM', the ParenScript of
-;;; `GENSYM', is used to generate new ParenScript variable names):
+;;; A more complicated Parenscript macro example is the implementation
+;;; of the `DOLIST' form (note how `PS-GENSYM', the Parenscript of
+;;; `GENSYM', is used to generate new Parenscript variable names):
 
 (defpsmacro dolist ((var array &optional (result nil result?)) &body body)
   (let ((idx (ps-gensym "_js_idx"))
@@ -1150,33 +1150,33 @@ a-variable  => aVariable
        (setq ,var (aref ,arrvar ,idx))
        ,@body)))
 
-;;; Macros can be defined in ParenScript code itself (as opposed to
-;;; from Lisp) by using the ParenScript `MACROLET' and `DEFMACRO'
+;;; Macros can be defined in Parenscript code itself (as opposed to
+;;; from Lisp) by using the Parenscript `MACROLET' and `DEFMACRO'
 ;;; forms.
 
-;;; ParenScript also supports the use of macros defined in the
+;;; Parenscript also supports the use of macros defined in the
 ;;; underlying Lisp environment. Existing Lisp macros can be imported
-;;; into the ParenScript macro environment by
+;;; into the Parenscript macro environment by
 ;;; `IMPORT-MACROS-FROM-LISP'. This functionality enables code sharing
-;;; between ParenScript and Lisp, and is useful in debugging since the
+;;; between Parenscript and Lisp, and is useful in debugging since the
 ;;; full power of Lisp macroexpanders, editors and other supporting
 ;;; facilities can be used. However, it is important to note that the
-;;; macroexpansion of Lisp macros and ParenScript macros takes place
+;;; macroexpansion of Lisp macros and Parenscript macros takes place
 ;;; in their own respective environments, and many Lisp macros
 ;;; (especially those provided by the Lisp implementation) expand into
-;;; code that is not usable by ParenScript. To make it easy for users
+;;; code that is not usable by Parenscript. To make it easy for users
 ;;; to take advantage of these features, two additional macro
-;;; definition facilities are provided by ParenScript: `DEFMACRO/PS'
+;;; definition facilities are provided by Parenscript: `DEFMACRO/PS'
 ;;; and `DEFMACRO+PS'. `DEFMACRO/PS' defines a Lisp macro and then
-;;; imports it into the ParenScript macro environment, while
+;;; imports it into the Parenscript macro environment, while
 ;;; `DEFMACRO+PS' defines two macros with the same name and expansion,
-;;; one in ParenScript and one in Lisp. `DEFMACRO+PS' is used when the
+;;; one in Parenscript and one in Lisp. `DEFMACRO+PS' is used when the
 ;;; full 'macroexpand' of the Lisp macro yields code that cannot be
-;;; used by ParenScript.
+;;; used by Parenscript.
 
-;;; ParenScript also supports symbol macros, which can be introduced
-;;; using the ParenScript form `SYMBOL-MACROLET'.For example, the
-;;; ParenScript `WITH-SLOTS' is implemented using symbol macros.
+;;; Parenscript also supports symbol macros, which can be introduced
+;;; using the Parenscript form `SYMBOL-MACROLET'.For example, the
+;;; Parenscript `WITH-SLOTS' is implemented using symbol macros.
 
 (defjsmacro with-slots (slots object &rest body)
   `(symbol-macrolet ,(mapcar #'(lambda (slot)
@@ -1185,7 +1185,7 @@ a-variable  => aVariable
     ,@body))
 
 
-;;;# The ParenScript namespace system
+;;;# The Parenscript namespace system
 ;;;t \index{package}
 ;;;t \index{namespace}
 ;;;t \index{PS-PACKAGE-PREFIX}
@@ -1193,9 +1193,9 @@ a-variable  => aVariable
 ; (setf (PS-PACKAGE-PREFIX package-designator) string)
 
 ;;; Although JavaScript does not offer namespacing or a package
-;;; system, ParenScript does provide a namespace mechanism for
+;;; system, Parenscript does provide a namespace mechanism for
 ;;; generated JavaScript by integrating with the Common Lisp package
-;;; system. Since ParenScript code is normally read in by the Lisp
+;;; system. Since Parenscript code is normally read in by the Lisp
 ;;; reader, all symbols (except for uninterned ones, ie - those
 ;;; specified with the #: reader macro) have a Lisp package. By
 ;;; default, no packages are prefixed. You can specify that symbols in
@@ -1221,7 +1221,7 @@ a-variable  => aVariable
 ; (OBFUSCATE-PACKAGE package-designator)
 ; (UNOBFUSCATE-PACKAGE package-designator)
 
-;;; Similar to the namespace mechanism, ParenScript provides a
+;;; Similar to the namespace mechanism, Parenscript provides a
 ;;; facility to generate obfuscated identifiers in certain Lisp
 ;;; packages.
 
@@ -1234,9 +1234,9 @@ a-variable  => aVariable
 ;;; The obfuscation and namespace facilities can be used on packages
 ;;; at the same time.
 
-;;;# The ParenScript Compiler
+;;;# The Parenscript Compiler
 ;;;t \index{compiler}
-;;;t \index{ParenScript compiler}
+;;;t \index{Parenscript compiler}
 ;;;t \index{PS}
 ;;;t \index{PS*}
 ;;;t \index{PS1*}
@@ -1252,15 +1252,15 @@ a-variable  => aVariable
 
 ; (LISP lisp-forms)
 ;
-; body ::= ParenScript statements comprising an implicit `PROGN'
+; body ::= Parenscript statements comprising an implicit `PROGN'
 
-;;; For static ParenScript code, the macro `PS' compiles the provided
+;;; For static Parenscript code, the macro `PS' compiles the provided
 ;;; forms at Common Lisp macro-expansion time. `PS*' and `PS1*'
 ;;; evaluate their arguments and then compile them. All these forms
 ;;; except for `PS1*' treat the given forms as an implicit
 ;;; `PROGN'.
 
-;;; `PS-INLINE' and `PS-INLINE*' take a single ParenScript form and
+;;; `PS-INLINE' and `PS-INLINE*' take a single Parenscript form and
 ;;; output a string starting with "javascript:" that can be used in
 ;;; HTML node attributes. As well, they provide an argument to bind
 ;;; the value of *js-string-delimiter* to control the value of the
@@ -1270,10 +1270,10 @@ a-variable  => aVariable
 ;;; without requiring the output JavaScript code to be escaped). By
 ;;; default the value is taken from *js-inline-string-delimiter*.
 
-;;; ParenScript can also call out to arbitrary Common Lisp code at
+;;; Parenscript can also call out to arbitrary Common Lisp code at
 ;;; code output time using the special form `LISP'. The form provided
 ;;; to `LISP' is evaluated, and its result is compiled as though it
-;;; were ParenScript code. For `PS' and `PS-INLINE', the ParenScript
+;;; were Parenscript code. For `PS' and `PS-INLINE', the Parenscript
 ;;; output code is generated at macro-expansion time, and the `LISP'
 ;;; statements are inserted inline and have access to the enclosing
 ;;; Common Lisp lexical environment. `PS*' and `PS1*' evaluate the

@@ -201,6 +201,7 @@
       #:ps
       #:ps-doc
       #:ps*
+      #:ps1*
       #:ps-inline
       #:ps-inline*
 

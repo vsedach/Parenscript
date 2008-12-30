@@ -788,9 +788,8 @@ pair in `array'."
   (declare (ignore expecting))
   (list 'js-regex (string regex)))
 
-(defpsmacro lisp (&body forms)
-  "Evaluates the given forms in Common Lisp at ParenScript
-macro-expansion time. The value of the last form is treated as a
-ParenScript expression and is inserted into the generated Javascript
-\(use nil for no-op)."
-  (eval (cons 'progn forms)))
+(define-ps-special-form lisp (expecting lisp-form)
+  ;; (ps (foo (lisp bar))) is in effect equivalent to (ps* `(foo ,bar))
+  ;; when called from inside of ps*, lisp-form has access only to the dynamic environment (like for eval)
+  (declare (ignore expecting))
+  (list 'js-escape lisp-form))

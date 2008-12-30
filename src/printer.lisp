@@ -1,22 +1,33 @@
 (in-package :parenscript)
 
-(defvar *ps-output-stream*)
-(defparameter *indent-level* 0)
+(defvar *ps-print-pretty* t)
+(defvar *indent-num-spaces* 4)
+(defvar *js-string-delimiter* #\'
+  "Specifies which character should be used for delimiting strings.
 
-(defmethod parenscript-print (ps-form &optional *ps-output-stream*)
-  (setf *indent-level* 0)
-  (flet ((print-ps (form)
-           (if (and (listp form) (eql 'js-block (car form))) ; ignore top-level block
-               (loop for (statement . remaining) on (third form) do
-                     (ps-print statement) (psw ";") (when remaining (psw #\Newline)))
-               (ps-print form))))
-    (if *ps-output-stream*
-        (print-ps ps-form)
-        (with-output-to-string (*ps-output-stream*)
-          (print-ps ps-form)))))
+This variable is used when you want to embed the resulting JavaScript
+in an html attribute delimited by #\\\" as opposed to #\\', or
+vice-versa.")
 
-(defun psw (obj) ; parenscript-write
-  (princ obj *ps-output-stream*))    
+(defvar *indent-level*)
+(defvar *print-accumulator*)
+
+(defmethod parenscript-print (form)
+  (let ((*indent-level* 0)
+        (*print-accumulator* ()))
+    (if (and (listp form) (eql 'js-block (car form))) ; ignore top-level block
+        (loop for (statement . remaining) on (third form) do
+             (ps-print statement) (psw ";") (when remaining (psw #\Newline)))
+        (ps-print form))
+    (reduce (lambda (acc next-token)
+              (if (and (stringp next-token)
+                       (stringp (car (last acc))))
+                  (append (butlast acc) (list (concatenate 'string (car (last acc)) next-token)))
+                  (append acc (list next-token))))
+            (cons () (reverse *print-accumulator*)))))
+
+(defun psw (obj)
+  (push (if (characterp obj) (string obj) obj) *print-accumulator*))
 
 (defgeneric ps-print% (special-form-name special-form-args))
 
@@ -33,34 +44,22 @@ arguments, defines a printer for that form using the given body."
 
 (defgeneric ps-print (compiled-form))
 
-(defmethod ps-print ((form null)) ; don't print top-level nils (ex: result of defining macros, etc.)
-  )
+(defmethod ps-print ((form null))) ; don't print top-level nils (ex: result of defining macros, etc.)
 
 (defmethod ps-print ((s symbol))
   (assert (keywordp s))
   (ps-print (js-translate-symbol s)))
 
 (defmethod ps-print ((compiled-form cons))
-  "Prints the given compiled ParenScript form starting at the given
-indent position."
   (ps-print% (car compiled-form) (cdr compiled-form)))
 
-;;; indentation
-(defvar *ps-print-pretty* t)
-(defvar *indent-num-spaces* 4)
-
 (defun newline-and-indent ()
-  (when (and (fresh-line *ps-output-stream*) *ps-print-pretty*)
-    (loop repeat (* *indent-level* *indent-num-spaces*)
-          do (psw #\Space))))
-
-;;; string literals
-(defvar *js-string-delimiter* #\'
-  "Specifies which character should be used for delimiting strings.
-
-This variable is used when you want to embed the resulting JavaScript
-in an html attribute delimited by #\\\" as opposed to #\\', or
-vice-versa.")
+  (if *ps-print-pretty*
+      (when (and (stringp (car *print-accumulator*))
+                 (not (char= #\Newline (char (car *print-accumulator*) (1- (length (car *print-accumulator*))))))
+                 (psw #\Newline))
+        (loop repeat (* *indent-level* *indent-num-spaces*) do (psw #\Space)))
+      (psw #\Space)))
 
 (defparameter *js-lisp-escaped-chars*
   '((#\' . #\')
@@ -79,13 +78,12 @@ vice-versa.")
           for code = (char-code char)
           for special = (lisp-special-char-to-js char)
           do (cond (special (psw #\\) (psw special))
-                   ((or (<= code #x1f) (>= code #x80))
-                    (format *ps-output-stream* "\\u~4,'0x" code))
+                   ((or (<= code #x1f) (>= code #x80)) (psw (format nil "\\u~4,'0x" code)))
                    (t (psw char))))
     (psw *js-string-delimiter*)))
 
 (defmethod ps-print ((number number))
-  (format *ps-output-stream* (if (integerp number) "~S" "~F") number))
+  (psw (format nil (if (integerp number) "~S" "~F") number)))
 
 ;;; expression and operator precedence rules
 
@@ -103,7 +101,6 @@ vice-versa.")
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (defparameter *op-precedence-hash* (make-hash-table :test 'eq))
 
-  ;;; generate the operator precedences from *OP-PRECEDENCES*
   (let ((precedence 1))
     (dolist (ops '((new js-slot-value js-aref)
                    (postfix++ postfix--)
@@ -153,7 +150,7 @@ vice-versa.")
 (defprinter object-literal (&rest slot-definitions)
   (psw #\{)
   (loop for ((key . value) . remaining) on slot-definitions do
-        (format *ps-output-stream* "~A: " (js-translate-symbol key))
+        (psw (format nil "~A: " (js-translate-symbol key)))
         (ps-print value)
         (when remaining (psw ", ")))
   (psw " }"))
@@ -171,10 +168,10 @@ vice-versa.")
         (if (>= (expression-precedence arg) precedence)
             (parenthesize-print arg)
             (ps-print arg))
-        (when remaining (format *ps-output-stream* " ~(~A~) " op))))
+        (when remaining (psw (format nil " ~(~A~) " op)))))
 
 (defprinter unary-operator (op arg &key prefix space)
-  (when prefix (format *ps-output-stream* "~(~a~)~:[~; ~]" op space))
+  (when prefix (psw (format nil "~(~a~)~:[~; ~]" op space)))
   (if (> (expression-precedence arg)
          (op-precedence (case op
                           (+ 'unary+)
@@ -182,7 +179,7 @@ vice-versa.")
                           (t op))))
       (parenthesize-print arg)
       (ps-print arg))
-  (unless prefix (format *ps-output-stream* "~(~a~)" op)))
+  (unless prefix (psw (format nil "~(~a~)" op))))
 
 ;;; function and method calls
 (defprinter js-funcall (fun-designator args)
@@ -227,7 +224,7 @@ vice-versa.")
   (print-fun-def name args body))
 
 (defun print-fun-def (name args body-block)
-  (format *ps-output-stream* "function ~:[~;~A~](" name (js-translate-symbol name))
+  (psw (format nil "function ~:[~;~A~](" name (js-translate-symbol name)))
   (loop for (arg . remaining) on args do
         (psw (js-translate-symbol arg)) (when remaining (psw ", ")))
   (psw ") ")
@@ -374,7 +371,7 @@ vice-versa.")
   (flet ((first-slash-p (string)
            (and (> (length string) 0) (char= (char string 0) #\/))))
     (let ((slash (unless (first-slash-p regex) "/")))
-      (format *ps-output-stream* (concatenate 'string slash "~A" slash) regex))))
+      (psw (format nil (concatenate 'string slash "~A" slash) regex)))))
 
 ;;; conditional compilation
 (defprinter cc-if (test body-forms)
@@ -398,12 +395,14 @@ vice-versa.")
       (ps-print type))
   (psw #\)))
 
+(defprinter js-escape (lisp-form)
+  (psw `(ps1* ,lisp-form)))
+
 ;;; named statements
 (macrolet ((def-stmt-printer (&rest stmts)
              `(progn ,@(mapcar (lambda (stmt)
                                  `(defprinter ,(intern (format nil "JS-~a" stmt)) (expr)
-                                    (format *ps-output-stream* "~(~a~) " ',stmt)
+                                    (psw (format nil "~(~a~) " ',stmt))
                                     (ps-print expr)))
                                stmts))))
   (def-stmt-printer throw return))
-

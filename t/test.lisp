@@ -43,7 +43,7 @@
     
       ;; is-macro expands its argument again when reporting failures, so
       ;; the reported temporary js-variables get wrong if we don't evalute first.
-      (let* ((generated-code (compile-script ',parenscript))
+      (let* ((generated-code (ps1* ',parenscript))
              (js-code ,javascript))
         (is (string= (normalize-js-code generated-code)
                      (normalize-js-code js-code)))))))
@@ -52,7 +52,7 @@
   (declare (ignore optimize))
   `(test ,testname
     (setf ps:*ps-gensym-counter* 0)
-    (let* ((generated-code (compile-script ',parenscript))
+    (let* ((generated-code (ps1* ',parenscript))
            (js-code ,javascript))
       (is (string= (normalize-js-code generated-code)
                    (normalize-js-code js-code))))))

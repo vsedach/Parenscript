@@ -1237,37 +1237,45 @@ a-variable  => aVariable
 ;;;# The ParenScript Compiler
 ;;;t \index{compiler}
 ;;;t \index{ParenScript compiler}
-;;;t \index{COMPILE-SCRIPT}
 ;;;t \index{PS}
 ;;;t \index{PS*}
+;;;t \index{PS1*}
 ;;;t \index{PS-INLINE}
+;;;t \index{PS-INLINE*}
 ;;;t \index{LISP}
-;;;t \index{nested compilation}
 
-; (COMPILE-SCRIPT script-form &key (output-stream nil))
 ; (PS &body body)
 ; (PS* &body body)
-; (PS-INLINE &body body)
-; (LISP &body lisp-forms)
+; (PS1* parenscript-form)
+; (PS-INLINE form &optional *js-string-delimiter*)
+; (PS-INLINE* form &optional *js-string-delimiter*)
+
+; (LISP lisp-forms)
 ;
 ; body ::= ParenScript statements comprising an implicit `PROGN'
 
-;;; For static ParenScript code, the macros `PS' and `PS-INLINE',
-;;; avoid the need to quote the ParenScript expression. `PS*' and
-;;; `COMPILE-SCRIPT' evaluate their arguments. All these forms except
-;;; for `COMPILE-SCRIPT' treat the given forms as an implicit
-;;; `PROGN'. `PS' and `PS*' return a string of the compiled body,
-;;; while `COMPILE-SCRIPT' takes an optional output-stream parameter
-;;; that can be used to specify a stream to which the generated
-;;; JavaScript will be written. `PS-INLINE' generates a string that
-;;; can be used in HTML node attributes.
+;;; For static ParenScript code, the macro `PS' compiles the provided
+;;; forms at Common Lisp macro-expansion time. `PS*' and `PS1*'
+;;; evaluate their arguments and then compile them. All these forms
+;;; except for `PS1*' treat the given forms as an implicit
+;;; `PROGN'.
 
-;;; ParenScript can also call out to arbitrary Lisp code at
-;;; compile-time using the special form `LISP'. This is typically used
-;;; to insert the values of Lisp special variables into ParenScript
-;;; code at compile-time, and can also be used to make nested calls to
-;;; the ParenScript compiler, which comes in useful when you want to
-;;; use the result of `PS-INLINE' in `PS-HTML' forms, for
-;;; example. Alternatively the same thing can be accomplished by
-;;; constructing ParenScript programs as lists and passing them to
-;;; `PS*' or `COMPILE-SCRIPT'.
+;;; `PS-INLINE' and `PS-INLINE*' take a single ParenScript form and
+;;; output a string starting with "javascript:" that can be used in
+;;; HTML node attributes. As well, they provide an argument to bind
+;;; the value of *js-string-delimiter* to control the value of the
+;;; JavaScript string escape character to be compatible with whatever
+;;; the HTML generation mechanism is used (for example, if HTML
+;;; strings are delimited using #\', using #\" will avoid conflicts
+;;; without requiring the output JavaScript code to be escaped). By
+;;; default the value is taken from *js-inline-string-delimiter*.
+
+;;; ParenScript can also call out to arbitrary Common Lisp code at
+;;; code output time using the special form `LISP'. The form provided
+;;; to `LISP' is evaluated, and its result is compiled as though it
+;;; were ParenScript code. For `PS' and `PS-INLINE', the ParenScript
+;;; output code is generated at macro-expansion time, and the `LISP'
+;;; statements are inserted inline and have access to the enclosing
+;;; Common Lisp lexical environment. `PS*' and `PS1*' evaluate the
+;;; `LISP' forms with eval, providing them access to the current
+;;; dynamic environment only.

@@ -68,7 +68,7 @@ x = 2 + sideEffect() + x + 5;")
             "(function (x) { return x; })(10).toString()")
 
 (test no-whitespace-before-dot
-  (let* ((str (compile-script '(.to-string ((lambda (x) (return x)) 10))))
+  (let* ((str (ps1* '(.to-string ((lambda (x) (return x)) 10))))
          (dot-pos (position #\. str :test #'char=))
          (char-before (elt str (1- dot-pos)))
          (a-parenthesis #\)))
@@ -166,7 +166,7 @@ x = 2 + sideEffect() + x + 5;")
                    ("u0080" . ,(code-char 128)) ;;Character over 127. Actually valid, parenscript escapes them to be sure.
                    ("uABCD" . ,(code-char #xabcd)))));; Really above ascii.
     (loop for (js-escape . lisp-char) in escapes
-          for generated = (compile-script `(let* ((x ,(format nil "hello~ahi" lisp-char)))))
+          for generated = (ps1* `(let* ((x ,(format nil "hello~ahi" lisp-char)))))
           for wanted = (format nil "var x = 'hello\\~ahi';" js-escape)
           do (is (string= (normalize-js-code generated) wanted)))))
   
@@ -228,10 +228,10 @@ x = 2 + sideEffect() + x + 5;")
 
 (test defun-setf1
   (is (and (string= (normalize-js-code (ps:ps (defun (setf some-thing) (new-val i1 i2)
-                                           (setf (aref *some-thing* i1 i2) new-val))))
+                                                (setf (aref *some-thing* i1 i2) new-val))))
                "function __setf_someThing(newVal, i1, i2) { SOMETHING[i1][i2] = newVal; };")
-           (string= (let ((ps:*ps-gensym-counter* 0)) (normalize-js-code (ps:ps (setf (some-thing 1 2) "foo"))))
-               "var _js2 = 1; var _js3 = 2; var _js1 = 'foo'; __setf_someThing(_js1, _js2, _js3);"))))
+           (string= (normalize-js-code (ps:ps-doc (setf (some-thing 1 2) "foo")))
+                    "var _js2 = 1; var _js3 = 2; var _js1 = 'foo'; __setf_someThing(_js1, _js2, _js3);"))))
 
 (test-ps-js defun-optional1
   (defun test-opt (&optional x) (return (if x "yes" "no")))

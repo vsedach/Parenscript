@@ -25,6 +25,7 @@
                                      (:file "printer")
                                      (:file "compilation-interface")
                                      (:file "deprecated-interface")
+                                     (:file "js-dom-symbol-exports")
                                      ;; standard library
                                      (:module :lib
                                               :components ((:file "ps-html")

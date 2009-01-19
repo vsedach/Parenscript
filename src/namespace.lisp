@@ -9,20 +9,21 @@
       (intern (symbol-name symbol) #.(find-package :parenscript))))
 
 ;;; Symbol obfuscation
-(defvar *obfuscation-table* (make-hash-table))
+(defvar *obfuscated-packages* (make-hash-table))
 
-(defun obfuscate-package (package-designator)
-  (setf (gethash (find-package package-designator) *obfuscation-table*) (make-hash-table)))
+(defun obfuscate-package (package-designator &optional (symbol-map (make-hash-table)))
+  "symbol-map can either be a hash table or a closure that takes a symbol as its only argument."
+  (setf (gethash (find-package package-designator) *obfuscated-packages*) symbol-map))
 
 (defun unobfuscate-package (package-designator)
-  (remhash (find-package package-designator) *obfuscation-table*))
+  (remhash (find-package package-designator) *obfuscated-packages*))
 
 (defun maybe-obfuscate-symbol (symbol)
-  (let ((obfuscated-symbol-table (gethash (symbol-package symbol) *obfuscation-table*)))
-    (if obfuscated-symbol-table
-        (or (gethash symbol obfuscated-symbol-table)
-            (setf (gethash symbol obfuscated-symbol-table) (ps-gensym "G")))
-        symbol)))
+  (ctypecase (gethash (symbol-package symbol) *obfuscated-packages*)
+    (hash-table (let ((symbol-map (gethash (symbol-package symbol) *obfuscated-packages*)))
+                  (or (gethash symbol symbol-map) (setf (gethash symbol symbol-map) (ps-gensym "G")))))
+    (function (funcall (gethash (symbol-package symbol) *obfuscated-packages*) symbol))
+    (null symbol)))
 
 ;;; Interface for printing identifiers
 

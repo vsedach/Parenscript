@@ -49,6 +49,7 @@
    #:elements
    #:.get-elements-by-class-name
    #:.get-element-by-id
+   #:onselectstart
    ))
 
 (defpackage "PS-PROTOTYPE-LIB-SYMBOLS"

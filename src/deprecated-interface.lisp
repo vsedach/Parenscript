@@ -61,3 +61,6 @@
 If OUTPUT-STREAM is NIL, then the result is a string; otherwise code
 is output to the OUTPUT-STREAM stream."
   (format output-stream "~A" (ps1* ps-form)))
+
+(defun-js symbol-to-js symbol-to-js-string (symbol)
+  (symbol-to-js-string symbol))

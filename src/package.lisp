@@ -50,10 +50,6 @@
       #:create
       #:with-slots
 
-      ;; macros
-      #:macrolet
-      #:symbol-macrolet
-
       ;; if
       #:if
       #:when
@@ -241,6 +237,7 @@
       #:js-inline*
       #:js
       #:js*
+      #:symbol-to-js
       ))
   )
 

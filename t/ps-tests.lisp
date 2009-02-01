@@ -489,6 +489,13 @@ x = 2 + sideEffect() + x + 5;")
 };
 "))))
 
+(test macro-environment2
+  (is (string= (normalize-js-code (let ((outer-lexical-variable 1))
+                                    (defpsmacro macro-environment2-macro (x)
+                                      `(+ ,outer-lexical-variable ,x))
+                                    (ps* '(macro-environment2-macro 2))))
+               (normalize-js-code "1 + 2;"))))
+
 (test-ps-js ampersand-whole-1
   (macrolet ((foo (&whole foo bar baz)
                (declare (ignore bar baz))

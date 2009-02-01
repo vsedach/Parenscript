@@ -1105,12 +1105,20 @@ a-variable  => aVariable
 ;;;t \index{macro}
 ;;;t \index{macrology}
 ;;;t \index{DEFPSMACRO}
+;;;t \index{DEFMACRO/PS}
+;;;t \index{DEFMACRO+PS}
+;;;t \index{DEFINE-PS-SYMBOL-MACRO}
+;;;t \index{IMPORT-MACROS-FROM-LISP}
 ;;;t \index{MACROLET}
 ;;;t \index{SYMBOL-MACROLET}
 ;;;t \index{PS-GENSYM}
 ;;;t \index{compiler}
 
 ; (DEFPSMACRO name lambda-list macro-body)
+; (DEFPSMACRO/PS name lambda-list macro-body)
+; (DEFPSMACRO+PS name lambda-list macro-body)
+; (DEFINE-PS-SYMBOL-MACRO symbol expansion)
+; (IMPORT-MACROS-FROM-LISP symbol*)
 ; (MACROLET ({name lambda-list macro-body}*) body)
 ; (SYMBOL-MACROLET ({name macro-body}*) body)
 ; (PS-GENSYM {string})
@@ -1152,7 +1160,10 @@ a-variable  => aVariable
 
 ;;; Macros can be defined in Parenscript code itself (as opposed to
 ;;; from Lisp) by using the Parenscript `MACROLET' and `DEFMACRO'
-;;; forms.
+;;; forms. Note that macros defined this way are defined in a null
+;;; lexical environment (ex - (let ((x 1)) (defmacro baz (y) `(+ ,y
+;;; ,x))) will not work), since the surrounding Parenscript code is
+;;; just translated to JavaScript and not actually evaluated.
 
 ;;; Parenscript also supports the use of macros defined in the
 ;;; underlying Lisp environment. Existing Lisp macros can be imported
@@ -1175,15 +1186,15 @@ a-variable  => aVariable
 ;;; used by Parenscript.
 
 ;;; Parenscript also supports symbol macros, which can be introduced
-;;; using the Parenscript form `SYMBOL-MACROLET'.For example, the
-;;; Parenscript `WITH-SLOTS' is implemented using symbol macros.
+;;; using the Parenscript form `SYMBOL-MACROLET' or defined in Lisp
+;;; with `DEFINE-PS-SYMBOL-MACRO'. For example, the Parenscript
+;;; `WITH-SLOTS' is implemented using symbol macros.
 
-(defjsmacro with-slots (slots object &rest body)
+(defpsmacro with-slots (slots object &rest body)
   `(symbol-macrolet ,(mapcar #'(lambda (slot)
                                  `(,slot '(slot-value ,object ',slot)))
                              slots)
     ,@body))
-
 
 ;;;# The Parenscript namespace system
 ;;;t \index{package}

@@ -430,7 +430,7 @@ lambda-list::=
       (destructuring-bind (name arglist &body body)
           macro
         (setf (get-macro-spec name macro-env-dict)
-              (cons nil (make-ps-macro-function arglist body)))))
+              (cons nil (eval (make-ps-macro-function arglist body))))))
     (compile-parenscript-form `(progn ,@body))))
 
 (define-ps-special-form symbol-macrolet (expecting symbol-macros &body body)
@@ -440,17 +440,17 @@ lambda-list::=
       (destructuring-bind (name expansion)
           macro
         (setf (get-macro-spec name macro-env-dict)
-              (cons t (make-ps-macro-function () (list `',expansion))))))
+              (cons t (lambda () expansion)))))
     (compile-parenscript-form `(progn ,@body))))
 
 (define-ps-special-form defmacro (expecting name args &body body)
   (declare (ignore expecting))
-  (define-ps-macro% name args body :symbol-macro-p nil)
+  (eval `(defpsmacro ,name ,args ,@body))
   nil)
 
 (define-ps-special-form define-symbol-macro (expecting name expansion)
   (declare (ignore expecting))
-  (define-ps-macro% name () (list `',expansion) :symbol-macro-p t)
+  (eval `(define-ps-symbol-macro ,name ,expansion))
   nil)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

@@ -125,32 +125,25 @@ function and the parent macro environment of the macro."
       (lookup-macro-spec name environment)
     (values (cdr macro-spec) parent-env)))
 
-(eval-when (:compile-toplevel :load-toplevel :execute)
-  (defun make-ps-macro-function (args body)
-    (let* ((whole-var (when (eql '&whole (first args)) (second args)))
-           (effective-lambda-list (if whole-var (cddr args) args))
-           (form-arg (or whole-var (gensym "ps-macro-form-arg-")))
-           (body (if (and (cdr body) (stringp (first body))) (rest body) body))) ;; drop docstring
-      (compile nil `(lambda (,form-arg)
-                     (destructuring-bind ,effective-lambda-list
-                         (cdr ,form-arg)
-                       ,@body)))))
-      
-  (defun define-ps-macro% (name args body &key symbol-macro-p)
-    (undefine-ps-special-form name)
-    (setf (get-macro-spec name *ps-macro-toplevel*)
-          (cons symbol-macro-p (make-ps-macro-function args body)))
-    nil))
+(defun make-ps-macro-function (args body)
+  (let* ((whole-var (when (eql '&whole (first args)) (second args)))
+         (effective-lambda-list (if whole-var (cddr args) args))
+         (whole-arg (or whole-var (gensym "ps-macro-form-arg-"))))
+    `(lambda (,whole-arg)
+       (destructuring-bind ,effective-lambda-list
+           (cdr ,whole-arg)
+         ,@body))))
 
 (defmacro defpsmacro (name args &body body)
-  "Define a ParenScript macro, and store it in the toplevel ParenScript
-macro environment."
-  `(define-ps-macro% ',name ',args ',body :symbol-macro-p nil))
+  `(progn (undefine-ps-special-form ',name)
+          (setf (get-macro-spec ',name *ps-macro-toplevel*)
+                (cons nil ,(make-ps-macro-function args body)))
+          ',name))
 
-(defmacro define-ps-symbol-macro (name &body body)
-  "Define a ParenScript symbol macro, and store it in the toplevel ParenScript
-macro environment.  BODY is a Lisp form that should return a ParenScript form."
-  `(define-ps-macro% ',name () ',body :symbol-macro-p t))
+(defmacro define-ps-symbol-macro (symbol expansion)
+  `(progn (undefine-ps-special-form ',symbol)
+          (setf (get-macro-spec ',symbol *ps-macro-toplevel*) (cons t (lambda () ',expansion)))
+          ',symbol))
 
 (defun import-macros-from-lisp (&rest names)
   "Import the named Lisp macros into the ParenScript macro
@@ -158,21 +151,20 @@ environment. When the imported macro is macroexpanded by ParenScript,
 it is first fully macroexpanded in the Lisp macro environment, and
 then that expansion is further expanded by ParenScript."
   (dolist (name names)
-    (define-ps-macro% name '(&rest args)
-      (list `(common-lisp:macroexpand `(,',name ,@args)))
-      :symbol-macro-p nil)))
+    (eval `(defpsmacro ,name (&rest args)
+             (macroexpand `(,',name ,@args))))))
 
 (defmacro defmacro/ps (name args &body body)
   "Define a Lisp macro and import it into the ParenScript macro environment."
   `(progn (defmacro ,name ,args ,@body)
-          (ps:import-macros-from-lisp ',name)))
+          (import-macros-from-lisp ',name)))
 
 (defmacro defmacro+ps (name args &body body)
-  "Define a Lisp macro and a ParenScript macro in their respective
-macro environments. This function should be used when you want to use
-the same macro in both Lisp and ParenScript, but the 'macroexpand' of
-that macro in Lisp makes the Lisp macro unsuitable to be imported into
-the ParenScript macro environment."
+  "Define a Lisp macro and a ParenScript macro with the same macro
+function (ie - the same result from macroexpand-1), for cases when the
+two have different full macroexpansions (for example if the CL macro
+contains implementation-specific code when macroexpanded fully in the
+CL environment)."
   `(progn (defmacro ,name ,args ,@body)
           (defpsmacro ,name ,args ,@body)))
 
@@ -187,7 +179,7 @@ whether any expansion was performed on the form or not."
                                          nil))
               ((ps-macro-p op) (values (ps-macroexpand (funcall (lookup-macro-expansion-function op) form)) t))
               (t (values form nil))))
-      (cond ((ps-symbol-macro-p form) (values (ps-macroexpand (funcall (lookup-macro-expansion-function form) (list form))) t))
+      (cond ((ps-symbol-macro-p form) (values (ps-macroexpand (funcall (lookup-macro-expansion-function form))) t))
             (t (values form nil)))))
 
 ;;;; compiler interface

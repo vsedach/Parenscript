@@ -8,13 +8,17 @@
 
 (defpackage "PS-JS-SYMBOLS"
   (:export
-   #:.to-fixed
+   #:to-fixed
    #:encode-u-r-i-component
-   #:.push
-   #:.size
+   #:size
    #:*array
-   #:set-timeout
-   #:set-interval
+   #:*date
+   #:get-time
+   #:arguments
+   #:join
+   #:prototype
+   #:slice
+   #:call
    ))
 
 (defpackage "PS-DOM-SYMBOLS"
@@ -34,28 +38,31 @@
    #:left
    #:display
    #:onmousemove
-   #:.create-element
-   #:.set-attribute
-   #:.append-child
+   #:create-element
+   #:set-attribute
+   #:append-child
    #:offset-height
    #:offset-width
    #:client-height
    #:client-width
    #:scroll-height
    #:scroll-width
-   #:.insert-row
-   #:.insert-cell
+   #:insert-row
+   #:insert-cell
    #:value
    #:elements
-   #:.get-elements-by-class-name
-   #:.get-element-by-id
+   #:get-elements-by-class-name
+   #:get-element-by-id
    #:onselectstart
+   #:set-timeout
+   #:set-interval
    ))
 
 (defpackage "PS-PROTOTYPE-LIB-SYMBOLS"
   (:export
    #:*event
-   #:.observe
+   #:observe
    #:*ajax
-   #:.*request
+   #:*request
+   #:console
    ))

@@ -63,11 +63,6 @@ lexical block.")
        (not (op-form-p form))
        (not (ps-special-form-p form))))
 
-(defun method-call-p (form)
-  (and (funcall-form-p form)
-       (symbolp (first form))
-       (eql (char (symbol-name (first form)) 0) #\.)))
-
 ;;; macro expansion
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (defun make-macro-env-dictionary ()
@@ -236,25 +231,16 @@ the form cannot be compiled to a symbol."
              (error "Attempting to use Parenscript special form ~a as variable" symbol)))
         (t (list 'js-variable symbol))))
 
-(defun compile-function-argument-forms (arg-forms)
-  "Compiles a bunch of Parenscript forms from a funcall form to an effective set of
-Javascript arguments.  The only extra processing this does is makes :keyword arguments
-into a single options argument via CREATE."
-  (let ((compiled-args (mapcar (lambda (arg) (compile-parenscript-form arg :expecting :expression))
-                               arg-forms)))
-    (do ((effective-expressions nil)
-         (expressions-subl compiled-args))
-        ((not expressions-subl) (reverse effective-expressions))
-      (let ((arg-expr (first expressions-subl)))
-        (if (keywordp arg-expr)
-            (progn (when (oddp (length expressions-subl))
-                     (error "Odd number of keyword arguments: ~A." arg-forms))
-                   (push (list 'js-object (loop for (name val) on expressions-subl by #'cddr
-                                             collect (list (list 'js-variable name) val)))
-                         effective-expressions)
-                   (setf expressions-subl nil))
-            (progn (push arg-expr effective-expressions)
-                   (setf expressions-subl (rest expressions-subl))))))))
+(defun compile-function-argument-forms (args)
+  (let ((remaining-args args))
+    (loop while remaining-args collecting
+         (if (keywordp (first remaining-args))
+             (prog2 (when (oddp (length remaining-args))
+                      (error "Odd number of keyword arguments: ~A." args))
+                 (compile-parenscript-form (cons 'create remaining-args) :expecting :expression)
+               (setf remaining-args nil))
+             (prog1 (compile-parenscript-form (first remaining-args) :expecting :expression)
+               (setf remaining-args (cdr remaining-args)))))))
 
 (defun ps-convert-op-name (op)
   (case (ensure-ps-symbol op)
@@ -276,11 +262,6 @@ into a single options argument via CREATE."
            (list 'operator
                  (ps-convert-op-name (compile-parenscript-form (first form) :expecting :symbol))
                  (mapcar (lambda (form) (compile-parenscript-form form :expecting :expression)) (rest form))))
-          ((method-call-p form)
-           (list 'js-method-call
-                 (compile-parenscript-form name :expecting :symbol)
-                 (compile-parenscript-form (first args) :expecting :expression)
-                 (compile-function-argument-forms (rest args))))
           ((funcall-form-p form)
            (list 'js-funcall
                  (compile-parenscript-form name :expecting :expression)

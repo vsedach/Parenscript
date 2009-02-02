@@ -335,21 +335,20 @@ a-variable  => aVariable
 (foobar (blorg 1 2) (blabla 3 4) (array 2 3 4))
 => foobar(blorg(1, 2), blabla(3, 4), [ 2, 3, 4 ])
 
+((slot-value this 'blorg) 1 2) => this.blorg(1, 2)
+
 ((aref foo i) 1 2) => foo[i](1, 2)
 
-;;; A method call is a function call where the function name is a
-;;; symbol and begins with a "." . In a method call, the name of the
-;;; function is append to its first argument, thus reflecting the
-;;; method call syntax of JavaScript. Please note that most method
-;;; calls can be abbreviated using the "." trick in symbol names (see
-;;; "Symbol Conversion" above).
+((slot-value (aref foobar 1) 'blorg) NIL T) => foobar[1].blorg(null, true)
 
-(.blorg this 1 2) => this.blorg(1, 2)
+;;; Note that while most method calls can be abbreviated using the "."
+;;; trick in symbol names (see "Symbol Conversion" above), this is not
+;;; advised due to the fact that "object.function" is treated as a
+;;; symbol distinct from both "object" and "function," which will
+;;; cause problems if Parenscript package prefixes or package
+;;; obfuscation is used.
 
 (this.blorg 1 2) => this.blorg(1, 2)
-
-(.blorg (aref foobar 1) NIL T)
-=> foobar[1].blorg(null, true)
 
 ;;;# Operator Expressions
 ;;;t \index{operator}

@@ -7,12 +7,12 @@
 (in-suite ps-tests)
 
 (test-ps-js plus-is-not-commutative
-   (setf x (+ "before" x "after"))
-   "x = 'before' + x + 'after';")
+  (setf x (+ "before" x "after"))
+  "x = 'before' + x + 'after';")
 
 (test-ps-js plus-works-if-first
-   (setf x (+ x "middle" "after"))
-   "x += 'middle' + 'after';")
+  (setf x (+ x "middle" "after"))
+  "x += 'middle' + 'after';")
 
 (test-ps-js setf-side-effects
   (progn
@@ -27,7 +27,7 @@ function sideEffect() {
   return 3;
 };
 x = 2 + sideEffect() + x + 5;")
-;; Parenscript used to optimize too much:
+;; Parenscript used to optimize incorrectly:
 ;;   var x = 10;
 ;;   function sideEffect() {
 ;;     x = 4;
@@ -38,37 +38,52 @@ x = 2 + sideEffect() + x + 5;")
 ;;   Which is 20, not 14
 
 
-(test-ps-js dot-notation-bug
-            (.match (+ "" x) "foo")
-            "('' + x).match('foo')")
+(test-ps-js method-call-op-form
+  ((@ (+ "" x) to-string))
+  "('' + x).toString()")
 
-(test-ps-js method-call-op-form (.to-string (+ "" x)) "('' + x).toString()")
-(test-ps-js method-call-number (.to-string 10) "( 10 ).toString()")
-(test-ps-js method-call-string (.to-string "hi") "'hi'.toString()")
+(test-ps-js method-call-op-form-args
+  ((@ (+ "" x) to-string) 1 2 :baz 3)
+  "('' + x).toString(1, 2, { baz : 3 })")
+
+(test-ps-js method-call-number
+  ((@ 10 to-string))
+  "( 10 ).toString()")
+
+(test-ps-js method-call-string
+  ((@ "hi" to-string))
+  "'hi'.toString()")
+
 (test-ps-js method-call-lit-object
-            (.to-string (create :to-string (lambda ()
-                                             (return "it works"))))
-            "( { toString : function () { return 'it works'; } } ).toString()")
+  ((@ (create :to-string (lambda () (return "it works"))) to-string))
+  "( { toString : function () { return 'it works'; } } ).toString()")
+
+(test-ps-js method-call-conditional
+  ((if a x y) 1)
+  "(a ? x : y)(1)")
 
 (test-ps-js method-call-variable
-            (.to-string x)
-            "x.toString()")
+  ((@ x to-string))
+  "x.toString()")
 
 (test-ps-js method-call-array
-            (.to-string (list 10 20))
-            "[ 10, 20 ].toString()")
+  ((@ (list 10 20) to-string))
+  "[ 10, 20 ].toString()")
+
 (test-ps-js method-call-fn-call
-            (.to-string (foo))
-            "foo().toString()")
+  ((@ (foo) to-string))
+  "foo().toString()")
+
 (test-ps-js method-call-lambda-fn
-            (.to-string (lambda () (alert 10)))
-            "( function () { alert(10); } ).toString()")
+  ((@ (lambda () (alert 10)) to-string))
+  "( function () { alert(10); } ).toString()")
+
 (test-ps-js method-call-lambda-call
-            (.to-string ((lambda (x) (return x)) 10))
-            "(function (x) { return x; })(10).toString()")
+  ((@ ((lambda (x) (return x)) 10) to-string))
+  "(function (x) { return x; })(10).toString()")
 
 (test no-whitespace-before-dot
-  (let* ((str (ps1* '(.to-string ((lambda (x) (return x)) 10))))
+  (let* ((str (ps1* '((@ ((lambda (x) (return x)) 10) to-string))))
          (dot-pos (position #\. str :test #'char=))
          (char-before (elt str (1- dot-pos)))
          (a-parenthesis #\)))
@@ -308,12 +323,16 @@ x = 2 + sideEffect() + x + 5;")
   (slot-value foo "bar")
   "foo['bar']")
 
+(test-ps-js slot-value-string1
+  (slot-value "bar" 'length)
+  "'bar'.length")
+
 (test-ps-js slot-value-progn
   (slot-value (progn (some-fun "abc") "123") "length")
   "(someFun('abc'), '123')['length']")
 
 (test-ps-js method-call-block
-  (.to-string (progn (some-fun "abc") "123"))
+  ((@ (progn (some-fun "abc") "123") to-string))
   "(someFun('abc'), '123').toString()")
 
 (test-ps-js create-blank
@@ -323,14 +342,6 @@ x = 2 + sideEffect() + x + 5;")
 (test-ps-js blank-object-literal
   {}
   "{ }")
-
-(test-ps-js object-literal-1
-  ({})
-  "{ }")
-
-(test-ps-js object-literal-2
-  ({} a 1 b 2)
-  "{a: 1, b: 2 }")
 
 (test-ps-js array-literal1
   []
@@ -673,3 +684,10 @@ try {
   (((or (@ window eval) eval)) foo nil)
   "(window.eval || eval)()(foo, null)")
 
+(test-ps-js slot-value-object-literal
+  (slot-value (create :a 1) 'a)
+  "({ a : 1 }).a")
+
+(test-ps-js slot-value-lambda
+  (slot-value (lambda ()) 'prototype)
+  "(function () { }).prototype")

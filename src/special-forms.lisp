@@ -64,17 +64,11 @@
                   (compile-parenscript-form form :expecting :expression))
                 coords)))
 
-(add-ps-literal '{})
-(define-ps-special-form {} (expecting &rest arrows)
-  (declare (ignore expecting))
-  (cons 'object-literal (loop for (key value) on arrows by #'cddr
-                              collect (cons key (compile-parenscript-form value :expecting :expression)))))
-
 (defpsmacro list (&rest values)
   `(array ,@values))
 
-(defpsmacro make-array (&rest inits)
-  `(new (*array ,@inits)))
+(defpsmacro make-array (&rest initial-values)
+  `(new (*array ,@initial-values)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; operators
@@ -455,20 +449,23 @@ lambda-list::=
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; objects
-(define-ps-special-form create (expecting &rest args)
+(add-ps-literal '{})
+(define-ps-symbol-macro {} (create))
+
+(define-ps-special-form create (expecting &rest arrows)
   (declare (ignore expecting))
-  (list 'js-object (loop for (name val) on args by #'cddr collecting
-                         (let ((name-expr (compile-parenscript-form name :expecting :expression)))
-                           (when (keywordp name-expr)
-                             (setf name-expr (list 'js-variable name-expr)))
-                           (assert (or (stringp name-expr)
-                                       (numberp name-expr)
-                                       (and (listp name-expr)
-                                            (or (eql 'js-variable (car name-expr))
-                                                (eql 'ps-quote (car name-expr)))))
+  (list 'js-object (loop for (key-expr val-expr) on arrows by #'cddr collecting
+                         (let ((key (compile-parenscript-form key-expr :expecting :expression)))
+                           (when (keywordp key)
+                             (setf key (list 'js-variable key)))
+                           (assert (or (stringp key)
+                                       (numberp key)
+                                       (and (listp key)
+                                            (or (eq 'js-variable (car key))
+                                                (eq 'ps-quote (car key)))))
                                    ()
-                                   "Slot ~s is not one of js-variable, keyword, string or number." name-expr)
-                           (list name-expr (compile-parenscript-form val :expecting :expression))))))
+                                   "Slot key ~s is not one of js-variable, keyword, string or number." key)
+                           (cons key (compile-parenscript-form val-expr :expecting :expression))))))
 
 (define-ps-special-form %js-slot-value (expecting obj slot)
   (declare (ignore expecting))

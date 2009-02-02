@@ -168,20 +168,20 @@
   "foobar(blorg(1, 2), blabla(3, 4), [ 2, 3, 4 ])")
 
 (test-ps-js function-calls-and-method-calls-3
+  ((slot-value this 'blorg) 1 2)
+  "this.blorg(1, 2)")
+
+(test-ps-js function-calls-and-method-calls-4
   ((aref foo i) 1 2)
   "foo[i](1, 2)")
 
-(test-ps-js function-calls-and-method-calls-4
-  (.blorg this 1 2)
-  "this.blorg(1, 2)")
-
 (test-ps-js function-calls-and-method-calls-5
-  (this.blorg 1 2)
-  "this.blorg(1, 2)")
+  ((slot-value (aref foobar 1) 'blorg) NIL T)
+  "foobar[1].blorg(null, true)")
 
 (test-ps-js function-calls-and-method-calls-6
-  (.blorg (aref foobar 1) NIL T)
-  "foobar[1].blorg(null, true)")
+  (this.blorg 1 2)
+  "this.blorg(1, 2)")
 
 (test-ps-js operator-expressions-1
   (* 1 2)

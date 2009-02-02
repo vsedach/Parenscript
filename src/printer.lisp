@@ -147,14 +147,6 @@ arguments, defines a printer for that form using the given body."
   (loop for idx in indices do
         (psw #\[) (ps-print idx) (psw #\])))
 
-(defprinter object-literal (&rest slot-definitions)
-  (psw #\{)
-  (loop for ((key . value) . remaining) on slot-definitions do
-        (psw (format nil "~A: " (js-translate-symbol key)))
-        (ps-print value)
-        (when remaining (psw ", ")))
-  (psw " }"))
-
 (defprinter js-variable (var)
   (psw (js-translate-symbol var)))
 
@@ -181,21 +173,11 @@ arguments, defines a printer for that form using the given body."
       (ps-print arg))
   (unless prefix (psw (format nil "~(~a~)" op))))
 
-;;; function and method calls
 (defprinter js-funcall (fun-designator args)
-  (if (member (car fun-designator) '(js-variable js-aref js-slot-value js-funcall))
-      (ps-print fun-designator)
-      (progn (psw #\() (ps-print fun-designator) (psw #\))))
-  (psw #\() (print-comma-delimited-list args) (psw #\)))
-
-(defprinter js-method-call (method object args)
-  ;; TODO: this may not be the best way to add ()'s around lambdas
-  ;; probably there is or should be a more general solution working
-  ;; in other situations involving lambdas
-  (if (or (numberp object) (and (consp object) (member (car object) '(js-lambda js-object operator js-expression-if))))
-      (parenthesize-print object)
-      (ps-print object))
-  (psw (js-translate-symbol method))
+  (funcall (if (member (car fun-designator) '(js-variable js-aref js-slot-value js-funcall))
+               #'ps-print
+               #'parenthesize-print)
+           fun-designator)
   (psw #\() (print-comma-delimited-list args) (psw #\)))
 
 (defprinter js-block (block-type statements)
@@ -227,10 +209,9 @@ arguments, defines a printer for that form using the given body."
   (psw ") ")
   (ps-print body-block))
 
-;;; object literals
 (defprinter js-object (slot-defs)
   (psw "{ ")
-  (loop for ((slot-name slot-value) . remaining) on slot-defs do
+  (loop for ((slot-name . slot-value) . remaining) on slot-defs do
         (if (and (listp slot-name) (eql 'ps-quote (car slot-name)) (symbolp (second slot-name)))
             (psw (js-translate-symbol (second slot-name)))
             (ps-print slot-name))
@@ -240,7 +221,9 @@ arguments, defines a printer for that form using the given body."
   (psw " }"))
 
 (defprinter js-slot-value (obj slot)
-  (if (> (expression-precedence obj) #.(op-precedence 'js-slot-value))
+  (if (or (> (expression-precedence obj) #.(op-precedence 'js-slot-value))
+          (numberp obj)
+          (and (listp obj) (member (car obj) '(js-lambda js-object))))
       (parenthesize-print obj)
       (ps-print obj))
   (if (and (listp slot) (eql 'ps-quote (car slot)))

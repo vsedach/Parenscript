@@ -588,8 +588,8 @@ for (var k in obj) {
 (test-ps-js the-html-generator-3
   (document.write
   (ps-html ((:a :href "#"
-                :onclick (lisp (ps-inline (transport)))) "link")))
-  "document.write('<A HREF=\"#\" ONCLICK=\"' + 'javascript:transport()' + '\">link</A>')")
+                :onclick (ps-inline (transport))) "link")))
+  "document.write('<A HREF=\"#\" ONCLICK=\"' + ('javascript:' + 'transport()') + '\">link</A>')")
 
 (test-ps-js the-html-generator-4
   (let* ((disabled nil)

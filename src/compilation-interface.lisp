@@ -30,6 +30,7 @@ Body is evaluated."
 (defun ps-inline* (form &optional (*js-string-delimiter* *js-inline-string-delimiter*))
   (concatenate 'string "javascript:" (ps1* form)))
 
-(defmacro ps-inline (form &optional (string-delimiter '*js-inline-string-delimiter*))
-  `(let ((*js-string-delimiter* ,string-delimiter))
-     (concatenate 'string "javascript:" ,@(parenscript-print (compile-parenscript-form form :expecting :statement)))))
+(defmacro/ps ps-inline (form &optional (string-delimiter *js-inline-string-delimiter*))
+  `(concatenate 'string "javascript:"
+                ,@(let ((*js-string-delimiter* string-delimiter))
+                    (parenscript-print (compile-parenscript-form form :expecting :statement)))))

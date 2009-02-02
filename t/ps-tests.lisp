@@ -465,10 +465,10 @@ x = 2 + sideEffect() + x + 5;")
   (document.write
    (if (= *linkornot* 1)
        (ps-html ((:a :href "#"
-                     :onclick (lisp (ps-inline (transport))))
+                     :onclick (ps-inline (transport)))
                  img))
        img))
-  "document.write(LINKORNOT == 1 ? '<A HREF=\"#\" ONCLICK=\"' + 'javascript:transport()' + '\">' + img + '</A>' : img)")
+  "document.write(LINKORNOT == 1 ? '<A HREF=\"#\" ONCLICK=\"' + ('javascript:' + 'transport()') + '\">' + img + '</A>' : img)")
 
 (test-ps-js negate-number-literal ;; ok, this was broken and fixed before, but no one bothered to add the test!
   (- 1)

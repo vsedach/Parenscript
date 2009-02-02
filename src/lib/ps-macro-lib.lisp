@@ -71,15 +71,9 @@
 
 (defpsmacro @ (obj &rest props)
   "Handy slot-value/aref composition macro."
-  (if (null props)
-      obj
-      `(@ (slot-value
-           ,(if (stringp obj) `($ ,obj) obj)
-           ,(let ((prop (macroexpand (first props))))
-                 (if (symbolp prop)
-                     `',prop
-                     prop)))
-        ,@(cdr props))))
+  (if props
+      `(@ (slot-value ,obj ,(if (symbolp (car props)) `',(car props) (car props))) ,@(cdr props))
+      obj))
 
 (defpsmacro concatenate (result-type &rest sequences)
   (assert (equal result-type ''string) () "Right now Parenscript 'concatenate' only support strings.")

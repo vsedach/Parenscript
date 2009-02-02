@@ -183,12 +183,9 @@ arguments, defines a printer for that form using the given body."
 
 ;;; function and method calls
 (defprinter js-funcall (fun-designator args)
-  (cond ((member (car fun-designator) '(js-variable js-aref js-slot-value))
-         (ps-print fun-designator))
-        ((eql 'js-lambda (car fun-designator))
-         (psw #\() (ps-print fun-designator) (psw #\)))
-        ((eql 'js-funcall (car fun-designator))
-         (ps-print fun-designator)))
+  (if (member (car fun-designator) '(js-variable js-aref js-slot-value js-funcall))
+      (ps-print fun-designator)
+      (progn (psw #\() (ps-print fun-designator) (psw #\))))
   (psw #\() (print-comma-delimited-list args) (psw #\)))
 
 (defprinter js-method-call (method object args)

@@ -656,3 +656,20 @@ try {
 (test-ps-js slot-value-parens
   (slot-value (slot-value foo 'bar) 'baz)
   "foo.bar.baz")
+
+(test-ps-js funcall-funcall
+  ((foo))
+  "foo()()")
+
+(test-ps-js expression-funcall
+  ((or (@ window eval) eval) foo nil)
+  "(window.eval || eval)(foo, null)")
+
+(test-ps-js expression-funcall1
+  (((or (@ window eval) eval) foo nil))
+  "(window.eval || eval)(foo, null)()")
+
+(test-ps-js expression-funcall2
+  (((or (@ window eval) eval)) foo nil)
+  "(window.eval || eval)()(foo, null)")
+

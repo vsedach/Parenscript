@@ -608,7 +608,7 @@ lambda-list::=
   `(simple-let* ,bindings ,@body))
 
 (defpsmacro let (bindings &body body)
-  `(simple-let ,bindings ,@body))
+  `(,(if (= 1 (length bindings)) 'simple-let* 'simple-let) ,bindings ,@body))
 
 (define-ps-special-form let1 (expecting binding &rest body)
   (ecase expecting

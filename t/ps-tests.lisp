@@ -691,3 +691,11 @@ try {
 (test-ps-js slot-value-lambda
   (slot-value (lambda ()) 'prototype)
   "(function () { }).prototype")
+
+(test-ps-js who-html1
+  (who-ps-html (:span :class "ticker-symbol"
+                      :ticker-symbol symbol
+                      (:a :href "http://foo.com"
+                          symbol)
+                      (:span :class "ticker-symbol-popup")))
+  "'<SPAN CLASS=\"ticker-symbol\" TICKER-SYMBOL=\"' + symbol + '\"><A HREF=\"http://foo.com\">' + symbol + '</A><SPAN CLASS=\"ticker-symbol-popup\"/></SPAN>'")

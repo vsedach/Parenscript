@@ -383,6 +383,16 @@ lambda-list::=
     `(%js-lambda ,effective-args
       ,@effective-body)))
 
+(defpsmacro flet (fn-defs &rest body)
+  (flet ((process-fn-def (def)
+           `(var ,(car def) (lambda ,@(cdr def)))))
+    `(progn ,@(mapcar #'process-fn-def fn-defs) ,@body)))
+
+(defpsmacro labels (fn-defs &rest body)
+  (flet ((process-fn-def (def)
+           `(var ,(car def) (defun ,(car def) ,@(cdr def)))))
+    `(progn ,@(mapcar #'process-fn-def fn-defs) ,@body)))
+
 (defpsmacro defsetf-long (access-fn lambda-list (store-var) form)
   (setf (get-macro-spec access-fn *ps-setf-expanders*)
         (compile nil

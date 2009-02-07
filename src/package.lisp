@@ -114,6 +114,8 @@
       ;; function definition
       #:defun
       #:lambda
+      #:flet
+      #:labels
 
       ;; lambda lists
       #:&key

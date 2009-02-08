@@ -721,3 +721,17 @@ try {
     };
     return foo(3);
 })()")
+
+(test-ps-js for-loop-var-init-exp
+  ((lambda (x)
+     (return (do* ((y (if x 0 1) (1+ y))
+                   (z 0 (1+ z)))
+                  ((= y 3) z))))
+   true)
+  "(function (x) {
+    return (function () {
+        for (var y = x ? 0 : 1, z = 0; y != 3; y += 1, z += 1) {
+        };
+        return z;
+    })();
+})(true)")

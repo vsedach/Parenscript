@@ -645,7 +645,7 @@ lambda-list::=
 (defun make-for-vars/inits (init-forms)
   (mapcar (lambda (x)
             (cons (compile-parenscript-form (if (atom x) x (first x)) :expecting :symbol)
-                  (compile-parenscript-form (if (atom x) nil (second x)))))
+                  (compile-parenscript-form (if (atom x) nil (second x)) :expecting :expression)))
           init-forms))
 
 (define-ps-special-form labeled-for (expecting label init-forms cond-forms step-forms &rest body)

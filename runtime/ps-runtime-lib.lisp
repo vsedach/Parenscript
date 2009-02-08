@@ -72,4 +72,11 @@ then append it as a member."
           (unless (member el arr-to-sub)
             (setf (aref result idx) el)
             (setf idx (1+ idx))))
-        (return result)))))
+        (return result)))
+
+    (defun reduce (func list &optional init) ;; the use of init here is actually a bit broken wrt null
+      (let* ((acc))
+        (do* ((i (if init -1 0) (1+ i))
+              (acc (if init init (elt list 0)) (func acc (elt list i))))
+             ((>= i (1- (length list)))))
+        (return acc)))))

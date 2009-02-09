@@ -28,19 +28,19 @@
      package)))
 
 (defun* slime-add-custom-expander (key expander buffer-name &optional (buffer-mode 'slime-mode) (printer #'identity))
-  (slime-define-key key (lexical-let ((expander expander)
-                                      (buffer-name buffer-name)
-                                      (buffer-mode buffer-mode)
-                                      (printer printer))
-                          (lambda (&rest _)
-                            (interactive "P")
-                            (slime-eval-custom-expand expander
-                                                      (first (slime-sexp-at-point-for-macroexpansion))
-                                                      (slime-current-package)
-                                                      buffer-name
-                                                      buffer-mode
-                                                      printer)))
-                    :prefixed t))
+  (define-key slime-parent-map (concat "\C-c" key)
+    (lexical-let ((expander expander)
+                  (buffer-name buffer-name)
+                  (buffer-mode buffer-mode)
+                  (printer printer))
+      (lambda (&rest _)
+        (interactive "P")
+        (slime-eval-custom-expand expander
+                                  (first (slime-sexp-at-point-for-macroexpansion))
+                                  (slime-current-package)
+                                  buffer-name
+                                  buffer-mode
+                                  printer)))))
 
 ;;; This actually defines the expander. If the code above belongs in slime.el, the code below would go into .emacs
 (map nil (lambda (x)

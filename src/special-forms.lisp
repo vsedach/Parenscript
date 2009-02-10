@@ -420,6 +420,9 @@ lambda-list::=
 (defpsmacro defsetf (access-fn &rest args)
   `(,(if (= (length args) 3) 'defsetf-long 'defsetf-short) ,access-fn ,@args))
 
+(defpsmacro funcall (&rest arg-form)
+  arg-form)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; macros
 (defmacro with-temp-macro-environment ((var) &body body)

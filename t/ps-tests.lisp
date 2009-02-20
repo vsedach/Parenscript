@@ -735,3 +735,7 @@ try {
         return z;
     })();
 })(true)")
+
+(test-ps-js math-pi
+  pi
+  "Math.PI")

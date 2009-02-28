@@ -59,6 +59,10 @@
   "bratzel bub"
   "'bratzel bub'")
 
+(test-ps-js string-literals-3
+  "	"
+  "'\\t\\b'")
+
 (test-ps-js array-literals-1
   (array)
   "[  ]")

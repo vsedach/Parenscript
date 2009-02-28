@@ -130,9 +130,10 @@ WHEN WHILE WITH WITH-SLOTS
 
 "bratzel bub" => 'bratzel bub'
 
-;;; Escapes in Lisp are not converted to JavaScript escapes. However,
-;;; to avoid having to use double backslashes when constructing a
-;;; string, you can use the CL-INTERPOL library by Edi Weitz.
+;;; Special characters such as newline and backspace are converted
+;;; into their corresponding JavaScript escape sequences.
+
+"	"   => '\\t\\b'
 
 ;;;## Array literals
 ;;;t \index{array}

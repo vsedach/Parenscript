@@ -1213,11 +1213,11 @@ a-variable  => aVariable
 ;;; a particular package receive a prefix when translated to
 ;;; JavaScript with the `PS-PACKAGE-PREFIX' place.
 
-(defpackage "MY-LIBRARY"
-  (:use #:parenscript))
-(setf (ps-package-prefix :my-library) "my_library_")
+(defpackage "PS-REF.MY-LIBRARY"
+  (:use "PARENSCRIPT"))
+(setf (ps-package-prefix "PS-REF.MY-LIBRARY") "my_library_")
 
-(defun my-library::library-function (x y)
+(defun ps-ref.my-library::library-function (x y)
   (return (+ x y)))
   -> function my_library_libraryFunction(x, y) {
         return x + y;
@@ -1229,18 +1229,30 @@ a-variable  => aVariable
 ;;;t \index{OBFUSCATE-PACKAGE}
 ;;;t \index{UNOBFUSCATE-PACKAGE}
 
-; (OBFUSCATE-PACKAGE package-designator)
+; (OBFUSCATE-PACKAGE package-designator &optional symbol-map)
 ; (UNOBFUSCATE-PACKAGE package-designator)
 
 ;;; Similar to the namespace mechanism, Parenscript provides a
-;;; facility to generate obfuscated identifiers in certain Lisp
-;;; packages.
+;;; facility to generate obfuscated identifiers in specified CL
+;;; packages. The function `OBFUSCATE-PACKAGE' may optionally be
+;;; passed a hash-table or a closure that maps symbols to their
+;;; obfuscated counterparts. By default, the mapping is done using
+;;; `PS-GENSYM'.
 
-(defpackage "OBFUSCATE-ME")
-(obfuscate-package :obfuscate-me)
+(defpackage "PS-REF.OBFUSCATE-ME")
+(obfuscate-package "PS-REF.OBFUSCATE-ME"
+  (let ((code-pt-counter #x8CF0)
+        (symbol-map (make-hash-table)))
+    (lambda (symbol)
+      (or (gethash symbol symbol-map)
+          (setf (gethash symbol symbol-map)
+                (make-symbol (string (code-char (incf code-pt-counter)))))))))
 
-(defun obfuscate-me::library-function2 (a b obfuscate-me::foo)
-  (+ a (my-library::library-function b obfuscate-me::foo)))
+(defun ps-ref.obfuscate-me::a-function (a b ps-ref.obfuscate-me::foo)
+  (+ a (ps-ref.my-library::library-function b ps-ref.obfuscate-me::foo)))
+  -> function 賱(a, b, 賲) {
+       a + my_library_libraryFunction(b, 賲);
+     }
 
 ;;; The obfuscation and namespace facilities can be used on packages
 ;;; at the same time.

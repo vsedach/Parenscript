@@ -199,6 +199,7 @@
       #:compile-script
       #:ps
       #:ps-doc
+      #:ps-doc*
       #:ps*
       #:ps1*
       #:ps-inline

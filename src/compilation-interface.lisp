@@ -11,6 +11,11 @@ to a JavaScript string at macro-expansion time."
         (*ps-special-variables* nil))
      (macroexpand-1 `(ps ,@body))))
 
+(defun ps-doc* (ps-form)
+  (let ((*ps-gensym-counter* 0)
+        (*ps-special-variables* nil))
+    (ps1* ps-form)))
+
 (defun ps1* (ps-form)
   (apply #'concatenate 'string
          (mapcar (lambda (x)

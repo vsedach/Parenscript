@@ -133,7 +133,7 @@ WHEN WHILE WITH WITH-SLOTS
 ;;; Special characters such as newline and backspace are converted
 ;;; into their corresponding JavaScript escape sequences.
 
-"	"   => '\\t\\b'
+"	"   => '\\t'
 
 ;;;## Array literals
 ;;;t \index{array}

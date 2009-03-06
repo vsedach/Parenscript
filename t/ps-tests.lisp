@@ -703,7 +703,7 @@ try {
                       (:a :href "http://foo.com"
                           symbol)
                       (:span :class "ticker-symbol-popup")))
-  "'<SPAN CLASS=\"ticker-symbol\" TICKER-SYMBOL=\"' + symbol + '\"><A HREF=\"http://foo.com\">' + symbol + '</A><SPAN CLASS=\"ticker-symbol-popup\"/></SPAN>'")
+  "'<SPAN CLASS=\"ticker-symbol\" TICKER-SYMBOL=\"' + symbol + '\"><A HREF=\"http://foo.com\">' + symbol + '</A><SPAN CLASS=\"ticker-symbol-popup\"></SPAN></SPAN>'")
 
 (test-ps-js flet1
   ((lambda () (flet ((foo (x) (return (1+ x)))) (return (foo 1)))))

@@ -1,6 +1,15 @@
-(in-package :parenscript)
+(in-package "PARENSCRIPT")
 
-(defvar *self-closing-tags-p* t)
+(defvar *html-empty-tag-aware-p* t)
+(defvar *html-mode* :sgml "One of :sgml or :xml")
+
+(defvar *html-empty-tags* '(:area :atop :audioscope :base :basefont :br :choose :col :frame
+                            :hr :img :input :isindex :keygen :left :limittext :link :meta
+                            :nextid :of :over :param :range :right :spacer :spot :tab :wbr))
+
+(defun empty-tag-p (tag)
+  (and *html-empty-tag-aware-p*
+       (member tag *html-empty-tags*)))
 
 (defun concat-constant-strings (str-list)
   (reverse (reduce (lambda (optimized-list next-obj)
@@ -11,38 +20,41 @@
 
 (defun process-html-forms-lhtml (forms)
   (let ((r ()))
-    (labels ((process-form (form)
-               (cond ((keywordp form) (push (format nil "<~A />" form) r))
+    (labels ((process-attrs (attrs)
+               (loop while attrs
+                  for attr-name = (pop attrs)
+                  for attr-test = (when (not (keywordp attr-name))
+                                    (let ((test attr-name))
+                                      (setf attr-name (pop attrs))
+                                      test))
+                  for attr-val = (pop attrs)
+                  do
+                    (if attr-test
+                        (push `(if ,attr-test
+                                   (concat-string ,(format nil " ~A=\"" attr-name) ,attr-val "\"")
+                                   "")
+                              r)
+                        (progn
+                          (push (format nil " ~A=\"" attr-name) r)
+                          (push attr-val r)
+                          (push "\"" r)))))
+             (process-form% (tag attrs content)
+               (push (format nil "<~A" tag) r)
+               (process-attrs attrs)
+               (if (or content (not (empty-tag-p tag)))
+                   (progn (push ">" r)
+                          (map nil #'process-form content)
+                          (push (format nil "</~A>" tag) r))
+                   (progn (when (eql *html-mode* :xml)
+                            (push "/" r))
+                          (push ">" r))))
+             (process-form (form)
+               (cond ((keywordp form) (process-form (list form)))
                      ((atom form) (push form r))
                      ((and (consp form) (keywordp (car form)))
-                      (push (format nil "<~A>" (car form)) r)
-                      (map nil #'process-form (cdr form))
-                      (push (format nil "</~A>" (car form)) r))
+                      (process-form% (car form) () (cdr form)))
                      ((and (consp form) (consp (first form)) (keywordp (caar form)))
-                      (push (format nil "<~A" (caar form)) r)
-                      (loop with attrs = (cdar form)
-                         while attrs
-                         for attr-name = (pop attrs)
-                         for attr-test = (when (not (keywordp attr-name))
-                                           (let ((test attr-name))
-                                             (setf attr-name (pop attrs))
-                                             test))
-                         for attr-val = (pop attrs)
-                         do
-                         (if attr-test
-                             (push `(if ,attr-test
-                                        (concat-string ,(format nil " ~A=\"" attr-name) ,attr-val "\"")
-                                        "")
-                                   r)
-                             (progn
-                               (push (format nil " ~A=\"" attr-name) r)
-                               (push attr-val r)
-                               (push "\"" r))))
-                      (if (or (cdr form) (not *self-closing-tags-p*))
-                          (progn (push ">" r)
-                                 (map nil #'process-form (cdr form))
-                                 (push (format nil "</~A>" (caar form)) r))
-                          (push "/>" r)))
+                      (process-form% (caar form) (cdar form) (cdr form)))
                      (t (push form r)))))
       (map nil #'process-form forms)
       (concat-constant-strings (reverse r)))))
@@ -50,7 +62,7 @@
 (defun process-html-forms-cl-who (forms)
   (let ((r ()))
     (labels ((process-form (form)
-               (cond ((keywordp form) (push (format nil "<~A />" form) r))
+               (cond ((keywordp form) (process-form (list form)))
                      ((atom form) (push form r))
                      ((and (consp form) (keywordp (car form)))
                       (push (format nil "<~A" (car form)) r)
@@ -63,11 +75,13 @@
                                               (push "\"" r)
                                               (process-attributes (cddr el-body)))))))
                         (let ((content (process-attributes (cdr form))))
-                          (if (or content (not *self-closing-tags-p*))
+                          (if (or content (not (empty-tag-p (car form))))
                               (progn (push ">" r)
                                      (when content (map nil #'process-form content))
                                      (push (format nil "</~A>" (car form)) r))
-                              (push "/>" r)))))
+                              (progn (when (eql *html-mode* :xml)
+                                   (push "/" r))
+                                 (push ">" r))))))
                      (t (push form r)))))
       (map nil #'process-form forms)
       (concat-constant-strings (reverse r)))))

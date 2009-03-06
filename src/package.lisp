@@ -143,7 +143,8 @@
       ;; v v v STUFF WE SHOULD PROBABLY MOVE TO OTHER LIBS v v v
 
       ;; html generator for javascript
-      #:*self-closing-tags-p*
+      #:*html-empty-tag-aware-p*
+      #:*html-mode*
       #:ps-html
       #:who-ps-html
 

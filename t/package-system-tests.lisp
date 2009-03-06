@@ -9,48 +9,48 @@
   (#:new)
   "new()")
 
-(defpackage "MY-LIBRARY"
-  (:use #:parenscript))
-(setf (ps-package-prefix :my-library) "my_library_")
+(defpackage "PS-TEST.MY-LIBRARY"
+  (:use "PARENSCRIPT"))
+(setf (ps-package-prefix "PS-TEST.MY-LIBRARY") "my_library_")
 
 (test-ps-js lib-function1
-  (defun my-library::library-function (x y)
+  (defun ps-test.my-library::library-function (x y)
     (return (+ x y)))
   "function my_library_libraryFunction(x, y) {
         return x + y;
      }")
 
-(defpackage "OBFUSCATE-ME")
-(obfuscate-package :obfuscate-me)
+(defpackage "PS-TEST.OBFUSCATE-ME")
+(obfuscate-package "PS-TEST.OBFUSCATE-ME")
 
 (test-ps-js obfuscation1
-  (defun obfuscate-me::library-function2 (a b obfuscate-me::foo)
-    (+ a (my-library::library-function b obfuscate-me::foo)))
+  (defun ps-test.obfuscate-me::library-function2 (a b ps-test.obfuscate-me::foo)
+    (+ a (ps-test.my-library::library-function b ps-test.obfuscate-me::foo)))
   "function g2(a, b, g3) {
     a + my_library_libraryFunction(b, g3);
 }")
 
-(defpackage "OBFUSCATE-AND-PREFIX")
-(obfuscate-package "OBFUSCATE-AND-PREFIX")
-(setf (ps-package-prefix "OBFUSCATE-AND-PREFIX") "__FOO___")
+(defpackage "PS-TEST.OBFUSCATE-AND-PREFIX")
+(obfuscate-package "PS-TEST.OBFUSCATE-AND-PREFIX")
+(setf (ps-package-prefix "PS-TEST.OBFUSCATE-AND-PREFIX") "__FOO___")
 
 (test-ps-js obfuscate-and-prefix
-  (defun obfuscate-and-prefix::some-function (a obfuscate-and-prefix::b my-library::d)
+  (defun ps-test.obfuscate-and-prefix::some-function (a ps-test.obfuscate-and-prefix::b ps-test.my-library::d)
     (* a
-       (obfuscate-me::library-function2 obfuscate-and-prefix::b a)
-       (my-library::library-function my-library::d obfuscate-and-prefix::b)))
+       (ps-test.obfuscate-me::library-function2 ps-test.obfuscate-and-prefix::b a)
+       (ps-test.my-library::library-function ps-test.my-library::d ps-test.obfuscate-and-prefix::b)))
   "function __FOO___g2(a, __FOO___g3, my_library_d) {
     a * g2(__FOO___g3, a) * my_library_libraryFunction(my_library_d, __FOO___g3);
 }")
 
-(defpackage "PSTSTPKG"
-  (:use #:parenscript))
+(defpackage "PS-TEST.PSTSTPKG"
+  (:use "PARENSCRIPT"))
 
 (test namespace1 ()
-  (setf (ps-package-prefix "PSTSTPKG") "prefix_")
-  (is (string= "prefix_foo;" (normalize-js-code (ps* 'pststpkg::foo)))))
+  (setf (ps-package-prefix "PS-TEST.PSTSTPKG") "prefix_")
+  (is (string= "prefix_foo;" (normalize-js-code (ps* 'ps-test.pststpkg::foo)))))
 
-(common-lisp:in-package "PSTSTPKG")
+(common-lisp:in-package "PS-TEST.PSTSTPKG")
 
 (ps-test::test-ps-js namespace-and-special-forms
   (let* ((foo (create :bar 1 not-a-keyword something)))

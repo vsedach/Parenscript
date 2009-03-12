@@ -1,14 +1,14 @@
 (in-package "PARENSCRIPT")
 
-(defvar *html-empty-tag-aware-p* t)
-(defvar *html-mode* :sgml "One of :sgml or :xml")
+(defvar *ps-html-empty-tag-aware-p* t)
+(defvar *ps-html-mode* :sgml "One of :sgml or :xml")
 
 (defvar *html-empty-tags* '(:area :atop :audioscope :base :basefont :br :choose :col :frame
                             :hr :img :input :isindex :keygen :left :limittext :link :meta
                             :nextid :of :over :param :range :right :spacer :spot :tab :wbr))
 
 (defun empty-tag-p (tag)
-  (and *html-empty-tag-aware-p*
+  (and *ps-html-empty-tag-aware-p*
        (member tag *html-empty-tags*)))
 
 (defun concat-constant-strings (str-list)
@@ -45,7 +45,7 @@
                    (progn (push ">" r)
                           (map nil #'process-form content)
                           (push (format nil "</~A>" tag) r))
-                   (progn (when (eql *html-mode* :xml)
+                   (progn (when (eql *ps-html-mode* :xml)
                             (push "/" r))
                           (push ">" r))))
              (process-form (form)
@@ -79,7 +79,7 @@
                               (progn (push ">" r)
                                      (when content (map nil #'process-form content))
                                      (push (format nil "</~A>" (car form)) r))
-                              (progn (when (eql *html-mode* :xml)
+                              (progn (when (eql *ps-html-mode* :xml)
                                    (push "/" r))
                                  (push ">" r))))))
                      (t (push form r)))))

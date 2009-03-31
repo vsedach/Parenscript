@@ -1,4 +1,4 @@
-(in-package :cl-user)
+(in-package "CL-USER")
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (defparameter *parenscript-lang-exports*
@@ -243,13 +243,22 @@
       #:js*
       #:symbol-to-js
       ))
+
+  (defparameter *javascript-exports*
+    '(;; for representing js code as s-expressions
+      #:?
+      #:if
+      #:unary-operator
+      #:--
+      ))
   )
 
-(defpackage :parenscript
-  (:use :common-lisp)
-  (:nicknames :js :ps)
+(defpackage "PARENSCRIPT"
+  (:use "COMMON-LISP")
+  (:nicknames "JS" "PS")
   #.(cons :export *parenscript-lang-exports*)
   #.(cons :export *parenscript-interface-exports*)
   #.(cons :export *parenscript-interface-deprecated-exports*)
+  #.(cons :export *javascript-exports*)
   )
 

@@ -1,4 +1,4 @@
-(in-package :parenscript)
+(in-package "PARENSCRIPT")
 
 ;;; reserved symbols/literals
 
@@ -18,15 +18,16 @@
   (gethash name *ps-special-forms*))
 
 (defmacro define-ps-special-form (name lambda-list &rest body)
-  "Define a special form NAME. The first argument given to the special
-form is a keyword indicating whether the form is expected to produce
-an :expression or a :statement. The resulting Parenscript language
-types are appended to the ongoing javascript compilation."
-  (let ((arglist (gensym "ps-arglist-")))
+  "Define a special form NAME. The first argument (an anaphor called
+'expecting' automatically added to the arglist) to the special form is
+a keyword indicating whether the form is expected to produce
+an :expression or a :statement."
+  (let ((args (gensym "ps-arglist-")))
     `(setf (gethash ',name *ps-special-forms*)
-           (lambda (&rest ,arglist)
-             (destructuring-bind ,lambda-list
-                 ,arglist
+           (lambda (&rest ,args)
+             (destructuring-bind ,(cons 'expecting lambda-list)
+                 ,args
+               (declare (ignore expecting))
                ,@body)))))
 
 (defun undefine-ps-special-form (name)

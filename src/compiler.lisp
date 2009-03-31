@@ -136,9 +136,10 @@ function and the parent macro environment of the macro."
           ',name))
 
 (defmacro define-ps-symbol-macro (symbol expansion)
-  `(progn (undefine-ps-special-form ',symbol)
-          (setf (get-macro-spec ',symbol *ps-macro-toplevel*) (cons t (lambda () ',expansion)))
-          ',symbol))
+  (let ((x (gensym)))
+    `(progn (undefine-ps-special-form ',symbol)
+            (setf (get-macro-spec ',symbol *ps-macro-toplevel*) (cons t (lambda (,x) (declare (ignore ,x)) ',expansion)))
+            ',symbol)))
 
 (defun import-macros-from-lisp (&rest names)
   "Import the named Lisp macros into the ParenScript macro
@@ -167,15 +168,11 @@ CL environment)."
   "Recursively macroexpands ParenScript macros and symbol-macros in
 the given ParenScript form. Returns two values: the expanded form, and
 whether any expansion was performed on the form or not."
-  (if (consp form)
-      (let ((op (car form))
-            (args (cdr form)))
-        (cond ((equal op 'quote) (values (if (equalp '(nil) args) nil form) ; leave quotes alone, unless it's a quoted nil
-                                         nil))
-              ((ps-macro-p op) (values (ps-macroexpand (funcall (lookup-macro-expansion-function op) form)) t))
-              (t (values form nil))))
-      (cond ((ps-symbol-macro-p form) (values (ps-macroexpand (funcall (lookup-macro-expansion-function form))) t))
-            (t (values form nil)))))
+  (let ((macro-function (cond ((ps-symbol-macro-p form) form)
+                              ((and (consp form) (ps-macro-p (car form))) (car form)))))
+    (if macro-function
+        (values (ps-macroexpand (funcall (lookup-macro-expansion-function macro-function) form)) t)
+        (values form nil))))
 
 ;;;; compiler interface
 (defgeneric compile-parenscript-form (form &key expecting)
@@ -199,8 +196,7 @@ compiled to an :expression (the default), a :statement, or a
 resultant symbol has an associated script-package. Raises an error if
 the form cannot be compiled to a symbol."
   (let ((exp (compile-parenscript-form form)))
-    (when (or (eql (first exp) 'js-variable)
-              (eql (first exp) 'ps-quote))
+    (when (eql (first exp) 'js-variable)
       (setf exp (second exp)))
     (assert (symbolp exp) ()
             "~a is expected to be a symbol, but compiles to ~a (the ParenScript output for ~a alone is \"~a\"). This could be due to ~a being a special form." form exp form (ps* form) form)
@@ -254,10 +250,7 @@ the form cannot be compiled to a symbol."
 (defmethod compile-parenscript-form ((form cons) &key (expecting :statement))
   (let* ((name (car form))
          (args (cdr form)))
-    (cond ((eql name 'quote)
-           (assert (= 1 (length args)) () "Wrong number of arguments to quote: ~s" args)
-           (list 'ps-quote (first args)))
-          ((ps-special-form-p form) (apply (get-ps-special-form name) (cons expecting args)))
+    (cond ((ps-special-form-p form) (apply (get-ps-special-form name) (cons expecting args)))
           ((op-form-p form)
            (list 'operator
                  (ps-convert-op-name (compile-parenscript-form (first form) :expecting :symbol))

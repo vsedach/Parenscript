@@ -26,6 +26,14 @@
   (def-for-literal break js-break)
   (def-for-literal continue js-continue))
 
+(defpsmacro quote (x)
+  (typecase x
+    (cons (cons 'array (mapcar (lambda (x) `',x) x)))
+    (null '(make-array))
+    (symbol (symbol-to-js-string x))
+    (number x)
+    (string x)))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; unary operators
 (macrolet ((def-unary-ops (&rest ops)
@@ -447,7 +455,7 @@ lambda-list::=
       (destructuring-bind (name expansion)
           macro
         (setf (get-macro-spec name macro-env-dict)
-              (cons t (lambda () expansion)))))
+              (cons t (lambda (x) (declare (ignore x)) expansion)))))
     (compile-parenscript-form `(progn ,@body))))
 
 (define-ps-special-form defmacro (expecting name args &body body)
@@ -475,16 +483,17 @@ lambda-list::=
                                        (numberp key)
                                        (and (listp key)
                                             (or (eq 'js-variable (car key))
-                                                (eq 'ps-quote (car key)))))
+                                                (eq 'quote (car key)))))
                                    ()
                                    "Slot key ~s is not one of js-variable, keyword, string or number." key)
                            (cons key (compile-parenscript-form val-expr :expecting :expression))))))
 
 (define-ps-special-form %js-slot-value (expecting obj slot)
   (declare (ignore expecting))
-  (if (ps::ps-macroexpand slot)
-      (list 'js-slot-value (compile-parenscript-form obj :expecting :expression) (compile-parenscript-form slot))
-      (compile-parenscript-form obj :expecting :expression)))
+  (list 'js-slot-value (compile-parenscript-form obj :expecting :expression)
+        (if (and (listp slot) (eq 'quote (car slot)))
+            (second slot) ;; assume we're quoting a symbol
+            (compile-parenscript-form slot))))
 
 (define-ps-special-form instanceof (expecting value type)
   (declare (ignore expecting))

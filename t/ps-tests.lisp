@@ -211,25 +211,17 @@ x = 2 + sideEffect() + x + 5;")
 (test script-star-eval2
   (is (string= "x = 1;" (normalize-js-code (ps* '(setf x 1))))))
 
-(test-ps-js slot-value-null1
-  (slot-value foo nil)
-  "foo")
-
-(test-ps-js slot-value-null2
-  (slot-value foo 'nil)
-  "foo")
-
 (test-ps-js unquoted-nil
   nil
   "null")
 
 (test-ps-js list-with-single-nil
-  (array 'nil)
+  (array nil)
   "[null]")
 
-(test-ps-js quoted-nil
+(test-ps-js quoted-nil-is-array
   'nil
-  "null")
+  "new Array()")
 
 (test-ps-js defsetf1
   (progn (defsetf baz (x y) (newval) `(set-baz ,x ,y ,newval))
@@ -744,3 +736,11 @@ try {
 (test-ps-js math-pi
   pi
   "Math.PI")
+
+(test-ps-js literal-array
+  '(1 2 3)
+  "[1, 2, 3]")
+
+(test-ps-js literal-array-1
+  '(1 foo 3)
+  "[1, 'foo', 3]")

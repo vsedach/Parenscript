@@ -125,11 +125,6 @@ arguments, defines a printer for that form using the given body."
   (defun op-precedence (op)
     (gethash op *op-precedence-hash*)))
 
-(defprinter ps-quote (val)
-  (if (null val)
-      (psw "null")
-      (error "Cannot translate quoted value ~S to javascript" val)))
-
 (defprinter js-literal (str)
   (psw str))
 
@@ -212,7 +207,7 @@ arguments, defines a printer for that form using the given body."
 (defprinter js-object (slot-defs)
   (psw "{ ")
   (loop for ((slot-name . slot-value) . remaining) on slot-defs do
-        (if (and (listp slot-name) (eql 'ps-quote (car slot-name)) (symbolp (second slot-name)))
+        (if (and (listp slot-name) (eq 'quote (car slot-name)) (symbolp (second slot-name)))
             (psw (js-translate-symbol (second slot-name)))
             (ps-print slot-name))
         (psw " : ")
@@ -226,11 +221,8 @@ arguments, defines a printer for that form using the given body."
           (and (listp obj) (member (car obj) '(js-lambda js-object))))
       (parenthesize-print obj)
       (ps-print obj))
-  (if (and (listp slot) (eql 'ps-quote (car slot)))
-      (progn (psw #\.)
-             (if (symbolp (second slot))
-                 (psw (js-translate-symbol (second slot)))
-                 (ps-print slot)))
+  (if (symbolp slot)
+      (progn (psw #\.) (psw (js-translate-symbol slot)))
       (progn (psw #\[) (ps-print slot) (psw #\]))))
 
 (defprinter js-cond-statement (clauses)

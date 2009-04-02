@@ -229,17 +229,6 @@ the form cannot be compiled to a symbol."
              (error "Attempting to use Parenscript special form ~a as variable" symbol)))
         (t (list 'js-variable symbol))))
 
-(defun compile-function-argument-forms (args)
-  (let ((remaining-args args))
-    (loop while remaining-args collecting
-         (if (keywordp (first remaining-args))
-             (prog2 (when (oddp (length remaining-args))
-                      (error "Odd number of keyword arguments: ~A." args))
-                 (compile-parenscript-form (cons 'create remaining-args) :expecting :expression)
-               (setf remaining-args nil))
-             (prog1 (compile-parenscript-form (first remaining-args) :expecting :expression)
-               (setf remaining-args (cdr remaining-args)))))))
-
 (defun ps-convert-op-name (op)
   (case (ensure-ps-symbol op)
     (and '\&\&)
@@ -260,7 +249,7 @@ the form cannot be compiled to a symbol."
           ((funcall-form-p form)
            (list 'js-funcall
                  (compile-parenscript-form name :expecting :expression)
-                 (compile-function-argument-forms args)))
+                 (mapcar (lambda (arg) (compile-parenscript-form arg :expecting :expression)) args)))
           (t (error "Cannot compile ~S to a ParenScript form." form)))))
 
 (defvar *ps-gensym-counter* 0)

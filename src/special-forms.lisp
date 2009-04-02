@@ -229,7 +229,7 @@
     (values body-forms docstring)))
 
 (defun parse-key-spec (key-spec)
-  "parses an &key parameter.  Returns 4 values:
+  "parses an &key parameter.  Returns 5 values:
 var, init-form,  keyword-name, supplied-p-var, init-form-supplied-p.
 
 Syntax of key spec:
@@ -275,44 +275,41 @@ the given lambda-list and body."
   ;; * optional variables' variable names are mapped directly into the lambda list,
   ;;   and for each optional variable with name v and default value d, a form is produced
   ;;   (defaultf v d)
-  ;; * when any keyword variables are in the lambda list, a single 'optional-args' variable is
-  ;;   appended to the js-lambda list as the last argument.  WITH-SLOTS is used for all
-  ;;   the variables with  inside the body of the function,
-  ;;   a (with-slots ((var-name key-name)) optional-args ...)
+  ;; * keyword variables are not included in the js-lambda list, but instead are
+  ;;   obtained from the magic js ARGUMENTS pseudo-array. Code assigning values to
+  ;;   keyword vars is prepended to the body of the function.
   (declare (ignore name))
   (multiple-value-bind (requireds optionals rest? rest keys? keys allow? aux? aux
                                   more? more-context more-count key-object)
       (parse-lambda-list lambda-list)
-    (declare (ignore allow? aux? aux more? more-context more-count))
-    (let* ((options-var (or key-object (ps-gensym)))
-           ;; optionals are of form (var default-value)
+    (declare (ignore allow? aux? aux more? more-context more-count key-object))
+    (let* (;; optionals are of form (var default-value)
            (effective-args
             (remove-if
              #'null
              (append requireds
-                     (mapcar #'parse-optional-spec optionals)
-                     (when keys (list options-var)))))
-           ;; an alist of arg -> default val
-           (initform-pairs
-            (remove
-             nil
-             (append
-              ;; optional arguments first
-              (mapcar #'(lambda (opt-spec)
-                          (multiple-value-bind (var val) (parse-optional-spec opt-spec)
-                            (cons var val)))
-                      optionals)
-              (if keys? (list (cons options-var '(create))))
-              (mapcar #'(lambda (key-spec)
-                          (multiple-value-bind (var val x y specified?) (parse-key-spec key-spec)
-                            (declare (ignore x y))
-                            (when specified? (cons var val))))
-                      keys))))
-           (body-paren-forms (parse-function-body body)) ; remove documentation
-           (initform-forms
-            (mapcar #'(lambda (default-pair)
-                        `(defaultf ,(car default-pair) ,(cdr default-pair)))
-                    initform-pairs))
+                     (mapcar #'parse-optional-spec optionals))))
+           (opt-forms
+            (mapcar #'(lambda (opt-spec)
+                        (multiple-value-bind (var val) (parse-optional-spec opt-spec)
+                          `(defaultf ,var ,val)))
+                    optionals))
+           (key-forms
+            (when keys?
+              (with-ps-gensyms (n)
+                (let ((decls nil) (assigns nil) (defaults nil))
+                  (mapc (lambda (k)
+                          (multiple-value-bind (var init-form keyword)
+                              (parse-key-spec k)
+                            (push (list 'var var) decls)
+                            (push `(,keyword (setf ,var (aref arguments (1+ ,n)))) assigns)
+                            (push (list 'defaultf var init-form) defaults)))
+                        (reverse keys))
+                  `(,@decls
+                    (loop :for ,n :from ,(length requireds)
+                      :below (length arguments) :by 2 :do
+                      (case (aref arguments ,n) ,@assigns))
+                    ,@defaults)))))
            (rest-form
             (if rest?
                 (with-ps-gensyms (i)
@@ -320,18 +317,8 @@ the given lambda-list and body."
                     (dotimes (,i (- arguments.length ,(length effective-args)))
                       (setf (aref ,rest ,i) (aref arguments (+ ,i ,(length effective-args)))))))
                 `(progn)))
-           (effective-body   (append initform-forms (list rest-form) body-paren-forms))
-           (effective-body
-            (if keys?
-                (list `(with-slots ,(mapcar #'(lambda (key-spec)
-                                                (multiple-value-bind (var x key-name)
-                                                    (parse-key-spec key-spec)
-                                                  (declare (ignore x))
-                                                  (list var key-name)))
-                                            keys)
-                        ,options-var
-                        ,@effective-body))
-                effective-body)))
+           (body-paren-forms (parse-function-body body)) ; remove documentation
+           (effective-body (append opt-forms key-forms (list rest-form) body-paren-forms)))
       (values effective-args effective-body))))
 
 (defpsmacro defun (name lambda-list &body body)

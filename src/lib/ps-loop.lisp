@@ -1,0 +1,166 @@
+(in-package :parenscript)
+
+(defmacro aif (test-form then-form &optional else-form)
+  `(let ((it ,test-form))
+     (if it ,then-form ,else-form)))
+
+(defmacro once-only ((&rest names) &body body) ;; the version from PCL
+  (let ((gensyms (loop for nil in names collect (gensym))))
+    `(let (,@(loop for g in gensyms collect `(,g (gensym))))
+       `(let (,,@(loop for g in gensyms for n in names collect ``(,,g ,,n)))
+          ,(let (,@(loop for n in names for g in gensyms collect `(,n ,g)))
+                ,@body)))))
+
+(defun complex-js-expr? (expr)
+  (if (symbolp expr)
+      (find #\. (symbol-name expr))
+      (consp expr)))
+
+(defvar *loop-clauses* '(:for :do :when :unless :initially :finally :first-time :last-time :while :until))
+(defvar *loop-keywords*
+  (append *loop-clauses* '(:from :to :below :downto :above :by :in :across :index := :then :sum :into)))
+
+(defun normalize-loop-keywords (args)
+  (mapcar (lambda (x)
+            (or (find-if (lambda (key) (eq x (intern (string key))))
+                         *loop-keywords*)
+                x))
+          args))
+
+(defun parse-js-loop (terms)
+  (let (prologue
+        init-step-forms end-test-forms
+        initially finally
+        first-time last-time
+        body)
+    (macrolet ((with-local-var ((name expr) &body body)
+                 (once-only (expr)
+                   `(let ((,name (aif (and (complex-js-expr? ,expr) (ps-gensym))
+                                      (progn (push (list 'var it ,expr) prologue)
+                                             it)
+                                      ,expr)))
+                      ,@body))))
+      (labels ((next ()
+                 (car terms))
+               (next? (term)
+                 (eq (next) term))
+               (err (expected got)
+                 (error "JS-LOOP expected ~s, got ~s." expected got))
+               (consume (&optional what)
+                 (let ((term (pop terms)))
+                   (when (and what (not (eq what term)))
+                     (err what term))
+                   term))
+               (consume-atom ()
+                 (if (atom (next))
+                     (consume)
+                     (err "an atom" (next))))
+               (consume-progn ()
+                 (cons 'progn (loop :collect (if (consp (next))
+                                                 (consume)
+                                                 (err "a compound form" (next)))
+                                :until (atom (next)))))
+               (consume-if (term)
+                 (when (next? term)
+                   (consume)
+                   (consume)))
+               (body-clause (term)
+                 (case term
+                   ((:when :unless) (list (intern (symbol-name term))
+                                          (consume)
+                                          (body-clause (consume-atom))))
+                   (:sum (let ((sum-expr (consume)))
+                           (consume :into)
+                           (let ((sum-var (consume-atom)))
+                             (push `(var ,sum-var 0) prologue)
+                             `(incf ,sum-var ,sum-expr))))
+                   (:do (consume-progn))
+                   (otherwise (err "a JS-LOOP keyword" term))))
+               (for-from (var)
+                 (let ((start (consume))
+                       (op '+)
+                       (test nil)
+                       (by nil)
+                       (end nil))
+                   (loop while (member (next) '(:to :below :downto :above :by)) do
+                         (let ((term (consume)))
+                           (if (eq term :by)
+                               (setf by (consume))
+                               (setf op (case term ((:downto :above) '-) (otherwise '+))
+                                     test (case term (:to '>) (:below '>=) (:downto '<) (:above '<=))
+                                     end (consume)))))
+                   (push `(,var ,start (,op ,var ,(or by 1))) init-step-forms)
+                   (when test
+                     (with-local-var (end-var end)
+                       (push (list test var end-var) end-test-forms)))))
+               (for-= (var)
+                 (let ((start (consume))
+                       (then (consume-if :then)))
+                   (push (list var start (or then start)) init-step-forms)))
+               (for-in (var)
+                 (with-local-var (arr (consume))
+                   (let* ((index (or (consume-if :index) (ps-gensym)))
+                          (equiv `(:for ,index :from 0 :below (length ,arr)
+                                        :for ,var := (aref ,arr ,index))))
+                     (setf terms (append equiv terms))
+                     (clause)
+                     (clause))))
+               (for-clause ()
+                 (let ((var (consume-atom))
+                       (term (consume-atom)))
+                   (case term
+                     (:from (for-from var))
+                     (:= (for-= var))
+                     ((:in :across) (for-in var))
+                     (otherwise (error "FOR ~s ~s is not valid in JS-LOOP." var term)))))
+               (clause ()
+                 (let ((term (consume-atom)))
+                   (case term
+                     (:for (for-clause))
+                     (:while (push `(unless ,(consume) break) body))
+                     (:until (push `(when ,(consume) break) body))
+                     (:initially (push (consume-progn) initially))
+                     (:finally (push (consume-progn) finally))
+                     (:first-time (push (consume-progn) first-time))
+                     (:last-time (push (consume-progn) last-time))
+                     (otherwise (push (body-clause term) body))))))
+        (if terms
+            (loop :while terms :do (clause))
+            (err "loop definition" nil))
+        (values (nreverse prologue)
+                (nreverse init-step-forms)
+                (aif (nreverse end-test-forms)
+                     (if (cdr it)
+                         (list (cons 'or it))
+                         it)
+                     (list nil))
+                (nreverse initially)
+                (nreverse finally)
+                (nreverse first-time)
+                (nreverse last-time)
+                (nreverse body))))))
+
+(defpsmacro loop (&rest args)
+  (multiple-value-bind (prologue
+                        init-step-forms end-test-forms
+                        initially finally
+                        first-time last-time
+                        body)
+      (parse-js-loop (normalize-loop-keywords args))
+    (let ((first-guard (and first-time (ps-gensym)))
+          (last-guard (and last-time (ps-gensym))))
+      `(progn ,@(when first-time `((var ,first-guard t)))
+              ,@(when last-time `((var ,last-guard nil)))
+              ,@prologue
+              ,@initially
+              (do ,init-step-forms
+                  ,end-test-forms
+                ,@(when first-time
+                        `((when ,first-guard
+                            ,@first-time
+                            (setf ,first-guard nil))))
+                ,@body
+                ,@(when last-time
+                        `((setf ,last-guard t))))
+              ,@(when last-time `((when ,last-guard ,@last-time)))
+              ,@finally))))

@@ -1,4 +1,4 @@
-(in-package :parenscript)
+(in-package "PARENSCRIPT")
 
 (defvar *ps-print-pretty* t)
 (defvar *indent-num-spaces* 4)
@@ -15,16 +15,11 @@ vice-versa.")
 (defmethod parenscript-print (form)
   (let ((*indent-level* 0)
         (*print-accumulator* ()))
-    (if (and (listp form) (eql 'js-block (car form))) ; ignore top-level block
-        (loop for (statement . remaining) on (third form) do
-             (ps-print statement) (psw ";") (when remaining (psw #\Newline)))
-        (ps-print form))
-    (reduce (lambda (acc next-token)
-              (if (and (stringp next-token)
-                       (stringp (car (last acc))))
-                  (append (butlast acc) (list (concatenate 'string (car (last acc)) next-token)))
-                  (append acc (list next-token))))
-            (cons () (reverse *print-accumulator*)))))
+      (if (and (listp form) (eql 'js-block (car form))) ; ignore top-level block
+          (loop for (statement . remaining) on (third form) do
+               (ps-print statement) (psw ";") (when remaining (psw #\Newline)))
+          (ps-print form))
+      (nreverse *print-accumulator*)))
 
 (defun psw (obj)
   (push (if (characterp obj) (string obj) obj) *print-accumulator*))
@@ -55,10 +50,8 @@ arguments, defines a printer for that form using the given body."
 
 (defun newline-and-indent ()
   (if *ps-print-pretty*
-      (when (and (stringp (car *print-accumulator*))
-                 (not (char= #\Newline (char (car *print-accumulator*) (1- (length (car *print-accumulator*))))))
-                 (psw #\Newline))
-        (loop repeat (* *indent-level* *indent-num-spaces*) do (psw #\Space)))
+      (progn (psw #\Newline)
+             (loop repeat (* *indent-level* *indent-num-spaces*) do (psw #\Space)))
       (psw #\Space)))
 
 (defparameter *js-lisp-escaped-chars*

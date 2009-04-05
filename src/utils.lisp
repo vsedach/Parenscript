@@ -1,4 +1,4 @@
-(in-package :parenscript)
+(in-package "PARENSCRIPT")
 
 (defun string-join (strings separator)
   (format nil "~{~}" (format nil "~~a~~^~a" separator) strings))
@@ -99,3 +99,8 @@ SOMEGLOBAL."
 (defun ordered-set-difference (list1 list2 &key (test #'eql)) ; because the CL set-difference may not preserve order
   (reduce (lambda (list el) (remove el list :test test))
           (cons list1 list2)))
+
+(defun flatten (x &optional acc)
+  (cond ((null x) acc)
+        ((atom x) (cons x acc))
+        (t (flatten (car x) (flatten (cdr x) acc)))))

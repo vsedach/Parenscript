@@ -22,12 +22,13 @@
 'expecting' automatically added to the arglist) to the special form is
 a keyword indicating whether the form is expected to produce
 an :expression or a :statement."
-  (let ((args (gensym "ps-arglist-")))
+  (let ((args (gensym "ps-arglist-"))
+        (expecting-used-p (member 'expecting (flatten body))))
     `(setf (gethash ',name *ps-special-forms*)
            (lambda (&rest ,args)
              (destructuring-bind ,(cons 'expecting lambda-list)
                  ,args
-               (declare (ignore expecting))
+               ,(unless expecting-used-p '(declare (ignore expecting)))
                ,@body)))))
 
 (defun undefine-ps-special-form (name)

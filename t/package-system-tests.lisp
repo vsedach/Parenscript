@@ -26,8 +26,8 @@
 (test-ps-js obfuscation1
   (defun ps-test.obfuscate-me::library-function2 (a b ps-test.obfuscate-me::foo)
     (+ a (ps-test.my-library::library-function b ps-test.obfuscate-me::foo)))
-  "function g2(a, b, g3) {
-    a + my_library_libraryFunction(b, g3);
+  "function g1(a, b, g2) {
+    a + my_library_libraryFunction(b, g2);
 }")
 
 (defpackage "PS-TEST.OBFUSCATE-AND-PREFIX")
@@ -39,8 +39,8 @@
     (* a
        (ps-test.obfuscate-me::library-function2 ps-test.obfuscate-and-prefix::b a)
        (ps-test.my-library::library-function ps-test.my-library::d ps-test.obfuscate-and-prefix::b)))
-  "function __FOO___g2(a, __FOO___g3, my_library_d) {
-    a * g2(__FOO___g3, a) * my_library_libraryFunction(my_library_d, __FOO___g3);
+  "function __FOO___g1(a, __FOO___g2, my_library_d) {
+    a * g1(__FOO___g2, a) * my_library_libraryFunction(my_library_d, __FOO___g2);
 }")
 
 (defpackage "PS-TEST.PSTSTPKG"

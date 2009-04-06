@@ -44,7 +44,7 @@ x = 2 + sideEffect() + x + 5;")
 
 (test-ps-js method-call-op-form-args
   ((@ (+ "" x) to-string) 1 2 :baz 3)
-  "('' + x).toString(1, 2, { baz : 3 })")
+  "('' + x).toString(1, 2, 'baz', 3)")
 
 (test-ps-js method-call-number
   ((@ 10 to-string))
@@ -237,13 +237,13 @@ x = 2 + sideEffect() + x + 5;")
   (progn (defun (setf some-thing) (new-val i1 i2)
            (setf (aref *some-thing* i1 i2) new-val))
          (setf (some-thing 1 2) "foo"))
-  "function __setf_someThing(newVal, i1, i2) {
+"function __setf_someThing(newVal, i1, i2) {
     SOMETHING[i1][i2] = newVal;
 };
-var _js3 = 1;
-var _js4 = 2;
-var _js2 = 'foo';
-__setf_someThing(_js2, _js3, _js4);")
+var _js2 = 1;
+var _js3 = 2;
+var _js1 = 'foo';
+__setf_someThing(_js1, _js2, _js3);")
 
 (test-ps-js defun-optional1
   (defun test-opt (&optional x) (return (if x "yes" "no")))
@@ -364,8 +364,8 @@ __setf_someThing(_js2, _js3, _js4);")
   (defun foo (&rest bar) (alert bar[1]))
   "function foo() {
     var bar = [];
-    for (var i2 = 0; i2 < arguments.length - 0; i2 += 1) {
-        bar[i2] = arguments[i2 + 0];
+    for (var i1 = 0; i1 < arguments.length - 0; i1 += 1) {
+        bar[i1] = arguments[i1 + 0];
     };
     alert(bar[1]);
 }")
@@ -374,53 +374,98 @@ __setf_someThing(_js2, _js3, _js4);")
   (defun foo (baz &rest bar) (return (+ baz (aref bar 1))))
   "function foo(baz) {
     var bar = [];
-    for (var i2 = 0; i2 < arguments.length - 1; i2 += 1) {
-        bar[i2] = arguments[i2 + 1];
+    for (var i1 = 0; i1 < arguments.length - 1; i1 += 1) {
+        bar[i1] = arguments[i1 + 1];
     };
     return baz + bar[1];
 }")
 
 (test-ps-js defun-keyword1
   (defun zoo (foo bar &key baz) (return (+ foo bar baz)))
-  "function zoo(foo, bar, _js1) {
-    if (_js1 === undefined) {
-        _js1 = {  };
+  "function zoo(foo, bar) {
+    var baz;
+    var _js4 = arguments.length;
+    var n1 = 2;
+    for (; n1 < _js4; ) {
+        switch (arguments[n1]) {
+        case 'baz':
+            {
+                baz = arguments[n1 + 1];
+            };
+        };
+        var _js5 = n1 + 2;
+        n1 = _js5;
     };
-    return foo + bar + _js1.baz;
+    if (baz === undefined) {
+        baz = null;
+    };
+    return foo + bar + baz;
 }")
 
 (test-ps-js defun-keyword2
   (defun zoo (&key baz) (return (* baz baz)))
-  "function zoo(_js1) {
-    if (_js1 === undefined) {
-        _js1 = {  };
+  "function zoo() {
+    var baz;
+    var _js4 = arguments.length;
+    var n1 = 0;
+    for (; n1 < _js4; ) {
+        switch (arguments[n1]) {
+        case 'baz':
+            {
+                baz = arguments[n1 + 1];
+            };
+        };
+        var _js5 = n1 + 2;
+        n1 = _js5;
     };
-    return _js1.baz * _js1.baz;
+    if (baz === undefined) {
+        baz = null;
+    };
+    return baz * baz;
 }")
 
 (test-ps-js defun-keyword3
   (defun zoo (&key baz (bar 4)) (return (* baz bar)))
-  "function zoo(_js1) {
-    if (_js1 === undefined) {
-        _js1 = {  };
+  "function zoo() {
+    var baz;
+    var bar;
+    var _js4 = arguments.length;
+    var n1 = 0;
+    for (; n1 < _js4; ) {
+        switch (arguments[n1]) {
+        case 'baz':
+            {
+                baz = arguments[n1 + 1];
+            };
+            break;
+        case 'bar':
+            {
+                bar = arguments[n1 + 1];
+            };
+        };
+        var _js5 = n1 + 2;
+        n1 = _js5;
     };
-    if (_js1.bar === undefined) {
-        _js1.bar = 4;
+    if (baz === undefined) {
+        baz = null;
     };
-    return _js1.baz * _js1.bar;
+    if (bar === undefined) {
+        bar = 4;
+    };
+    return baz * bar;
 }")
 
 (test-ps-js keyword-funcall1
   (func :baz 1)
-  "func({ baz : 1 })")
+  "func('baz', 1)")
 
 (test-ps-js keyword-funcall2
   (func :baz 1 :bar foo)
-  "func({ baz : 1, bar : foo })")
+  "func('baz', 1, 'bar', foo)")
 
 (test-ps-js keyword-funcall3
   (fun a b :baz c)
-  "fun(a, b, { baz : c })")
+  "fun(a, b, 'baz', c)")
   
 (test-ps-js cond1
   (cond ((= x 1) 1))

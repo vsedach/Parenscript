@@ -198,7 +198,7 @@ compiled to an :expression (the default), a :statement, or a
 resultant symbol has an associated script-package. Raises an error if
 the form cannot be compiled to a symbol."
   (let ((exp (compile-parenscript-form form)))
-    (when (eql (first exp) 'js-variable)
+    (when (eq (first exp) 'js:variable)
       (setf exp (second exp)))
     (assert (symbolp exp) ()
             "~a is expected to be a symbol, but compiles to ~a (the ParenScript output for ~a alone is \"~a\"). This could be due to ~a being a special form." form exp form (ps* form) form)
@@ -227,7 +227,7 @@ the form cannot be compiled to a symbol."
          (if (ps-literal-p symbol)
              (funcall (get-ps-special-form symbol) :symbol)
              (error "Attempting to use Parenscript special form ~a as variable" symbol)))
-        (t (list 'js-variable symbol))))
+        (t `(js:variable ,symbol))))
 
 (defun ps-convert-op-name (op)
   (case (ensure-ps-symbol op)
@@ -243,13 +243,12 @@ the form cannot be compiled to a symbol."
          (args (cdr form)))
     (cond ((ps-special-form-p form) (apply (get-ps-special-form name) (cons expecting args)))
           ((op-form-p form)
-           (list 'operator
-                 (ps-convert-op-name (compile-parenscript-form (first form) :expecting :symbol))
-                 (mapcar (lambda (form) (compile-parenscript-form form :expecting :expression)) (rest form))))
+           `(js:operator
+                 ,(ps-convert-op-name (compile-parenscript-form (first form) :expecting :symbol))
+                 ,@(mapcar (lambda (form) (compile-parenscript-form form :expecting :expression)) (rest form))))
           ((funcall-form-p form)
-           (list 'js-funcall
-                 (compile-parenscript-form name :expecting :expression)
-                 (mapcar (lambda (arg) (compile-parenscript-form arg :expecting :expression)) args)))
+           `(js:funcall ,(compile-parenscript-form name :expecting :expression)
+             ,@(mapcar (lambda (arg) (compile-parenscript-form arg :expecting :expression)) args)))
           (t (error "Cannot compile ~S to a ParenScript form." form)))))
 
 (defvar *ps-gensym-counter* 0)

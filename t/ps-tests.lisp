@@ -682,10 +682,6 @@ try {
   (instanceof (or a b) (if x y z))
   "((a || b) instanceof (x ? y : z))")
 
-(test-ps-js op-p6
-  (doeach (x (or a b)))
-  "for (var x in (a || b)) { };")
-
 (test-ps-js op-p7
   (or x (if (= x 0) "zero" "empty"))
   "x || (x == 0 ? 'zero' : 'empty')")

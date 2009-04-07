@@ -507,7 +507,7 @@ alert('Sum of ' + l + ' is: ' + (function () {
 
 (test-ps-js iteration-constructs-8
   (let* ((obj (create :a 1 :b 2 :c 3)))
-  (doeach (i obj)
+  (for-in (i obj)
     (document.write (+ i ": " (aref obj i) "<br/>"))))
   "var obj = { a : 1, b : 2, c : 3 };
 for (var i in obj) {
@@ -515,17 +515,6 @@ for (var i in obj) {
 };")
 
 (test-ps-js iteration-constructs-9
-  (let* ((obj (create :a 1 :b 2 :c 3)))
-  (doeach ((k v) obj)
-    (document.write (+ k ": " v "<br/>"))))
-  "var obj = { a : 1, b : 2, c : 3 };
-var v;
-for (var k in obj) {
-    v = obj[k];
-    document.write(k + ': ' + v + '<br/>');
-};")
-
-(test-ps-js iteration-constructs-10
   (while (film.is-not-finished)
   (this.eat (new *popcorn)))
   "while (film.isNotFinished()) {

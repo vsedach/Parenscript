@@ -805,14 +805,14 @@ a-variable  => aVariable
 ;;;t \index{DO}
 ;;;t \index{DOTIMES}
 ;;;t \index{DOLIST}
-;;;t \index{DOEACH}
+;;;t \index{FOR-IN}
 ;;;t \index{WHILE}
 
 ; (DO ({var | (var {init}? {step}?)}*) (end-test {result}?) body)
 ; (DO* ({var | (var {init}? {step}?)}*) (end-test {result}?) body)
 ; (DOTIMES (var numeric-form {result}?) body)
 ; (DOLIST (var list-form {result}?) body)
-; (DOEACH ({var | (key value)} object-form {result}?) body)
+; (FOR-IN (var object) body)
 ; (WHILE end-test body)
 ;
 ; var          ::= a Lisp symbol
@@ -926,26 +926,14 @@ a-variable  => aVariable
        return s;
    })());
 
-;;; `DOEACH' iterates across the enumerable properties of JS objects,
-;;; binding either simply the key of each slot, or alternatively, both
-;;; the key and the value.
+;;; `FOR-IN' is translated to the JS `for...in' statement.
 
 (let* ((obj (create :a 1 :b 2 :c 3)))
-  (doeach (i obj)
+  (for-in (i obj)
     (document.write (+ i ": " (aref obj i) "<br/>"))))
 => var obj = { a : 1, b : 2, c : 3 };
    for (var i in obj) {
        document.write(i + ': ' + obj[i] + '<br/>');
-   };
-
-(let* ((obj (create :a 1 :b 2 :c 3)))
-  (doeach ((k v) obj)
-    (document.write (+ k ": " v "<br/>"))))
-=> var obj = { a : 1, b : 2, c : 3 };
-   var v;
-   for (var k in obj) {
-       v = obj[k];
-       document.write(k + ': ' + v + '<br/>');
    };
 
 ;;; The `WHILE' form is transformed to the JavaScript form `while',

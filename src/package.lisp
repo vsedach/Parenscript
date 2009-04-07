@@ -92,7 +92,6 @@
       #:do*
       #:dotimes
       #:dolist
-      #:doeach
 
       ;; with
       #:with
@@ -250,6 +249,31 @@
       #:if
       #:unary-operator
       #:--
+      #:!
+      #:block
+      #:literal
+      #:break
+      #:continue
+      #:return
+      #:throw
+      #:array
+      #:aref
+      #:++
+      #:+=
+      #:operator
+      #:-=
+      #:-
+      #:=
+      #:cond
+      #:lambda
+      #:object
+      #:variable
+      #:slot-value
+      #:new
+      #:funcall
+      #:instanceof
+      #:in
+      #:escape
       ))
   )
 

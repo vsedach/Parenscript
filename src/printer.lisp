@@ -15,11 +15,11 @@ vice-versa.")
 (defmethod parenscript-print (form)
   (let ((*indent-level* 0)
         (*print-accumulator* ()))
-      (if (and (listp form) (eql 'js-block (car form))) ; ignore top-level block
-          (loop for (statement . remaining) on (third form) do
-               (ps-print statement) (psw ";") (when remaining (psw #\Newline)))
-          (ps-print form))
-      (nreverse *print-accumulator*)))
+    (if (and (listp form) (eq 'js:block (car form))) ; ignore top-level block
+        (loop for (statement . remaining) on (third form) do
+             (ps-print statement) (psw ";") (when remaining (psw #\Newline)))
+        (ps-print form))
+    (nreverse *print-accumulator*)))
 
 (defun psw (obj)
   (push (if (characterp obj) (string obj) obj) *print-accumulator*))
@@ -83,10 +83,10 @@ arguments, defines a printer for that form using the given body."
 (defun expression-precedence (expr)
   (if (consp expr)
       (case (car expr)
-        ((js-slot-value js-aref) (op-precedence (car expr)))
-        (js-assign (op-precedence '=))
+        ((js:slot-value js:aref) (op-precedence (car expr)))
+        (js:= (op-precedence 'js:=))
         (js:? (op-precedence 'js:?))
-        (unary-operator (op-precedence (second expr)))
+        (js:unary-operator (op-precedence (second expr)))
         (operator (op-precedence (second expr)))
         (otherwise 0))
       0))
@@ -95,13 +95,13 @@ arguments, defines a printer for that form using the given body."
   (defparameter *op-precedence-hash* (make-hash-table :test 'eq))
 
   (let ((precedence 1))
-    (dolist (ops '((new js-slot-value js-aref)
+    (dolist (ops '((js:new js:slot-value js:aref)
                    (postfix++ postfix--)
                    (delete void typeof ++ -- unary+ unary- ~ !)
                    (* / %)
                    (+ -)
                    (<< >> >>>)
-                   (< > <= >= js-instance-of in)
+                   (< > <= >= js:instanceof js:in)
                    (== != === !== eql)
                    (&)
                    (^)
@@ -109,7 +109,7 @@ arguments, defines a printer for that form using the given body."
                    (\&\& and)
                    (\|\| or)
                    (js:?)
-                   (= *= /= %= += -= <<= >>= >>>= \&\= ^= \|= js-assign)
+                   (= *= /= %= += -= <<= >>= >>>= \&\= ^= \|=)
                    (comma)))
       (dolist (op ops)
         (setf (gethash op *op-precedence-hash*) precedence))
@@ -118,31 +118,31 @@ arguments, defines a printer for that form using the given body."
   (defun op-precedence (op)
     (gethash op *op-precedence-hash*)))
 
-(defprinter js-literal (str)
+(defprinter js:literal (str)
   (psw str))
 
 (defun print-comma-delimited-list (ps-forms)
   (loop for (form . remaining) on ps-forms do
         (ps-print form) (when remaining (psw ", "))))
 
-(defprinter array-literal (&rest initial-contents)
+(defprinter js:array (&rest initial-contents)
   (psw #\[) (print-comma-delimited-list initial-contents) (psw #\]))
 
-(defprinter js-aref (array indices)
-  (if (>= (expression-precedence array) #.(op-precedence 'js-aref))
+(defprinter js:aref (array indices)
+  (if (>= (expression-precedence array) #.(op-precedence 'js:aref))
       (parenthesize-print array)
       (ps-print array))
   (loop for idx in indices do
         (psw #\[) (ps-print idx) (psw #\])))
 
-(defprinter js-variable (var)
+(defprinter js:variable (var)
   (psw (js-translate-symbol var)))
 
 ;;; arithmetic operators
 (defun parenthesize-print (ps-form)
   (psw #\() (ps-print ps-form) (psw #\)))
 
-(defprinter operator (op args)
+(defprinter js:operator (op &rest args)
   (loop for (arg . remaining) on args
         with precedence = (op-precedence op) do
         (if (>= (expression-precedence arg) precedence)
@@ -150,7 +150,7 @@ arguments, defines a printer for that form using the given body."
             (ps-print arg))
         (when remaining (psw (format nil " ~(~A~) " op)))))
 
-(defprinter unary-operator (op arg &key prefix space)
+(defprinter js:unary-operator (op arg &key prefix space)
   (when prefix (psw (format nil "~(~a~)~:[~; ~]" op space)))
   (if (> (expression-precedence arg)
          (op-precedence (case op
@@ -161,14 +161,14 @@ arguments, defines a printer for that form using the given body."
       (ps-print arg))
   (unless prefix (psw (format nil "~(~a~)" op))))
 
-(defprinter js-funcall (fun-designator args)
-  (funcall (if (member (car fun-designator) '(js-variable js-aref js-slot-value js-funcall))
+(defprinter js:funcall (fun-designator &rest args)
+  (funcall (if (member (car fun-designator) '(js:variable js:aref js:slot-value js:funcall))
                #'ps-print
                #'parenthesize-print)
            fun-designator)
   (psw #\() (print-comma-delimited-list args) (psw #\)))
 
-(defprinter js-block (block-type statements)
+(defprinter js:block (block-type statements)
   (case block-type
     (:statement
      (psw #\{)
@@ -184,10 +184,10 @@ arguments, defines a printer for that form using the given body."
            (ps-print statement) (when remaining (psw ", ")))
      (psw #\)))))
 
-(defprinter js-lambda (args body)
+(defprinter js:lambda (args body)
   (print-fun-def nil args body))
 
-(defprinter js-defun (name args body)
+(defprinter js:defun (name args body)
   (print-fun-def name args body))
 
 (defun print-fun-def (name args body-block)
@@ -197,7 +197,7 @@ arguments, defines a printer for that form using the given body."
   (psw ") ")
   (ps-print body-block))
 
-(defprinter js-object (slot-defs)
+(defprinter js:object (&rest slot-defs)
   (psw "{ ")
   (loop for ((slot-name . slot-value) . remaining) on slot-defs do
         (if (and (listp slot-name) (eq 'quote (car slot-name)) (symbolp (second slot-name)))
@@ -208,17 +208,17 @@ arguments, defines a printer for that form using the given body."
         (when remaining (psw ", ")))
   (psw " }"))
 
-(defprinter js-slot-value (obj slot)
-  (if (or (> (expression-precedence obj) #.(op-precedence 'js-slot-value))
+(defprinter js:slot-value (obj slot)
+  (if (or (> (expression-precedence obj) #.(op-precedence 'js:slot-value))
           (numberp obj)
-          (and (listp obj) (member (car obj) '(js-lambda js-object))))
+          (and (listp obj) (member (car obj) '(js:lambda js:object))))
       (parenthesize-print obj)
       (ps-print obj))
   (if (symbolp slot)
       (progn (psw #\.) (psw (js-translate-symbol slot)))
       (progn (psw #\[) (ps-print slot) (psw #\]))))
 
-(defprinter js-cond-statement (clauses)
+(defprinter js:cond (clauses)
   (loop for (test body-block) in clauses
         for start = "if (" then " else if (" do
         (if (equalp test "true")
@@ -246,30 +246,30 @@ arguments, defines a printer for that form using the given body."
       (parenthesize-print else)
       (ps-print else)))
 
-(defprinter js-assign (lhs rhs)
+(defprinter js:= (lhs rhs)
   (ps-print lhs) (psw " = ") (ps-print rhs))
 
-(defprinter js-var (var-name &rest var-value)
+(defprinter js:var (var-name &rest var-value)
   (psw "var ")
   (psw (js-translate-symbol var-name))
   (when var-value
     (psw " = ")
     (ps-print (car var-value))))
 
-(defprinter js-break (&optional label)
+(defprinter js:break (&optional label)
   (psw "break")
   (when label
     (psw " ")
     (psw (js-translate-symbol label))))
 
-(defprinter js-continue (&optional label)
+(defprinter js:continue (&optional label)
   (psw "continue")
   (when label
     (psw " ")
     (psw (js-translate-symbol label))))
 
 ;;; iteration
-(defprinter js-for (label vars tests steps body-block)
+(defprinter js:for (label vars tests steps body-block)
   (when label (psw (js-translate-symbol label)) (psw ": ") (newline-and-indent))
   (psw "for (")
   (loop for ((var-name . var-init) . remaining) on vars
@@ -284,7 +284,7 @@ arguments, defines a printer for that form using the given body."
   (psw ") ")
   (ps-print body-block))
 
-(defprinter js-for-in (var object body-block)
+(defprinter js:for-in (var object body-block)
   (psw "for (") (ps-print var) (psw " in ")
   (if (> (expression-precedence object) (op-precedence 'in))
       (parenthesize-print object)
@@ -292,15 +292,15 @@ arguments, defines a printer for that form using the given body."
   (psw ") ")
   (ps-print body-block))
 
-(defprinter js-while (test body-block)
+(defprinter js:while (test body-block)
   (psw "while (") (ps-print test) (psw ") ")
   (ps-print body-block))
 
-(defprinter js-with (expression body-block)
+(defprinter js:with (expression body-block)
   (psw "with (") (ps-print expression) (psw ") ")
   (ps-print body-block))
 
-(defprinter js-switch (test clauses)
+(defprinter js:switch (test clauses)
   (flet ((print-body-statements (body-statements)
            (incf *indent-level*)
            (loop for statement in body-statements do
@@ -321,7 +321,7 @@ arguments, defines a printer for that form using the given body."
     (newline-and-indent)
     (psw #\})))
 
-(defprinter js-try (body-block &key catch finally)
+(defprinter js:try (body-block &key catch finally)
   (psw "try ")
   (ps-print body-block)
   (when catch
@@ -332,42 +332,40 @@ arguments, defines a printer for that form using the given body."
     (ps-print finally)))
 
 ;;; regex
-(defprinter js-regex (regex)
+(defprinter js:regex (regex)
   (flet ((first-slash-p (string)
            (and (> (length string) 0) (char= (char string 0) #\/))))
     (let ((slash (unless (first-slash-p regex) "/")))
       (psw (format nil (concatenate 'string slash "~A" slash) regex)))))
 
 ;;; conditional compilation
-(defprinter cc-if (test body-forms)
+(defprinter js:cc-if (test &rest body)
   (psw "/*@if ")
   (ps-print test)
   (incf *indent-level*)
-  (dolist (form body-forms)
+  (dolist (form body)
     (newline-and-indent) (ps-print form) (psw #\;))
   (decf *indent-level*)
   (newline-and-indent)
   (psw "@end @*/"))
 
-(defprinter js-instanceof (value type)
+(defprinter js:instanceof (value type)
   (psw #\()
-  (if (> (expression-precedence value) (op-precedence 'js-instance-of))
+  (if (> (expression-precedence value) (op-precedence 'js:instanceof))
       (parenthesize-print value)
       (ps-print value))
   (psw " instanceof ")
-  (if (> (expression-precedence type) (op-precedence 'js-instance-of))
+  (if (> (expression-precedence type) (op-precedence 'js:instanceof))
       (parenthesize-print type)
       (ps-print type))
   (psw #\)))
 
-(defprinter js-escape (lisp-form)
-  (psw `(ps1* ,lisp-form)))
+(defprinter js:escape (literal-js)
+  (psw literal-js))
 
 ;;; named statements
-(macrolet ((def-stmt-printer (&rest stmts)
-             `(progn ,@(mapcar (lambda (stmt)
-                                 `(defprinter ,(intern (format nil "JS-~a" stmt)) (expr)
-                                    (psw (format nil "~(~a~) " ',stmt))
-                                    (ps-print expr)))
-                               stmts))))
-  (def-stmt-printer throw return))
+(defprinter js:throw (x)
+  (psw "throw ") (ps-print x))
+
+(defprinter js:return (x)
+  (psw "return ") (ps-print x))

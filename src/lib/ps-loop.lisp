@@ -153,8 +153,8 @@
               ,@(when last-time `((var ,last-guard nil)))
               ,@prologue
               ,@initially
-              (do ,init-step-forms
-                  ,end-test-forms
+              (do* ,init-step-forms
+                   ,end-test-forms
                 ,@(when first-time
                         `((when ,first-guard
                             ,@first-time

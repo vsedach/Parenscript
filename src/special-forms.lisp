@@ -26,7 +26,7 @@
 
 (defpsmacro quote (x)
   (typecase x
-    (cons (cons 'array (mapcar (lambda (x) `',x) x)))
+    (cons (cons 'array (mapcar (lambda (x) (when x `',x)) x)))
     (null '(array))
     (symbol (string-downcase x))
     (number x)

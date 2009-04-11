@@ -28,7 +28,7 @@
   (typecase x
     (cons (cons 'array (mapcar (lambda (x) `',x) x)))
     (null '(array))
-    (symbol (symbol-to-js-string x))
+    (symbol (string-downcase x))
     (number x)
     (string x)))
 

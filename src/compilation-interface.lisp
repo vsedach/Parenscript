@@ -17,12 +17,13 @@ to a JavaScript string at macro-expansion time."
     (ps1* ps-form)))
 
 (defun ps1* (ps-form)
-  (apply #'concatenate 'string
-         (mapcar (lambda (x)
-                   (if (stringp x)
+  (with-output-to-string (s)
+    (mapc (lambda (x)
+            (princ (if (stringp x)
                        x
-                       (eval x)))
-                 (parenscript-print (compile-parenscript-form ps-form :expecting :statement)))))
+                       (eval x))
+                   s))
+          (parenscript-print (compile-parenscript-form ps-form :expecting :statement)))))
 
 (defun ps* (&rest body)
   "Compiles BODY to a JavaScript string.

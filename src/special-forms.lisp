@@ -27,7 +27,7 @@
 (defpsmacro quote (x)
   (typecase x
     (cons (cons 'array (mapcar (lambda (x) `',x) x)))
-    (null '(make-array))
+    (null '(array))
     (symbol (symbol-to-js-string x))
     (number x)
     (string x)))

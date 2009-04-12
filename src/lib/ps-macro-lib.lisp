@@ -69,6 +69,12 @@
 (defpsmacro null (x)
   `(= ,x nil))
 
+(defpsmacro undefined (x)
+  `(=== undefined ,x))
+
+(defpsmacro defined (x)
+  `(not (undefined ,x)))
+
 (defpsmacro @ (obj &rest props)
   "Handy slot-value/aref composition macro."
   (if props
@@ -92,3 +98,49 @@
 (defpsmacro with-lambda (()  &body body)
   "Wraps BODY in a lambda so that it can be treated as an expression."
   `((lambda () ,@body)))
+
+(defpsmacro stringp (x)
+  `(= (typeof ,x) "string"))
+
+(defpsmacro numberp (x)
+  `(= (typeof ,x) "number"))
+
+(defpsmacro functionp (x)
+  `(= (typeof ,x) "function"))
+
+(defpsmacro objectp (x)
+  `(= (typeof ,x) "object"))
+
+(defpsmacro memoize (fn-expr)
+  (destructuring-bind (defun fn-name (arg) &rest fn-body)
+      fn-expr
+    (declare (ignore defun))
+    (with-ps-gensyms (table value compute-fn)
+      `(let ((,table {}))
+         (defun ,compute-fn (,arg) ,@fn-body)
+         (defun ,fn-name (,arg)
+           (let ((,value (aref ,table ,arg)))
+             (when (null ,value)
+               (setf ,value (,compute-fn ,arg))
+               (setf (aref ,table ,arg) ,value))
+             (return ,value)))))))
+
+(defpsmacro append (arr1 &rest arrs)
+  (if arrs
+      `((@ ,arr1 :concat) ,@arrs)
+      arr1))
+
+(defpsmacro apply (fn &rest args)
+  (let ((arglist (if (> (length args) 1)
+                     `(append (list ,@(butlast args)) ,(car (last args)))
+                     (first args))))
+    `((@ ,fn :apply) this ,arglist)))
+
+(defpsmacro destructuring-bind (vars expr &body body)
+  ;; a simple implementation that for now only supports flat lists
+  (let* ((arr (if (complex-js-expr-p expr) (ps-gensym) expr))
+         (n -1)
+         (bindings
+          (append (unless (equal arr expr) `((,arr ,expr)))
+                  (mapcar (lambda (var) `(,var (aref ,arr ,(incf n)))) vars))))
+    `(let ,bindings ,@body)))

@@ -183,8 +183,18 @@
       #:concat-string
       #:length
       #:null
+      #:defined
+      #:undefined
       #:@
       #:with-lambda
+      #:stringp
+      #:numberp
+      #:functionp
+      #:objectp
+      #:memoize
+      #:append
+      #:apply
+      #:destructuring-bind
 
       ;; js runtime utils
       #:*ps-lisp-library*

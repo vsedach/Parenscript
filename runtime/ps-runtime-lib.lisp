@@ -1,4 +1,4 @@
-(in-package :parenscript)
+(in-package "PARENSCRIPT")
 
 ;;; Script of library functions you can include with your own code to
 ;;; provide standard Lisp functionality.
@@ -9,10 +9,10 @@
       (let ((result-array (make-array)))
         (if (= 1 (length as))
             (dolist (element (aref as 0))
-              (result-array.push (fun element)))
+              ((@ result-array push) (fun element)))
             (dotimes (i (length (aref as 0)))
               (let ((args-array (mapcar (lambda (a) (return (aref a i))) as)))
-                (result-array.push (fun.apply fun args-array)))))
+                ((@ result-array push) ((@ fun apply) fun args-array)))))
         (return result-array)))
 
     (defun map-into (fn arr)
@@ -47,22 +47,6 @@
         (if (= el item)
             (return true)))
       (return false))
-
-    (defun append (arr1 arr2)
-      "Return a new array with the contents of ARR1 and ARR2. If ARR2 is not an array
-then append it as a member."
-      (let ((result (array))
-            (idx 0))
-        (dolist (el arr1)
-          (setf (aref result idx) el)
-          (setf idx (1+ idx)))
-        (unless (= arr2 undefined)
-          (if (instanceof arr2 *array)
-              (dolist (el arr2)
-                (setf (aref result idx) el)
-                (setf idx (1+ idx)))
-              (setf (aref result idx) arr2))))
-      (return result))
 
     (defun set-difference (arr arr-to-sub)
       "Return a new array with only those elements in ARR that are not in ARR-TO-SUB."

@@ -5,9 +5,9 @@
       (find #\. (symbol-name expr))
       (consp expr)))
 
-(defvar *loop-clauses* '(:for :do :when :unless :initially :finally :first-time :last-time :while :until))
 (defvar *loop-keywords*
-  (append *loop-clauses* '(:from :to :below :downto :above :by :in :across :index := :then :sum :into)))
+  '(:for :do :when :unless :initially :finally :first-time :last-time :while :until
+    :from :to :below :downto :above :by :in :across :index := :then :sum :collect))
 
 (defun normalize-loop-keywords (args)
   (mapcar (lambda (x)
@@ -16,11 +16,12 @@
                 x))
           args))
 
-(defun parse-js-loop (terms)
+(defun parse-ps-loop (terms)
   (let (prologue
         init-step-forms end-test-forms
         initially finally
         first-time last-time
+        accum-var accum-kind
         body)
     (macrolet ((with-local-var ((name expr) &body body)
                  (once-only (expr)
@@ -34,7 +35,7 @@
                (next? (term)
                  (eq (next) term))
                (err (expected got)
-                 (error "JS-LOOP expected ~s, got ~s." expected got))
+                 (error "PS-LOOP expected ~s, got ~s." expected got))
                (consume (&optional what)
                  (let ((term (pop terms)))
                    (when (and what (not (eq what term)))
@@ -53,18 +54,24 @@
                  (when (next? term)
                    (consume)
                    (consume)))
+               (establish-accum-var (kind initial-val)
+                 (if accum-var
+                     (error "PS-LOOP encountered illegal ~a: a ~a was previously declared, and there can only be one accumulation per loop." kind accum-kind)
+                     (progn
+                       (setf accum-var (ps-gensym kind)
+                             accum-kind kind)
+                       (push `(var ,accum-var ,initial-val) prologue))))
                (body-clause (term)
                  (case term
                    ((:when :unless) (list (intern (symbol-name term))
                                           (consume)
                                           (body-clause (consume-atom))))
-                   (:sum (let ((sum-expr (consume)))
-                           (consume :into)
-                           (let ((sum-var (consume-atom)))
-                             (push `(var ,sum-var 0) prologue)
-                             `(incf ,sum-var ,sum-expr))))
+                   (:sum (establish-accum-var :sum 0)
+                         `(incf ,accum-var ,(consume)))
+                   (:collect (establish-accum-var :collect '(array))
+                     `((@ ,accum-var :push) ,(consume)))
                    (:do (consume-progn))
-                   (otherwise (err "a JS-LOOP keyword" term))))
+                   (otherwise (err "a PS-LOOP keyword" term))))
                (for-from (var)
                  (let ((start (consume))
                        (op '+)
@@ -101,7 +108,7 @@
                      (:from (for-from var))
                      (:= (for-= var))
                      ((:in :across) (for-in var))
-                     (otherwise (error "FOR ~s ~s is not valid in JS-LOOP." var term)))))
+                     (otherwise (error "FOR ~s ~s is not valid in PS-LOOP." var term)))))
                (clause ()
                  (let ((term (consume-atom)))
                    (case term
@@ -127,6 +134,7 @@
                 (nreverse finally)
                 (nreverse first-time)
                 (nreverse last-time)
+                accum-var
                 (nreverse body))))))
 
 (defpsmacro loop (&rest args)
@@ -134,22 +142,25 @@
                         init-step-forms end-test-forms
                         initially finally
                         first-time last-time
+                        accum-var
                         body)
-      (parse-js-loop (normalize-loop-keywords args))
+      (parse-ps-loop (normalize-loop-keywords args))
     (let ((first-guard (and first-time (ps-gensym)))
           (last-guard (and last-time (ps-gensym))))
-      `(progn ,@(when first-time `((var ,first-guard t)))
-              ,@(when last-time `((var ,last-guard nil)))
-              ,@prologue
-              ,@initially
-              (do* ,init-step-forms
-                   ,end-test-forms
-                ,@(when first-time
-                        `((when ,first-guard
-                            ,@first-time
-                            (setf ,first-guard nil))))
-                ,@body
-                ,@(when last-time
-                        `((setf ,last-guard t))))
-              ,@(when last-time `((when ,last-guard ,@last-time)))
-              ,@finally))))
+      `(,@(if accum-var '(with-lambda ()) '(progn))
+          ,@(when first-time `((var ,first-guard t)))
+          ,@(when last-time `((var ,last-guard nil)))
+          ,@prologue
+          ,@initially
+          (do* ,init-step-forms
+               ,end-test-forms
+            ,@(when first-time
+                    `((when ,first-guard
+                        ,@first-time
+                        (setf ,first-guard nil))))
+            ,@body
+            ,@(when last-time
+                    `((setf ,last-guard t))))
+          ,@(when last-time `((when ,last-guard ,@last-time)))
+          ,@finally
+          ,@(when accum-var `((return ,accum-var)))))))

@@ -785,3 +785,15 @@ try {
 (test-ps-js literal-array-1
   '(1 foo 3)
   "[1, 'foo', 3]")
+
+(test ps-lisp-expands-in-lexical-environment
+  (is (string= "5;" (let ((x 5)) (ps (lisp x))))))
+
+(test ps*-lisp-expands-in-null-lexical-environment
+  (signals error (let ((x 5)) (ps* '(lisp x)))))
+
+(test ps*-lisp-expands-in-dynamic-environment
+  (is (string= "1 + 2;" (let ((*print-level* 2)) (ps* '(+ 1 (lisp *print-level*)))))))
+
+(test ps-lisp-dynamic-environment
+  (is (string= "1 + 2;" (let ((*print-level* 2)) (ps (+ 1 (lisp *print-level*)))))))

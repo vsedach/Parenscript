@@ -92,6 +92,7 @@
       #:do*
       #:dotimes
       #:dolist
+      #:loop
 
       ;; with
       #:with

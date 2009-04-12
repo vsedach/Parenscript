@@ -721,4 +721,4 @@ lambda-list::=
 (define-ps-special-form lisp (lisp-form)
   ;; (ps (foo (lisp bar))) is in effect equivalent to (ps* `(foo ,bar))
   ;; when called from inside of ps*, lisp-form has access only to the dynamic environment (like for eval)
-  `(js:escape ,(ps1* lisp-form)))
+  `(js:escape (ps1* ,lisp-form)))

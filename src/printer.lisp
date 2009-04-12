@@ -361,6 +361,7 @@ arguments, defines a printer for that form using the given body."
   (psw #\)))
 
 (defprinter js:escape (literal-js)
+  ;; literal-js should be a form that evaluates to a string containing valid JavaScript
   (psw literal-js))
 
 ;;; named statements

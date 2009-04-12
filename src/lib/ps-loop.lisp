@@ -1,16 +1,5 @@
 (in-package :parenscript)
 
-(defmacro aif (test-form then-form &optional else-form)
-  `(let ((it ,test-form))
-     (if it ,then-form ,else-form)))
-
-(defmacro once-only ((&rest names) &body body) ;; the version from PCL
-  (let ((gensyms (loop for nil in names collect (gensym))))
-    `(let (,@(loop for g in gensyms collect `(,g (gensym))))
-       `(let (,,@(loop for g in gensyms for n in names collect ``(,,g ,,n)))
-          ,(let (,@(loop for n in names for g in gensyms collect `(,n ,g)))
-                ,@body)))))
-
 (defun complex-js-expr? (expr)
   (if (symbolp expr)
       (find #\. (symbol-name expr))

@@ -184,6 +184,7 @@
       #:length
       #:null
       #:@
+      #:with-lambda
 
       ;; js runtime utils
       #:*ps-lisp-library*

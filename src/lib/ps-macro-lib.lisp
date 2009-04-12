@@ -88,3 +88,7 @@
 
 (defpsmacro elt (array index)
   `(aref ,array ,index))
+
+(defpsmacro with-lambda (()  &body body)
+  "Wraps BODY in a lambda so that it can be treated as an expression."
+  `((lambda () ,@body)))

@@ -196,6 +196,15 @@
       #:apply
       #:destructuring-bind
 
+      ;; DOM accessing utils
+      #:inner-html
+      #:uri-encode
+      #:attribute
+      #:offset
+      #:scroll
+      #:inner
+      #:client
+      
       ;; js runtime utils
       #:*ps-lisp-library*
       #:mapcar

@@ -221,7 +221,7 @@ x = 2 + sideEffect() + x + 5;")
 
 (test-ps-js quoted-nil-is-array
   'nil
-  "new Array()")
+  "[]")
 
 (test-ps-js defsetf1
   (progn (defsetf baz (x y) (newval) `(set-baz ,x ,y ,newval))
@@ -382,19 +382,16 @@ __setf_someThing(_js1, _js2, _js3);")
 
 (test-ps-js defun-keyword1
   (defun zoo (foo bar &key baz) (return (+ foo bar baz)))
-  "function zoo(foo, bar) {
+"function zoo(foo, bar) {
     var baz;
-    var _js4 = arguments.length;
-    var n1 = 2;
-    for (; n1 < _js4; ) {
+    var _js3 = arguments.length;
+    for (var n1 = 2; n1 < _js3; n1 += 2) {
         switch (arguments[n1]) {
         case 'baz':
             {
                 baz = arguments[n1 + 1];
             };
         };
-        var _js5 = n1 + 2;
-        n1 = _js5;
     };
     if (baz === undefined) {
         baz = null;
@@ -406,17 +403,14 @@ __setf_someThing(_js1, _js2, _js3);")
   (defun zoo (&key baz) (return (* baz baz)))
   "function zoo() {
     var baz;
-    var _js4 = arguments.length;
-    var n1 = 0;
-    for (; n1 < _js4; ) {
+    var _js3 = arguments.length;
+    for (var n1 = 0; n1 < _js3; n1 += 2) {
         switch (arguments[n1]) {
         case 'baz':
             {
                 baz = arguments[n1 + 1];
             };
         };
-        var _js5 = n1 + 2;
-        n1 = _js5;
     };
     if (baz === undefined) {
         baz = null;
@@ -429,9 +423,8 @@ __setf_someThing(_js1, _js2, _js3);")
   "function zoo() {
     var baz;
     var bar;
-    var _js4 = arguments.length;
-    var n1 = 0;
-    for (; n1 < _js4; ) {
+    var _js3 = arguments.length;
+    for (var n1 = 0; n1 < _js3; n1 += 2) {
         switch (arguments[n1]) {
         case 'baz':
             {
@@ -443,8 +436,6 @@ __setf_someThing(_js1, _js2, _js3);")
                 bar = arguments[n1 + 1];
             };
         };
-        var _js5 = n1 + 2;
-        n1 = _js5;
     };
     if (baz === undefined) {
         baz = null;
@@ -790,7 +781,7 @@ try {
   (is (string= "5;" (let ((x 5)) (ps (lisp x))))))
 
 (test ps*-lisp-expands-in-null-lexical-environment
-  (signals error (let ((x 5)) (ps* '(lisp x)))))
+  (signals error (let ((x 5)) (declare (ignore x)) (ps* '(lisp x)))))
 
 (test ps*-lisp-expands-in-dynamic-environment
   (is (string= "1 + 2;" (let ((*print-level* 2)) (ps* '(+ 1 (lisp *print-level*)))))))

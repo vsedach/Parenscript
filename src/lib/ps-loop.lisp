@@ -10,11 +10,12 @@
     :from :to :below :downto :above :by :in :across :index := :then :sum :collect))
 
 (defun normalize-loop-keywords (args)
-  (mapcar (lambda (x)
-            (or (find-if (lambda (key) (eq x (intern (string key))))
-                         *loop-keywords*)
-                x))
-          args))
+  (mapcar
+   (lambda (x)
+     (or (find-if (lambda (key) (and (symbolp x) (equal (symbol-name x) (symbol-name key))))
+                  *loop-keywords*)
+         x))
+   args))
 
 (defun parse-ps-loop (terms)
   (let (prologue
@@ -22,7 +23,7 @@
         initially finally
         first-time last-time
         accum-var accum-kind
-        body)
+        destructurings body)
     (macrolet ((with-local-var ((name expr) &body body)
                  (once-only (expr)
                    `(let ((,name (aif (and (complex-js-expr? ,expr) (ps-gensym))
@@ -35,7 +36,7 @@
                (next? (term)
                  (eq (next) term))
                (err (expected got)
-                 (error "PS-LOOP expected ~s, got ~s." expected got))
+                 (error "PS-LOOP expected ~a, got ~a." expected got))
                (consume (&optional what)
                  (let ((term (pop terms)))
                    (when (and what (not (eq what term)))
@@ -102,8 +103,15 @@
                      (clause)
                      (clause))))
                (for-clause ()
-                 (let ((var (consume-atom))
-                       (term (consume-atom)))
+                 (let* ((place (consume))
+                        (var (when (atom place) place))
+                        (varlist (unless var place))
+                        (term (consume-atom)))
+                   (when varlist
+                     (when (eq term :from)
+                       (err "an atom after FROM" varlist))
+                     (setf var (ps-gensym))
+                     (push (list varlist var) destructurings))
                    (case term
                      (:from (for-from var))
                      (:= (for-= var))
@@ -122,24 +130,31 @@
                      (otherwise (push (body-clause term) body))))))
         (if terms
             (loop :while terms :do (clause))
-            (err "loop definition" nil))
+            (err "loop definition" nil)))
+      (flet ((end-test ()
+               (aif (nreverse end-test-forms)
+                    (if (cdr it)
+                        (list (cons 'or it))
+                        it)
+                    (list nil)))
+             (add-destructurings-to-body ()
+               (setf body (nreverse body))
+               (loop :for (list var) :in destructurings :do
+                 (setf body `((destructuring-bind ,list ,var ,@body))))
+               body))
         (values (nreverse prologue)
                 (nreverse init-step-forms)
-                (aif (nreverse end-test-forms)
-                     (if (cdr it)
-                         (list (cons 'or it))
-                         it)
-                     (list nil))
+                (end-test)
                 (nreverse initially)
                 (nreverse finally)
                 (nreverse first-time)
                 (nreverse last-time)
                 accum-var
-                (nreverse body))))))
+                (add-destructurings-to-body))))))
 
 (defpsmacro loop (&rest args)
   (multiple-value-bind (prologue
-                        init-step-forms end-test-forms
+                        init-step-forms end-test
                         initially finally
                         first-time last-time
                         accum-var
@@ -153,7 +168,7 @@
           ,@prologue
           ,@initially
           (do* ,init-step-forms
-               ,end-test-forms
+               ,end-test
             ,@(when first-time
                     `((when ,first-guard
                         ,@first-time

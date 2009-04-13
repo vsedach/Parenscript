@@ -1,12 +1,7 @@
+(in-package "PARENSCRIPT")
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; ParenScript namespace system
-
-(in-package :parenscript)
-
-(defun ensure-ps-symbol (symbol)
-  (if (eq (symbol-package symbol) #.(find-package :parenscript))
-      symbol
-      (intern (symbol-name symbol) #.(find-package :parenscript))))
 
 ;;; Symbol obfuscation
 (defvar *obfuscated-packages* (make-hash-table))

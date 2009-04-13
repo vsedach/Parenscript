@@ -166,7 +166,7 @@
 (define-ps-special-form switch (test-expr &rest clauses)
   `(js:switch ,(compile-parenscript-form test-expr :expecting :expression)
      ,(loop for (val . body) in clauses collect
-           (cons (if (and (symbolp val) (eq (ensure-ps-symbol val) 'default))
+           (cons (if (eq val 'default)
                      'default
                      (compile-parenscript-form val :expecting :expression))
                  (mapcar (lambda (x) (compile-parenscript-form x :expecting :statement))
@@ -322,7 +322,7 @@ lambda-list::=
   [&aux {var | (var [init-form])}*])"
   (if (symbolp name)
       `(defun-function ,name ,lambda-list ,@body)
-      (progn (assert (and (= (length name) 2) (eq 'setf (ensure-ps-symbol (car name)))) ()
+      (progn (assert (and (listp name) (= (length name) 2) (eq 'setf (car name))) ()
                      "(defun ~s ~s ...) needs to have a symbol or (setf symbol) for a name." name lambda-list)
              `(defun-setf ,name ,lambda-list ,@body))))
 

@@ -229,7 +229,7 @@ the form cannot be compiled to a symbol."
         (t `(js:variable ,symbol))))
 
 (defun ps-convert-op-name (op)
-  (case (ensure-ps-symbol op)
+  (case op
     (and '\&\&)
     (or '\|\|)
     (not '!)

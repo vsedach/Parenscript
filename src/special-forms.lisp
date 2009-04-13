@@ -114,7 +114,7 @@
   (when body
     (if (and (listp (car body))
              (eq 'js:block (caar body)))
-        (append (third (car body)) (flatten-blocks (cdr body)))
+        (append (cdr (car body)) (flatten-blocks (cdr body)))
         (cons (car body) (flatten-blocks (cdr body))))))
 
 (defun constant-literal-form-p (form)
@@ -126,21 +126,21 @@
 (define-ps-special-form progn (&rest body)
   (if (and (eq expecting :expression) (= 1 (length body)))
       (compile-parenscript-form (car body) :expecting :expression)
-      `(js:block
-           ,expecting
-         ,(let* ((block (flatten-blocks (remove nil (mapcar (lambda (form)
-                                                              (compile-parenscript-form form :expecting expecting))
-                                                            body)))))
+      `(,(if (eq expecting :expression) 'js:|,| 'js:block)
+         ,@(let* ((block (flatten-blocks (remove nil (mapcar (lambda (form)
+                                                               (compile-parenscript-form form :expecting expecting))
+                                                             body)))))
                  (append (remove-if #'constant-literal-form-p (butlast block)) (last block))))))
 
 (define-ps-special-form cond (&rest clauses)
   (ecase expecting
-    (:statement `(js:cond ,(mapcar (lambda (clause)
-                                     (destructuring-bind (test &rest body)
-                                         clause
-                                       (list (compile-parenscript-form test :expecting :expression)
-                                             (compile-parenscript-form `(progn ,@body) :expecting :statement))))
-                                   clauses)))
+    (:statement `(js:if ,(compile-parenscript-form (caar clauses) :expecting :expression)
+                        ,(compile-parenscript-form `(progn ,@(cdar clauses)))
+                        ,@(loop for (test . body) in (cdr clauses) appending
+                               (if (eq t test)
+                                   `(:else ,(compile-parenscript-form `(progn ,@body) :expecting :statement))
+                                   `(:else-if ,(compile-parenscript-form test :expecting :expression)
+                                              ,(compile-parenscript-form `(progn ,@body) :expecting :statement))))))
     (:expression (make-cond-clauses-into-nested-ifs clauses))))
 
 (defun make-cond-clauses-into-nested-ifs (clauses)
@@ -158,7 +158,7 @@
   (ecase expecting
     (:statement `(js:if ,(compile-parenscript-form test :expecting :expression)
                         ,(compile-parenscript-form `(progn ,then))
-                        ,(when else (compile-parenscript-form `(progn ,else)))))
+                        ,@(when else `(:else ,(compile-parenscript-form `(progn ,else))))))
     (:expression `(js:? ,(compile-parenscript-form test :expecting :expression)
                         ,(compile-parenscript-form then :expecting :expression)
                         ,(compile-parenscript-form else :expecting :expression)))))

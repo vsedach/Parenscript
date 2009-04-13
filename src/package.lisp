@@ -265,35 +265,101 @@
       ))
 
   (defparameter *javascript-exports*
-    '(;; for representing js code as s-expressions
-      #:?
-      #:if
-      #:unary-operator
+    '(;;; for representing js code as s-expressions
+
+      ;; operators
+      ; arithmetic
+      #:+
+      #:-
+      #:*
+      #:/
+      #:%
+
+      ; bitwise
+      #:&
+      #:|\||
+      #:^
+      #:~
+      #:>>
+      #:<<
+      #:>>>
+
+      ; assignment
+      #:=
+      #:+=
+      #:-=
+      #:*=
+      #:/=
+      #:%=
+      #:&=
+      #:\|=
+      #:^+
+      #:>>=
+      #:<<=
+      #:>>>=
+
+      ; increment/decrement
+      #:++
       #:--
+
+      ; comparison
+      #:==
+      #:===
+      #:!=
+      #:!==
+      #:>
+      #:>=
+      #:<
+      #:<=
+
+      ; logical
+      #:&&
+      #:||||
       #:!
+      
+      ; misc
+      #:? ; ternary
+      #:|,|
+      #:delete
+      #:function
+      #:get
+      #:in
+      #:instanceof
+      #:new
+      #:this
+      #:typeof
+      #:void
+      
+
+      ;; statements
       #:block
-      #:literal
       #:break
       #:continue
+      #:do-while
+      #:for
+      #:for-in
+      #:if
+      #:label
       #:return
+      #:switch
       #:throw
+      #:try
+      #:var
+      #:while
+      #:with
+
+      
+      #:unary-operator
+      #:literal
       #:array
       #:aref
-      #:++
-      #:+=
       #:operator
-      #:-=
-      #:-
-      #:=
       #:cond
       #:lambda
       #:object
       #:variable
       #:slot-value
-      #:new
       #:funcall
-      #:instanceof
-      #:in
       #:escape
       ))
   )

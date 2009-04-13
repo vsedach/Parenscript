@@ -16,7 +16,7 @@ vice-versa.")
   (let ((*indent-level* 0)
         (*print-accumulator* ()))
     (if (and (listp form) (eq 'js:block (car form))) ; ignore top-level block
-        (loop for (statement . remaining) on (third form) do
+        (loop for (statement . remaining) on (cdr form) do
              (ps-print statement) (psw ";") (when remaining (psw #\Newline)))
         (ps-print form))
     (nreverse *print-accumulator*)))
@@ -168,21 +168,20 @@ arguments, defines a printer for that form using the given body."
            fun-designator)
   (psw #\() (print-comma-delimited-list args) (psw #\)))
 
-(defprinter js:block (block-type statements)
-  (case block-type
-    (:statement
-     (psw #\{)
-     (incf *indent-level*)
-     (dolist (statement statements)
-       (newline-and-indent) (ps-print statement) (psw #\;))
-     (decf *indent-level*)
-     (newline-and-indent)
-     (psw #\}))
-    (:expression
-     (psw #\()
-     (loop for (statement . remaining) on statements do
-           (ps-print statement) (when remaining (psw ", ")))
-     (psw #\)))))
+(defprinter js:|,| (&rest expressions)
+  (psw #\()
+  (loop for (exp . remaining) on expressions do
+       (ps-print exp) (when remaining (psw ", ")))
+  (psw #\)))
+
+(defprinter js:block (&rest statements)
+  (psw #\{)
+  (incf *indent-level*)
+  (dolist (statement statements)
+    (newline-and-indent) (ps-print statement) (psw #\;))
+  (decf *indent-level*)
+  (newline-and-indent)
+  (psw #\}))
 
 (defprinter js:lambda (args body)
   (print-fun-def nil args body))
@@ -218,22 +217,17 @@ arguments, defines a printer for that form using the given body."
       (progn (psw #\.) (psw (js-translate-symbol slot)))
       (progn (psw #\[) (ps-print slot) (psw #\]))))
 
-(defprinter js:cond (clauses)
-  (loop for (test body-block) in clauses
-        for start = "if (" then " else if (" do
-        (if (equalp test "true")
-            (psw " else ")
-            (progn (psw start)
-                   (ps-print test)
-                   (psw ") ")))
-        (ps-print body-block)))
-
-(defprinter js:if (test then-block else-block)
+(defprinter js:if (test consequent &rest clauses)
   (psw "if (") (ps-print test) (psw ") ")
-  (ps-print then-block)
-  (when else-block
-      (psw " else ")
-      (ps-print else-block)))
+  (ps-print consequent)
+  (loop while clauses do
+       (ecase (car clauses)
+         (:else-if (psw " else if (") (ps-print (cadr clauses)) (psw ") ")
+                   (ps-print (caddr clauses))
+                   (setf clauses (cdddr clauses)))
+         (:else (psw " else ")
+                (ps-print (cadr clauses))
+                (return)))))
 
 (defprinter js:? (test then else)
   (ps-print test)

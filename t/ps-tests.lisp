@@ -465,7 +465,8 @@ __setf_someThing(_js1, _js2, _js3);")
 }")
 
 (test-ps-js cond2
-  (cond ((= x 1) 2) ((= y (* x 4)) (foo "blah") (* x y)))
+  (cond ((= x 1) 2)
+        ((= y (* x 4)) (foo "blah") (* x y)))
   "if (x == 1) {
     2;
 } else if (y == x * 4) {

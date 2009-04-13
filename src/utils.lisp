@@ -100,11 +100,6 @@ SOMEGLOBAL."
   (reduce (lambda (list el) (remove el list :test test))
           (cons list1 list2)))
 
-(defun flatten (x &optional acc)
-  (cond ((null x) acc)
-        ((atom x) (cons x acc))
-        (t (flatten (car x) (flatten (cdr x) acc)))))
-
 (defmacro aif (test-form then-form &optional else-form)
   `(let ((it ,test-form))
      (if it ,then-form ,else-form)))

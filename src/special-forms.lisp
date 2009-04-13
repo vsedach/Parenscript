@@ -287,20 +287,28 @@ the given lambda-list and body."
                     optionals))
            (key-forms
             (when keys?
-              (with-ps-gensyms (n)
-                (let ((decls nil) (assigns nil) (defaults nil))
-                  (mapc (lambda (k)
-                          (multiple-value-bind (var init-form keyword)
-                              (parse-key-spec k)
-                            (push (list 'var var) decls)
-                            (push `(,keyword (setf ,var (aref arguments (1+ ,n)))) assigns)
-                            (push (list 'defaultf var init-form) defaults)))
-                        (reverse keys))
-                  `(,@decls
-                    (loop :for ,n :from ,(length requireds)
-                      :below (length arguments) :by 2 :do
-                      (case (aref arguments ,n) ,@assigns))
-                    ,@defaults)))))
+              (if (< *js-target-version* 1.6)
+                  (with-ps-gensyms (n)
+                    (let ((decls nil) (assigns nil) (defaults nil))
+                      (mapc (lambda (k)
+                              (multiple-value-bind (var init-form keyword-str)
+                                  (parse-key-spec k)
+                                (push `(var ,var) decls)
+                                (push `(,keyword-str (setf ,var (aref arguments (1+ ,n)))) assigns)
+                                (push (list 'defaultf var init-form) defaults)))
+                            (reverse keys))
+                      `(,@decls
+                        (loop :for ,n :from ,(length requireds)
+                           :below (length arguments) :by 2 :do
+                           (case (aref arguments ,n) ,@assigns))
+                        ,@defaults)))
+                  (mapcar (lambda (k)
+                            (multiple-value-bind (var init-form keyword-str)
+                                (parse-key-spec k)
+                              (with-ps-gensyms (x)
+                                `(let ((,x ((@ *Array prototype index-of call) arguments ,keyword-str ,(length requireds))))
+                                   (var ,var (if (= -1 ,x) ,init-form (aref arguments (1+ ,x))))))))
+                          keys))))
            (rest-form
             (if rest?
                 (with-ps-gensyms (i)

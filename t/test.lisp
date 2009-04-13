@@ -30,9 +30,10 @@
      (same-space-between-statements
       (normalize-whitespace str))))))
 
-(defmacro test-ps-js (testname parenscript javascript)
+(defmacro test-ps-js (testname parenscript javascript &key (js-target-version *js-target-version*))
   `(test ,testname ()
-         (is (string= (normalize-js-code (ps-doc* ',parenscript))
+         (is (string= (normalize-js-code (let ((*js-target-version* ,js-target-version))
+                                           (ps-doc* ',parenscript)))
                       (normalize-js-code ,javascript)))))
 
 (defun run-tests()
@@ -42,4 +43,3 @@
   (run! 'ps-tests)
   (format t "Running Package System tests:~&")
   (run! 'package-system-tests))
-

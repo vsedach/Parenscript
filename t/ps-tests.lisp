@@ -789,3 +789,13 @@ try {
 
 (test ps-lisp-dynamic-environment
   (is (string= "1 + 2;" (let ((*print-level* 2)) (ps (+ 1 (lisp *print-level*)))))))
+
+(test-ps-js ps-js-target-version-keyword-test1
+  (defun foo (x y &key bar baz))
+  "function foo(x, y) {
+    var x1 = Array.prototype.indexOf.call(arguments, 'bar', 2);
+    var bar = -1 == x1 ? null : arguments[x1 + 1];
+    var x2 = Array.prototype.indexOf.call(arguments, 'baz', 2);
+    var baz = -1 == x2 ? null : arguments[x2 + 1];
+}"
+  :js-target-version 1.6)

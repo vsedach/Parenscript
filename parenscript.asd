@@ -21,9 +21,9 @@
                                      (:file "namespace")
                                      (:file "parse-lambda-list")
                                      (:file "compiler")
-                                     (:file "special-forms")
                                      (:file "printer")
                                      (:file "compilation-interface")
+                                     (:file "special-forms")
                                      (:file "deprecated-interface")
                                      (:file "js-dom-symbol-exports")
                                      ;; standard library

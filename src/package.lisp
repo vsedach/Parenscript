@@ -217,6 +217,7 @@
       ))
   (defparameter *parenscript-interface-exports*
     '(;; compiler
+      #:*js-target-version*
       #:compile-script
       #:ps
       #:ps-doc

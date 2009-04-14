@@ -34,7 +34,8 @@
     (#\+ . "Plus")
     (#\* . "Star")
     (#\/ . "Slash")
-    (#\= . "Equals")))
+    (#\= . "Equals")
+    (#\: . "Colon")))
 
 ;;; Parenscript-style symbol -> Javascript-style symbol
 

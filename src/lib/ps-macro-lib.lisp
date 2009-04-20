@@ -138,7 +138,7 @@
 
 (defpsmacro destructuring-bind (vars expr &body body)
   ;; a simple implementation that for now only supports flat lists
-  (let* ((arr (if (complex-js-expr-p expr) (ps-gensym) expr))
+  (let* ((arr (if (complex-js-expr? expr) (ps-gensym) expr))
          (n -1)
          (bindings
           (append (unless (equal arr expr) `((,arr ,expr)))

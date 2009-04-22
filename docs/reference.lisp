@@ -318,10 +318,9 @@ a-variable  => aVariable
 ;;;t \index{method call}
 
 ; (function {argument}*)
-; (method   object {argument}*)
+
 ;
 ; function ::= a Parenscript expression or a Lisp symbol
-; method   ::= a Lisp symbol beginning with .
 ; object   ::= a Parenscript expression
 ; argument ::= a Parenscript expression
 

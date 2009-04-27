@@ -446,6 +446,26 @@ __setf_someThing(_js1, _js2, _js3);")
     return baz * bar;
 }")
 
+(test-ps-js defun-keyword4
+  (defun hello-world (&key ((:my-name-key my-name) 1))
+    my-name)
+  "function helloWorld() {
+    var myName;
+    var _js3 = arguments.length;
+    for (var n1 = 0; n1 < _js3; n1 += 2) {
+        switch (arguments[n1]) {
+        case 'my-name-key':
+            {
+                myName = arguments[n1 + 1];
+            };
+        };
+    };
+    if (myName === undefined) {
+        myName = 1;
+    };
+    myName;
+}")
+
 (test-ps-js keyword-funcall1
   (func :baz 1)
   "func('baz', 1)")

@@ -228,7 +228,7 @@ Syntax of key spec:
 "
   (let* ((var (cond ((symbolp key-spec) key-spec)
                     ((and (listp key-spec) (symbolp (first key-spec))) (first key-spec))
-                    ((and (listp key-spec) (listp (first key-spec)))   (second key-spec))))
+                    ((and (listp key-spec) (listp (first key-spec)))   (second (first key-spec)))))
          (keyword-name (if (and (listp key-spec) (listp (first key-spec)))
                            (first (first key-spec))
                            (intern (string var) :keyword)))

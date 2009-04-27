@@ -1,6 +1,6 @@
 (in-package "PARENSCRIPT")
 
-(defvar *js-target-version* 1.3)
+(defparameter *js-target-version* 1.3)
 
 (defmacro ps (&body body)
   "Given Parenscript forms (an implicit progn), compiles those forms

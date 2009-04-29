@@ -819,3 +819,11 @@ try {
     var baz = -1 == x2 ? null : arguments[x2 + 1];
 }"
   :js-target-version 1.6)
+
+(test-ps-js nested-if-expressions1
+  (return (if (if x y z) a b))
+  "return (x ? y : z) ? a : b")
+
+(test-ps-js nested-if-expressions2
+  (return (if x y (if z a b)))
+  "return x ? y : (z ? a : b)")

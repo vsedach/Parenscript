@@ -230,7 +230,9 @@ arguments, defines a printer for that form using the given body."
                 (return)))))
 
 (defprinter js:? (test then else)
-  (ps-print test)
+  (if (>= (expression-precedence test) (op-precedence 'js:?))
+      (parenthesize-print test)
+      (ps-print test))
   (psw " ? ")
   (if (>= (expression-precedence then) (op-precedence 'js:?))
       (parenthesize-print then)

@@ -29,8 +29,8 @@
 designated package when translating ParenScript code."
   `(gethash (find-package ,package) *package-prefix-table*))
 
-(defun js-translate-symbol (symbol)
-  (let ((possibly-obfuscated-symbol (maybe-obfuscate-symbol symbol)))
-    (if (ps-package-prefix (symbol-package symbol))
-        (format nil "~A~A" (ps-package-prefix (symbol-package symbol)) (symbol-to-js-string possibly-obfuscated-symbol))
-        (symbol-to-js-string possibly-obfuscated-symbol))))
+(defun symbol-to-js-string (symbol)
+  (let ((symbol-name (symbol-name-to-js-string (maybe-obfuscate-symbol symbol))))
+    (aif (ps-package-prefix (symbol-package symbol))
+         (format nil "~A~A" it symbol-name)
+         symbol-name)))

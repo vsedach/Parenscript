@@ -136,7 +136,7 @@ arguments, defines a printer for that form using the given body."
         (psw #\[) (ps-print idx) (psw #\])))
 
 (defprinter js:variable (var)
-  (psw (js-translate-symbol var)))
+  (psw (symbol-to-js-string var)))
 
 ;;; arithmetic operators
 (defun parenthesize-print (ps-form)
@@ -190,9 +190,9 @@ arguments, defines a printer for that form using the given body."
   (print-fun-def name args body))
 
 (defun print-fun-def (name args body-block)
-  (psw (format nil "function ~:[~;~A~](" name (js-translate-symbol name)))
+  (psw (format nil "function ~:[~;~A~](" name (symbol-to-js-string name)))
   (loop for (arg . remaining) on args do
-        (psw (js-translate-symbol arg)) (when remaining (psw ", ")))
+        (psw (symbol-to-js-string arg)) (when remaining (psw ", ")))
   (psw ") ")
   (ps-print body-block))
 
@@ -200,7 +200,7 @@ arguments, defines a printer for that form using the given body."
   (psw "{ ")
   (loop for ((slot-name . slot-value) . remaining) on slot-defs do
         (if (and (listp slot-name) (eq 'quote (car slot-name)) (symbolp (second slot-name)))
-            (psw (js-translate-symbol (second slot-name)))
+            (psw (symbol-to-js-string (second slot-name)))
             (ps-print slot-name))
         (psw " : ")
         (ps-print slot-value)
@@ -214,7 +214,7 @@ arguments, defines a printer for that form using the given body."
       (parenthesize-print obj)
       (ps-print obj))
   (if (symbolp slot)
-      (progn (psw #\.) (psw (js-translate-symbol slot)))
+      (progn (psw #\.) (psw (symbol-to-js-string slot)))
       (progn (psw #\[) (ps-print slot) (psw #\]))))
 
 (defprinter js:if (test consequent &rest clauses)
@@ -245,7 +245,7 @@ arguments, defines a printer for that form using the given body."
 
 (defprinter js:var (var-name &rest var-value)
   (psw "var ")
-  (psw (js-translate-symbol var-name))
+  (psw (symbol-to-js-string var-name))
   (when var-value
     (psw " = ")
     (ps-print (car var-value))))
@@ -254,21 +254,21 @@ arguments, defines a printer for that form using the given body."
   (psw "break")
   (when label
     (psw " ")
-    (psw (js-translate-symbol label))))
+    (psw (symbol-to-js-string label))))
 
 (defprinter js:continue (&optional label)
   (psw "continue")
   (when label
     (psw " ")
-    (psw (js-translate-symbol label))))
+    (psw (symbol-to-js-string label))))
 
 ;;; iteration
 (defprinter js:for (label vars tests steps body-block)
-  (when label (psw (js-translate-symbol label)) (psw ": ") (newline-and-indent))
+  (when label (psw (symbol-to-js-string label)) (psw ": ") (newline-and-indent))
   (psw "for (")
   (loop for ((var-name . var-init) . remaining) on vars
         for decl = "var " then "" do
-        (psw decl) (psw (js-translate-symbol var-name)) (psw " = ") (ps-print var-init) (when remaining (psw ", ")))
+        (psw decl) (psw (symbol-to-js-string var-name)) (psw " = ") (ps-print var-init) (when remaining (psw ", ")))
   (psw "; ")
   (loop for (test . remaining) on tests do
        (ps-print test) (when remaining (psw ", ")))
@@ -319,7 +319,7 @@ arguments, defines a printer for that form using the given body."
   (psw "try ")
   (ps-print body-block)
   (when catch
-    (psw " catch (") (psw (js-translate-symbol (first catch))) (psw ") ")
+    (psw " catch (") (psw (symbol-to-js-string (first catch))) (psw ") ")
     (ps-print (second catch)))
   (when finally
     (psw " finally ")

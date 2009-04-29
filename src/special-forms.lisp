@@ -731,3 +731,19 @@ lambda-list::=
   ;; (ps (foo (lisp bar))) is in effect equivalent to (ps* `(foo ,bar))
   ;; when called from inside of ps*, lisp-form has access only to the dynamic environment (like for eval)
   `(js:escape (ps1* ,lisp-form)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; eval-when
+(define-ps-special-form eval-when (situation-list &body body)
+  "(eval-when (situation*) body-form*)
+
+The body forms are evaluated only during the given SITUATION. The accepted SITUATIONS are
+:load-toplevel, :compile-toplevel, and :execute.  The code in BODY-FORM is assumed to be
+COMMON-LISP code in :compile-toplevel and :load-toplevel sitations, and parenscript code in
+:execute.  "
+  (when (and (member :compile-toplevel situation-list)
+	     (member *toplevel-compilation-level* '(:toplevel :inside-toplevel-form)))
+    (eval `(progn ,@body)))
+  (if (member :execute situation-list)
+      (compile-parenscript-form `(progn ,@body) :expecting expecting)
+      (compile-parenscript-form `(progn) :expecting expecting)))

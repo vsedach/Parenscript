@@ -42,6 +42,9 @@
       #:>>= #:<<=
       #:*= #:/= #:%= #:+= #:\&= #:^= #:\|= #:~=
       #:incf #:decf
+      
+      ;; compile-time stuff
+      #:eval-when
 
       ;; body forms
       #:progn
@@ -226,7 +229,8 @@
       #:ps1*
       #:ps-inline
       #:ps-inline*
-
+      #:ps-compile-file
+      #:ps-compile-stream
       ;; for parenscript macro definition within lisp
       #:defpsmacro
       #:defmacro/ps

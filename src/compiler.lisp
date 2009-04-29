@@ -71,6 +71,7 @@ lexical block.")
   (defvar *ps-macro-toplevel* (make-macro-env-dictionary)
     "Toplevel macro environment dictionary. Key is the symbol name of
     the macro, value is (symbol-macro-p . expansion-function).")
+
   (defvar *ps-macro-env* (list *ps-macro-toplevel*)
     "Current macro environment.")
 
@@ -79,6 +80,12 @@ lexical block.")
 function of the place, value is an expansion function that takes the
 arguments of the access functions as a first value and the form to be
 stored as the second value.")
+
+  (defparameter *toplevel-compilation-level* :toplevel
+    "This value takes on the following values:
+:toplevel indicates that we are traversing toplevel forms.
+:inside-toplevel-form indicates that we are inside a call to compile-parenscript-form
+nil indicates we are no longer toplevel-related.")
   
   (defun get-macro-spec (name env-dict)
     "Retrieves the macro spec of the given name with the given environment dictionary.
@@ -182,6 +189,16 @@ ParenScript representation. :expecting determines whether the form is
 compiled to an :expression (the default), a :statement, or a
 :symbol."))
 
+(defun adjust-toplevel-compilation-level (form level)
+  (let ((default-level (if (eql :toplevel level)
+			   :inside-toplevel-form
+			   nil)))
+    (if (consp form)
+	(case (car form)
+	  ('progn level)
+	  (t default-level))
+	default-level)))
+
 (defmethod compile-parenscript-form :around (form &key expecting)
   (assert (if expecting (member expecting '(:expression :statement :symbol)) t))
   (if (eql expecting :symbol)
@@ -190,7 +207,10 @@ compiled to an :expression (the default), a :statement, or a
           (ps-macroexpand form)
         (if expanded-p
             (compile-parenscript-form expanded-form :expecting expecting)
-            (call-next-method)))))
+	    (let ((*toplevel-compilation-level*
+		   (progn
+		     (adjust-toplevel-compilation-level form *toplevel-compilation-level*))))
+	      (call-next-method))))))
 
 (defun compile-to-symbol (form)
   "Compiles the given Parenscript form and guarantees that the
@@ -283,3 +303,34 @@ gensym-prefix-string)."
        `(let* (,,@(mapcar (lambda (g v) ``(,,g ,,v)) gensyms vars))
           ,(let ,(mapcar (lambda (g v) `(,v ,g)) gensyms vars)
              ,@body)))))
+
+(defvar *read-function* #'read
+  "This should be a function that takes the same inputs and returns the same
+outputs as the common lisp read function.  We declare it as a variable to allow
+a user-supplied reader instead of the default lisp reader.")
+
+(defun ps-compile-stream (stream)
+  "Compiles a source stream as if it were a file.  Outputs a Javascript string."
+
+  (let ((*toplevel-compilation-level* :toplevel)
+	(*package* *package*)
+	(end-read-form '#:unique))
+    (flet ((read-form () (funcall *read-function* stream nil end-read-form)))
+      (let* ((js-string
+	      ;; cons up the forms, compiling as we go, and print the result
+	      (do ((form (read-form) (read-form))
+		   (compiled-forms nil))
+		  ((eql form end-read-form)
+		     (format nil "~{~A~^;~%~}"
+			     (remove-if
+			      #'(lambda (x) (or (null x) (= 0 (length x))))
+			      (mapcar 'compiled-form-to-string (nreverse compiled-forms)))))
+		(push (compile-parenscript-form form :expecting :statement) compiled-forms))))
+	js-string))))
+
+
+(defun ps-compile-file (source-file)
+  "Compiles the given Parenscript source file and returns a Javascript string."
+  (with-open-file (stream source-file :direction :input)
+    (ps-compile-stream stream)))
+

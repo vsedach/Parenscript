@@ -198,14 +198,11 @@
 ;;; function definition
 (defun compile-function-definition (args body)
   (list (mapcar (lambda (arg) (compile-parenscript-form arg :expecting :symbol)) args)
-        (let ((*enclosing-lexical-block-declarations* ()))
-          ;; the first compilation will produce a list of variables we need to declare in the function body
-          (compile-parenscript-form `(progn ,@body) :expecting :statement)
-          ;; now declare and compile
-          (compile-parenscript-form `(progn
-                                       ,@(mapcar (lambda (var) `(var ,var)) *enclosing-lexical-block-declarations*)
-                                       ,@body)
-                                    :expecting :statement))))
+        (let* ((*enclosing-lexical-block-declarations* ())
+               (body (compile-parenscript-form `(progn ,@body)))
+               (var-decls (compile-parenscript-form
+                           `(progn ,@(mapcar (lambda (var) `(var ,var)) *enclosing-lexical-block-declarations*)))))
+          `(js:block ,@(cdr var-decls) ,@(cdr body)))))
 
 (define-ps-special-form %js-lambda (args &rest body)
   `(js:lambda ,@(compile-function-definition args body)))
@@ -520,11 +517,11 @@ lambda-list::=
     `(progn ,@(loop for (place value) on args by #'cddr collect (process-setf-clause place value)))))
 
 (defpsmacro psetf (&rest args)
-  (let ((vars (loop for x in args by #'cddr collect x))
+  (let ((places (loop for x in args by #'cddr collect x))
         (vals (loop for x in (cdr args) by #'cddr collect x)))
-    (let ((gensyms (mapcar (lambda (x) (declare (ignore x)) (ps-gensym)) vars)))
-      `(simple-let* ,(mapcar #'list gensyms vals)
-         (setf ,@(mapcan #'list vars gensyms))))))
+    (let ((gensyms (mapcar (lambda (x) (declare (ignore x)) (ps-gensym)) places)))
+      `(let ,(mapcar #'list gensyms vals)
+         (setf ,@(mapcan #'list places gensyms))))))
 
 (defun check-setq-args (args)
   (let ((vars (loop for x in args by #'cddr collect x)))
@@ -542,71 +539,52 @@ lambda-list::=
 
 (define-ps-special-form var (name &optional (value (values) value-provided?) documentation)
   (declare (ignore documentation))
-  `(js:var ,name ,@(when value-provided?
-                         (list (compile-parenscript-form value :expecting :expression)))))
+  (ecase expecting
+    (:statement
+     `(js:var ,name ,@(when value-provided?
+                            (list (compile-parenscript-form value :expecting :expression)))))
+    (:expression
+     (push name *enclosing-lexical-block-declarations*)
+     (when value-provided?
+       (compile-parenscript-form `(setf ,name ,value) :expecting :expression)))))
 
 (defpsmacro defvar (name &optional (value (values) value-provided?) documentation)
-  "Note: this must be used as a top-level form, otherwise the result will be undefined behavior."
+  ;; this must be used as a top-level form, otherwise the resulting behavior will be undefined.
+  (declare (ignore documentation))
   (pushnew name *ps-special-variables*)
   `(var ,name ,@(when value-provided? (list value))))
 
-(defun make-let-vars (bindings)
-  (mapcar (lambda (x) (if (listp x) (car x) x)) bindings))
-
-(defun make-let-vals (bindings)
-  (mapcar (lambda (x) (if (or (atom x) (endp (cdr x))) nil (second x))) bindings))
-
-(defpsmacro lexical-let* (bindings &body body)
-  `((lambda ()
-      (let* ,bindings
-        ,@body))))
-
-(defpsmacro lexical-let (bindings &body body)
-  `((lambda ,(make-let-vars bindings)
-      ,@body)
-    ,@(make-let-vals bindings)))
-
-(defpsmacro simple-let* (bindings &body body)
-  (if bindings
-      (let ((var (if (listp (car bindings)) (caar bindings) (car bindings))))
-        `(,(if (member var *ps-special-variables*) 'let1-dynamic 'let1) ,(car bindings)
-           (simple-let* ,(cdr bindings) ,@body)))
-      `(progn ,@body)))
-
-(defpsmacro simple-let (bindings &body body)
-  (let ((vars (mapcar (lambda (x) (if (atom x) x (first x))) bindings))
-        (vals (mapcar (lambda (x) (if (or (atom x) (endp (cdr x))) nil (second x))) bindings)))
-    (let ((gensyms (mapcar (lambda (x) (ps-gensym (format nil "_js_~a" x))) vars)))
-      `(simple-let* ,(mapcar #'list gensyms vals)
-         (simple-let* ,(mapcar #'list vars gensyms)
-           ,@(mapcar (lambda (x) `(delete ,x)) gensyms)
-           ,@body)))))
+(defpsmacro let (bindings &body body)
+  (flet ((add-renamed-vars (bindings predicate)
+           (mapcar (lambda (x) (append x (list (ps-gensym (car x)))))
+                   (remove-if predicate bindings :key #'car)))
+         (var (x) (first x))
+         (val (x) (second x))
+         (renamed (x) (third x)))
+    (let* ((normalized-bindings (mapcar (lambda (x) (if (symbolp x) `(,x nil) x)) bindings))
+           (lexical-bindings (add-renamed-vars normalized-bindings #'ps-special-variable-p))
+           (dynamic-bindings (add-renamed-vars normalized-bindings (complement #'ps-special-variable-p)))
+           (renamed-body `(symbol-macrolet ,(mapcar (lambda (x) (list (var x) (renamed x)))
+                                                    lexical-bindings)
+                            ,@body)))
+    `(progn
+       ,@(mapcar (lambda (x) `(var ,(renamed x) ,(val x))) lexical-bindings)
+       ,(if dynamic-bindings
+            `(progn ,@(mapcar (lambda (x) `(var ,(renamed x))) dynamic-bindings)
+                    (try (progn (setf ,@(loop for x in dynamic-bindings append
+                                             `(,(renamed x) ,(var x)
+                                               ,(var x) ,(val x))))
+                                ,renamed-body)
+                         (:finally
+                          (setf ,@(mapcan (lambda (x) `(,(var x) ,(renamed x))) dynamic-bindings)))))
+            renamed-body)))))
 
 (defpsmacro let* (bindings &body body)
-  `(simple-let* ,bindings ,@body))
-
-(defpsmacro let (bindings &body body)
-  `(,(if (= 1 (length bindings)) 'simple-let* 'simple-let) ,bindings ,@body))
-
-(define-ps-special-form let1 (binding &rest body)
-  (ecase expecting
-    (:statement
-     (compile-parenscript-form `(progn ,(if (atom binding) `(var ,binding) `(var ,@binding)) ,@body) :expecting :statement))
-    (:expression
-     (let ((var (if (atom binding) binding (car binding)))
-           (variable-assignment (when (listp binding) (cons 'setf binding))))
-       (push var *enclosing-lexical-block-declarations*)
-       (compile-parenscript-form `(progn ,variable-assignment ,@body) :expecting :expression)))))
-
-(defpsmacro let1-dynamic ((var value) &rest body)
-  (with-ps-gensyms (temp-stack-var)
-    `(progn (var ,temp-stack-var)
-      (try (progn (setf ,temp-stack-var ,var)
-                  (setf ,var ,value)
-                  ,@body)
-       (:finally
-        (setf ,var ,temp-stack-var)
-        (delete ,temp-stack-var))))))
+  (if bindings
+      `(let (,(car bindings))
+         (let* ,(cdr bindings)
+           ,@body))
+      `(progn ,@body)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; iteration
@@ -680,7 +658,7 @@ lambda-list::=
               ,(do-make-iter-psteps decls)))))
 
 (define-ps-special-form for-in ((var object) &rest body)
-  `(js:for-in ,(compile-parenscript-form `(var ,var) :expecting :expression)
+  `(js:for-in ,(compile-parenscript-form var :expecting :expression)
               ,(compile-parenscript-form object :expecting :expression)
               ,(compile-parenscript-form `(progn ,@body))))
 

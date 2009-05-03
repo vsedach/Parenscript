@@ -61,9 +61,7 @@ foo.my_library_foo;")
 (common-lisp:in-package "PS-TEST.PSTSTPKG")
 
 (ps-test::test-ps-js namespace-and-special-forms
-  (let* ((foo (create :bar 1 not-a-keyword something)))
+  (let ((foo (create :bar 1 not-a-keyword something)))
     (return (and (not foo) (+ (slot-value foo bar) some-other-var))))
-  "        var prefix_foo =
-            { bar : 1, 
-              prefix_notAKeyword : prefix_something };
-        return !prefix_foo && prefix_foo[prefix_bar] + prefix_someOtherVar;")
+"var prefix_foo1 = { bar : 1, prefix_notAKeyword : prefix_something };
+return !prefix_foo1 && prefix_foo1[prefix_bar] + prefix_someOtherVar;")

@@ -75,10 +75,6 @@
       #:psetf
       #:setq
       #:psetq
-      #:simple-let*
-      #:simple-let
-      #:lexical-let*
-      #:lexical-let
       #:let*
       #:let
 

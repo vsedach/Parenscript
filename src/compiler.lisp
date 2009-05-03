@@ -52,6 +52,9 @@ lexical block.")
 
 (defvar *ps-special-variables* ())
 
+(defun ps-special-variable-p (sym)
+  (member sym *ps-special-variables*))
+
 ;;; form predicates
 
 (defun op-form-p (form)
@@ -273,7 +276,10 @@ the form cannot be compiled to a symbol."
 (defvar *ps-gensym-counter* 0)
 
 (defun ps-gensym (&optional (prefix "_js"))
-  (make-symbol (format nil "~A~A" prefix (incf *ps-gensym-counter*))))
+  (let ((prefix (if (stringp prefix) prefix (symbol-to-js-string prefix nil))))
+    (make-symbol (format nil "~A~:[~;_~]~A" prefix
+                         (digit-char-p (char prefix (1- (length prefix))))
+                         (incf *ps-gensym-counter*)))))
 
 (defmacro with-ps-gensyms (symbols &body body)
   "Evaluate BODY with SYMBOLS bound to unique ParenScript identifiers.

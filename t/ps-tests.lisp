@@ -16,17 +16,17 @@
 
 (test-ps-js setf-side-effects
   (progn
-    (let* ((x 10))
+    (let ((x 10))
       (defun side-effect() 
         (setf x 4)
         (return 3))
       (setf x (+ 2 (side-effect) x 5))))
-  "var x = 10;
+  "var x1 = 10;
 function sideEffect() {
-  x = 4;
+  x1 = 4;
   return 3;
 };
-x = 2 + sideEffect() + x + 5;")
+x1 = 2 + sideEffect() + x1 + 5;")
 ;; Parenscript used to optimize incorrectly:
 ;;   var x = 10;
 ;;   function sideEffect() {
@@ -90,18 +90,18 @@ x = 2 + sideEffect() + x + 5;")
     (is (char= char-before a-parenthesis))))
 
 (test-ps-js simple-slot-value
-  (let* ((foo (create :a 1)))
+  (let ((foo (create :a 1)))
     (alert (slot-value foo 'a)))
-  "var foo = { a : 1 };
-   alert(foo.a);")
+  "var foo1 = { a : 1 };
+   alert(foo1.a);")
 
 (test-ps-js buggy-slot-value
-   (let* ((foo (create :a 1))
-          (slot-name "a"))
+   (let ((foo (create :a 1))
+         (slot-name "a"))
     (alert (slot-value foo slot-name)))
-  " var foo = { a : 1 };
-    var slotName = 'a';
-    alert(foo[slotName]);
+  " var foo1 = { a : 1 };
+    var slotName2 = 'a';
+    alert(foo1[slotName2]);
    "); Last line was alert(foo.slotName) before bug-fix.
 
 (test-ps-js buggy-slot-value-two
@@ -181,18 +181,10 @@ x = 2 + sideEffect() + x + 5;")
                    ("u0080" . ,(code-char 128)) ;;Character over 127. Actually valid, parenscript escapes them to be sure.
                    ("uABCD" . ,(code-char #xabcd)))));; Really above ascii.
     (loop for (js-escape . lisp-char) in escapes
-          for generated = (ps1* `(let* ((x ,(format nil "hello~ahi" lisp-char)))))
-          for wanted = (format nil "var x = 'hello\\~ahi';" js-escape)
+          for generated = (ps-doc* `(let ((x ,(format nil "hello~ahi" lisp-char)))))
+          for wanted = (format nil "var x1 = 'hello\\~ahi';" js-escape)
           do (is (string= (normalize-js-code generated) wanted)))))
   
-(test-ps-js complicated-symbol-name1
-  grid-rows[foo].bar
-  "gridRows[foo].bar")
-
-(test-ps-js complicated-symbol-name2
-  *grid-rows*[foo].bar
-  "GRIDROWS[foo].bar")
-
 (test-ps-js slot-value-setf
   (setf (slot-value x 'y) (+ (+ a 3) 4))
   "x.y = (a + 3) + 4;")
@@ -226,7 +218,10 @@ x = 2 + sideEffect() + x + 5;")
 (test-ps-js defsetf1
   (progn (defsetf baz (x y) (newval) `(set-baz ,x ,y ,newval))
          (setf (baz 1 2) 3))
-  "var _js2 = 1; var _js3 = 2; var _js1 = 3; setBaz(_js2, _js3, _js1);")
+  "var _js2_4 = 1;
+var _js3_5 = 2;
+var _js1_6 = 3;
+setBaz(_js2_4, _js3_5, _js1_6);")
 
 (test-ps-js defsetf-short
   (progn (defsetf baz set-baz "docstring")
@@ -240,10 +235,10 @@ x = 2 + sideEffect() + x + 5;")
 "function __setf_someThing(newVal, i1, i2) {
     SOMETHING[i1][i2] = newVal;
 };
-var _js2 = 1;
-var _js3 = 2;
-var _js1 = 'foo';
-__setf_someThing(_js1, _js2, _js3);")
+var _js2_4 = 1;
+var _js3_5 = 2;
+var _js1_6 = 'foo';
+__setf_someThing(_js1_6, _js2_4, _js3_5);")
 
 (test-ps-js defun-optional1
   (defun test-opt (&optional x) (return (if x "yes" "no")))
@@ -361,7 +356,7 @@ __setf_someThing(_js1, _js2, _js3);")
   "[[1, 2], ['a', 'b']]")
 
 (test-ps-js defun-rest1
-  (defun foo (&rest bar) (alert bar[1]))
+  (defun foo (&rest bar) (alert (aref bar 1)))
   "function foo() {
     var bar = [];
     for (var i1 = 0; i1 < arguments.length - 0; i1 += 1) {
@@ -384,8 +379,8 @@ __setf_someThing(_js1, _js2, _js3);")
   (defun zoo (foo bar &key baz) (return (+ foo bar baz)))
 "function zoo(foo, bar) {
     var baz;
-    var _js3 = arguments.length;
-    for (var n1 = 2; n1 < _js3; n1 += 2) {
+    var _js2 = arguments.length;
+    for (var n1 = 2; n1 < _js2; n1 += 2) {
         switch (arguments[n1]) {
         case 'baz':
             {
@@ -403,8 +398,8 @@ __setf_someThing(_js1, _js2, _js3);")
   (defun zoo (&key baz) (return (* baz baz)))
   "function zoo() {
     var baz;
-    var _js3 = arguments.length;
-    for (var n1 = 0; n1 < _js3; n1 += 2) {
+    var _js2 = arguments.length;
+    for (var n1 = 0; n1 < _js2; n1 += 2) {
         switch (arguments[n1]) {
         case 'baz':
             {
@@ -423,8 +418,8 @@ __setf_someThing(_js1, _js2, _js3);")
   "function zoo() {
     var baz;
     var bar;
-    var _js3 = arguments.length;
-    for (var n1 = 0; n1 < _js3; n1 += 2) {
+    var _js2 = arguments.length;
+    for (var n1 = 0; n1 < _js2; n1 += 2) {
         switch (arguments[n1]) {
         case 'baz':
             {
@@ -451,8 +446,8 @@ __setf_someThing(_js1, _js2, _js3);")
     my-name)
   "function helloWorld() {
     var myName;
-    var _js3 = arguments.length;
-    for (var n1 = 0; n1 < _js3; n1 += 2) {
+    var _js2 = arguments.length;
+    for (var n1 = 0; n1 < _js2; n1 += 2) {
         switch (arguments[n1]) {
         case 'my-name-key':
             {
@@ -527,7 +522,7 @@ __setf_someThing(_js1, _js2, _js3);")
 }")
 
 (test-ps-js funcall-if-expression
-  (document.write
+  ((@ document write)
    (if (= *linkornot* 1)
        (ps-html ((:a :href "#"
                      :onclick (ps-inline (transport)))
@@ -596,37 +591,34 @@ __setf_someThing(_js1, _js2, _js3);")
 (test-ps-js let-decl-in-expression
   (defun f (x) (return (if x 1 (let* ((foo x)) foo))))
   "function f(x) {
-    var foo;
-    return x ? 1 : (foo = x, foo);
+    var foo1;
+    return x ? 1 : (foo1 = x, foo1);
 }")
 
 (test-ps-js special-var1
   (progn (defvar *foo*) (let* ((*foo* 2)) (* *foo* 2)))
   "var FOO;
-var tempstackvar1;
+var FOO1;
 try {
-    tempstackvar1 = FOO;
+    FOO1 = FOO;
     FOO = 2;
     FOO * 2;
 } finally {
-    FOO = tempstackvar1;
-    delete tempstackvar1;
+    FOO = FOO1;
 };")
 
 (test-ps-js special-var2
   (progn (defvar *foo*) (let* ((*baz* 3) (*foo* 2)) (* *foo* 2 *baz*)))
   "var FOO;
-var BAZ = 3;
-var tempstackvar1;
+var BAZ1 = 3;
+var FOO2;
 try {
-    tempstackvar1 = FOO;
+    FOO2 = FOO;
     FOO = 2;
-    FOO * 2 * BAZ;
+    FOO * 2 * BAZ1;
 } finally {
-    FOO = tempstackvar1;
-    delete tempstackvar1;
-};
-")
+    FOO = FOO2;
+};")
 
 (test-ps-js literal1
   (setf x undefined)
@@ -650,7 +642,7 @@ try {
 
 (test-ps-js setf-operator-priority
   (return (or (slot-value cache id)
-              (setf (slot-value cache id) (document.get-element-by-id id))))
+              (setf (slot-value cache id) ((@ document get-element-by-id) id))))
   "return cache[id] || (cache[id] = document.getElementById(id))")
 
 (test-ps-js aref-operator-priority
@@ -813,10 +805,10 @@ try {
 (test-ps-js ps-js-target-version-keyword-test1
   (defun foo (x y &key bar baz))
   "function foo(x, y) {
-    var x1 = Array.prototype.indexOf.call(arguments, 'bar', 2);
-    var bar = -1 == x1 ? null : arguments[x1 + 1];
-    var x2 = Array.prototype.indexOf.call(arguments, 'baz', 2);
-    var baz = -1 == x2 ? null : arguments[x2 + 1];
+    var x1_3 = Array.prototype.indexOf.call(arguments, 'bar', 2);
+    var bar = -1 == x1_3 ? null : arguments[x1_3 + 1];
+    var x2_4 = Array.prototype.indexOf.call(arguments, 'baz', 2);
+    var baz = -1 == x2_4 ? null : arguments[x2_4 + 1];
 }"
   :js-target-version 1.6)
 
@@ -827,3 +819,94 @@ try {
 (test-ps-js nested-if-expressions2
   (return (if x y (if z a b)))
   "return x ? y : (z ? a : b)")
+
+(test-ps-js let1
+  (let (x)
+    (+ x x))
+  "var x1 = null;
+x1 + x1;")
+
+(test-ps-js let2
+  (let ((x 1))
+    (+ x x))
+  "var x1 = 1;
+x1 + x1;")
+
+(test-ps-js let3
+  (let ((x 1)
+        (y 2))
+    (+ x x))
+  "var x1 = 1;
+var y2 = 2;
+x1 + x1;")
+
+(test-ps-js let4
+  (let ((x 1)
+        (y (1+ x)))
+    (+ x y))
+  "var x1 = 1;
+var y2 = x + 1;
+x1 + y2;")
+
+(test-ps-js let5
+  (let ((x 1))
+    (+ x 1)
+    (let ((x (+ x 5)))
+      (+ x 1))
+    (+ x 1))
+  "var x1 = 1;
+x1 + 1;
+var x2 = x1 + 5;
+x2 + 1;
+x1 + 1;")
+
+(test-ps-js let6
+  (let ((x 2))
+    (let ((x 1)
+          (y (1+ x)))
+      (+ x y)))
+  "var x1 = 2;
+var x2 = 1;
+var y3 = x1 + 1;
+x2 + y3;")
+
+(test-ps-js let-exp1
+  (lambda ()
+    (return (let (x) (+ x x))))
+  "function () {
+    var x1;
+    return (x1 = null, x1 + x1);
+}")
+
+(test-ps-js let*1
+  (let* ((x 1)) (+ x x))
+"var x1 = 1;
+x1 + x1;")
+
+(test-ps-js let*2
+  (let* ((x 1)
+         (y (+ x 2)))
+    (+ x y))
+  "var x1 = 1;
+var y2 = x1 + 2;
+x1 + y2;")
+
+(test-ps-js let*3
+  (let ((x 3))
+        (let* ((x 1) 
+               (y (+ x 2))) 
+          (+ x y)))
+  "var x1 = 3;
+var x2 = 1;
+var y3 = x2 + 2;
+x2 + y3;")
+
+(test-ps-js let*4
+  (let ((x 3))
+        (let* ((y (+ x 2))
+               (x 1))
+          (+ x y)))
+  "var x1 = 3;
+var y2 = x1 + 2;
+var x3 = 1;
+x3 + y2;")

@@ -59,23 +59,11 @@ bla-foo-bar => blaFooBar
 
 *array => Array
 
-;;; The `.' character is left as is in symbols. This allows the
-;;; Parenscript programmer to use a practical shortcut when accessing
-;;; slots or methods of JavaScript objects. Instead of writing
-
-(slot-value foobar 'slot)
-
-;;; we can write
-
-foobar.slot
-
 ;;; A symbol beggining and ending with `+' or `*' is converted to all
 ;;; uppercase, to signify that this is a constant or a global
 ;;; variable.
 
 *global-array*        => GLOBALARRAY
-
-*global-array*.length => GLOBALARRAY.length
 
 ;;;## Reserved Keywords
 ;;;t \index{keyword}
@@ -85,17 +73,16 @@ foobar.slot
 ;;; and should not be used as variable names.
 
 ! ~ ++ -- * / % + - << >> >>> < > <= >= == != ==== !== & ^ | && || *=
-/= %= += -= <<= >>= >>>= &= ^= |= 1- 1+ ABSTRACT AND AREF ARRAY
+/= %= += -= <<= >>= >>>= &= ^= |= 1- 1+ @ ABSTRACT AND AREF ARRAY
 BOOLEAN BREAK BYTE CASE CATCH CC-IF CHAR CLASS COMMA CONST CONTINUE
 CREATE DEBUGGER DECF DEFAULT DEFUN DEFVAR DELETE DO DO* DOEACH DOLIST
 DOTIMES DOUBLE ELSE ENUM EQL EXPORT EXTENDS F FALSE FINAL FINALLY
 FLOAT FLOOR FOR FOR-IN FUNCTION GOTO IF IMPLEMENTS IMPORT IN INCF
-INSTANCEOF INT INTERFACE JS LABELED-FOR LAMBDA LET LET* LEXICAL-LET
-LEXICAL-LET* LISP LIST LONG MAKE-ARRAY NATIVE NEW NIL NOT OR PACKAGE
-PRIVATE PROGN PROTECTED PUBLIC RANDOM REGEX RETURN SETF SHORT
-SLOT-VALUE STATIC SUPER SWITCH SYMBOL-MACROLET SYNCHRONIZED T THIS
-THROW THROWS TRANSIENT TRY TYPEOF UNDEFINED UNLESS VAR VOID VOLATILE
-WHEN WHILE WITH WITH-SLOTS
+INSTANCEOF INT INTERFACE JS LABELED-FOR LAMBDA LET LET* LISP LIST LONG
+MAKE-ARRAY NATIVE NEW NIL NOT OR PACKAGE PRIVATE PROGN PROTECTED
+PUBLIC RANDOM REGEX RETURN SETF SHORT SLOT-VALUE STATIC SUPER SWITCH
+SYMBOL-MACROLET SYNCHRONIZED T THIS THROW THROWS TRANSIENT TRY TYPEOF
+UNDEFINED UNLESS VAR VOID VOLATILE WHEN WHILE WITH WITH-SLOTS
 
 ;;;# Literal values
 ;;;t \index{literal value}
@@ -182,6 +169,7 @@ WHEN WHILE WITH WITH-SLOTS
 ;;;## Object literals
 ;;;t \index{CREATE}
 ;;;t \index{SLOT-VALUE}
+;;;t \index{@}
 ;;;t \index{WITH-SLOTS}
 ;;;t \index{object literal}
 ;;;t \index{object}
@@ -218,9 +206,10 @@ WHEN WHILE WITH WITH-SLOTS
 
 (slot-value an-object 'foo) => anObject.foo
 
-;;; A programmer can also use the "." symbol notation explained above.
+;;; The convenience macro `@' is provided to make multiple levels of
+;;; indirection easy to express
 
-an-object.foo => anObject.foo
+(@ an-object foo bar) => anObject.foo.bar
 
 ;;; The form `WITH-SLOTS' can be used to bind the given slot-name
 ;;; symbols to a macro that will expand into a `SLOT-VALUE' form at
@@ -309,8 +298,6 @@ a-variable  => aVariable
 
 *math       => Math
 
-*math.floor => Math.floor
-
 ;;;# Function calls and method calls
 ;;;t \index{function}
 ;;;t \index{function call}
@@ -340,15 +327,6 @@ a-variable  => aVariable
 ((aref foo i) 1 2) => foo[i](1, 2)
 
 ((slot-value (aref foobar 1) 'blorg) NIL T) => foobar[1].blorg(null, true)
-
-;;; Note that while most method calls can be abbreviated using the "."
-;;; trick in symbol names (see "Symbol Conversion" above), this is not
-;;; advised due to the fact that "object.function" is treated as a
-;;; symbol distinct from both "object" and "function," which will
-;;; cause problems if Parenscript package prefixes or package
-;;; obfuscation is used.
-
-(this.blorg 1 2) => this.blorg(1, 2)
 
 ;;;# Operator Expressions
 ;;;t \index{operator}
@@ -525,14 +503,14 @@ a-variable  => aVariable
 ;;; places or variables using a number of temporary variables created
 ;;; by `PS-GENSYM'.  For example:
 
-(let* ((a 1) (b 2))
+(let ((a 1) (b 2))
   (psetf a b b a))
-=> var a = 1;
-   var b = 2;
-   var _js1 = b;
-   var _js2 = a;
-   a = _js1;
-   b = _js2;
+=> var a1 = 1;
+   var b2 = 2;
+   var _js3_5 = b2;
+   var _js4_6 = a1;
+   a1 = _js3_5;
+   b2 = _js4_6;
 
 ;;; The `SETQ' and `PSETQ' forms operate identically to `SETF' and
 ;;; `PSETF', but throw a compile-time error if the left-hand side form
@@ -560,9 +538,9 @@ a-variable  => aVariable
    };
 
 (setf (color some-div) (+ 23 "em"))
-=> var _js2 = someDiv;
-   var _js1 = 23 + 'em';
-   __setf_color(_js1, _js2);
+=> var _js2_3 = someDiv;
+   var _js1_4 = 23 + 'em';
+   __setf_color(_js1_4, _js2_3);
 
 ;;; Note that temporary variables are generated to preserve evaluation
 ;;; order of the arguments as they would be in Lisp.
@@ -575,9 +553,9 @@ a-variable  => aVariable
 => null
 
 (setf (left some-div) (+ 123 "px"))
-=> var _js2 = someDiv;
-   var _js1 = 123 + 'px';
-   _js2.style.left = _js1;
+=> var _js2_3 = someDiv;
+   var _js1_4 = 123 + 'px';
+   _js2_3.style.left = _js1_4;
 
 (progn (defmacro left (el)
          `(slot-value ,el 'offset-left))
@@ -663,7 +641,7 @@ a-variable  => aVariable
 ;;; form is used in an expression context, a JavaScript `?', `:'
 ;;; operator form is generated.
 
-(if (blorg.is-correct)
+(if ((@ blorg is-correct))
     (progn (carry-on) (return i))
     (alert "blorg is not correct!"))
 => if (blorg.isCorrect()) {
@@ -673,13 +651,13 @@ a-variable  => aVariable
        alert('blorg is not correct!');
    }
 
-(+ i (if (blorg.add-one) 1 2))
+(+ i (if ((@ blorg add-one)) 1 2))
 => i + (blorg.addOne() ? 1 : 2)
 
 ;;; The `WHEN' and `UNLESS' forms can be used as shortcuts for the
 ;;; `IF' form.
 
-(when (blorg.is-correct)
+(when ((@ blorg is-correct))
   (carry-on)
   (return i))
 => if (blorg.isCorrect()) {
@@ -687,7 +665,7 @@ a-variable  => aVariable
        return i;
    }
 
-(unless (blorg.is-correct)
+(unless ((@ blorg is-correct))
   (alert "blorg is not correct!"))
 => if (!blorg.isCorrect()) {
        alert('blorg is not correct!');
@@ -702,15 +680,11 @@ a-variable  => aVariable
 ;;;t \index{VAR}
 ;;;t \index{LET}
 ;;;t \index{LET*}
-;;;t \index{LEXICAL-LET}
-;;;t \index{LEXICAL-LET*}
 
 ; (DEFVAR var {value}?)
 ; (VAR var {value}?)
 ; (LET ({var | (var value)}*) body)
 ; (LET* ({var | (var value)}*) body)
-; (LEXICAL-LET ({var | (var value)}*) body)
-; (LEXICAL-LET* ({var | (var value)}*) body)
 ;
 ; var   ::= a Lisp symbol
 ; value ::= a Parenscript expression
@@ -727,72 +701,38 @@ a-variable  => aVariable
 ;;; are lexically-scoped global variables, which are declared using
 ;;; the `VAR' special form.
 
-;;; Parenscript provides two versions of the `LET' and `LET*' special
-;;; forms for manipulating local variables: `SIMPLE-LET' /
-;;; `SIMPLE-LET*' and `LEXICAL-LET' / `LEXICAL-LET*'.  By default,
-;;; `LET' and `LET*' are aliased to `SIMPLE-LET' and `SIMPLE-LET*',
-;;; respectively.
-
-;;; `SIMPLE-LET' and `SIMPLE-LET*' bind their variable lists using
-;;; simple JavaScript assignment.  This means that you cannot rely on
-;;; the bindings going out of scope at the end of the form.
-
-;;; `LEXICAL-LET' and `LEXICAL-LET*' actually introduce new lexical
-;;; environments for the variable bindings by creating anonymous
-;;; functions.
-
-;;; As you would expect, `SIMPLE-LET' and `LEXICAL-LET' do parallel
-;;; binding of their variable lists, while `SIMPLE-LET*' and
-;;; `LEXICAL-LET*' bind their variable lists sequentially.
-
-;;; examples:
-
-(simple-let* ((a 0) (b 1))
-  (alert (+ a b)))
-=> var a = 0;
-   var b = 1;
-   alert(a + b);
-
-(simple-let* ((a "World") (b "Hello"))
-  (simple-let ((a b) (b a))
-    (alert (+ a b))))
-=> var a = 'World';
-   var b = 'Hello';
-   var _js_a1 = b;
-   var _js_b2 = a;
-   var a = _js_a1;
-   var b = _js_b2;
-   delete _js_a1;
-   delete _js_b2;
-   alert(a + b);
-
-(simple-let* ((a 0) (b 1))
-  (lexical-let* ((a 9) (b 8))
-    (alert (+ a b)))
-  (alert (+ a b)))
-=> var a = 0;
-   var b = 1;
-   (function () {
-       var a = 9;
-       var b = 8;
-       alert(a + b);
-   })();
-   alert(a + b);
-
-(simple-let* ((a "World") (b "Hello"))
-  (lexical-let ((a b) (b a))
-    (alert (+ a b)))
-  (alert (+ a b)))
-=> var a = 'World';
-   var b = 'Hello';
-   (function (a, b) {
-       alert(a + b);
-   })(b, a);
-   alert(a + b);
+;;; Parenscript provides the `LET' and `LET*' special forms for
+;;; creating new variable bindings. Both special forms implement
+;;; lexical scope by renaming the provided variables via `GENSYM', and
+;;; implement dynamic binding using `TRY'-`FINALY'. Note that
+;;; top-level `LET' and `LET*' forms will create new global variables.
 
 ;;; Moreover, beware that scoping rules in Lisp and JavaScript are
 ;;; quite different. For example, don't rely on closures capturing
 ;;; local variables in the way that you would normally expect.
+
+
+;;; examples:
+
+(progn 
+  (defvar *a* 4)
+  (let ((x 1)
+        (*a* 2))
+    (let* ((y (+ x 1))
+           (x (+ x y)))
+      (+ *a* x y))))
+=> var A = 4;
+   var x1 = 1;
+   var A2;
+   try {
+       A2 = A;
+       A = 2;
+       var y3 = x1 + 1;
+       var x4 = x1 + y3;
+       A + x4 + y3;
+   } finally {
+       A = A2;
+   };
 
 ;;;# Iteration constructs
 ;;;t \index{iteration}
@@ -835,33 +775,29 @@ a-variable  => aVariable
 (do* ((a) b (c (array "a" "b" "c" "d" "e"))
       (d 0 (1+ d))
       (e (aref c d) (aref c d)))
-     ((or (= d c.length) (eql e "x")))
+     ((or (= d (@ c length)) (eql e "x")))
   (setf a d b e)
-  (document.write (+ "a: " a " b: " b "<br/>")))
+  ((@ document write) (+ "a: " a " b: " b "<br/>")))
 => for (var a = null, b = null, c = ['a', 'b', 'c', 'd', 'e'], d = 0, e = c[d]; !(d == c.length || e == 'x'); d += 1, e = c[d]) {
        a = d;
        b = e;
        document.write('a: ' + a + ' b: ' + b + '<br/>');
    };
 
-;;; `DO' (note the parallel assignment):
+;;; `DO'
 
 (do ((i 0 (1+ i))
      (s 0 (+ s i (1+ i))))
     ((> i 10))
-  (document.write (+ "i: " i " s: " s "<br/>")))
-=> var _js_i1 = 0;
-   var _js_s2 = 0;
-   var i = _js_i1;
-   var s = _js_s2;
-   delete _js_i1;
-   delete _js_s2;
-   for (; i <= 10; ) {
-       document.write('i: ' + i + ' s: ' + s + '<br/>');
-       var _js3 = i + 1;
-       var _js4 = s + i + (i + 1);
-       i = _js3;
-       s = _js4;
+  ((@ document write) (+ "i: " i " s: " s "<br/>")))
+=> var i1 = 0;
+   var s2 = 0;
+   for (; i1 <= 10; ) {
+       document.write('i: ' + i1 + ' s: ' + s2 + '<br/>');
+       var _js3_5 = i1 + 1;
+       var _js4_6 = s2 + i1 + (i1 + 1);
+       i1 = _js3_5;
+       s2 = _js4_6;
    };
 
 ;;; compare to `DO*':
@@ -869,77 +805,77 @@ a-variable  => aVariable
 (do* ((i 0 (1+ i))
       (s 0 (+ s i (1- i))))
      ((> i 10))
-  (document.write (+ "i: " i " s: " s "<br/>")))
+  ((@ document write) (+ "i: " i " s: " s "<br/>")))
 => for (var i = 0, s = 0; i <= 10; i += 1, s += i + (i - 1)) {
        document.write('i: ' + i + ' s: ' + s + '<br/>');
    };
 
 ;;; `DOTIMES':
 
-(let* ((arr (array "a" "b" "c" "d" "e")))
-  (dotimes (i arr.length)
-    (document.write (+ "i: " i " arr[i]: " (aref arr i) "<br/>"))))
-=> var arr = ['a', 'b', 'c', 'd', 'e'];
-   for (var i = 0; i < arr.length; i += 1) {
-       document.write('i: ' + i + ' arr[i]: ' + arr[i] + '<br/>');
+(let ((arr (array "a" "b" "c" "d" "e")))
+  (dotimes (i (@ arr length))
+    ((@ document write) (+ "i: " i " arr[i]: " (aref arr i) "<br/>"))))
+=> var arr1 = ['a', 'b', 'c', 'd', 'e'];
+   for (var i = 0; i < arr1.length; i += 1) {
+       document.write('i: ' + i + ' arr[i]: ' + arr1[i] + '<br/>');
    };
 
 ;;; `DOTIMES' with return value:
 
-(let* ((res 0))
+(let ((res 0))
   (alert (+ "Summation to 10 is "
             (dotimes (i 10 res)
               (incf res (1+ i))))))
-=> var res = 0;
+=> var res1 = 0;
    alert('Summation to 10 is ' + (function () {
        for (var i = 0; i < 10; i += 1) {
-           res += i + 1;
+           res1 += i + 1;
        };
-       return res;
+       return res1;
    })());
 
 ;;; `DOLIST' is like CL:DOLIST, but that it operates on numbered JS
 ;;; arrays/vectors.
 
-(let* ((l (list 1 2 4 8 16 32)))
+(let ((l (list 1 2 4 8 16 32)))
   (dolist (c l)
-    (document.write (+ "c: " c "<br/>"))))
-=> var l = [1, 2, 4, 8, 16, 32];
-   for (var c = null, _js_arrvar2 = l, _js_idx1 = 0; _js_idx1 < _js_arrvar2.length; _js_idx1 += 1) {
-       c = _js_arrvar2[_js_idx1];
+    ((@ document write) (+ "c: " c "<br/>"))))
+=> var l1 = [1, 2, 4, 8, 16, 32];
+   for (var c = null, _js_arrvar3 = l1, _js_idx2 = 0; _js_idx2 < _js_arrvar3.length; _js_idx2 += 1) {
+       c = _js_arrvar3[_js_idx2];
        document.write('c: ' + c + '<br/>');
    };
 
-(let* ((l (list 1 2 4 8 16 32))
-       (s 0))
+(let ((l '(1 2 4 8 16 32))
+      (s 0))
   (alert (+ "Sum of " l " is: "
             (dolist (c l s)
               (incf s c)))))
-=> var l = [1, 2, 4, 8, 16, 32];
-   var s = 0;
-   alert('Sum of ' + l + ' is: ' + (function () {
-       for (var c = null, _js_arrvar2 = l, _js_idx1 = 0; _js_idx1 < _js_arrvar2.length; _js_idx1 += 1) {
-           c = _js_arrvar2[_js_idx1];
-           s += c;
+=> var l1 = [1, 2, 4, 8, 16, 32];
+   var s2 = 0;
+   alert('Sum of ' + l1 + ' is: ' + (function () {
+       for (var c = null, _js_arrvar4 = l1, _js_idx3 = 0; _js_idx3 < _js_arrvar4.length; _js_idx3 += 1) {
+           c = _js_arrvar4[_js_idx3];
+           s2 += c;
        };
-       return s;
+       return s2;
    })());
 
 ;;; `FOR-IN' is translated to the JS `for...in' statement.
 
-(let* ((obj (create :a 1 :b 2 :c 3)))
+(let ((obj (create :a 1 :b 2 :c 3)))
   (for-in (i obj)
-    (document.write (+ i ": " (aref obj i) "<br/>"))))
-=> var obj = { a : 1, b : 2, c : 3 };
-   for (var i in obj) {
-       document.write(i + ': ' + obj[i] + '<br/>');
+    ((@ document write) (+ i ": " (aref obj i) "<br/>"))))
+=> var obj1 = { a : 1, b : 2, c : 3 };
+   for (var i in obj1) {
+       document.write(i + ': ' + obj1[i] + '<br/>');
    };
 
 ;;; The `WHILE' form is transformed to the JavaScript form `while',
 ;;; and loops until a termination test evaluates to false.
 
-(while (film.is-not-finished)
-  (this.eat (new *popcorn)))
+(while ((@ film is-not-finished))
+  ((@ this eat) (new *popcorn)))
 => while (film.isNotFinished()) {
        this.eat(new Popcorn);
    }
@@ -1068,7 +1004,7 @@ a-variable  => aVariable
 ;;; We can recursively call the Parenscript compiler in an HTML
 ;;; expression.
 
-(document.write
+((@ document write)
   (ps-html ((:a :href "#"
                 :onclick (ps-inline (transport))) "link")))
 => document.write('<A HREF=\"#\" ONCLICK=\"' + ('javascript:' + 'transport' + '(' + ')') + '\">link</A>')
@@ -1076,16 +1012,16 @@ a-variable  => aVariable
 ;;; Forms may be used in attribute lists to conditionally generate
 ;;; the next attribute. In this example the textarea is sometimes disabled.
 
-(let* ((disabled nil)
+(let ((disabled nil)
       (authorized t))
-   (setf element.inner-h-t-m-l
+   (setf (@ element inner-h-t-m-l)
          (ps-html ((:textarea (or disabled (not authorized)) :disabled "disabled")
                 "Edit me"))))
-=> var disabled = null;
-   var authorized = true;
+=> var disabled1 = null;
+   var authorized2 = true;
    element.innerHTML =
    '<TEXTAREA'
-   + (disabled || !authorized ? ' DISABLED=\"' + 'disabled' + '\"' : '')
+   + (disabled1 || !authorized2 ? ' DISABLED=\"' + 'disabled' + '\"' : '')
    + '>Edit me</TEXTAREA>';
 
 ;;;# Macrology

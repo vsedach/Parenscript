@@ -34,16 +34,15 @@
 
 ;;; Parenscript-style symbol -> Javascript-style symbol
 
-(defun constant-string-p (string)
-  (let ((len (length string))
-        (constant-chars '(#\+ #\*)))
-    (and (> len 2)
-         (member (char string 0) constant-chars)
-         (member (char string (1- len)) constant-chars))))
+(defun special-symbol-delimiter? (char)
+  (or (eql char #\+) (eql char #\*)))
+
+(defun special-symbol-name? (string)
+  (nth-value 1 (cl-ppcre:scan-to-strings "[\\*|\\+](.*)[\\*|\\+]([0-9]*)" string)))
 
 (defun first-uppercase-p (string)
   (and (> (length string) 1)
-       (member (char string 0) '(#\+ #\*))))
+       (special-symbol-delimiter? (char string 0))))
 
 (defun untouchable-string-p (string)
   (and (> (length string) 1)
@@ -54,43 +53,40 @@
 identifier by following transformation heuristics case conversion. For
 example, paren-script becomes parenScript, *some-global* becomes
 SOMEGLOBAL."
-  (when (symbolp symbol)
-    (setf symbol (symbol-name symbol)))
-  (let ((symbols (string-split symbol '(#\. #\[ #\]) :keep-separators t :remove-empty-subseqs t)))
-    (cond ((null symbols) "")
-          ((= (length symbols) 1)
-           (let (res
-                 (do-not-touch nil)
-                 (lowercase t)
-                 (all-uppercase nil))
-             (cond ((constant-string-p symbol)
-                    (setf all-uppercase t
-                          symbol (subseq symbol 1 (1- (length symbol)))))
-                   ((first-uppercase-p symbol)
-                    (setf lowercase nil
-                          symbol (subseq symbol 1)))
-                   ((untouchable-string-p symbol)
-                    (setf do-not-touch t
-                          symbol (subseq symbol 1))))
-             (flet ((reschar (c)
-                      (push (cond
-                              (do-not-touch c)
-                              ((and lowercase (not all-uppercase))
-                               (char-downcase c))
-                              (t (char-upcase c)))
-                            res)
-                      (setf lowercase t)))
-               (dotimes (i (length symbol))
-                 (let ((c (char symbol i)))
-                   (cond
-                     ((eql c #\-)
-                      (setf lowercase (not lowercase)))
-                     ((assoc c *special-chars*)
-                      (dolist (i (coerce (cdr (assoc c *special-chars*)) 'list))
-                        (reschar i)))
-                     (t (reschar c))))))
-             (coerce (nreverse res) 'string)))
-          (t (string-join (mapcar #'symbol-name-to-js-string symbols) "")))))
+  (let ((sym-name (string symbol))
+        res
+        (do-not-touch nil)
+        (lowercase t)
+        (all-uppercase nil))
+    (when (and (not (eq symbol '[]))
+               (find-if (lambda (x) (member x '(#\. #\[ #\]))) sym-name))
+      (warn "Symbol ~A contains one of '.[]' - this compound naming convention is no longer supported by Parenscript!"
+            symbol))
+    (cond ((special-symbol-name? sym-name)
+           (setf all-uppercase t
+                 sym-name (let ((parts (special-symbol-name? sym-name)))
+                            (concatenate 'string (aref parts 0) (aref parts 1)))))
+          ((first-uppercase-p sym-name)
+           (setf lowercase nil
+                 sym-name (subseq sym-name 1)))
+          ((untouchable-string-p sym-name)
+           (setf do-not-touch t
+                 sym-name (subseq sym-name 1))))
+    (flet ((reschar (c)
+             (push (cond (do-not-touch c)
+                         ((and lowercase (not all-uppercase)) (char-downcase c))
+                         (t (char-upcase c)))
+                   res)
+             (setf lowercase t)))
+      (dotimes (i (length sym-name))
+        (let ((c (char sym-name i)))
+          (cond ((eql c #\-)
+                 (setf lowercase (not lowercase)))
+                ((assoc c *special-chars*)
+                 (dolist (i (coerce (cdr (assoc c *special-chars*)) 'list))
+                   (reschar i)))
+                (t (reschar c))))))
+    (coerce (nreverse res) 'string)))
 
 (defun ordered-set-difference (list1 list2 &key (test #'eql)) ; because the CL set-difference may not preserve order
   (reduce (lambda (list el) (remove el list :test test))

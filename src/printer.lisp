@@ -281,7 +281,7 @@ arguments, defines a printer for that form using the given body."
   (ps-print body-block))
 
 (defprinter js:for-in (var object body-block)
-  (psw "for (") (ps-print var) (psw " in ")
+  (psw "for (var ") (ps-print var) (psw " in ")
   (if (> (expression-precedence object) (op-precedence 'in))
       (parenthesize-print object)
       (ps-print object))

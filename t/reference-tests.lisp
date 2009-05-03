@@ -31,13 +31,9 @@
   *array
   "Array")
 
-(test-ps-js symbol-conversion-6
+(test-ps-js symbol-conversion-4
   *global-array*
   "GLOBALARRAY")
-
-(test-ps-js symbol-conversion-7
-  *global-array*.length
-  "GLOBALARRAY.length")
 
 (test-ps-js number-literals-1
   1
@@ -107,8 +103,8 @@
   "anObject.foo")
 
 (test-ps-js object-literals-4
-  an-object.foo
-  "anObject.foo")
+  (@ an-object foo bar)
+  "anObject.foo.bar")
 
 (test-ps-js object-literals-5
   (with-slots (a b c) this
@@ -159,10 +155,6 @@
   *math
   "Math")
 
-(test-ps-js variables-4
-  *math.floor
-  "Math.floor")
-
 (test-ps-js function-calls-and-method-calls-1
   (blorg 1 2)
   "blorg(1, 2)")
@@ -182,10 +174,6 @@
 (test-ps-js function-calls-and-method-calls-5
   ((slot-value (aref foobar 1) 'blorg) NIL T)
   "foobar[1].blorg(null, true)")
-
-(test-ps-js function-calls-and-method-calls-6
-  (this.blorg 1 2)
-  "this.blorg(1, 2)")
 
 (test-ps-js operator-expressions-1
   (* 1 2)
@@ -269,14 +257,14 @@ x = a + b + c;")
   "a = 1 - a;")
 
 (test-ps-js assignment-5
-  (let* ((a 1) (b 2))
+  (let ((a 1) (b 2))
   (psetf a b b a))
-  "var a = 1;
-var b = 2;
-var _js1 = b;
-var _js2 = a;
-a = _js1;
-b = _js2;")
+  "var a1 = 1;
+var b2 = 2;
+var _js3_5 = b2;
+var _js4_6 = a1;
+a1 = _js3_5;
+b2 = _js4_6;")
 
 (test-ps-js assignment-6
   (setq a 1)
@@ -291,9 +279,9 @@ b = _js2;")
 
 (test-ps-js assignment-9
   (setf (color some-div) (+ 23 "em"))
-  "var _js2 = someDiv;
-var _js1 = 23 + 'em';
-__setf_color(_js1, _js2);")
+  "var _js2_3 = someDiv;
+var _js1_4 = 23 + 'em';
+__setf_color(_js1_4, _js2_3);")
 
 (test-ps-js assignment-10
   (defsetf left (el) (offset)
@@ -302,9 +290,9 @@ __setf_color(_js1, _js2);")
 
 (test-ps-js assignment-11
   (setf (left some-div) (+ 123 "px"))
-  "var _js2 = someDiv;
-var _js1 = 123 + 'px';
-_js2.style.left = _js1;")
+  "var _js2_3 = someDiv;
+var _js1_4 = 123 + 'px';
+_js2_3.style.left = _js1_4;")
 
 (test-ps-js assignment-12
   (progn (defmacro left (el)
@@ -335,7 +323,7 @@ _js2.style.left = _js1;")
 }")
 
 (test-ps-js conditional-statements-1
-  (if (blorg.is-correct)
+  (if ((@ blorg is-correct))
     (progn (carry-on) (return i))
     (alert "blorg is not correct!"))
   "if (blorg.isCorrect()) {
@@ -346,11 +334,11 @@ _js2.style.left = _js1;")
 }")
 
 (test-ps-js conditional-statements-2
-  (+ i (if (blorg.add-one) 1 2))
+  (+ i (if ((@ blorg add-one)) 1 2))
   "i + (blorg.addOne() ? 1 : 2)")
 
 (test-ps-js conditional-statements-3
-  (when (blorg.is-correct)
+  (when ((@ blorg is-correct))
   (carry-on)
   (return i))
   "if (blorg.isCorrect()) {
@@ -359,7 +347,7 @@ _js2.style.left = _js1;")
 }")
 
 (test-ps-js conditional-statements-4
-  (unless (blorg.is-correct)
+  (unless ((@ blorg is-correct))
   (alert "blorg is not correct!"))
   "if (!blorg.isCorrect()) {
     alert('blorg is not correct!');
@@ -370,59 +358,33 @@ _js2.style.left = _js1;")
   "var A = [ 1, 2, 3 ]")
 
 (test-ps-js variable-declaration-2
-  (simple-let* ((a 0) (b 1))
-  (alert (+ a b)))
-  "var a = 0;
-var b = 1;
-alert(a + b);")
-
-(test-ps-js variable-declaration-3
-  (simple-let* ((a "World") (b "Hello"))
-  (simple-let ((a b) (b a))
-    (alert (+ a b))))
-  "var a = 'World';
-var b = 'Hello';
-var _js_a1 = b;
-var _js_b2 = a;
-var a = _js_a1;
-var b = _js_b2;
-delete _js_a1;
-delete _js_b2;
-alert(a + b);")
-
-(test-ps-js variable-declaration-4
-  (simple-let* ((a 0) (b 1))
-  (lexical-let* ((a 9) (b 8))
-    (alert (+ a b)))
-  (alert (+ a b)))
-  "var a = 0;
-var b = 1;
-(function () {
-    var a = 9;
-    var b = 8;
-    alert(a + b);
-})();
-alert(a + b);")
-
-(test-ps-js variable-declaration-5
-  (simple-let* ((a "World") (b "Hello"))
-  (lexical-let ((a b) (b a))
-    (alert (+ a b)))
-  (alert (+ a b)))
-  "var a = 'World';
-var b = 'Hello';
-(function (a, b) {
-    alert(a + b);
-})(b, a);
-alert(a + b);")
+  (progn 
+  (defvar *a* 4)
+  (let ((x 1)
+        (*a* 2))
+    (let* ((y (+ x 1))
+           (x (+ x y)))
+      (+ *a* x y))))
+  "var A = 4;
+var x1 = 1;
+var A2;
+try {
+    A2 = A;
+    A = 2;
+    var y3 = x1 + 1;
+    var x4 = x1 + y3;
+    A + x4 + y3;
+} finally {
+    A = A2;
+};")
 
 (test-ps-js iteration-constructs-1
   (do* ((a) b (c (array "a" "b" "c" "d" "e"))
       (d 0 (1+ d))
       (e (aref c d) (aref c d)))
-     ((or (= d c.length) (eql e "x")))
+     ((or (= d (@ c length)) (eql e "x")))
   (setf a d b e)
-  (document.write (+ "a: " a " b: " b "<br/>")))
+  ((@ document write) (+ "a: " a " b: " b "<br/>")))
   "for (var a = null, b = null, c = ['a', 'b', 'c', 'd', 'e'], d = 0, e = c[d]; !(d == c.length || e == 'x'); d += 1, e = c[d]) {
     a = d;
     b = e;
@@ -433,90 +395,86 @@ alert(a + b);")
   (do ((i 0 (1+ i))
      (s 0 (+ s i (1+ i))))
     ((> i 10))
-  (document.write (+ "i: " i " s: " s "<br/>")))
-  "var _js_i1 = 0;
-var _js_s2 = 0;
-var i = _js_i1;
-var s = _js_s2;
-delete _js_i1;
-delete _js_s2;
-for (; i <= 10; ) {
-    document.write('i: ' + i + ' s: ' + s + '<br/>');
-    var _js3 = i + 1;
-    var _js4 = s + i + (i + 1);
-    i = _js3;
-    s = _js4;
+  ((@ document write) (+ "i: " i " s: " s "<br/>")))
+  "var i1 = 0;
+var s2 = 0;
+for (; i1 <= 10; ) {
+    document.write('i: ' + i1 + ' s: ' + s2 + '<br/>');
+    var _js3_5 = i1 + 1;
+    var _js4_6 = s2 + i1 + (i1 + 1);
+    i1 = _js3_5;
+    s2 = _js4_6;
 };")
 
 (test-ps-js iteration-constructs-3
   (do* ((i 0 (1+ i))
       (s 0 (+ s i (1- i))))
      ((> i 10))
-  (document.write (+ "i: " i " s: " s "<br/>")))
+  ((@ document write) (+ "i: " i " s: " s "<br/>")))
   "for (var i = 0, s = 0; i <= 10; i += 1, s += i + (i - 1)) {
     document.write('i: ' + i + ' s: ' + s + '<br/>');
 };")
 
 (test-ps-js iteration-constructs-4
-  (let* ((arr (array "a" "b" "c" "d" "e")))
-  (dotimes (i arr.length)
-    (document.write (+ "i: " i " arr[i]: " (aref arr i) "<br/>"))))
-  "var arr = ['a', 'b', 'c', 'd', 'e'];
-for (var i = 0; i < arr.length; i += 1) {
-    document.write('i: ' + i + ' arr[i]: ' + arr[i] + '<br/>');
+  (let ((arr (array "a" "b" "c" "d" "e")))
+  (dotimes (i (@ arr length))
+    ((@ document write) (+ "i: " i " arr[i]: " (aref arr i) "<br/>"))))
+  "var arr1 = ['a', 'b', 'c', 'd', 'e'];
+for (var i = 0; i < arr1.length; i += 1) {
+    document.write('i: ' + i + ' arr[i]: ' + arr1[i] + '<br/>');
 };")
 
 (test-ps-js iteration-constructs-5
-  (let* ((res 0))
+  (let ((res 0))
   (alert (+ "Summation to 10 is "
             (dotimes (i 10 res)
               (incf res (1+ i))))))
-  "var res = 0;
+  "var res1 = 0;
 alert('Summation to 10 is ' + (function () {
     for (var i = 0; i < 10; i += 1) {
-        res += i + 1;
+        res1 += i + 1;
     };
-    return res;
+    return res1;
 })());")
 
 (test-ps-js iteration-constructs-6
-  (let* ((l (list 1 2 4 8 16 32)))
+  (let ((l (list 1 2 4 8 16 32)))
   (dolist (c l)
-    (document.write (+ "c: " c "<br/>"))))
-  "var l = [1, 2, 4, 8, 16, 32];
-for (var c = null, _js_arrvar2 = l, _js_idx1 = 0; _js_idx1 < _js_arrvar2.length; _js_idx1 += 1) {
-    c = _js_arrvar2[_js_idx1];
+    ((@ document write) (+ "c: " c "<br/>"))))
+  "var l1 = [1, 2, 4, 8, 16, 32];
+for (var c = null, _js_arrvar3 = l1, _js_idx2 = 0; _js_idx2 < _js_arrvar3.length; _js_idx2 += 1) {
+    c = _js_arrvar3[_js_idx2];
     document.write('c: ' + c + '<br/>');
 };")
 
 (test-ps-js iteration-constructs-7
-  (let* ((l (list 1 2 4 8 16 32))
-       (s 0))
+  (let ((l '(1 2 4 8 16 32))
+      (s 0))
   (alert (+ "Sum of " l " is: "
             (dolist (c l s)
               (incf s c)))))
-  "var l = [1, 2, 4, 8, 16, 32];
-var s = 0;
-alert('Sum of ' + l + ' is: ' + (function () {
-    for (var c = null, _js_arrvar2 = l, _js_idx1 = 0; _js_idx1 < _js_arrvar2.length; _js_idx1 += 1) {
-        c = _js_arrvar2[_js_idx1];
-        s += c;
+  "var l1 = [1, 2, 4, 8, 16, 32];
+var s2 = 0;
+alert('Sum of ' + l1 + ' is: ' + (function () {
+    for (var c = null, _js_arrvar4 = l1, _js_idx3 = 0; _js_idx3 < _js_arrvar4.length; _js_idx3 += 1) {
+        c = _js_arrvar4[_js_idx3];
+        s2 += c;
     };
-    return s;
+    return s2;
 })());")
 
 (test-ps-js iteration-constructs-8
-  (let* ((obj (create :a 1 :b 2 :c 3)))
+  (let ((obj (create :a 1 :b 2 :c 3)))
   (for-in (i obj)
-    (document.write (+ i ": " (aref obj i) "<br/>"))))
-  "var obj = { a : 1, b : 2, c : 3 };
-for (var i in obj) {
-    document.write(i + ': ' + obj[i] + '<br/>');
+    ((@ document write) (+ i ": " (aref obj i) "<br/>"))))
+  "var obj1 = { a : 1, b : 2, c : 3 };
+for (var i in obj1) {
+    document.write(i + ': ' + obj1[i] + '<br/>');
 };")
 
 (test-ps-js iteration-constructs-9
-  (while (film.is-not-finished)
-  (this.eat (new *popcorn)))
+  (while ((@ film is-not-finished))
+  ((@ this eat) (new *popcorn)))
   "while (film.isNotFinished()) {
     this.eat(new Popcorn);
 }")
@@ -579,21 +537,21 @@ for (var i in obj) {
   "'<A HREF=\"' + generateALink() + '\">blorg</A>'")
 
 (test-ps-js the-html-generator-3
-  (document.write
+  ((@ document write)
   (ps-html ((:a :href "#"
                 :onclick (ps-inline (transport))) "link")))
   "document.write('<A HREF=\"#\" ONCLICK=\"' + ('javascript:' + 'transport' + '(' + ')') + '\">link</A>')")
 
 (test-ps-js the-html-generator-4
-  (let* ((disabled nil)
+  (let ((disabled nil)
       (authorized t))
-   (setf element.inner-h-t-m-l
+   (setf (@ element inner-h-t-m-l)
          (ps-html ((:textarea (or disabled (not authorized)) :disabled "disabled")
                 "Edit me"))))
-  "var disabled = null;
-var authorized = true;
+  "var disabled1 = null;
+var authorized2 = true;
 element.innerHTML =
 '<TEXTAREA'
-+ (disabled || !authorized ? ' DISABLED=\"' + 'disabled' + '\"' : '')
++ (disabled1 || !authorized2 ? ' DISABLED=\"' + 'disabled' + '\"' : '')
 + '>Edit me</TEXTAREA>';")
 

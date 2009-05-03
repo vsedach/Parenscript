@@ -36,7 +36,7 @@
                (:module :runtime
                         :components ((:file "ps-runtime-lib"))
                         :depends-on (:src)))
-  :depends-on ())
+  :depends-on (:cl-ppcre))
 
 (defmethod asdf:perform :after ((op asdf:load-op) (system (eql (asdf:find-system :parenscript)))) 
   (pushnew :parenscript cl:*features*))
@@ -53,7 +53,7 @@
                                      (:file "reference-tests")
                                      (:file "ps-tests")
                                      (:file "package-system-tests"))))
-  :depends-on (:parenscript :fiveam :cl-ppcre))
+  :depends-on (:parenscript :fiveam))
 
 (defmethod asdf:perform ((o test-op) (c (eql (find-system :parenscript.test))))
   (asdf:operate 'asdf:load-op :parenscript.test)

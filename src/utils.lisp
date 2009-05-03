@@ -3,11 +3,6 @@
 (defun string-join (strings separator)
   (format nil "~{~}" (format nil "~~a~~^~a" separator) strings))
 
-(defun val-to-string (val)
-  (if (symbolp val)
-      (string-downcase (symbol-name val))
-      (princ-to-string val)))
-
 (defun string-split (string separators &key (keep-separators nil) (remove-empty-subseqs nil))
   (do ((len (length string))
        (i 0 (1+ i))

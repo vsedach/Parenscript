@@ -743,13 +743,39 @@ try {
   "'<SPAN CLASS=\"ticker-symbol\" TICKER-SYMBOL=\"' + symbol + '\"><A HREF=\"http://foo.com\">' + symbol + '</A><SPAN CLASS=\"ticker-symbol-popup\"></SPAN></SPAN>'")
 
 (test-ps-js flet1
-  ((lambda () (flet ((foo (x) (return (1+ x)))) (return (foo 1)))))
+  ((lambda () (flet ((foo (x)
+                       (return (1+ x))))
+                (return (foo 1)))))
   "(function () {
-    var foo = function (x) {
+    var foo1 = function (x) {
         return x + 1;
     };
-    return foo(1);
+    return foo1(1);
 })()")
+
+(test-ps-js flet2
+  (flet ((foo (x) (return (1+ x)))
+         (bar (y) (return (+ 2 y))))
+    (bar (foo 1)))
+"var foo1 = function (x) {
+    return x + 1;
+};
+var bar2 = function (y) {
+    return 2 + y;
+};
+bar2(foo1(1));")
+
+(test-ps-js flet3
+  (flet ((foo (x) (return (1+ x)))
+         (bar (y) (return (+ 2 (foo y)))))
+    (bar (foo 1)))
+  "var foo1 = function (x) {
+    return x + 1;
+};
+var bar2 = function (y) {
+    return 2 + foo(y);
+};
+bar2(foo1(1));")
 
 (test-ps-js labels1
   ((lambda () (labels ((foo (x) 
@@ -758,11 +784,35 @@ try {
                                      (+ x (foo (1- x)))))))
                 (return (foo 3)))))
   "(function () {
-    var foo = function foo(x) {
-        return 0 === x ? 0 : x + foo(x - 1);
+    var foo1 = function (x) {
+        return 0 === x ? 0 : x + foo1(x - 1);
     };
-    return foo(3);
+    return foo1(3);
 })()")
+
+(test-ps-js labels2
+  (labels ((foo (x) (return (1+ (bar x))))
+           (bar (y) (return (+ 2 (foo y)))))
+    (bar (foo 1)))
+  "var foo1 = function (x) {
+    return bar2(x) + 1;
+};
+var bar2 = function (y) {
+    return 2 + foo1(y);
+};
+bar2(foo1(1));")
+
+(test-ps-js labels3
+  (labels ((foo (x) (return (1+ x)))
+           (bar (y) (return (+ 2 (foo y)))))
+    (bar (foo 1)))
+  "var foo1 = function (x) {
+    return x + 1;
+};
+var bar2 = function (y) {
+    return 2 + foo1(y);
+};
+bar2(foo1(1));")
 
 (test-ps-js for-loop-var-init-exp
   ((lambda (x)
@@ -910,3 +960,8 @@ x2 + y3;")
 var y2 = x1 + 2;
 var x3 = 1;
 x3 + y2;")
+
+(test-ps-js symbol-macrolet-var
+  (symbol-macrolet ((x y))
+    (var x))
+  "var y;")

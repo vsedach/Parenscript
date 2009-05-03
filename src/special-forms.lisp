@@ -362,14 +362,13 @@ lambda-list::=
       ,@effective-body)))
 
 (defpsmacro flet (fn-defs &rest body)
-  (flet ((process-fn-def (def)
-           `(var ,(car def) (lambda ,@(cdr def)))))
-    `(progn ,@(mapcar #'process-fn-def fn-defs) ,@body)))
+  `(let ,(mapcar (lambda (def) `(,(car def) (lambda ,@(cdr def)))) fn-defs)
+     ,@body))
 
 (defpsmacro labels (fn-defs &rest body)
-  (flet ((process-fn-def (def)
-           `(var ,(car def) (defun ,(car def) ,@(cdr def)))))
-    `(progn ,@(mapcar #'process-fn-def fn-defs) ,@body)))
+  `(symbol-macrolet ,(mapcar (lambda (x) (list (car x) (ps-gensym (car x)))) fn-defs)
+     ,@(mapcar (lambda (def) `(var ,(car def) (lambda ,@(cdr def)))) fn-defs)
+     ,@body))
 
 (defpsmacro defsetf-long (access-fn lambda-list (store-var) form)
   (setf (get-macro-spec access-fn *ps-setf-expanders*)
@@ -539,14 +538,15 @@ lambda-list::=
 
 (define-ps-special-form var (name &optional (value (values) value-provided?) documentation)
   (declare (ignore documentation))
-  (ecase expecting
-    (:statement
-     `(js:var ,name ,@(when value-provided?
-                            (list (compile-parenscript-form value :expecting :expression)))))
-    (:expression
-     (push name *enclosing-lexical-block-declarations*)
-     (when value-provided?
-       (compile-parenscript-form `(setf ,name ,value) :expecting :expression)))))
+  (let ((name (ps-macroexpand name)))
+    (ecase expecting
+      (:statement
+       `(js:var ,name ,@(when value-provided?
+                              (list (compile-parenscript-form value :expecting :expression)))))
+      (:expression
+       (push name *enclosing-lexical-block-declarations*)
+       (when value-provided?
+         (compile-parenscript-form `(setf ,name ,value) :expecting :expression))))))
 
 (defpsmacro defvar (name &optional (value (values) value-provided?) documentation)
   ;; this must be used as a top-level form, otherwise the resulting behavior will be undefined.

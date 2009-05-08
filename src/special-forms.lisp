@@ -260,9 +260,11 @@ Syntax of key spec:
   (values (if (symbolp spec) spec (first spec))
           (when (listp spec) (second spec))))
 
-(defpsmacro defaultf (place value)
-  `(when (=== ,place undefined)
-     (setf ,place ,value)))
+(defpsmacro defaultf (name value suppl)
+  `(progn
+     ,@(when suppl `((var ,suppl t)))
+     (when (=== ,name undefined)
+       (setf ,name ,value ,@(when suppl (list suppl nil))))))
 
 (defun parse-extended-function (lambda-list body &optional name)
   "Returns two values: the effective arguments and body for a function with
@@ -272,11 +274,12 @@ the given lambda-list and body."
   ;; list of variable names, and you have access to the arguments variable inside the function:
   ;; * standard variables are the mapped directly into the js-lambda list
   ;; * optional variables' variable names are mapped directly into the lambda list,
-  ;;   and for each optional variable with name v and default value d, a form is produced
-  ;;   (defaultf v d)
+  ;;   and for each optional variable with name v, default value d, and
+  ;;   supplied-p parameter s, a form is produced (defaultf v d s)
   ;; * keyword variables are not included in the js-lambda list, but instead are
   ;;   obtained from the magic js ARGUMENTS pseudo-array. Code assigning values to
-  ;;   keyword vars is prepended to the body of the function.
+  ;;   keyword vars is prepended to the body of the function. Defaults and supplied-p
+  ;;   are handled using the same mechanism as with optional vars.
   (declare (ignore name))
   (multiple-value-bind (requireds optionals rest? rest keys? keys allow? aux? aux
                                   more? more-context more-count key-object)
@@ -290,8 +293,9 @@ the given lambda-list and body."
                      (mapcar #'parse-optional-spec optionals))))
            (opt-forms
             (mapcar #'(lambda (opt-spec)
-                        (multiple-value-bind (var val) (parse-optional-spec opt-spec)
-                          `(defaultf ,var ,val)))
+                        (multiple-value-bind (var val suppl)
+                            (parse-optional-spec opt-spec)
+                          `(defaultf ,var ,val ,suppl)))
                     optionals))
            (key-forms
             (when keys?
@@ -299,11 +303,11 @@ the given lambda-list and body."
                   (with-ps-gensyms (n)
                     (let ((decls nil) (assigns nil) (defaults nil))
                       (mapc (lambda (k)
-                              (multiple-value-bind (var init-form keyword-str)
+                              (multiple-value-bind (var init-form keyword-str suppl)
                                   (parse-key-spec k)
                                 (push `(var ,var) decls)
                                 (push `(,keyword-str (setf ,var (aref arguments (1+ ,n)))) assigns)
-                                (push (list 'defaultf var init-form) defaults)))
+                                (push (list 'defaultf var init-form suppl) defaults)))
                             (reverse keys))
                       `(,@decls
                         (loop :for ,n :from ,(length requireds)

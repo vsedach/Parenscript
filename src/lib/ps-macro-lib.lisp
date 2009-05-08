@@ -137,10 +137,13 @@
     `((@ ,fn :apply) this ,arglist)))
 
 (defpsmacro destructuring-bind (vars expr &body body)
-  ;; a simple implementation that for now only supports flat lists
+  ;; a simple implementation that for now only supports flat lists,
+  ;; but does allow NIL bindings to indicate ignore (a la LOOP)
   (let* ((arr (if (complex-js-expr? expr) (ps-gensym) expr))
          (n -1)
          (bindings
           (append (unless (equal arr expr) `((,arr ,expr)))
-                  (mapcar (lambda (var) `(,var (aref ,arr ,(incf n)))) vars))))
+                  (mapcan (lambda (var)
+                            (incf n)
+                            (when var `((,var (aref ,arr ,n))))) vars))))
     `(let ,bindings ,@body)))

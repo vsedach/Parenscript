@@ -965,3 +965,17 @@ x3 + y2;")
   (symbol-macrolet ((x y))
     (var x))
   "var y;")
+
+(test-ps-js setf-conditional1
+  (setf x (unless (null a) (1+ a)))
+  "x = a != null ? a + 1 : null;")
+
+(test-ps-js setf-let1
+  (setf x (let ((a 1)) a))
+  "x = (a1 = 1, a1);")
+
+(test-ps-js setf-let2
+  (setf x (let ((a (foo)))
+            (unless (null a)
+              (1+ a))))
+  "x = (a1 = foo(), a1 != null ? a1 + 1 : null);")

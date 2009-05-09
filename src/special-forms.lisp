@@ -414,7 +414,7 @@ lambda-list::=
           macro
         (setf (get-macro-spec name macro-env-dict)
               (cons nil (eval (make-ps-macro-function arglist body))))))
-    (compile-parenscript-form `(progn ,@body))))
+    (compile-parenscript-form `(progn ,@body) :expecting expecting)))
 
 (define-ps-special-form symbol-macrolet (symbol-macros &body body)
   (with-temp-macro-environment (macro-env-dict)
@@ -423,7 +423,7 @@ lambda-list::=
           macro
         (setf (get-macro-spec name macro-env-dict)
               (cons t (lambda (x) (declare (ignore x)) expansion)))))
-    (compile-parenscript-form `(progn ,@body))))
+    (compile-parenscript-form `(progn ,@body) :expecting expecting)))
 
 (define-ps-special-form defmacro (name args &body body) ;; should this be a macro?
   (eval `(defpsmacro ,name ,args ,@body))

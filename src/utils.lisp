@@ -92,10 +92,6 @@ SOMEGLOBAL."
   (reduce (lambda (list el) (remove el list :test test))
           (cons list1 list2)))
 
-(defmacro aif (test-form then-form &optional else-form)
-  `(let ((it ,test-form))
-     (if it ,then-form ,else-form)))
-
 (defmacro once-only ((&rest names) &body body) ;; the version from PCL
   (let ((gensyms (loop for nil in names collect (gensym))))
     `(let (,@(loop for g in gensyms collect `(,g (gensym))))

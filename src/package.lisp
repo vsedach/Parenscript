@@ -222,9 +222,9 @@
       #:ps-doc
       #:ps-doc*
       #:ps*
-      #:ps1*
       #:ps-inline
       #:ps-inline*
+      #:*ps-read-function*
       #:ps-compile-file
       #:ps-compile-stream
       ;; for parenscript macro definition within lisp
@@ -366,7 +366,7 @@
   )
 
 (defpackage "PARENSCRIPT"
-  (:use "COMMON-LISP")
+  (:use "COMMON-LISP" "ANAPHORA")
   (:nicknames "JS" "PS")
   #.(cons :export *parenscript-lang-exports*)
   #.(cons :export *parenscript-interface-exports*)

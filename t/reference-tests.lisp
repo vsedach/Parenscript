@@ -9,7 +9,7 @@
 
 (test-ps-js statements-and-expressions-1
   (+ i (if 1 2 3))
-  "i + (1 ? 2 : 3)")
+  "i + (1 ? 2 : 3);")
 
 (test-ps-js statements-and-expressions-2
   (if 1 2 3)
@@ -17,78 +17,78 @@
     2;
 } else {
     3;
-}")
+};")
 
 (test-ps-js symbol-conversion-1
   !?#@%
-  "bangwhathashatpercent")
+  "bangwhathashatpercent;")
 
 (test-ps-js symbol-conversion-2
   bla-foo-bar
-  "blaFooBar")
+  "blaFooBar;")
 
 (test-ps-js symbol-conversion-3
   *array
-  "Array")
+  "Array;")
 
 (test-ps-js symbol-conversion-4
   *global-array*
-  "GLOBALARRAY")
+  "GLOBALARRAY;")
 
 (test-ps-js number-literals-1
   1
-  "1")
+  "1;")
 
 (test-ps-js number-literals-2
   123.123
-  "123.123")
+  "123.123;")
 
 (test-ps-js number-literals-3
   #x10
-  "16")
+  "16;")
 
 (test-ps-js string-literals-1
   "foobar"
-  "'foobar'")
+  "'foobar';")
 
 (test-ps-js string-literals-2
   "bratzel bub"
-  "'bratzel bub'")
+  "'bratzel bub';")
 
 (test-ps-js string-literals-3
   "	"
-  "'\\t'")
+  "'\\t';")
 
 (test-ps-js array-literals-1
   (array)
-  "[  ]")
+  "[  ];")
 
 (test-ps-js array-literals-2
   (array 1 2 3)
-  "[ 1, 2, 3 ]")
+  "[ 1, 2, 3 ];")
 
 (test-ps-js array-literals-3
   (array (array 2 3)
        (array "foobar" "bratzel bub"))
-  "[ [ 2, 3 ], [ 'foobar', 'bratzel bub' ] ]")
+  "[ [ 2, 3 ], [ 'foobar', 'bratzel bub' ] ];")
 
 (test-ps-js array-literals-4
   (make-array)
-  "new Array()")
+  "new Array();")
 
 (test-ps-js array-literals-5
   (make-array 1 2 3)
-  "new Array(1, 2, 3)")
+  "new Array(1, 2, 3);")
 
 (test-ps-js array-literals-6
   (make-array
  (make-array 2 3)
  (make-array "foobar" "bratzel bub"))
-  "new Array(new Array(2, 3), new Array('foobar', 'bratzel bub'))")
+  "new Array(new Array(2, 3), new Array('foobar', 'bratzel bub'));")
 
 (test-ps-js object-literals-1
   (create :foo "bar" :blorg 1)
-  "{ foo : 'bar', blorg : 1 }")
+  "{ foo : 'bar', blorg : 1 };")
 
 (test-ps-js object-literals-2
   (create :foo "hihi"
@@ -96,15 +96,15 @@
         :another-object (create :schtrunz 1))
   "{ foo : 'hihi',
   blorg : [ 1, 2, 3 ],
-  anotherObject : { schtrunz : 1 } }")
+  anotherObject : { schtrunz : 1 } };")
 
 (test-ps-js object-literals-3
   (slot-value an-object 'foo)
-  "anObject.foo")
+  "anObject.foo;")
 
 (test-ps-js object-literals-4
   (@ an-object foo bar)
-  "anObject.foo.bar")
+  "anObject.foo.bar;")
 
 (test-ps-js object-literals-5
   (with-slots (a b c) this
@@ -113,107 +113,107 @@
 
 (test-ps-js regular-expression-literals-1
   (regex "foobar")
-  "/foobar/")
+  "/foobar/;")
 
 (test-ps-js regular-expression-literals-2
   (regex "/foobar/i")
-  "/foobar/i")
+  "/foobar/i;")
 
 (test-ps-js literal-symbols-1
   T
-  "true")
+  "true;")
 
 (test-ps-js literal-symbols-2
   FALSE
-  "false")
+  "false;")
 
 (test-ps-js literal-symbols-3
   F
-  "false")
+  "false;")
 
 (test-ps-js literal-symbols-4
   NIL
-  "null")
+  "null;")
 
 (test-ps-js literal-symbols-5
   UNDEFINED
-  "undefined")
+  "undefined;")
 
 (test-ps-js literal-symbols-6
   THIS
-  "this")
+  "this;")
 
 (test-ps-js variables-1
   variable
-  "variable")
+  "variable;")
 
 (test-ps-js variables-2
   a-variable
-  "aVariable")
+  "aVariable;")
 
 (test-ps-js variables-3
   *math
-  "Math")
+  "Math;")
 
 (test-ps-js function-calls-and-method-calls-1
   (blorg 1 2)
-  "blorg(1, 2)")
+  "blorg(1, 2);")
 
 (test-ps-js function-calls-and-method-calls-2
   (foobar (blorg 1 2) (blabla 3 4) (array 2 3 4))
-  "foobar(blorg(1, 2), blabla(3, 4), [ 2, 3, 4 ])")
+  "foobar(blorg(1, 2), blabla(3, 4), [ 2, 3, 4 ]);")
 
 (test-ps-js function-calls-and-method-calls-3
   ((slot-value this 'blorg) 1 2)
-  "this.blorg(1, 2)")
+  "this.blorg(1, 2);")
 
 (test-ps-js function-calls-and-method-calls-4
   ((aref foo i) 1 2)
-  "foo[i](1, 2)")
+  "foo[i](1, 2);")
 
 (test-ps-js function-calls-and-method-calls-5
   ((slot-value (aref foobar 1) 'blorg) NIL T)
-  "foobar[1].blorg(null, true)")
+  "foobar[1].blorg(null, true);")
 
 (test-ps-js operator-expressions-1
   (* 1 2)
-  "1 * 2")
+  "1 * 2;")
 
 (test-ps-js operator-expressions-2
   (= 1 2)
-  "1 == 2")
+  "1 == 2;")
 
 (test-ps-js operator-expressions-3
   (eql 1 2)
-  "1 == 2")
+  "1 == 2;")
 
 (test-ps-js operator-expressions-4
   (* 1 (+ 2 3 4) 4 (/ 6 7))
-  "1 * (2 + 3 + 4) * 4 * (6 / 7)")
+  "1 * (2 + 3 + 4) * 4 * (6 / 7);")
 
 (test-ps-js operator-expressions-5
   (incf i)
-  "++i")
+  "++i;")
 
 (test-ps-js operator-expressions-6
   (decf i)
-  "--i")
+  "--i;")
 
 (test-ps-js operator-expressions-7
   (1- i)
-  "i - 1")
+  "i - 1;")
 
 (test-ps-js operator-expressions-8
   (1+ i)
-  "i + 1")
+  "i + 1;")
 
 (test-ps-js operator-expressions-9
   (not (< i 2))
-  "i >= 2")
+  "i >= 2;")
 
 (test-ps-js operator-expressions-10
   (not (eql i 2))
-  "i != 2")
+  "i != 2;")
 
 (test-ps-js body-forms-1
   (progn (blorg i) (blafoo i))
@@ -222,20 +222,20 @@ blafoo(i);")
 
 (test-ps-js body-forms-2
   (+ i (progn (blorg i) (blafoo i)))
-  "i + (blorg(i), blafoo(i))")
+  "i + (blorg(i), blafoo(i));")
 
 (test-ps-js function-definition-1
   (defun a-function (a b)
   (return (+ a b)))
   "function aFunction(a, b) {
     return a + b;
-}")
+};")
 
 (test-ps-js function-definition-2
   (lambda (a b) (return (+ a b)))
   "function (a, b) {
     return a + b;
-}")
+};")
 
 (test-ps-js assignment-1
   (setf a 1)
@@ -286,7 +286,7 @@ __setf_color(_js1_4, _js2_3);")
 (test-ps-js assignment-10
   (defsetf left (el) (offset)
   `(setf (slot-value (slot-value ,el 'style) 'left) ,offset))
-  "null")
+  "null;")
 
 (test-ps-js assignment-11
   (setf (left some-div) (+ 123 "px"))
@@ -295,22 +295,22 @@ var _js1_4 = 123 + 'px';
 _js2_3.style.left = _js1_4;")
 
 (test-ps-js assignment-12
-  (progn (defmacro left (el)
-         `(slot-value ,el 'offset-left))
-       (left some-div))
+  (macrolet ((left (el)
+             `(slot-value ,el 'offset-left)))
+  (left some-div))
   "someDiv.offsetLeft;")
 
 (test-ps-js single-argument-statements-1
   (return 1)
-  "return 1")
+  "return 1;")
 
 (test-ps-js single-argument-statements-2
   (throw "foobar")
-  "throw 'foobar'")
+  "throw 'foobar';")
 
 (test-ps-js single-argument-expression-1
   (delete (new (*foobar 2 3 4)))
-  "delete new Foobar(2, 3, 4)")
+  "delete new Foobar(2, 3, 4);")
 
 (test-ps-js single-argument-expression-2
   (if (= (typeof blorg) *string)
@@ -320,7 +320,7 @@ _js2_3.style.left = _js1_4;")
     alert('blorg is a string: ' + blorg);
 } else {
     alert('blorg is not a string');
-}")
+};")
 
 (test-ps-js conditional-statements-1
   (if ((@ blorg is-correct))
@@ -331,11 +331,11 @@ _js2_3.style.left = _js1_4;")
     return i;
 } else {
     alert('blorg is not correct!');
-}")
+};")
 
 (test-ps-js conditional-statements-2
   (+ i (if ((@ blorg add-one)) 1 2))
-  "i + (blorg.addOne() ? 1 : 2)")
+  "i + (blorg.addOne() ? 1 : 2);")
 
 (test-ps-js conditional-statements-3
   (when ((@ blorg is-correct))
@@ -344,18 +344,18 @@ _js2_3.style.left = _js1_4;")
   "if (blorg.isCorrect()) {
     carryOn();
     return i;
-}")
+};")
 
 (test-ps-js conditional-statements-4
   (unless ((@ blorg is-correct))
   (alert "blorg is not correct!"))
   "if (!blorg.isCorrect()) {
     alert('blorg is not correct!');
-}")
+};")
 
 (test-ps-js variable-declaration-1
   (defvar *a* (array 1 2 3))
-  "var A = [ 1, 2, 3 ]")
+  "var A = [ 1, 2, 3 ];")
 
 (test-ps-js variable-declaration-2
   (progn 
@@ -477,7 +477,7 @@ for (var i in obj1) {
   ((@ this eat) (new *popcorn)))
   "while (film.isNotFinished()) {
     this.eat(new Popcorn);
-}")
+};")
 
 (test-ps-js the-case-statement-1
   (case (aref blorg i)
@@ -494,7 +494,7 @@ for (var i in obj1) {
         break;
     default: 
         alert('default clause');
-    }")
+    };")
 
 (test-ps-js the-case-statement-2
   (switch (aref blorg i)
@@ -505,14 +505,14 @@ for (var i in obj1) {
     case 1: alert('If I get here');
     case 2: alert('I also get here');
     default: alert('I always get here');
-}")
+};")
 
 (test-ps-js the-with-statement-1
   (with (create :foo "foo" :i "i")
   (alert (+ "i is now intermediary scoped: " i)))
   "with ({ foo : 'foo', i : 'i' }) {
     alert('i is now intermediary scoped: ' + i);
-}")
+};")
 
 (test-ps-js the-try-statement-1
   (try (throw "i")
@@ -526,21 +526,21 @@ for (var i in obj1) {
     alert('an error happened: ' + error);
 } finally {
     alert('Leaving the try form');
-}")
+};")
 
 (test-ps-js the-html-generator-1
   (ps-html ((:a :href "foobar") "blorg"))
-  "'<A HREF=\"foobar\">blorg</A>'")
+  "'<A HREF=\"foobar\">blorg</A>';")
 
 (test-ps-js the-html-generator-2
   (ps-html ((:a :href (generate-a-link)) "blorg"))
-  "'<A HREF=\"' + generateALink() + '\">blorg</A>'")
+  "'<A HREF=\"' + generateALink() + '\">blorg</A>';")
 
 (test-ps-js the-html-generator-3
   ((@ document write)
   (ps-html ((:a :href "#"
                 :onclick (ps-inline (transport))) "link")))
-  "document.write('<A HREF=\"#\" ONCLICK=\"' + ('javascript:' + 'transport' + '(' + ')') + '\">link</A>')")
+  "document.write('<A HREF=\"#\" ONCLICK=\"' + ('javascript:' + 'transport' + '(' + ')') + '\">link</A>');")
 
 (test-ps-js the-html-generator-4
   (let ((disabled nil)

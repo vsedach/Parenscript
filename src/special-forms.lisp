@@ -1,5 +1,10 @@
 (in-package "PARENSCRIPT")
 
+(defmacro with-local-macro-environment ((var env) &body body)
+  `(let* ((,var (make-macro-dictionary))
+          (,env (cons ,var ,env)))
+    ,@body))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; literals
 (defmacro defpsliteral (name string)
@@ -24,14 +29,16 @@
   (def-for-literal break js:break)
   (def-for-literal continue js:continue))
 
-(defpsmacro quote (x)
-  (typecase x
-    (cons (cons 'array (mapcar (lambda (x) (when x `',x)) x)))
-    (null '(array))
-    (keyword x)
-    (symbol (symbol-to-js-string x))
-    (number x)
-    (string x)))
+(define-ps-special-form quote (x)
+  (compile-parenscript-form
+   (typecase x
+     (cons `(array ,@(mapcar (lambda (x) (when x `',x)) x)))
+     (null '(array))
+     (keyword x)
+     (symbol (symbol-to-js-string x))
+     (number x)
+     (string x))
+   :expecting expecting))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; unary operators
@@ -41,7 +48,7 @@
                                        (spacep (if (listp op) (second op) nil)))
                                    `(define-ps-special-form ,op (x)
                                       (list 'js:unary-operator ',op
-                                            (compile-parenscript-form x :expecting :expression)
+                                            (compile-parenscript-form (ps-macroexpand x) :expecting :expression)
                                             :prefix t :space ,spacep))))
                                ops))))
   (def-unary-ops ~ ! (new t) (delete t) (void t) (typeof t)))
@@ -49,10 +56,10 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; statements
 (define-ps-special-form return (&optional value)
-  `(js:return ,(compile-parenscript-form value :expecting :expression)))
+  `(js:return ,(compile-parenscript-form (ps-macroexpand value) :expecting :expression)))
 
 (define-ps-special-form throw (value)
-  `(js:throw ,(compile-parenscript-form value :expecting :expression)))
+  `(js:throw ,(compile-parenscript-form (ps-macroexpand value) :expecting :expression)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; arrays
@@ -61,9 +68,9 @@
                                values)))
 
 (define-ps-special-form aref (array &rest coords)
-  `(js:aref ,(compile-parenscript-form array :expecting :expression)
+  `(js:aref ,(compile-parenscript-form (ps-macroexpand array) :expecting :expression)
             ,(mapcar (lambda (form)
-                       (compile-parenscript-form form :expecting :expression))
+                       (compile-parenscript-form (ps-macroexpand form) :expecting :expression))
                      coords)))
 
 (defpsmacro list (&rest values)
@@ -75,10 +82,12 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; operators
 (define-ps-special-form incf (x &optional (delta 1))
-  (if (eql delta 1)
-      `(js:unary-operator js:++ ,(compile-parenscript-form x :expecting :expression) :prefix t)
-      `(js:operator js:+= ,(compile-parenscript-form x :expecting :expression)
-                    ,(compile-parenscript-form delta :expecting :expression))))
+  (let ((x (ps-macroexpand x))
+        (delta (ps-macroexpand delta)))
+    (if (eql delta 1)
+        `(js:unary-operator js:++ ,(compile-parenscript-form x :expecting :expression) :prefix t)
+        `(js:operator js:+= ,(compile-parenscript-form x :expecting :expression)
+                      ,(compile-parenscript-form delta :expecting :expression)))))
 
 (define-ps-special-form decf (x &optional (delta 1))
   (if (eql delta 1)
@@ -93,7 +102,7 @@
       `(js:unary-operator js:- ,(compile-parenscript-form first :expecting :expression) :prefix t)))
 
 (define-ps-special-form not (x)
-  (let ((form (compile-parenscript-form x :expecting :expression))
+  (let ((form (compile-parenscript-form (ps-macroexpand x) :expecting :expression))
         inverse-op)
     (if (and (eq (car form) 'js:operator)
              (= (length (cddr form)) 2)
@@ -125,13 +134,14 @@
            (eq 'js:literal (car form)))))
 
 (define-ps-special-form progn (&rest body)
-  (if (and (eq expecting :expression) (= 1 (length body)))
-      (compile-parenscript-form (car body) :expecting :expression)
-      `(,(if (eq expecting :expression) 'js:|,| 'js:block)
-         ,@(let* ((block (flatten-blocks (remove nil (mapcar (lambda (form)
-                                                               (compile-parenscript-form form :expecting expecting))
-                                                             body)))))
-                 (append (remove-if #'constant-literal-form-p (butlast block)) (last block))))))
+  (let ((body (mapcar #'ps-macroexpand body)))
+    (if (and (eq expecting :expression) (= 1 (length body)))
+        (compile-parenscript-form (car body) :expecting :expression)
+        `(,(if (eq expecting :expression) 'js:|,| 'js:block)
+           ,@(let* ((block (flatten-blocks (remove nil (mapcar (lambda (form)
+                                                                 (compile-parenscript-form form :expecting expecting))
+                                                               body)))))
+                   (append (remove-if #'constant-literal-form-p (butlast block)) (last block)))))))
 
 (define-ps-special-form cond (&rest clauses)
   (ecase expecting
@@ -338,16 +348,6 @@ lambda-list::=
     `(%js-defun ,name ,effective-args
       ,@effective-body)))
 
-(defvar *defun-setf-name-prefix* "__setf_")
-
-(defpsmacro defun-setf (setf-name lambda-list &body body)
-  (let ((mangled-function-name (intern (concatenate 'string *defun-setf-name-prefix* (symbol-name (second setf-name)))
-                                       (symbol-package (second setf-name))))
-        (function-args (cdr (ordered-set-difference lambda-list lambda-list-keywords))))
-    `(progn (defsetf ,(second setf-name) ,(cdr lambda-list) (store-var)
-              `(,',mangled-function-name ,store-var ,@(list ,@function-args)))
-            (defun ,mangled-function-name ,lambda-list ,@body))))
-
 (defpsmacro lambda (lambda-list &body body)
   "An extended defun macro that allows cool things like keyword arguments.
 lambda-list::=
@@ -361,17 +361,39 @@ lambda-list::=
     `(%js-lambda ,effective-args
       ,@effective-body)))
 
-(defpsmacro flet (fn-defs &rest body)
-  `(let ,(mapcar (lambda (def) `(,(car def) (lambda ,@(cdr def)))) fn-defs)
-     ,@body))
+(define-ps-special-form flet (fn-defs &rest body)
+  (let ((fn-renames (make-macro-dictionary)))
+    (loop for (fn-name . def) in fn-defs do
+         (setf (gethash fn-name fn-renames) (ps-gensym fn-name)))
+    (let ((fn-defs (compile-parenscript-form
+                    `(progn ,@(loop for (fn-name . def) in fn-defs collect
+                                   `(var ,(gethash fn-name fn-renames) (lambda ,@def))))
+                    :expecting expecting))
+          (*ps-local-function-names* (cons fn-renames *ps-local-function-names*)))
+      (append fn-defs (cdr (compile-parenscript-form `(progn ,@body) :expecting expecting))))))
 
-(defpsmacro labels (fn-defs &rest body)
-  `(symbol-macrolet ,(mapcar (lambda (x) (list (car x) (ps-gensym (car x)))) fn-defs)
-     ,@(mapcar (lambda (def) `(var ,(car def) (lambda ,@(cdr def)))) fn-defs)
-     ,@body))
+(define-ps-special-form labels (fn-defs &rest body)
+  (with-local-macro-environment (local-fn-renames *ps-local-function-names*)
+    (loop for (fn-name . def) in fn-defs do
+         (setf (gethash fn-name local-fn-renames) (ps-gensym fn-name)))
+    (compile-parenscript-form
+     `(progn ,@(loop for (fn-name . def) in fn-defs collect
+                    `(var ,(gethash fn-name local-fn-renames) (lambda ,@def)))
+             ,@body)
+     :expecting expecting)))
+
+(defvar *defun-setf-name-prefix* "__setf_")
+
+(defpsmacro defun-setf (setf-name lambda-list &body body)
+  (let ((mangled-function-name (intern (concatenate 'string *defun-setf-name-prefix* (symbol-name (second setf-name)))
+                                       (symbol-package (second setf-name))))
+        (function-args (cdr (ordered-set-difference lambda-list lambda-list-keywords))))
+    (ps* `(defsetf ,(second setf-name) ,(cdr lambda-list) (store-var)
+            `(,',mangled-function-name ,store-var ,@(list ,@function-args))))
+    `(defun ,mangled-function-name ,lambda-list ,@body)))
 
 (defpsmacro defsetf-long (access-fn lambda-list (store-var) form)
-  (setf (get-macro-spec access-fn *ps-setf-expanders*)
+  (setf (gethash access-fn *ps-setf-expanders*)
         (compile nil
                  (let ((var-bindings (ordered-set-difference lambda-list lambda-list-keywords)))
                    `(lambda (access-fn-args store-form)
@@ -389,7 +411,7 @@ lambda-list::=
 
 (defpsmacro defsetf-short (access-fn update-fn &optional docstring)
   (declare (ignore docstring))
-  (setf (get-macro-spec access-fn *ps-setf-expanders*)
+  (setf (gethash access-fn *ps-setf-expanders*)
         (lambda (access-fn-args store-form)
           `(,update-fn ,@access-fn-args ,store-form)))
   nil)
@@ -402,27 +424,20 @@ lambda-list::=
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; macros
-(defmacro with-temp-macro-environment ((var) &body body)
-  `(let* ((,var (make-macro-env-dictionary))
-          (*ps-macro-env* (cons ,var *ps-macro-env*)))
-    ,@body))
-
 (define-ps-special-form macrolet (macros &body body)
-  (with-temp-macro-environment (macro-env-dict)
+  (with-local-macro-environment (local-macro-dict *ps-macro-env*)
     (dolist (macro macros)
       (destructuring-bind (name arglist &body body)
           macro
-        (setf (get-macro-spec name macro-env-dict)
-              (cons nil (eval (make-ps-macro-function arglist body))))))
+        (setf (gethash name local-macro-dict) (eval (make-ps-macro-function arglist body)))))
     (compile-parenscript-form `(progn ,@body) :expecting expecting)))
 
 (define-ps-special-form symbol-macrolet (symbol-macros &body body)
-  (with-temp-macro-environment (macro-env-dict)
+  (with-local-macro-environment (local-macro-dict *ps-symbol-macro-env*)
     (dolist (macro symbol-macros)
       (destructuring-bind (name expansion)
           macro
-        (setf (get-macro-spec name macro-env-dict)
-              (cons t (lambda (x) (declare (ignore x)) expansion)))))
+        (setf (gethash name local-macro-dict) (lambda (x) (declare (ignore x)) expansion))))
     (compile-parenscript-form `(progn ,@body) :expecting expecting)))
 
 (define-ps-special-form defmacro (name args &body body) ;; should this be a macro?
@@ -453,10 +468,11 @@ lambda-list::=
                        (cons key (compile-parenscript-form val-expr :expecting :expression))))))
 
 (define-ps-special-form %js-slot-value (obj slot)
-  `(js:slot-value ,(compile-parenscript-form obj :expecting :expression)
-                  ,(if (and (listp slot) (eq 'quote (car slot)))
-                       (second slot) ;; assume we're quoting a symbol
-                       (compile-parenscript-form slot))))
+  (let ((slot (ps-macroexpand slot)))
+    `(js:slot-value ,(compile-parenscript-form (ps-macroexpand obj) :expecting :expression)
+                    ,(if (and (listp slot) (eq 'quote (car slot)))
+                         (second slot) ;; assume we're quoting a symbol
+                         (compile-parenscript-form slot)))))
 
 (define-ps-special-form instanceof (value type)
   `(js:instanceof ,(compile-parenscript-form value :expecting :expression)
@@ -494,8 +510,8 @@ lambda-list::=
     (t   nil)))
 
 (define-ps-special-form setf1% (lhs rhs)
-  (let ((lhs (compile-parenscript-form lhs :expecting :expression))
-        (rhs (compile-parenscript-form rhs :expecting :expression)))
+  (let ((lhs (compile-parenscript-form (ps-macroexpand lhs) :expecting :expression))
+        (rhs (compile-parenscript-form (ps-macroexpand rhs) :expecting :expression)))
     (if (and (listp rhs)
              (eq 'js:operator (car rhs))
              (member (cadr rhs) '(+ *))
@@ -504,16 +520,13 @@ lambda-list::=
         `(js:= ,lhs ,rhs))))
 
 (defpsmacro setf (&rest args)
-  (flet ((process-setf-clause (place value-form)
-           (if (and (listp place) (get-macro-spec (car place) *ps-setf-expanders*))
-               (funcall (get-macro-spec (car place) *ps-setf-expanders*) (cdr place) value-form)
-               (let ((exp-place (ps-macroexpand place)))
-                 (if (and (listp exp-place) (get-macro-spec (car exp-place) *ps-setf-expanders*))
-                     (funcall (get-macro-spec (car exp-place) *ps-setf-expanders*) (cdr exp-place) value-form)
-                     `(setf1% ,exp-place ,value-form))))))
-    (assert (evenp (length args)) ()
-            "~s does not have an even number of arguments." (cons 'setf args))
-    `(progn ,@(loop for (place value) on args by #'cddr collect (process-setf-clause place value)))))
+  (assert (evenp (length args)) ()
+          "~s does not have an even number of arguments." `(setf ,args))
+  `(progn ,@(loop for (place value) on args by #'cddr collect
+                 (let ((place (ps-macroexpand place)))
+                   (aif (and (listp place) (gethash (car place) *ps-setf-expanders*))
+                        (funcall it (cdr place) value)
+                        `(setf1% ,place ,value))))))
 
 (defpsmacro psetf (&rest args)
   (let ((places (loop for x in args by #'cddr collect x))
@@ -542,7 +555,7 @@ lambda-list::=
     (ecase expecting
       (:statement
        `(js:var ,name ,@(when value-provided?
-                              (list (compile-parenscript-form value :expecting :expression)))))
+                              (list (compile-parenscript-form (ps-macroexpand value) :expecting :expression)))))
       (:expression
        (push name *enclosing-lexical-block-declarations*)
        (when value-provided?
@@ -590,15 +603,15 @@ lambda-list::=
 ;;; iteration
 (defun make-for-vars/inits (init-forms)
   (mapcar (lambda (x)
-            (cons (compile-parenscript-form (if (atom x) x (first x)) :expecting :symbol)
-                  (compile-parenscript-form (if (atom x) nil (second x)) :expecting :expression)))
+            (cons (compile-parenscript-form (ps-macroexpand (if (atom x) x (first x))) :expecting :symbol)
+                  (compile-parenscript-form (ps-macroexpand (if (atom x) nil (second x))) :expecting :expression)))
           init-forms))
 
 (define-ps-special-form labeled-for (label init-forms cond-forms step-forms &rest body)
   `(js:for ,label
            ,(make-for-vars/inits init-forms)
-           ,(mapcar (lambda (x) (compile-parenscript-form x :expecting :expression)) cond-forms)
-           ,(mapcar (lambda (x) (compile-parenscript-form x :expecting :expression)) step-forms)
+           ,(mapcar (lambda (x) (compile-parenscript-form (ps-macroexpand x) :expecting :expression)) cond-forms)
+           ,(mapcar (lambda (x) (compile-parenscript-form (ps-macroexpand x) :expecting :expression)) step-forms)
            ,(compile-parenscript-form `(progn ,@body))))
 
 (defpsmacro for (init-forms cond-forms step-forms &body body)
@@ -659,7 +672,7 @@ lambda-list::=
 
 (define-ps-special-form for-in ((var object) &rest body)
   `(js:for-in ,(compile-parenscript-form var :expecting :expression)
-              ,(compile-parenscript-form object :expecting :expression)
+              ,(compile-parenscript-form (ps-macroexpand object) :expecting :expression)
               ,(compile-parenscript-form `(progn ,@body))))
 
 (define-ps-special-form while (test &rest body)
@@ -708,7 +721,7 @@ lambda-list::=
 (define-ps-special-form lisp (lisp-form)
   ;; (ps (foo (lisp bar))) is in effect equivalent to (ps* `(foo ,bar))
   ;; when called from inside of ps*, lisp-form has access only to the dynamic environment (like for eval)
-  `(js:escape (ps1* ,lisp-form)))
+  `(js:escape (compiled-form-to-string (compile-parenscript-form ,lisp-form :expecting ,expecting))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; eval-when
@@ -720,7 +733,7 @@ The body forms are evaluated only during the given SITUATION. The accepted SITUA
 COMMON-LISP code in :compile-toplevel and :load-toplevel sitations, and parenscript code in
 :execute.  "
   (when (and (member :compile-toplevel situation-list)
-	     (member *toplevel-compilation-level* '(:toplevel :inside-toplevel-form)))
+	     (member *ps-compilation-level* '(:toplevel :inside-toplevel-form)))
     (eval `(progn ,@body)))
   (if (member :execute situation-list)
       (compile-parenscript-form `(progn ,@body) :expecting expecting)

@@ -56,11 +56,11 @@
 (defun-js js* ps* (&rest args)
   (apply #'ps* args))
 
-(defun-js compile-script ps1* (ps-form &key (output-stream nil))
+(defun-js compile-script ps* (ps-form &key (output-stream nil))
   "Compiles the Parenscript form PS-FORM into Javascript.
 If OUTPUT-STREAM is NIL, then the result is a string; otherwise code
 is output to the OUTPUT-STREAM stream."
-  (format output-stream "~A" (ps1* ps-form)))
+  (format output-stream "~A" (ps* ps-form)))
 
 (defun-js symbol-to-js symbol-to-js-string (symbol)
   (symbol-to-js-string symbol))

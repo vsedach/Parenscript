@@ -40,50 +40,50 @@ x1 = 2 + sideEffect() + x1 + 5;")
 
 (test-ps-js method-call-op-form
   ((@ (+ "" x) to-string))
-  "('' + x).toString()")
+  "('' + x).toString();")
 
 (test-ps-js method-call-op-form-args
   ((@ (+ "" x) to-string) 1 2 :baz 3)
-  "('' + x).toString(1, 2, 'baz', 3)")
+  "('' + x).toString(1, 2, 'baz', 3);")
 
 (test-ps-js method-call-number
   ((@ 10 to-string))
-  "( 10 ).toString()")
+  "( 10 ).toString();")
 
 (test-ps-js method-call-string
   ((@ "hi" to-string))
-  "'hi'.toString()")
+  "'hi'.toString();")
 
 (test-ps-js method-call-lit-object
   ((@ (create :to-string (lambda () (return "it works"))) to-string))
-  "( { toString : function () { return 'it works'; } } ).toString()")
+  "( { toString : function () { return 'it works'; } } ).toString();")
 
 (test-ps-js method-call-conditional
   ((if a x y) 1)
-  "(a ? x : y)(1)")
+  "(a ? x : y)(1);")
 
 (test-ps-js method-call-variable
   ((@ x to-string))
-  "x.toString()")
+  "x.toString();")
 
 (test-ps-js method-call-array
   ((@ (list 10 20) to-string))
-  "[ 10, 20 ].toString()")
+  "[ 10, 20 ].toString();")
 
 (test-ps-js method-call-fn-call
   ((@ (foo) to-string))
-  "foo().toString()")
+  "foo().toString();")
 
 (test-ps-js method-call-lambda-fn
   ((@ (lambda () (alert 10)) to-string))
-  "( function () { alert(10); } ).toString()")
+  "( function () { alert(10); } ).toString();")
 
 (test-ps-js method-call-lambda-call
   ((@ ((lambda (x) (return x)) 10) to-string))
-  "(function (x) { return x; })(10).toString()")
+  "(function (x) { return x; })(10).toString();")
 
 (test no-whitespace-before-dot
-  (let* ((str (ps1* '((@ ((lambda (x) (return x)) 10) to-string))))
+  (let* ((str (ps* '((@ ((lambda (x) (return x)) 10) to-string))))
          (dot-pos (position #\. str :test #'char=))
          (char-before (elt str (1- dot-pos)))
          (a-parenthesis #\)))
@@ -106,7 +106,7 @@ x1 = 2 + sideEffect() + x1 + 5;")
 
 (test-ps-js buggy-slot-value-two
   (slot-value foo (get-slot-name))
-  "foo[getSlotName()]")
+  "foo[getSlotName()];")
 
 (test-ps-js old-case-is-now-switch
   ;; Switch was "case" before, but that was very non-lispish.
@@ -119,11 +119,11 @@ x1 = 2 + sideEffect() + x1 + 5;")
      (1 (alert "one"))
      (2 (alert "two"))
      (default (alert "default clause")))
-     "switch (blorg[i]) {
+  "switch (blorg[i]) {
          case 1:   alert('one');
          case 2:   alert('two');
          default:   alert('default clause');
-         }")
+         };")
 
 (test-ps-js lisp-like-case
    (case (aref blorg i)
@@ -138,7 +138,7 @@ x1 = 2 + sideEffect() + x1 + 5;")
                    alert('two');
                    break;
          default:   alert('default clause');
-         }")
+         };")
 
 
 (test-ps-js even-lispier-case
@@ -155,7 +155,7 @@ x1 = 2 + sideEffect() + x1 + 5;")
                    alert('Three');
                    break;
          default:   alert('Something else');
-    }")
+    };")
 
 (test-ps-js otherwise-case
    (case (aref blorg i)
@@ -166,7 +166,7 @@ x1 = 2 + sideEffect() + x1 + 5;")
                    alert('one');
                    break;
          default:   alert('default clause');
-         }")
+         };")
 
 (test escape-sequences-in-string
   (let ((escapes `((#\\ . #\\)
@@ -191,11 +191,11 @@ x1 = 2 + sideEffect() + x1 + 5;")
 
 (test-ps-js slot-value-conditional1
   (slot-value (if zoo foo bar) 'x)
-  "(zoo ? foo : bar).x")
+  "(zoo ? foo : bar).x;")
 
 (test-ps-js slot-value-conditional2
   (slot-value (if (not zoo) foo bar) 'x)
-  "(!zoo ? foo : bar).x")
+  "(!zoo ? foo : bar).x;")
 
 (test script-star-eval1
   (is (string= "x = 1; y = 2;" (normalize-js-code (ps* '(setf x 1) '(setf y 2))))))
@@ -205,15 +205,15 @@ x1 = 2 + sideEffect() + x1 + 5;")
 
 (test-ps-js unquoted-nil
   nil
-  "null")
+  "null;")
 
 (test-ps-js list-with-single-nil
   (array nil)
-  "[null]")
+  "[null];")
 
 (test-ps-js quoted-nil-is-array
   'nil
-  "[]")
+  "[];")
 
 (test-ps-js defsetf1
   (progn (defsetf baz (x y) (newval) `(set-baz ,x ,y ,newval))
@@ -222,6 +222,11 @@ x1 = 2 + sideEffect() + x1 + 5;")
 var _js3_5 = 2;
 var _js1_6 = 3;
 setBaz(_js2_4, _js3_5, _js1_6);")
+
+(test-ps-js setf-macroexpands1
+  (macrolet ((baz (x y) `(aref ,x ,y 1)))
+    (setf (baz foo 2) 3))
+  "foo[2][1] = 3;")
 
 (test-ps-js defsetf-short
   (progn (defsetf baz set-baz "docstring")
@@ -247,7 +252,7 @@ __setf_someThing(_js1_6, _js2_4, _js3_5);")
         x = null;
     };
     return x ? 'yes' : 'no';
-}")
+};")
 
 (test-ps-js defun-optional2
   (defun foo (x &optional y) (+ x y))
@@ -256,7 +261,7 @@ __setf_someThing(_js1_6, _js2_4, _js3_5);")
         y = null;
     };
     x + y;
-}")
+};")
 
 (test-ps-js defun-optional3
   (defun blah (&optional (x 0))
@@ -266,38 +271,39 @@ __setf_someThing(_js1_6, _js2_4, _js3_5);")
         x = 0;
     };
     return x;
-}")
+};")
 
 (test-ps-js return-nothing
   (return)
-  "return null")
+  "return null;")
 
 (test-ps-js set-timeout
   (do-set-timeout (10) (alert "foo"))
-  "setTimeout(function () { alert('foo'); }, 10)")
+  "setTimeout(function () { alert('foo'); }, 10);")
+
 (test-ps-js operator-precedence
   (* 3 (+ 4 5) 6)
-  "3 * (4 + 5) * 6")
+  "3 * (4 + 5) * 6;")
 
 (test-ps-js operators-1
   (in prop obj)
-  "prop in obj")
+  "prop in obj;")
 
 (test-ps-js incf1
   (incf foo bar)
-  "foo += bar")
+  "foo += bar;")
 
 (test-ps-js decf1
   (decf foo bar)
-  "foo -= bar")
+  "foo -= bar;")
 
 (test-ps-js incf2
   (incf x 5)
-  "x += 5")
+  "x += 5;")
 
 (test-ps-js decf2
   (decf y 10)
-  "y -= 10")
+  "y -= 10;")
 
 (test-ps-js setf-conditional
   (setf foo (if x 1 2))
@@ -305,55 +311,55 @@ __setf_someThing(_js1_6, _js2_4, _js3_5);")
 
 (test-ps-js obj-literal-numbers
   (create 1 "foo")
-  "{ 1 : 'foo' }")
+  "{ 1 : 'foo' };")
 
 (test-ps-js obj-literal-strings
   (create "foo" 2)
-  "{ 'foo' : 2 }")
+  "{ 'foo' : 2 };")
 
 (test-ps-js slot-value-string
   (slot-value foo "bar")
-  "foo['bar']")
+  "foo['bar'];")
 
 (test-ps-js slot-value-string1
   (slot-value "bar" 'length)
-  "'bar'.length")
+  "'bar'.length;")
 
 (test-ps-js slot-value-progn
   (slot-value (progn (some-fun "abc") "123") "length")
-  "(someFun('abc'), '123')['length']")
+  "(someFun('abc'), '123')['length'];")
 
 (test-ps-js method-call-block
   ((@ (progn (some-fun "abc") "123") to-string))
-  "(someFun('abc'), '123').toString()")
+  "(someFun('abc'), '123').toString();")
 
 (test-ps-js create-blank
   (create)
-  "{ }")
+  "{ };")
 
 (test-ps-js blank-object-literal
   {}
-  "{ }")
+  "{ };")
 
 (test-ps-js array-literal1
   []
-  "[]")
+  "[];")
 
 (test-ps-js array-literal2
   ([])
-  "[]")
+  "[];")
 
 (test-ps-js array-literal3
   ([] 1 2 3)
-  "[1, 2, 3]")
+  "[1, 2, 3];")
 
 (test-ps-js array-literal4
   ([] 1 (2 3))
-  "[1, [2, 3]]")
+  "[1, [2, 3]];")
 
 (test-ps-js array-literal5
   ([] (1 2) ("a" "b"))
-  "[[1, 2], ['a', 'b']]")
+  "[[1, 2], ['a', 'b']];")
 
 (test-ps-js defun-rest1
   (defun foo (&rest bar) (alert (aref bar 1)))
@@ -363,7 +369,7 @@ __setf_someThing(_js1_6, _js2_4, _js3_5);")
         bar[i1] = arguments[i1 + 0];
     };
     alert(bar[1]);
-}")
+};")
 
 (test-ps-js defun-rest2
   (defun foo (baz &rest bar) (return (+ baz (aref bar 1))))
@@ -373,7 +379,7 @@ __setf_someThing(_js1_6, _js2_4, _js3_5);")
         bar[i1] = arguments[i1 + 1];
     };
     return baz + bar[1];
-}")
+};")
 
 (test-ps-js defun-keyword1
   (defun zoo (foo bar &key baz) (return (+ foo bar baz)))
@@ -392,7 +398,7 @@ __setf_someThing(_js1_6, _js2_4, _js3_5);")
         baz = null;
     };
     return foo + bar + baz;
-}")
+};")
 
 (test-ps-js defun-keyword2
   (defun zoo (&key baz) (return (* baz baz)))
@@ -411,7 +417,7 @@ __setf_someThing(_js1_6, _js2_4, _js3_5);")
         baz = null;
     };
     return baz * baz;
-}")
+};")
 
 (test-ps-js defun-keyword3
   (defun zoo (&key baz (bar 4)) (return (* baz bar)))
@@ -439,7 +445,7 @@ __setf_someThing(_js1_6, _js2_4, _js3_5);")
         bar = 4;
     };
     return baz * bar;
-}")
+};")
 
 (test-ps-js defun-keyword4
   (defun hello-world (&key ((:my-name-key my-name) 1))
@@ -459,25 +465,25 @@ __setf_someThing(_js1_6, _js2_4, _js3_5);")
         myName = 1;
     };
     myName;
-}")
+};")
 
 (test-ps-js keyword-funcall1
   (func :baz 1)
-  "func('baz', 1)")
+  "func('baz', 1);")
 
 (test-ps-js keyword-funcall2
   (func :baz 1 :bar foo)
-  "func('baz', 1, 'bar', foo)")
+  "func('baz', 1, 'bar', foo);")
 
 (test-ps-js keyword-funcall3
   (fun a b :baz c)
-  "fun(a, b, 'baz', c)")
+  "fun(a, b, 'baz', c);")
   
 (test-ps-js cond1
   (cond ((= x 1) 1))
   "if (x == 1) {
     1;
-}")
+};")
 
 (test-ps-js cond2
   (cond ((= x 1) 2)
@@ -487,39 +493,39 @@ __setf_someThing(_js1_6, _js2_4, _js3_5);")
 } else if (y == x * 4) {
     foo('blah');
     x * y;
-}")
+};")
 
 (test-ps-js if-exp-without-else-returns-null
   (return (if x 1))
-  "return x ? 1 : null")
+  "return x ? 1 : null;")
 
 (test-ps-js progn-expression-single-statement
   (return (progn (* x y)))
-  "return x * y")
+  "return x * y;")
 
 (test-ps-js cond-expression1
   (defun foo () (return (cond ((< 1 2) (bar "foo") (* 4 5)))))
   "function foo() {
     return 1 < 2 ? (bar('foo'), 4 * 5) : null;
-}")
+};")
 
 (test-ps-js cond-expression2
   (defun foo () (return (cond ((< 2 1) "foo") ((= 7 7) "bar"))))
   "function foo() {
     return 2 < 1 ? 'foo' : (7 == 7 ? 'bar' : null);
-}")
+};")
 
 (test-ps-js cond-expression-final-t-clause
   (defun foo () (return (cond ((< 1 2) (bar "foo") (* 4 5)) ((= a b) (+ c d)) ((< 1 2 3 4 5) x) (t "foo"))))
   "function foo() {
     return 1 < 2 ? (bar('foo'), 4 * 5) : (a == b ? c + d : (1 < 2 < 3 < 4 < 5 ? x : 'foo'));
-}")
+};")
 
 (test-ps-js cond-expression-middle-t-clause ;; should this signal a warning?
   (defun foo () (return (cond ((< 2 1) 5) (t "foo") ((< 1 2) "bar"))))
   "function foo() {
     return 2 < 1 ? 5 : 'foo';
-}")
+};")
 
 (test-ps-js funcall-if-expression
   ((@ document write)
@@ -528,11 +534,11 @@ __setf_someThing(_js1_6, _js2_4, _js3_5);")
                      :onclick (ps-inline (transport)))
                  img))
        img))
-  "document.write(LINKORNOT == 1 ? '<A HREF=\"#\" ONCLICK=\"' + ('javascript:' + 'transport' + '(' + ')') + '\">' + img + '</A>' : img)")
+  "document.write(LINKORNOT == 1 ? '<A HREF=\"#\" ONCLICK=\"' + ('javascript:' + 'transport' + '(' + ')') + '\">' + img + '</A>' : img);")
 
 (test-ps-js negate-number-literal ;; ok, this was broken and fixed before, but no one bothered to add the test!
   (- 1)
-  "-1")
+  "-1;")
 
 (test macro-environment1
   (is (string= (normalize-js-code (let* ((macroname (gensym)))
@@ -565,7 +571,7 @@ __setf_someThing(_js1_6, _js2_4, _js3_5);")
 
 (test-ps-js keyword-consistent
   :x
-  "'x'")
+  "'x';")
 
 (test-ps-js simple-symbol-macrolet
   (symbol-macrolet ((x 1)) x)
@@ -586,14 +592,14 @@ __setf_someThing(_js1_6, _js2_4, _js3_5);")
   (defun f () (return (progn (foo) (if x 1 2))))
   "function f() {
     return (foo(), x ? 1 : 2);
-}")
+};")
 
 (test-ps-js let-decl-in-expression
   (defun f (x) (return (if x 1 (let* ((foo x)) foo))))
   "function f(x) {
     var foo1;
     return x ? 1 : (foo1 = x, foo1);
-}")
+};")
 
 (test-ps-js special-var1
   (progn (defvar *foo*) (let* ((*foo* 2)) (* *foo* 2)))
@@ -626,7 +632,7 @@ try {
 
 (test-ps-js literal2
   (aref this x)
-  "this[x]")
+  "this[x];")
 
 (test-ps-js setf-dec1
   (setf x (- 1 x 2))
@@ -638,101 +644,101 @@ try {
 
 (test-ps-js special-char-equals
   blah=
-  "blahequals")
+  "blahequals;")
 
 (test-ps-js setf-operator-priority
   (return (or (slot-value cache id)
               (setf (slot-value cache id) ((@ document get-element-by-id) id))))
-  "return cache[id] || (cache[id] = document.getElementById(id))")
+  "return cache[id] || (cache[id] = document.getElementById(id));")
 
 (test-ps-js aref-operator-priority
   (aref (if (and x (> (length x) 0))
             (aref x 0)
             y)
         z)
-  "(x && x.length > 0 ? x[0] : y)[z]")
+  "(x && x.length > 0 ? x[0] : y)[z];")
 
 (test-ps-js aref-operator-priority1
   (aref (or (slot-value x 'y)
             (slot-value a 'b))
         z)
-  "(x.y || a.b)[z]")
+  "(x.y || a.b)[z];")
 
 (test-ps-js aref-operator-priority2
   (aref (if a b c) 0)
-  "(a ? b : c)[0]")
+  "(a ? b : c)[0];")
 
 (test-ps-js negative-operator-priority
   (- (if x y z))
-  "-(x ? y : z)")
+  "-(x ? y : z);")
 
 (test-ps-js op-p1
   (new (or a b))
-  "new (a || b)")
+  "new (a || b);")
 
 (test-ps-js op-p2
   (delete (if a (or b c) d))
-  "delete (a ? b || c : d)")
+  "delete (a ? b || c : d);")
 
 (test-ps-js op-p3
   (not (if (or x (not y)) z))
-  "!(x || !y ? z : null)")
+  "!(x || !y ? z : null);")
 
 (test-ps-js op-p4
   (- (- (* 1 2) 3))
-  "-(1 * 2 - 3)")
+  "-(1 * 2 - 3);")
 
 (test-ps-js op-p5
   (instanceof (or a b) (if x y z))
-  "((a || b) instanceof (x ? y : z))")
+  "((a || b) instanceof (x ? y : z));")
 
 (test-ps-js op-p7
   (or x (if (= x 0) "zero" "empty"))
-  "x || (x == 0 ? 'zero' : 'empty')")
+  "x || (x == 0 ? 'zero' : 'empty');")
 
 (test-ps-js named-op-expression
   (throw (if a b c))
-  "throw a ? b : c")
+  "throw a ? b : c;")
 
 (test-ps-js named-op-expression1
   (typeof (or x y))
-  "typeof (x || y)")
+  "typeof (x || y);")
 
 (test-ps-js aref-array-expression
   (aref (or a b c) 0)
-  "(a || b || c)[0]")
+  "(a || b || c)[0];")
 
 (test-ps-js slot-value-operator
   (slot-value (or a b c) 'd)
-  "(a || b || c).d")
+  "(a || b || c).d;")
 
 (test-ps-js slot-value-parens
   (slot-value (slot-value foo 'bar) 'baz)
-  "foo.bar.baz")
+  "foo.bar.baz;")
 
 (test-ps-js funcall-funcall
   ((foo))
-  "foo()()")
+  "foo()();")
 
 (test-ps-js expression-funcall
   ((or (@ window eval) eval) foo nil)
-  "(window.eval || eval)(foo, null)")
+  "(window.eval || eval)(foo, null);")
 
 (test-ps-js expression-funcall1
   (((or (@ window eval) eval) foo nil))
-  "(window.eval || eval)(foo, null)()")
+  "(window.eval || eval)(foo, null)();")
 
 (test-ps-js expression-funcall2
   (((or (@ window eval) eval)) foo nil)
-  "(window.eval || eval)()(foo, null)")
+  "(window.eval || eval)()(foo, null);")
 
 (test-ps-js slot-value-object-literal
   (slot-value (create :a 1) 'a)
-  "({ a : 1 }).a")
+  "({ a : 1 }).a;")
 
 (test-ps-js slot-value-lambda
   (slot-value (lambda ()) 'prototype)
-  "(function () { }).prototype")
+  "(function () { }).prototype;")
 
 (test-ps-js who-html1
   (who-ps-html (:span :class "ticker-symbol"
@@ -740,7 +746,7 @@ try {
                       (:a :href "http://foo.com"
                           symbol)
                       (:span :class "ticker-symbol-popup")))
-  "'<SPAN CLASS=\"ticker-symbol\" TICKER-SYMBOL=\"' + symbol + '\"><A HREF=\"http://foo.com\">' + symbol + '</A><SPAN CLASS=\"ticker-symbol-popup\"></SPAN></SPAN>'")
+  "'<SPAN CLASS=\"ticker-symbol\" TICKER-SYMBOL=\"' + symbol + '\"><A HREF=\"http://foo.com\">' + symbol + '</A><SPAN CLASS=\"ticker-symbol-popup\"></SPAN></SPAN>';")
 
 (test-ps-js flet1
   ((lambda () (flet ((foo (x)
@@ -751,7 +757,7 @@ try {
         return x + 1;
     };
     return foo1(1);
-})()")
+})();")
 
 (test-ps-js flet2
   (flet ((foo (x) (return (1+ x)))
@@ -788,7 +794,7 @@ bar2(foo1(1));")
         return 0 === x ? 0 : x + foo1(x - 1);
     };
     return foo1(3);
-})()")
+})();")
 
 (test-ps-js labels2
   (labels ((foo (x) (return (1+ (bar x))))
@@ -826,19 +832,19 @@ bar2(foo1(1));")
         };
         return z;
     })();
-})(true)")
+})(true);")
 
 (test-ps-js math-pi
   pi
-  "Math.PI")
+  "Math.PI;")
 
 (test-ps-js literal-array
   '(1 2 3)
-  "[1, 2, 3]")
+  "[1, 2, 3];")
 
 (test-ps-js literal-array-1
   '(1 foo 3)
-  "[1, 'foo', 3]")
+  "[1, 'foo', 3];")
 
 (test ps-lisp-expands-in-lexical-environment
   (is (string= "5;" (let ((x 5)) (ps (lisp x))))))
@@ -859,16 +865,16 @@ bar2(foo1(1));")
     var bar = -1 == x1_3 ? null : arguments[x1_3 + 1];
     var x2_4 = Array.prototype.indexOf.call(arguments, 'baz', 2);
     var baz = -1 == x2_4 ? null : arguments[x2_4 + 1];
-}"
+};"
   :js-target-version 1.6)
 
 (test-ps-js nested-if-expressions1
   (return (if (if x y z) a b))
-  "return (x ? y : z) ? a : b")
+  "return (x ? y : z) ? a : b;")
 
 (test-ps-js nested-if-expressions2
   (return (if x y (if z a b)))
-  "return x ? y : (z ? a : b)")
+  "return x ? y : (z ? a : b);")
 
 (test-ps-js let1
   (let (x)
@@ -926,7 +932,7 @@ x2 + y3;")
   "function () {
     var x1;
     return (x1 = null, x1 + x1);
-}")
+};")
 
 (test-ps-js let*1
   (let* ((x 1)) (+ x x))
@@ -979,3 +985,20 @@ x3 + y2;")
             (unless (null a)
               (1+ a))))
   "x = (a1 = foo(), a1 != null ? a1 + 1 : null);")
+
+(test-ps-js symbol-macro-env1
+  (symbol-macrolet ((bar 1))
+    (macrolet ((bar (x y) `(+ ,x ,y)))
+      (bar bar bar)))
+  "1 + 1;")
+
+(test-ps-js symbol-macrolet-fun1
+  (symbol-macrolet ((baz +))
+    (baz 1 2))
+  "baz(1, 2);")
+
+(test-ps-js lisp2-namespaces1
+  (let ((list nil))
+    (setf list (list 1 2 3)))
+  "var list1 = null;
+list1 = [1, 2, 3];")

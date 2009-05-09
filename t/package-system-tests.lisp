@@ -7,7 +7,7 @@
 
 (test-ps-js operator-packages1
   (#:new)
-  "new()")
+  "new();")
 
 (defpackage "PS-TEST.MY-LIBRARY"
   (:use "PARENSCRIPT"))
@@ -18,7 +18,7 @@
     (return (+ x y)))
   "function my_library_libraryFunction(x, y) {
         return x + y;
-     }")
+     };")
 
 (test-ps-js uniform-symbol-handling1
   (progn (create 'ps-test.my-library::foo 1)
@@ -36,7 +36,7 @@ foo.my_library_foo;")
     (+ a (ps-test.my-library::library-function b ps-test.obfuscate-me::foo)))
   "function g1(a, b, g2) {
     a + my_library_libraryFunction(b, g2);
-}")
+};")
 
 (defpackage "PS-TEST.OBFUSCATE-AND-PREFIX")
 (obfuscate-package "PS-TEST.OBFUSCATE-AND-PREFIX")
@@ -49,7 +49,7 @@ foo.my_library_foo;")
        (ps-test.my-library::library-function ps-test.my-library::d ps-test.obfuscate-and-prefix::b)))
   "function __FOO___g1(a, __FOO___g2, my_library_d) {
     a * g1(__FOO___g2, a) * my_library_libraryFunction(my_library_d, __FOO___g2);
-}")
+};")
 
 (defpackage "PS-TEST.PSTSTPKG"
   (:use "PARENSCRIPT"))
@@ -61,7 +61,7 @@ foo.my_library_foo;")
 (common-lisp:in-package "PS-TEST.PSTSTPKG")
 
 (ps-test::test-ps-js namespace-and-special-forms
-  (let ((foo (create :bar 1 not-a-keyword something)))
-    (return (and (not foo) (+ (slot-value foo bar) some-other-var))))
-"var prefix_foo1 = { bar : 1, prefix_notAKeyword : prefix_something };
-return !prefix_foo1 && prefix_foo1[prefix_bar] + prefix_someOtherVar;")
+  (let ((foo (create bar 1 not-a-keyword something)))
+    (return (and (not foo) (+ (slot-value foo 'bar) some-other-var))))
+"var prefix_foo1 = { prefix_bar : 1, prefix_notAKeyword : prefix_something };
+return !prefix_foo1 && prefix_foo1.prefix_bar + prefix_someOtherVar;")

@@ -26,14 +26,14 @@
 ;;; JavaScript constructs whether they are used in an expression
 ;;; context or a statement context. For example:
 
-(+ i (if 1 2 3)) => i + (1 ? 2 : 3)
+(+ i (if 1 2 3)) => i + (1 ? 2 : 3);
 
 (if 1 2 3)
 => if (1) {
        2;
    } else {
        3;
-   }
+   };
 
 ;;;# Symbol conversion
 ;;;t \index{symbol}
@@ -45,25 +45,25 @@
 ;;; "bang", "what", "hash", "at", "percent", "slash",
 ;;; "start" and "plus" respectively. The `$' character is untouched.
 
-!?#@% => bangwhathashatpercent
+!?#@% => bangwhathashatpercent;
 
 ;;; The `-' is an indication that the following character should be
 ;;; converted to uppercase. Thus, `-' separated symbols are converted
 ;;; to camelcase. The `_' character however is left untouched.
 
-bla-foo-bar => blaFooBar
+bla-foo-bar => blaFooBar;
 
 ;;; If you want a JavaScript symbol beginning with an uppercase, you
 ;;; can either use a leading `-', which can be misleading in a
 ;;; mathematical context, or a leading `*'.
 
-*array => Array
+*array => Array;
 
 ;;; A symbol beggining and ending with `+' or `*' is converted to all
 ;;; uppercase, to signify that this is a constant or a global
 ;;; variable.
 
-*global-array*        => GLOBALARRAY
+*global-array*        => GLOBALARRAY;
 
 ;;;## Reserved Keywords
 ;;;t \index{keyword}
@@ -97,13 +97,13 @@ UNDEFINED UNLESS VAR VOID VOLATILE WHEN WHILE WITH WITH-SLOTS
 ;;; Parenscript supports the standard JavaScript literal
 ;;; values. Numbers are compiled into JavaScript numbers.
 
-1       => 1
+1       => 1;
 
-123.123 => 123.123
+123.123 => 123.123;
 
 ;;; Note that the base is not conserved between Lisp and JavaScript.
 
-#x10    => 16
+#x10    => 16;
 
 ;;;## String literals
 ;;;t \index{string}
@@ -113,14 +113,14 @@ UNDEFINED UNLESS VAR VOID VOLATILE WHEN WHILE WITH WITH-SLOTS
 
 ;;; Lisp strings are converted into JavaScript literals.
 
-"foobar"      => 'foobar'
+"foobar"      => 'foobar';
 
-"bratzel bub" => 'bratzel bub'
+"bratzel bub" => 'bratzel bub';
 
 ;;; Special characters such as newline and backspace are converted
 ;;; into their corresponding JavaScript escape sequences.
 
-"	"   => '\\t'
+"	"   => '\\t';
 
 ;;;## Array literals
 ;;;t \index{array}
@@ -139,26 +139,26 @@ UNDEFINED UNLESS VAR VOID VOLATILE WHEN WHILE WITH WITH-SLOTS
 
 ;;; Array literals can be created using the `ARRAY' form.
 
-(array)       => [  ]
+(array)       => [  ];
 
-(array 1 2 3) => [ 1, 2, 3 ]
+(array 1 2 3) => [ 1, 2, 3 ];
 
 (array (array 2 3)
        (array "foobar" "bratzel bub"))
-=> [ [ 2, 3 ], [ 'foobar', 'bratzel bub' ] ]
+=> [ [ 2, 3 ], [ 'foobar', 'bratzel bub' ] ];
 
 ;;; Arrays can also be created with a call to the `Array' function
 ;;; using the `MAKE-ARRAY'. The two forms have the exact same semantic
 ;;; on the JavaScript side.
 
-(make-array)       => new Array()
+(make-array)       => new Array();
 
-(make-array 1 2 3) => new Array(1, 2, 3)
+(make-array 1 2 3) => new Array(1, 2, 3);
 
 (make-array
  (make-array 2 3)
  (make-array "foobar" "bratzel bub"))
-=> new Array(new Array(2, 3), new Array('foobar', 'bratzel bub'))
+=> new Array(new Array(2, 3), new Array('foobar', 'bratzel bub'));
 
 ;;; Indexing arrays in Parenscript is done using the form `AREF'. Note
 ;;; that JavaScript knows of no such thing as an array. Subscripting
@@ -192,24 +192,24 @@ UNDEFINED UNLESS VAR VOID VOLATILE WHEN WHILE WITH WITH-SLOTS
 ;;; more "lispy", the property names can be keywords.
 
 (create :foo "bar" :blorg 1)
-=> { foo : 'bar', blorg : 1 }
+=> { foo : 'bar', blorg : 1 };
 
 (create :foo "hihi"
         :blorg (array 1 2 3)
         :another-object (create :schtrunz 1))
 => { foo : 'hihi',
      blorg : [ 1, 2, 3 ],
-     anotherObject : { schtrunz : 1 } }
+     anotherObject : { schtrunz : 1 } };
 
 ;;; Object properties can be accessed using the `SLOT-VALUE' form,
 ;;; which takes an object and a slot-name.
 
-(slot-value an-object 'foo) => anObject.foo
+(slot-value an-object 'foo) => anObject.foo;
 
 ;;; The convenience macro `@' is provided to make multiple levels of
 ;;; indirection easy to express
 
-(@ an-object foo bar) => anObject.foo.bar
+(@ an-object foo bar) => anObject.foo.bar;
 
 ;;; The form `WITH-SLOTS' can be used to bind the given slot-name
 ;;; symbols to a macro that will expand into a `SLOT-VALUE' form at
@@ -235,13 +235,13 @@ UNDEFINED UNLESS VAR VOID VOLATILE WHEN WHILE WITH WITH-SLOTS
 ;;; to use modifiers such as slash-i (case-insensitive) or
 ;;; slash-g (match-globally (all)).
 
-(regex "foobar") => /foobar/
+(regex "foobar") => /foobar/;
 
-(regex "/foobar/i") => /foobar/i
+(regex "/foobar/i") => /foobar/i;
 
 ;;; Here CL-INTERPOL proves really useful.
 
-(regex #?r"/([^\s]+)foobar/i") => /([^\s]+)foobar/i
+(regex #?r"/([^\s]+)foobar/i") => /([^\s]+)foobar/i;
 
 ;;;## Literal symbols
 ;;;t \index{T}
@@ -259,26 +259,26 @@ UNDEFINED UNLESS VAR VOID VOLATILE WHEN WHILE WITH WITH-SLOTS
 ;;; The Lisp symbols `T' and `FALSE' (or `F') are converted to their
 ;;; JavaScript boolean equivalents `true' and `false'.
 
-T     => true
+T     => true;
 
-FALSE => false
+FALSE => false;
 
-F => false
+F => false;
 
 ;;; The Lisp symbol `NIL' is converted to the JavaScript keyword
 ;;; `null'.
 
-NIL => null
+NIL => null;
 
 ;;; The Lisp symbol `UNDEFINED' is converted to the JavaScript keyword
 ;;; `undefined'.
 
-UNDEFINED => undefined
+UNDEFINED => undefined;
 
 ;;; The Lisp symbol `THIS' is converted to the JavaScript keyword
 ;;; `this'.
 
-THIS => this
+THIS => this;
 
 ;;;# Variables
 ;;;t \index{variable}
@@ -292,11 +292,11 @@ THIS => this
 ;;; allows the Parenscript programmer to be flexible, as flexible as
 ;;; JavaScript itself.
 
-variable    => variable
+variable    => variable;
 
-a-variable  => aVariable
+a-variable  => aVariable;
 
-*math       => Math
+*math       => Math;
 
 ;;;# Function calls and method calls
 ;;;t \index{function}
@@ -317,16 +317,16 @@ a-variable  => aVariable
 ;;; the normal JavaScript function call representation, with the
 ;;; arguments given in paren after the function name.
 
-(blorg 1 2) => blorg(1, 2)
+(blorg 1 2) => blorg(1, 2);
 
 (foobar (blorg 1 2) (blabla 3 4) (array 2 3 4))
-=> foobar(blorg(1, 2), blabla(3, 4), [ 2, 3, 4 ])
+=> foobar(blorg(1, 2), blabla(3, 4), [ 2, 3, 4 ]);
 
-((slot-value this 'blorg) 1 2) => this.blorg(1, 2)
+((slot-value this 'blorg) 1 2) => this.blorg(1, 2);
 
-((aref foo i) 1 2) => foo[i](1, 2)
+((aref foo i) 1 2) => foo[i](1, 2);
 
-((slot-value (aref foobar 1) 'blorg) NIL T) => foobar[1].blorg(null, true)
+((slot-value (aref foobar 1) 'blorg) NIL T) => foobar[1].blorg(null, true);
 
 ;;;# Operator Expressions
 ;;;t \index{operator}
@@ -353,11 +353,11 @@ a-variable  => aVariable
 ;;; JavaScript, Parenscript supports multiple arguments to the
 ;;; operators.
 
-(* 1 2)   => 1 * 2
+(* 1 2)   => 1 * 2;
 
-(= 1 2)   => 1 == 2
+(= 1 2)   => 1 == 2;
 
-(eql 1 2) => 1 == 2
+(eql 1 2) => 1 == 2;
 
 ;;; Note that the resulting expression is correctly parenthesized,
 ;;; according to the JavaScript operator precedence that can be found
@@ -366,31 +366,31 @@ a-variable  => aVariable
 ;;;    http://www.codehouse.com/javascript/precedence/
 
 (* 1 (+ 2 3 4) 4 (/ 6 7))
-=> 1 * (2 + 3 + 4) * 4 * (6 / 7)
+=> 1 * (2 + 3 + 4) * 4 * (6 / 7);
 
 ;;; The pre increment and decrement operators are also
 ;;; available. `INCF' and `DECF' are the pre-incrementing and
 ;;; pre-decrementing operators. These operators can
 ;;; take only one argument.
 
-(incf i) => ++i
+(incf i) => ++i;
 
-(decf i) => --i
+(decf i) => --i;
 
 ;;; The `1+' and `1-' operators are shortforms for adding and
 ;;; substracting 1.
 
-(1- i) => i - 1
+(1- i) => i - 1;
 
-(1+ i) => i + 1
+(1+ i) => i + 1;
 
 ;;; The `not' operator actually optimizes the code a bit. If `not' is
 ;;; used on another boolean-returning operator, the operator is
 ;;; reversed.
 
-(not (< i 2))   => i >= 2
+(not (< i 2))   => i >= 2;
 
-(not (eql i 2)) => i != 2
+(not (eql i 2)) => i != 2;
 
 ;;;# Body forms
 ;;;t \index{body form}
@@ -418,7 +418,7 @@ a-variable  => aVariable
 ;;; In an expression context:
 
 (+ i (progn (blorg i) (blafoo i)))
-=> i + (blorg(i), blafoo(i))
+=> i + (blorg(i), blafoo(i));
 
 ;;; A `PROGN' form doesn't lead to additional indentation or
 ;;; additional braces around it's body.
@@ -447,7 +447,7 @@ a-variable  => aVariable
   (return (+ a b)))
 => function aFunction(a, b) {
        return a + b;
-   }
+   };
 
 ;;; Anonymous functions can be created using the `LAMBDA' form, which
 ;;; is the same as `DEFUN', but without function name. In fact,
@@ -456,7 +456,7 @@ a-variable  => aVariable
 (lambda (a b) (return (+ a b)))
 => function (a, b) {
        return a + b;
-   }
+   };
 
 ;;;# Assignment
 ;;;t \index{assignment}
@@ -550,16 +550,16 @@ a-variable  => aVariable
 
 (defsetf left (el) (offset)
   `(setf (slot-value (slot-value ,el 'style) 'left) ,offset))
-=> null
+=> null;
 
 (setf (left some-div) (+ 123 "px"))
 => var _js2_3 = someDiv;
    var _js1_4 = 123 + 'px';
    _js2_3.style.left = _js1_4;
 
-(progn (defmacro left (el)
-         `(slot-value ,el 'offset-left))
-       (left some-div))
+(macrolet ((left (el)
+             `(slot-value ,el 'offset-left)))
+  (left some-div))
 => someDiv.offsetLeft;
 
 ;;;# Single argument statements
@@ -579,9 +579,9 @@ a-variable  => aVariable
 ;;; `TRY' form. `RETURN' is used to return a value from a function
 ;;; call.
 
-(return 1)       => return 1
+(return 1)       => return 1;
 
-(throw "foobar") => throw 'foobar'
+(throw "foobar") => throw 'foobar';
 
 ;;;# Single argument expression
 ;;;t \index{single-argument expression}
@@ -607,7 +607,7 @@ a-variable  => aVariable
 ;;; `VOID', `TYPEOF', `INSTANCEOF' and `NEW'. They all take a
 ;;; Parenscript expression.
 
-(delete (new (*foobar 2 3 4))) => delete new Foobar(2, 3, 4)
+(delete (new (*foobar 2 3 4))) => delete new Foobar(2, 3, 4);
 
 (if (= (typeof blorg) *string)
     (alert (+ "blorg is a string: " blorg))
@@ -616,7 +616,7 @@ a-variable  => aVariable
        alert('blorg is a string: ' + blorg);
    } else {
        alert('blorg is not a string');
-   }
+   };
 
 ;;;# Conditional Statements
 ;;;t \index{conditional statements}
@@ -649,10 +649,10 @@ a-variable  => aVariable
        return i;
    } else {
        alert('blorg is not correct!');
-   }
+   };
 
 (+ i (if ((@ blorg add-one)) 1 2))
-=> i + (blorg.addOne() ? 1 : 2)
+=> i + (blorg.addOne() ? 1 : 2);
 
 ;;; The `WHEN' and `UNLESS' forms can be used as shortcuts for the
 ;;; `IF' form.
@@ -663,13 +663,13 @@ a-variable  => aVariable
 => if (blorg.isCorrect()) {
        carryOn();
        return i;
-   }
+   };
 
 (unless ((@ blorg is-correct))
   (alert "blorg is not correct!"))
 => if (!blorg.isCorrect()) {
        alert('blorg is not correct!');
-   }
+   };
 
 ;;;# Variable declaration
 ;;;t \index{variable}
@@ -695,7 +695,7 @@ a-variable  => aVariable
 ;;; Lisp. Note that the result is undefined if `DEFVAR' is not used as
 ;;; a top-level form.
 
-(defvar *a* (array 1 2 3)) => var A = [ 1, 2, 3 ]
+(defvar *a* (array 1 2 3)) => var A = [ 1, 2, 3 ];
 
 ;;; One feature present in Parenscript that is not part of Common Lisp
 ;;; are lexically-scoped global variables, which are declared using
@@ -878,7 +878,7 @@ a-variable  => aVariable
   ((@ this eat) (new *popcorn)))
 => while (film.isNotFinished()) {
        this.eat(new Popcorn);
-   }
+   };
 
 ;;;# The `CASE' statement
 ;;;t \index{CASE}
@@ -911,7 +911,7 @@ a-variable  => aVariable
            break;
        default: 
            alert('default clause');
-       }
+       };
 
 ; (SWITCH case-value clause*)
 ; clause     ::= (value body) | (default body)
@@ -928,7 +928,7 @@ a-variable  => aVariable
        case 1: alert('If I get here');
        case 2: alert('I also get here');
        default: alert('I always get here');
-   }
+   };
 
 ;;;# The `WITH' statement
 ;;;t \index{WITH}
@@ -950,7 +950,7 @@ a-variable  => aVariable
   (alert (+ "i is now intermediary scoped: " i)))
 => with ({ foo : 'foo', i : 'i' }) {
        alert('i is now intermediary scoped: ' + i);
-   }
+   };
 
 ;;;# The `TRY' statement
 ;;;t \index{TRY}
@@ -981,7 +981,7 @@ a-variable  => aVariable
        alert('an error happened: ' + error);
    } finally {
        alert('Leaving the try form');
-   }
+   };
 
 ;;;# The HTML Generator
 ;;;t \index{PS-HTML}
@@ -996,10 +996,10 @@ a-variable  => aVariable
 ;;; compiler. The resulting expression is a JavaScript expression.
 
 (ps-html ((:a :href "foobar") "blorg"))
-=> '<A HREF=\"foobar\">blorg</A>'
+=> '<A HREF=\"foobar\">blorg</A>';
 
 (ps-html ((:a :href (generate-a-link)) "blorg"))
-=> '<A HREF=\"' + generateALink() + '\">blorg</A>'
+=> '<A HREF=\"' + generateALink() + '\">blorg</A>';
 
 ;;; We can recursively call the Parenscript compiler in an HTML
 ;;; expression.
@@ -1007,7 +1007,7 @@ a-variable  => aVariable
 ((@ document write)
   (ps-html ((:a :href "#"
                 :onclick (ps-inline (transport))) "link")))
-=> document.write('<A HREF=\"#\" ONCLICK=\"' + ('javascript:' + 'transport' + '(' + ')') + '\">link</A>')
+=> document.write('<A HREF=\"#\" ONCLICK=\"' + ('javascript:' + 'transport' + '(' + ')') + '\">link</A>');
 
 ;;; Forms may be used in attribute lists to conditionally generate
 ;;; the next attribute. In this example the textarea is sometimes disabled.
@@ -1144,7 +1144,7 @@ a-variable  => aVariable
   (return (+ x y)))
   -> function my_library_libraryFunction(x, y) {
         return x + y;
-     }
+     };
 
 ;;;# Identifier obfuscation
 ;;;t \index{obfuscation}
@@ -1175,7 +1175,7 @@ a-variable  => aVariable
   (+ a (ps-ref.my-library::library-function b ps-ref.obfuscate-me::foo)))
   -> function 賱(a, b, 賲) {
        a + my_library_libraryFunction(b, 賲);
-     }
+     };
 
 ;;; The obfuscation and namespace facilities can be used on packages
 ;;; at the same time.

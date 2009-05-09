@@ -63,73 +63,42 @@ lexical block.")
        (not (null (op-precedence (first form))))))
 
 (defun funcall-form-p (form)
-  (and (listp form)
+  (and form
+       (listp form)
        (not (op-form-p form))
        (not (ps-special-form-p form))))
 
 ;;; macro expansion
 (eval-when (:compile-toplevel :load-toplevel :execute)
-  (defun make-macro-env-dictionary ()
+  (defun make-macro-dictionary ()
     (make-hash-table :test 'eq))
-  (defvar *ps-macro-toplevel* (make-macro-env-dictionary)
-    "Toplevel macro environment dictionary. Key is the symbol name of
-    the macro, value is (symbol-macro-p . expansion-function).")
+  
+  (defvar *ps-macro-toplevel* (make-macro-dictionary)
+    "Toplevel macro environment dictionary.")
 
   (defvar *ps-macro-env* (list *ps-macro-toplevel*)
     "Current macro environment.")
 
-  (defvar *ps-setf-expanders* (make-macro-env-dictionary)
+  (defvar *ps-symbol-macro-toplevel* (make-macro-dictionary))
+
+  (defvar *ps-symbol-macro-env* (list *ps-symbol-macro-toplevel*))
+
+  (defvar *ps-local-function-names* ())
+
+  (defvar *ps-setf-expanders* (make-macro-dictionary)
     "Setf expander dictionary. Key is the symbol of the access
 function of the place, value is an expansion function that takes the
 arguments of the access functions as a first value and the form to be
 stored as the second value.")
 
-  (defparameter *toplevel-compilation-level* :toplevel
+  (defparameter *ps-compilation-level* :toplevel
     "This value takes on the following values:
 :toplevel indicates that we are traversing toplevel forms.
 :inside-toplevel-form indicates that we are inside a call to compile-parenscript-form
-nil indicates we are no longer toplevel-related.")
-  
-  (defun get-macro-spec (name env-dict)
-    "Retrieves the macro spec of the given name with the given environment dictionary.
-SPEC is of the form (symbol-macro-p . expansion-function)."
-    (gethash name env-dict))
-  (defsetf get-macro-spec (name env-dict)
-      (spec)
-    `(setf (gethash ,name ,env-dict) ,spec)))
+nil indicates we are no longer toplevel-related."))
 
-(defun lookup-macro-spec (name &optional (environment *ps-macro-env*))
-  "Looks up the macro spec associated with NAME in the given environment.  A
-macro spec is of the form (symbol-macro-p . function). Returns two values:
-the SPEC and the parent macro environment.
-
-NAME must be a symbol."
-  (when (symbolp name)
-    (do ((env environment (cdr env)))
-        ((null env) nil)
-      (let ((val (get-macro-spec name (car env))))
-        (when val
-          (return-from lookup-macro-spec
-            (values val (or (cdr env)
-                            (list *ps-macro-toplevel*)))))))))
-
-(defun ps-symbol-macro-p (name &optional (environment *ps-macro-env*))
-  "True if there is a Parenscript symbol macro named by the symbol NAME."
-  (and (symbolp name) (car (lookup-macro-spec name environment))))
-
-(defun ps-macro-p (name &optional (environment *ps-macro-env*))
-  "True if there is a Parenscript macro named by the symbol NAME."
-  (and (symbolp name)
-       (let ((macro-spec (lookup-macro-spec name environment)))
-         (and macro-spec (not (car macro-spec))))))
-
-(defun lookup-macro-expansion-function (name &optional (environment *ps-macro-env*))
-  "Lookup NAME in the given macro expansion environment (which
-defaults to the current macro environment). Returns the expansion
-function and the parent macro environment of the macro."
-  (multiple-value-bind (macro-spec parent-env)
-      (lookup-macro-spec name environment)
-    (values (cdr macro-spec) parent-env)))
+(defun lookup-macro-def (name env)
+  (loop for e in env thereis (gethash name e)))
 
 (defun make-ps-macro-function (args body)
   (let* ((whole-var (when (eql '&whole (first args)) (second args)))
@@ -142,14 +111,13 @@ function and the parent macro environment of the macro."
 
 (defmacro defpsmacro (name args &body body)
   `(progn (undefine-ps-special-form ',name)
-          (setf (get-macro-spec ',name *ps-macro-toplevel*)
-                (cons nil ,(make-ps-macro-function args body)))
+          (setf (gethash ',name *ps-macro-toplevel*) ,(make-ps-macro-function args body))
           ',name))
 
 (defmacro define-ps-symbol-macro (symbol expansion)
   (let ((x (gensym)))
     `(progn (undefine-ps-special-form ',symbol)
-            (setf (get-macro-spec ',symbol *ps-macro-toplevel*) (cons t (lambda (,x) (declare (ignore ,x)) ',expansion)))
+            (setf (gethash ',symbol *ps-symbol-macro-toplevel*) (lambda (,x) (declare (ignore ,x)) ',expansion))
             ',symbol)))
 
 (defun import-macros-from-lisp (&rest names)
@@ -176,14 +144,15 @@ CL environment)."
           (defpsmacro ,name ,args ,@body)))
 
 (defun ps-macroexpand (form)
-  "Recursively macroexpands ParenScript macros and symbol-macros in
-the given ParenScript form. Returns two values: the expanded form, and
-whether any expansion was performed on the form or not."
-  (let ((macro-function (cond ((ps-symbol-macro-p form) form)
-                              ((and (consp form) (ps-macro-p (car form))) (car form)))))
-    (if macro-function
-        (values (ps-macroexpand (funcall (lookup-macro-expansion-function macro-function) form)) t)
-        (values form nil))))
+  (aif (or (lookup-macro-def form *ps-symbol-macro-env*)
+           (and (consp form) (lookup-macro-def (car form) *ps-macro-env*)))
+       (values (ps-macroexpand (funcall it form)) t)
+       form))
+
+(defun maybe-rename-local-function (fun-name)
+  (aif (lookup-macro-def fun-name *ps-local-function-names*)
+       it
+       fun-name))
 
 ;;;; compiler interface
 (defgeneric compile-parenscript-form (form &key expecting)
@@ -192,34 +161,24 @@ ParenScript representation. :expecting determines whether the form is
 compiled to an :expression (the default), a :statement, or a
 :symbol."))
 
-(defun adjust-toplevel-compilation-level (form level)
-  (let ((default-level (if (eql :toplevel level)
-			   :inside-toplevel-form
-			   nil)))
-    (if (consp form)
-	(case (car form)
-	  ('progn level)
-	  (t default-level))
-	default-level)))
+(defun adjust-ps-compilation-level (form level)
+  (cond ((or (and (consp form) (eq 'progn (car form)))
+             (and (symbolp form) (eq :toplevel level)))
+         level)
+        ((eq :toplevel level) :inside-toplevel-form)))
 
 (defmethod compile-parenscript-form :around (form &key expecting)
   (assert (if expecting (member expecting '(:expression :statement :symbol)) t))
-  (if (eql expecting :symbol)
+  (if (eq expecting :symbol)
       (compile-to-symbol form)
-      (multiple-value-bind (expanded-form expanded-p)
-          (ps-macroexpand form)
-        (if expanded-p
-            (compile-parenscript-form expanded-form :expecting expecting)
-	    (let ((*toplevel-compilation-level*
-		   (progn
-		     (adjust-toplevel-compilation-level form *toplevel-compilation-level*))))
-	      (call-next-method))))))
+      (let ((*ps-compilation-level* (adjust-ps-compilation-level form *ps-compilation-level*)))
+        (call-next-method))))
 
 (defun compile-to-symbol (form)
   "Compiles the given Parenscript form and guarantees that the
 resultant symbol has an associated script-package. Raises an error if
 the form cannot be compiled to a symbol."
-  (let ((exp (compile-parenscript-form form)))
+  (let ((exp (compile-parenscript-form form :expecting :expression)))
     (when (eq (first exp) 'js:variable)
       (setf exp (second exp)))
     (assert (symbolp exp) ()
@@ -243,7 +202,11 @@ the form cannot be compiled to a symbol."
   (compile-parenscript-form (string form)))
 
 (defmethod compile-parenscript-form ((symbol symbol) &key expecting)
-  (declare (ignore expecting))
+  (when (eq *ps-compilation-level* :toplevel)
+    (multiple-value-bind (expansion expanded-p)
+        (ps-macroexpand symbol)
+      (when expanded-p 
+        (return-from compile-parenscript-form (compile-parenscript-form expansion :expecting expecting)))))
   (cond ((keywordp symbol) symbol)
         ((ps-special-form-p (list symbol))
          (if (ps-literal-p symbol)
@@ -261,16 +224,23 @@ the form cannot be compiled to a symbol."
     (t op)))
 
 (defmethod compile-parenscript-form ((form cons) &key (expecting :statement))
-  (let* ((name (car form))
-         (args (cdr form)))
-    (cond ((ps-special-form-p form) (apply (get-ps-special-form name) (cons expecting args)))
+  (multiple-value-bind (form expanded-p)
+      (ps-macroexpand form)
+    (cond (expanded-p (compile-parenscript-form form :expecting expecting))
+          ((ps-special-form-p form) (apply (get-ps-special-form (car form)) (cons expecting (cdr form))))
           ((op-form-p form)
-           `(js:operator
-                 ,(ps-convert-op-name (compile-parenscript-form (first form) :expecting :symbol))
-                 ,@(mapcar (lambda (form) (compile-parenscript-form form :expecting :expression)) (rest form))))
+           `(js:operator ,(ps-convert-op-name (compile-parenscript-form (car form) :expecting :symbol))
+                         ,@(mapcar (lambda (form)
+                                     (compile-parenscript-form (ps-macroexpand form) :expecting :expression))
+                                   (cdr form))))
           ((funcall-form-p form)
-           `(js:funcall ,(compile-parenscript-form name :expecting :expression)
-             ,@(mapcar (lambda (arg) (compile-parenscript-form arg :expecting :expression)) args)))
+           `(js:funcall ,(compile-parenscript-form (if (symbolp (car form))
+                                                       (maybe-rename-local-function (car form))
+                                                       (ps-macroexpand (car form)))
+                                                   :expecting :expression)
+                        ,@(mapcar (lambda (arg)
+                                    (compile-parenscript-form (ps-macroexpand arg) :expecting :expression))
+                                  (cdr form))))
           (t (error "Cannot compile ~S to a ParenScript form." form)))))
 
 (defvar *ps-gensym-counter* 0)
@@ -309,34 +279,3 @@ gensym-prefix-string)."
        `(let* (,,@(mapcar (lambda (g v) ``(,,g ,,v)) gensyms vars))
           ,(let ,(mapcar (lambda (g v) `(,v ,g)) gensyms vars)
              ,@body)))))
-
-(defvar *read-function* #'read
-  "This should be a function that takes the same inputs and returns the same
-outputs as the common lisp read function.  We declare it as a variable to allow
-a user-supplied reader instead of the default lisp reader.")
-
-(defun ps-compile-stream (stream)
-  "Compiles a source stream as if it were a file.  Outputs a Javascript string."
-
-  (let ((*toplevel-compilation-level* :toplevel)
-	(*package* *package*)
-	(end-read-form '#:unique))
-    (flet ((read-form () (funcall *read-function* stream nil end-read-form)))
-      (let* ((js-string
-	      ;; cons up the forms, compiling as we go, and print the result
-	      (do ((form (read-form) (read-form))
-		   (compiled-forms nil))
-		  ((eql form end-read-form)
-		     (format nil "~{~A~^;~%~}"
-			     (remove-if
-			      #'(lambda (x) (or (null x) (= 0 (length x))))
-			      (mapcar 'compiled-form-to-string (nreverse compiled-forms)))))
-		(push (compile-parenscript-form form :expecting :statement) compiled-forms))))
-	js-string))))
-
-
-(defun ps-compile-file (source-file)
-  "Compiles the given Parenscript source file and returns a Javascript string."
-  (with-open-file (stream source-file :direction :input)
-    (ps-compile-stream stream)))
-

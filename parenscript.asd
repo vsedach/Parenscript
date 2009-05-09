@@ -36,7 +36,7 @@
                (:module :runtime
                         :components ((:file "ps-runtime-lib"))
                         :depends-on (:src)))
-  :depends-on (:cl-ppcre))
+  :depends-on (:cl-ppcre :anaphora))
 
 (defmethod asdf:perform :after ((op asdf:load-op) (system (eql (asdf:find-system :parenscript)))) 
   (pushnew :parenscript cl:*features*))

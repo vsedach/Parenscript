@@ -25,12 +25,8 @@ Body is evaluated."
 
 (defun compiled-form-to-string (ps-compiled-form)
   (with-output-to-string (s)
-    (mapc (lambda (x)
-            (princ (if (stringp x)
-                       x
-                       (eval x))
-                   s))
-          (parenscript-print ps-compiled-form))))
+    (dolist (x (parenscript-print ps-compiled-form))
+      (write-string (if (stringp x) x (eval x)) s))))
 
 (defvar *js-inline-string-delimiter* #\"
   "Controls the string delimiter char used when compiling Parenscript in ps-inline.")

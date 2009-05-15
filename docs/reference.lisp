@@ -505,12 +505,12 @@ a-variable  => aVariable;
 
 (let ((a 1) (b 2))
   (psetf a b b a))
-=> var a1 = 1;
-   var b2 = 2;
-   var _js3_5 = b2;
-   var _js4_6 = a1;
-   a1 = _js3_5;
-   b2 = _js4_6;
+=> var a = 1;
+   var b = 2;
+   var _js1 = b;
+   var _js2 = a;
+   a = _js1;
+   b = _js2;
 
 ;;; The `SETQ' and `PSETQ' forms operate identically to `SETF' and
 ;;; `PSETF', but throw a compile-time error if the left-hand side form
@@ -538,9 +538,9 @@ a-variable  => aVariable;
    };
 
 (setf (color some-div) (+ 23 "em"))
-=> var _js2_3 = someDiv;
-   var _js1_4 = 23 + 'em';
-   __setf_color(_js1_4, _js2_3);
+=> var _js2 = someDiv;
+   var _js1 = 23 + 'em';
+   __setf_color(_js1, _js2);
 
 ;;; Note that temporary variables are generated to preserve evaluation
 ;;; order of the arguments as they would be in Lisp.
@@ -553,9 +553,9 @@ a-variable  => aVariable;
 => null;
 
 (setf (left some-div) (+ 123 "px"))
-=> var _js2_3 = someDiv;
-   var _js1_4 = 123 + 'px';
-   _js2_3.style.left = _js1_4;
+=> var _js2 = someDiv;
+   var _js1 = 123 + 'px';
+   _js2.style.left = _js1;
 
 (macrolet ((left (el)
              `(slot-value ,el 'offset-left)))
@@ -722,16 +722,16 @@ a-variable  => aVariable;
            (x (+ x y)))
       (+ *a* x y))))
 => var A = 4;
-   var x1 = 1;
-   var A2;
+   var x = 1;
+   var A_TMPSTACK1;
    try {
-       A2 = A;
+       A_TMPSTACK1 = A;
        A = 2;
-       var y3 = x1 + 1;
-       var x4 = x1 + y3;
-       A + x4 + y3;
+       var y = x + 1;
+       var x2 = x + y;
+       A + x2 + y;
    } finally {
-       A = A2;
+       A = A_TMPSTACK1;
    };
 
 ;;;# Iteration constructs
@@ -790,14 +790,14 @@ a-variable  => aVariable;
      (s 0 (+ s i (1+ i))))
     ((> i 10))
   ((@ document write) (+ "i: " i " s: " s "<br/>")))
-=> var i1 = 0;
-   var s2 = 0;
-   for (; i1 <= 10; ) {
-       document.write('i: ' + i1 + ' s: ' + s2 + '<br/>');
-       var _js3_5 = i1 + 1;
-       var _js4_6 = s2 + i1 + (i1 + 1);
-       i1 = _js3_5;
-       s2 = _js4_6;
+=> var i = 0;
+   var s = 0;
+   for (; i <= 10; ) {
+       document.write('i: ' + i + ' s: ' + s + '<br/>');
+       var _js1 = i + 1;
+       var _js2 = s + i + (i + 1);
+       i = _js1;
+       s = _js2;
    };
 
 ;;; compare to `DO*':
@@ -815,9 +815,9 @@ a-variable  => aVariable;
 (let ((arr (array "a" "b" "c" "d" "e")))
   (dotimes (i (@ arr length))
     ((@ document write) (+ "i: " i " arr[i]: " (aref arr i) "<br/>"))))
-=> var arr1 = ['a', 'b', 'c', 'd', 'e'];
-   for (var i = 0; i < arr1.length; i += 1) {
-       document.write('i: ' + i + ' arr[i]: ' + arr1[i] + '<br/>');
+=> var arr = ['a', 'b', 'c', 'd', 'e'];
+   for (var i = 0; i < arr.length; i += 1) {
+       document.write('i: ' + i + ' arr[i]: ' + arr[i] + '<br/>');
    };
 
 ;;; `DOTIMES' with return value:
@@ -826,12 +826,12 @@ a-variable  => aVariable;
   (alert (+ "Summation to 10 is "
             (dotimes (i 10 res)
               (incf res (1+ i))))))
-=> var res1 = 0;
+=> var res = 0;
    alert('Summation to 10 is ' + (function () {
        for (var i = 0; i < 10; i += 1) {
-           res1 += i + 1;
+           res += i + 1;
        };
-       return res1;
+       return res;
    })());
 
 ;;; `DOLIST' is like CL:DOLIST, but that it operates on numbered JS
@@ -840,9 +840,9 @@ a-variable  => aVariable;
 (let ((l (list 1 2 4 8 16 32)))
   (dolist (c l)
     ((@ document write) (+ "c: " c "<br/>"))))
-=> var l1 = [1, 2, 4, 8, 16, 32];
-   for (var c = null, _js_arrvar3 = l1, _js_idx2 = 0; _js_idx2 < _js_arrvar3.length; _js_idx2 += 1) {
-       c = _js_arrvar3[_js_idx2];
+=> var l = [1, 2, 4, 8, 16, 32];
+   for (var c = null, _js_arrvar2 = l, _js_idx1 = 0; _js_idx1 < _js_arrvar2.length; _js_idx1 += 1) {
+       c = _js_arrvar2[_js_idx1];
        document.write('c: ' + c + '<br/>');
    };
 
@@ -851,14 +851,14 @@ a-variable  => aVariable;
   (alert (+ "Sum of " l " is: "
             (dolist (c l s)
               (incf s c)))))
-=> var l1 = [1, 2, 4, 8, 16, 32];
-   var s2 = 0;
-   alert('Sum of ' + l1 + ' is: ' + (function () {
-       for (var c = null, _js_arrvar4 = l1, _js_idx3 = 0; _js_idx3 < _js_arrvar4.length; _js_idx3 += 1) {
-           c = _js_arrvar4[_js_idx3];
-           s2 += c;
+=> var l = [1, 2, 4, 8, 16, 32];
+   var s = 0;
+   alert('Sum of ' + l + ' is: ' + (function () {
+       for (var c = null, _js_arrvar2 = l, _js_idx1 = 0; _js_idx1 < _js_arrvar2.length; _js_idx1 += 1) {
+           c = _js_arrvar2[_js_idx1];
+           s += c;
        };
-       return s2;
+       return s;
    })());
 
 ;;; `FOR-IN' is translated to the JS `for...in' statement.
@@ -866,9 +866,9 @@ a-variable  => aVariable;
 (let ((obj (create :a 1 :b 2 :c 3)))
   (for-in (i obj)
     ((@ document write) (+ i ": " (aref obj i) "<br/>"))))
-=> var obj1 = { a : 1, b : 2, c : 3 };
-   for (var i in obj1) {
-       document.write(i + ': ' + obj1[i] + '<br/>');
+=> var obj = { a : 1, b : 2, c : 3 };
+   for (var i in obj) {
+       document.write(i + ': ' + obj[i] + '<br/>');
    };
 
 ;;; The `WHILE' form is transformed to the JavaScript form `while',
@@ -1017,11 +1017,11 @@ a-variable  => aVariable;
    (setf (@ element inner-h-t-m-l)
          (ps-html ((:textarea (or disabled (not authorized)) :disabled "disabled")
                 "Edit me"))))
-=> var disabled1 = null;
-   var authorized2 = true;
+=> var disabled = null;
+   var authorized = true;
    element.innerHTML =
    '<TEXTAREA'
-   + (disabled1 || !authorized2 ? ' DISABLED=\"' + 'disabled' + '\"' : '')
+   + (disabled || !authorized ? ' DISABLED=\"' + 'disabled' + '\"' : '')
    + '>Edit me</TEXTAREA>';
 
 ;;;# Macrology

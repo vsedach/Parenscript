@@ -38,7 +38,7 @@
   (or (eql char #\+) (eql char #\*)))
 
 (defun special-symbol-name? (string)
-  (nth-value 1 (cl-ppcre:scan-to-strings "[\\*|\\+](.*)[\\*|\\+]([0-9]*)" string)))
+  (nth-value 1 (cl-ppcre:scan-to-strings "[\\*|\\+](.*)[\\*|\\+](.*)" string)))
 
 (defun first-uppercase-p (string)
   (and (> (length string) 1)
@@ -98,3 +98,8 @@ SOMEGLOBAL."
        `(let (,,@(loop for g in gensyms for n in names collect ``(,,g ,,n)))
           ,(let (,@(loop for n in names for g in gensyms collect `(,n ,g)))
                 ,@body)))))
+
+(defun flatten (x)
+  (if (atom x)
+      (list x)
+      (mapcan #'flatten x)))

@@ -206,13 +206,19 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; function definition
+
+(defvar *vars-bound-in-enclosing-lexical-scopes* ())
+
 (defun compile-function-definition (args body)
-  (list (mapcar (lambda (arg) (compile-parenscript-form arg :expecting :symbol)) args)
-        (let* ((*enclosing-lexical-block-declarations* ())
-               (body (compile-parenscript-form `(progn ,@body)))
-               (var-decls (compile-parenscript-form
-                           `(progn ,@(mapcar (lambda (var) `(var ,var)) *enclosing-lexical-block-declarations*)))))
-          `(js:block ,@(cdr var-decls) ,@(cdr body)))))
+  (let ((args (mapcar (lambda (arg) (compile-parenscript-form arg :expecting :symbol)) args)))
+    (list args
+          (let* ((*enclosing-lexical-block-declarations* ())
+                 (*vars-bound-in-enclosing-lexical-scopes* (append args
+                                                                   *vars-bound-in-enclosing-lexical-scopes*))
+                 (body (compile-parenscript-form `(progn ,@body)))
+                 (var-decls (compile-parenscript-form
+                             `(progn ,@(mapcar (lambda (var) `(var ,var)) *enclosing-lexical-block-declarations*)))))
+            `(js:block ,@(cdr var-decls) ,@(cdr body))))))
 
 (define-ps-special-form %js-lambda (args &rest body)
   `(js:lambda ,@(compile-function-definition args body)))
@@ -438,11 +444,15 @@ lambda-list::=
 
 (define-ps-special-form symbol-macrolet (symbol-macros &body body)
   (with-local-macro-environment (local-macro-dict *ps-symbol-macro-env*)
-    (dolist (macro symbol-macros)
-      (destructuring-bind (name expansion)
-          macro
-        (setf (gethash name local-macro-dict) (lambda (x) (declare (ignore x)) expansion))))
-    (compile-parenscript-form `(progn ,@body) :expecting expecting)))
+    (let (local-var-bindings)
+      (dolist (macro symbol-macros)
+        (destructuring-bind (name expansion)
+            macro
+          (setf (gethash name local-macro-dict) (lambda (x) (declare (ignore x)) expansion))
+          (push name local-var-bindings)))
+      (let ((*vars-bound-in-enclosing-lexical-scopes* (append local-var-bindings
+                                                              *vars-bound-in-enclosing-lexical-scopes*)))
+        (compile-parenscript-form `(progn ,@body) :expecting expecting)))))
 
 (define-ps-special-form defmacro (name args &body body) ;; should this be a macro?
   (eval `(defpsmacro ,name ,args ,@body))
@@ -571,30 +581,44 @@ lambda-list::=
   (pushnew name *ps-special-variables*)
   `(var ,name ,@(when value-provided? (list value))))
 
-(defpsmacro let (bindings &body body)
-  (flet ((add-renamed-vars (bindings predicate)
-           (mapcar (lambda (x) (append x (list (ps-gensym (car x)))))
-                   (remove-if predicate bindings :key #'car)))
-         (var (x) (first x))
-         (val (x) (second x))
-         (renamed (x) (third x)))
-    (let* ((normalized-bindings (mapcar (lambda (x) (if (symbolp x) `(,x nil) x)) bindings))
-           (lexical-bindings (add-renamed-vars normalized-bindings #'ps-special-variable-p))
-           (dynamic-bindings (add-renamed-vars normalized-bindings (complement #'ps-special-variable-p)))
-           (renamed-body `(symbol-macrolet ,(mapcar (lambda (x) (list (var x) (renamed x)))
-                                                    lexical-bindings)
-                            ,@body)))
-    `(progn
-       ,@(mapcar (lambda (x) `(var ,(renamed x) ,(val x))) lexical-bindings)
-       ,(if dynamic-bindings
-            `(progn ,@(mapcar (lambda (x) `(var ,(renamed x))) dynamic-bindings)
-                    (try (progn (setf ,@(loop for x in dynamic-bindings append
-                                             `(,(renamed x) ,(var x)
-                                               ,(var x) ,(val x))))
-                                ,renamed-body)
-                         (:finally
-                          (setf ,@(mapcan (lambda (x) `(,(var x) ,(renamed x))) dynamic-bindings)))))
-            renamed-body)))))
+(define-ps-special-form let (bindings &body body)
+  (let* (lexical-bindings-introduced-here
+         (normalized-bindings (mapcar (lambda (x) (if (symbolp x) `(,x nil) x)) bindings))
+         (free-variables-in-binding-value-expressions (mapcan (lambda (x) (flatten (cadr x)))
+                                                              normalized-bindings)))
+    (flet ((maybe-rename-lexical-var (x)
+             (if (or (member x *vars-bound-in-enclosing-lexical-scopes*)
+                     (member x free-variables-in-binding-value-expressions))
+                 (ps-gensym x)
+                 (progn (push x lexical-bindings-introduced-here) nil)))
+           (rename (x) (first x))
+           (var (x) (second x))
+           (val (x) (third x)))
+      (let* ((lexical-bindings (loop for x in normalized-bindings
+                                  unless (ps-special-variable-p (car x))
+                                  collect (cons (maybe-rename-lexical-var (car x)) x)))
+             (dynamic-bindings (loop for x in normalized-bindings
+                                  when (ps-special-variable-p (car x))
+                                  collect (cons (ps-gensym (format nil "~A_~A" (car x) 'tmp-stack)) x)))
+             (renamed-body `(symbol-macrolet ,(loop for x in lexical-bindings
+                                                 when (rename x) collect
+                                                 `(,(var x) ,(rename x)))
+                              ,@body))
+             (*vars-bound-in-enclosing-lexical-scopes* (append lexical-bindings-introduced-here
+                                                               *vars-bound-in-enclosing-lexical-scopes*)))
+        (compile-parenscript-form
+         `(progn
+            ,@(mapcar (lambda (x) `(var ,(or (rename x) (var x)) ,(val x))) lexical-bindings)
+            ,(if dynamic-bindings
+                 `(progn ,@(mapcar (lambda (x) `(var ,(rename x))) dynamic-bindings)
+                         (try (progn (setf ,@(loop for x in dynamic-bindings append
+                                                  `(,(rename x) ,(var x)
+                                                     ,(var x) ,(val x))))
+                                     ,renamed-body)
+                              (:finally
+                               (setf ,@(mapcan (lambda (x) `(,(var x) ,(rename x))) dynamic-bindings)))))
+                 renamed-body))
+         :expecting expecting)))))
 
 (defpsmacro let* (bindings &body body)
   (if bindings

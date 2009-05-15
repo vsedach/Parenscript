@@ -21,12 +21,12 @@
         (setf x 4)
         (return 3))
       (setf x (+ 2 (side-effect) x 5))))
-  "var x1 = 10;
+  "var x = 10;
 function sideEffect() {
-  x1 = 4;
+  x = 4;
   return 3;
 };
-x1 = 2 + sideEffect() + x1 + 5;")
+x = 2 + sideEffect() + x + 5;")
 ;; Parenscript used to optimize incorrectly:
 ;;   var x = 10;
 ;;   function sideEffect() {
@@ -92,16 +92,16 @@ x1 = 2 + sideEffect() + x1 + 5;")
 (test-ps-js simple-slot-value
   (let ((foo (create :a 1)))
     (alert (slot-value foo 'a)))
-  "var foo1 = { a : 1 };
-   alert(foo1.a);")
+  "var foo = { a : 1 };
+   alert(foo.a);")
 
 (test-ps-js buggy-slot-value
    (let ((foo (create :a 1))
          (slot-name "a"))
     (alert (slot-value foo slot-name)))
-  " var foo1 = { a : 1 };
-    var slotName2 = 'a';
-    alert(foo1[slotName2]);
+  " var foo = { a : 1 };
+    var slotName = 'a';
+    alert(foo[slotName]);
    "); Last line was alert(foo.slotName) before bug-fix.
 
 (test-ps-js buggy-slot-value-two
@@ -182,7 +182,7 @@ x1 = 2 + sideEffect() + x1 + 5;")
                    ("uABCD" . ,(code-char #xabcd)))));; Really above ascii.
     (loop for (js-escape . lisp-char) in escapes
           for generated = (ps-doc* `(let ((x ,(format nil "hello~ahi" lisp-char)))))
-          for wanted = (format nil "var x1 = 'hello\\~ahi';" js-escape)
+          for wanted = (format nil "var x = 'hello\\~ahi';" js-escape)
           do (is (string= (normalize-js-code generated) wanted)))))
   
 (test-ps-js slot-value-setf
@@ -218,10 +218,10 @@ x1 = 2 + sideEffect() + x1 + 5;")
 (test-ps-js defsetf1
   (progn (defsetf baz (x y) (newval) `(set-baz ,x ,y ,newval))
          (setf (baz 1 2) 3))
-  "var _js2_4 = 1;
-var _js3_5 = 2;
-var _js1_6 = 3;
-setBaz(_js2_4, _js3_5, _js1_6);")
+  "var _js2 = 1;
+var _js3 = 2;
+var _js1 = 3;
+setBaz(_js2, _js3, _js1);")
 
 (test-ps-js setf-macroexpands1
   (macrolet ((baz (x y) `(aref ,x ,y 1)))
@@ -240,10 +240,10 @@ setBaz(_js2_4, _js3_5, _js1_6);")
 "function __setf_someThing(newVal, i1, i2) {
     SOMETHING[i1][i2] = newVal;
 };
-var _js2_4 = 1;
-var _js3_5 = 2;
-var _js1_6 = 'foo';
-__setf_someThing(_js1_6, _js2_4, _js3_5);")
+var _js2 = 1;
+var _js3 = 2;
+var _js1 = 'foo';
+__setf_someThing(_js1, _js2, _js3);")
 
 (test-ps-js defun-optional1
   (defun test-opt (&optional x) (return (if x "yes" "no")))
@@ -595,35 +595,44 @@ __setf_someThing(_js1_6, _js2_4, _js3_5);")
 };")
 
 (test-ps-js let-decl-in-expression
-  (defun f (x) (return (if x 1 (let* ((foo x)) foo))))
+  (defun f (x)
+    (return (if x
+                1
+                (let* ((foo x))
+                  foo))))
   "function f(x) {
-    var foo1;
-    return x ? 1 : (foo1 = x, foo1);
+    var foo;
+    return x ? 1 : (foo = x, foo);
 };")
 
 (test-ps-js special-var1
-  (progn (defvar *foo*) (let* ((*foo* 2)) (* *foo* 2)))
+  (progn (defvar *foo*)
+         (let* ((*foo* 2))
+           (* *foo* 2)))
   "var FOO;
-var FOO1;
+var FOO_TMPSTACK1;
 try {
-    FOO1 = FOO;
+    FOO_TMPSTACK1 = FOO;
     FOO = 2;
     FOO * 2;
 } finally {
-    FOO = FOO1;
+    FOO = FOO_TMPSTACK1;
 };")
 
 (test-ps-js special-var2
-  (progn (defvar *foo*) (let* ((*baz* 3) (*foo* 2)) (* *foo* 2 *baz*)))
+  (progn (defvar *foo*)
+         (let* ((*baz* 3)
+                (*foo* 2))
+           (* *foo* 2 *baz*)))
   "var FOO;
-var BAZ1 = 3;
-var FOO2;
+var BAZ = 3;
+var FOO_TMPSTACK1;
 try {
-    FOO2 = FOO;
+    FOO_TMPSTACK1 = FOO;
     FOO = 2;
-    FOO * 2 * BAZ1;
+    FOO * 2 * BAZ;
 } finally {
-    FOO = FOO2;
+    FOO = FOO_TMPSTACK1;
 };")
 
 (test-ps-js literal1
@@ -861,10 +870,10 @@ bar2(foo1(1));")
 (test-ps-js ps-js-target-version-keyword-test1
   (defun foo (x y &key bar baz))
   "function foo(x, y) {
-    var x1_3 = Array.prototype.indexOf.call(arguments, 'bar', 2);
-    var bar = -1 == x1_3 ? null : arguments[x1_3 + 1];
-    var x2_4 = Array.prototype.indexOf.call(arguments, 'baz', 2);
-    var baz = -1 == x2_4 ? null : arguments[x2_4 + 1];
+    var x1 = Array.prototype.indexOf.call(arguments, 'bar', 2);
+    var bar = -1 == x1 ? null : arguments[x1 + 1];
+    var x2 = Array.prototype.indexOf.call(arguments, 'baz', 2);
+    var baz = -1 == x2 ? null : arguments[x2 + 1];
 };"
   :js-target-version 1.6)
 
@@ -879,30 +888,36 @@ bar2(foo1(1));")
 (test-ps-js let1
   (let (x)
     (+ x x))
-  "var x1 = null;
-x1 + x1;")
+  "var x = null;
+x + x;")
 
 (test-ps-js let2
   (let ((x 1))
     (+ x x))
-  "var x1 = 1;
+  "var x = 1;
+x + x;")
+
+(test-ps-js let-x-x
+  (let ((x (1+ x)))
+    (+ x x))
+  "var x1 = x + 1;
 x1 + x1;")
 
 (test-ps-js let3
   (let ((x 1)
         (y 2))
     (+ x x))
-  "var x1 = 1;
-var y2 = 2;
-x1 + x1;")
+  "var x = 1;
+var y = 2;
+x + x;")
 
 (test-ps-js let4
   (let ((x 1)
         (y (1+ x)))
     (+ x y))
   "var x1 = 1;
-var y2 = x + 1;
-x1 + y2;")
+var y = x + 1;
+x1 + y;")
 
 (test-ps-js let5
   (let ((x 1))
@@ -910,62 +925,62 @@ x1 + y2;")
     (let ((x (+ x 5)))
       (+ x 1))
     (+ x 1))
-  "var x1 = 1;
+  "var x = 1;
+x + 1;
+var x1 = x + 5;
 x1 + 1;
-var x2 = x1 + 5;
-x2 + 1;
-x1 + 1;")
+x + 1;")
 
 (test-ps-js let6
   (let ((x 2))
     (let ((x 1)
           (y (1+ x)))
       (+ x y)))
-  "var x1 = 2;
-var x2 = 1;
-var y3 = x1 + 1;
-x2 + y3;")
+  "var x = 2;
+var x1 = 1;
+var y = x + 1;
+x1 + y;")
 
 (test-ps-js let-exp1
   (lambda ()
     (return (let (x) (+ x x))))
   "function () {
-    var x1;
-    return (x1 = null, x1 + x1);
+    var x;
+    return (x = null, x + x);
 };")
 
 (test-ps-js let*1
   (let* ((x 1)) (+ x x))
-"var x1 = 1;
-x1 + x1;")
+"var x = 1;
+x + x;")
 
 (test-ps-js let*2
   (let* ((x 1)
          (y (+ x 2)))
     (+ x y))
-  "var x1 = 1;
-var y2 = x1 + 2;
-x1 + y2;")
+  "var x = 1;
+var y = x + 2;
+x + y;")
 
 (test-ps-js let*3
   (let ((x 3))
         (let* ((x 1) 
                (y (+ x 2))) 
           (+ x y)))
-  "var x1 = 3;
-var x2 = 1;
-var y3 = x2 + 2;
-x2 + y3;")
+  "var x = 3;
+var x1 = 1;
+var y = x1 + 2;
+x1 + y;")
 
 (test-ps-js let*4
   (let ((x 3))
         (let* ((y (+ x 2))
                (x 1))
           (+ x y)))
-  "var x1 = 3;
-var y2 = x1 + 2;
-var x3 = 1;
-x3 + y2;")
+  "var x = 3;
+var y = x + 2;
+var x1 = 1;
+x1 + y;")
 
 (test-ps-js symbol-macrolet-var
   (symbol-macrolet ((x y))
@@ -978,13 +993,13 @@ x3 + y2;")
 
 (test-ps-js setf-let1
   (setf x (let ((a 1)) a))
-  "x = (a1 = 1, a1);")
+  "x = (a = 1, a);")
 
 (test-ps-js setf-let2
   (setf x (let ((a (foo)))
             (unless (null a)
               (1+ a))))
-  "x = (a1 = foo(), a1 != null ? a1 + 1 : null);")
+  "x = (a = foo(), a != null ? a + 1 : null);")
 
 (test-ps-js symbol-macro-env1
   (symbol-macrolet ((bar 1))
@@ -1000,5 +1015,29 @@ x3 + y2;")
 (test-ps-js lisp2-namespaces1
   (let ((list nil))
     (setf list (list 1 2 3)))
-  "var list1 = null;
-list1 = [1, 2, 3];")
+  "var list = null;
+list = [1, 2, 3];")
+
+(test-ps-js let-shadows-symbol-macrolet
+  (symbol-macrolet ((x y))
+    (let ((x 1))
+      (+ x x))
+    (+ x x))
+  "var x1 = 1;
+x1 + x1;
+y + y;")
+
+(test-ps-js let-rename-optimization1
+  (let ((x 1))
+    (+ x x))
+  "var x = 1;
+x + x;")
+
+(test-ps-js let-rename-optimization2
+  (lambda (x)
+    (let ((x (+ 1 x)))
+      (return x)))
+  "function (x) {
+    var x1 = 1 + x;
+    return x1;
+};")

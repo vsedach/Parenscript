@@ -64,7 +64,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; arrays
 (define-ps-special-form array (&rest values)
-  `(js:array ,@(mapcar (lambda (form) (compile-parenscript-form form :expecting :expression))
+  `(js:array ,@(mapcar (lambda (form) (compile-parenscript-form (ps-macroexpand form) :expecting :expression))
                                values)))
 
 (define-ps-special-form aref (array &rest coords)
@@ -167,12 +167,12 @@
 
 (define-ps-special-form if (test then &optional else)
   (ecase expecting
-    (:statement `(js:if ,(compile-parenscript-form test :expecting :expression)
+    (:statement `(js:if ,(compile-parenscript-form (ps-macroexpand test) :expecting :expression)
                         ,(compile-parenscript-form `(progn ,then))
                         ,@(when else `(:else ,(compile-parenscript-form `(progn ,else))))))
-    (:expression `(js:? ,(compile-parenscript-form test :expecting :expression)
-                        ,(compile-parenscript-form then :expecting :expression)
-                        ,(compile-parenscript-form else :expecting :expression)))))
+    (:expression `(js:? ,(compile-parenscript-form (ps-macroexpand test) :expecting :expression)
+                        ,(compile-parenscript-form (ps-macroexpand then) :expecting :expression)
+                        ,(compile-parenscript-form (ps-macroexpand else) :expecting :expression)))))
 
 (define-ps-special-form switch (test-expr &rest clauses)
   `(js:switch ,(compile-parenscript-form test-expr :expecting :expression)
@@ -469,7 +469,7 @@ lambda-list::=
 
 (define-ps-special-form create (&rest arrows)
   `(js:object ,@(loop for (key-expr val-expr) on arrows by #'cddr collecting
-                     (let ((key (compile-parenscript-form key-expr :expecting :expression)))
+                     (let ((key (compile-parenscript-form (ps-macroexpand key-expr) :expecting :expression)))
                        (when (keywordp key)
                          (setf key `(js:variable ,key)))
                        (assert (or (stringp key)
@@ -479,7 +479,7 @@ lambda-list::=
                                             (eq 'quote (car key)))))
                                ()
                                "Slot key ~s is not one of js-variable, keyword, string or number." key)
-                       (cons key (compile-parenscript-form val-expr :expecting :expression))))))
+                       (cons key (compile-parenscript-form (ps-macroexpand val-expr) :expecting :expression))))))
 
 (define-ps-special-form %js-slot-value (obj slot)
   (let ((slot (ps-macroexpand slot)))

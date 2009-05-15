@@ -1041,3 +1041,27 @@ x + x;")
     var x1 = 1 + x;
     return x1;
 };")
+
+(test-ps-js symbol-macro-array
+  (symbol-macrolet ((x 1))
+    (list x))
+  "[1];")
+
+(test-ps-js symbol-macro-obj
+  (symbol-macrolet ((x y))
+    (create x 1))
+  "{ y : 1 };")
+
+(test-ps-js symbol-macro-conditional1
+  (symbol-macrolet ((x y))
+    (if x x x))
+  "if (y) {
+    y;
+} else {
+    y;
+};")
+
+(test-ps-js symbol-macro-conditional2
+  (symbol-macrolet ((x y))
+    (return (if x x x)))
+  "return y ? y : y;")

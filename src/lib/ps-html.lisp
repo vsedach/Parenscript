@@ -21,23 +21,23 @@
 (defun process-html-forms-lhtml (forms)
   (let ((r ()))
     (labels ((process-attrs (attrs)
-               (loop while attrs
-                  for attr-name = (pop attrs)
-                  for attr-test = (when (not (keywordp attr-name))
-                                    (let ((test attr-name))
-                                      (setf attr-name (pop attrs))
-                                      test))
-                  for attr-val = (pop attrs)
-                  do
-                    (if attr-test
-                        (push `(if ,attr-test
-                                   (concat-string ,(format nil " ~A=\"" attr-name) ,attr-val "\"")
-                                   "")
-                              r)
-                        (progn
-                          (push (format nil " ~A=\"" attr-name) r)
-                          (push attr-val r)
-                          (push "\"" r)))))
+               (do (attr-test attr-name attr-val)
+                   ((not attrs))
+                 (setf attr-name (pop attrs)
+                       attr-test (when (not (keywordp attr-name))
+                                   (let ((test attr-name))
+                                     (setf attr-name (pop attrs))
+                                     test))
+                       attr-val (pop attrs))
+                 (if attr-test
+                     (push `(if ,attr-test
+                                (concat-string ,(format nil " ~A=\"" attr-name) ,attr-val "\"")
+                                "")
+                           r)
+                     (progn
+                       (push (format nil " ~A=\"" attr-name) r)
+                       (push attr-val r)
+                       (push "\"" r)))))
              (process-form% (tag attrs content)
                (push (format nil "<~A" tag) r)
                (process-attrs attrs)

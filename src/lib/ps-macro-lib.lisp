@@ -146,4 +146,4 @@
                   (mapcan (lambda (var)
                             (incf n)
                             (when var `((,var (aref ,arr ,n))))) vars))))
-    `(let ,bindings ,@body)))
+    `(let* ,bindings ,@body)))

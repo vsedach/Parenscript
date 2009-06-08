@@ -99,7 +99,7 @@ SOMEGLOBAL."
           ,(let (,@(loop for n in names for g in gensyms collect `(,n ,g)))
                 ,@body)))))
 
-(defun flatten (x)
-  (if (atom x)
-      (list x)
-      (mapcan #'flatten x)))
+(defun flatten (x &optional acc)
+  (cond ((null x) acc)
+        ((atom x) (cons x acc))
+        (t (flatten (car x) (flatten (cdr x) acc)))))

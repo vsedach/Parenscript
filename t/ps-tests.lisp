@@ -1065,3 +1065,44 @@ x + x;")
   (symbol-macrolet ((x y))
     (return (if x x x)))
   "return y ? y : y;")
+
+(test-ps-js flet-apply
+  (flet ((foo () 'bar))
+    (apply (function foo) nil))
+  "var foo1 = function () {
+    'bar';
+};
+foo1.apply(this, null);")
+
+(test-ps-js let-apply
+  (let ((foo (lambda () (return 1))))
+    (let ((foo (lambda () (return 2))))
+      (apply foo nil)))
+  "var foo = function () {
+    return 1;
+};
+var foo1 = function () {
+    return 2;
+};
+foo1.apply(this, null);")
+
+(test-ps-js flet-let
+  (flet ((x (x) (return (1+ x))))
+    (let ((x 2))
+      (x x)))
+  "var x1 = function (x) {
+    return x + 1;
+};
+var x = 2;
+x1(x);")
+
+(test-ps-js let-flet
+  (let ((x 2))
+    (flet ((x (x) (return (1+ x))))
+      (x x)))
+  "var x = 2;
+var x1 = function (x) {
+    return x + 1;
+};
+x1(x);")
+

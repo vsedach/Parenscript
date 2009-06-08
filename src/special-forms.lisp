@@ -392,6 +392,9 @@ lambda-list::=
              ,@body)
      :expecting expecting)))
 
+(define-ps-special-form function (fn-name)
+  (compile-parenscript-form (maybe-rename-local-function fn-name) :expecting expecting))
+
 (defvar *defun-setf-name-prefix* "__setf_")
 
 (defpsmacro defun-setf (setf-name lambda-list &body body)

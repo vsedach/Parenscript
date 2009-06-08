@@ -90,16 +90,20 @@
                       ,(compile-parenscript-form delta :expecting :expression)))))
 
 (define-ps-special-form decf (x &optional (delta 1))
-  (if (eql delta 1)
-      `(js:unary-operator js:-- ,(compile-parenscript-form x :expecting :expression) :prefix t)
-      `(js:operator js:-= ,(compile-parenscript-form x :expecting :expression)
-                    ,(compile-parenscript-form delta :expecting :expression))))
+  (let ((x (ps-macroexpand x))
+        (delta (ps-macroexpand delta)))
+    (if (eql delta 1)
+        `(js:unary-operator js:-- ,(compile-parenscript-form x :expecting :expression) :prefix t)
+        `(js:operator js:-= ,(compile-parenscript-form x :expecting :expression)
+                      ,(compile-parenscript-form delta :expecting :expression)))))
 
 (define-ps-special-form - (first &rest rest)
-  (if rest
-      `(js:operator js:- ,@(mapcar (lambda (val) (compile-parenscript-form val :expecting :expression))
-                                   (cons first rest)))
-      `(js:unary-operator js:- ,(compile-parenscript-form first :expecting :expression) :prefix t)))
+  (let ((first (ps-macroexpand first))
+        (rest (mapcar #'ps-macroexpand rest)))
+    (if rest
+        `(js:operator js:- ,@(mapcar (lambda (val) (compile-parenscript-form val :expecting :expression))
+                                     (cons first rest)))
+        `(js:unary-operator js:- ,(compile-parenscript-form first :expecting :expression) :prefix t))))
 
 (define-ps-special-form not (x)
   (let ((form (compile-parenscript-form (ps-macroexpand x) :expecting :expression))
@@ -586,7 +590,11 @@ lambda-list::=
 
 (define-ps-special-form let (bindings &body body)
   (let* (lexical-bindings-introduced-here
-         (normalized-bindings (mapcar (lambda (x) (if (symbolp x) `(,x nil) x)) bindings))
+         (normalized-bindings (mapcar (lambda (x)
+                                        (if (symbolp x)
+                                            (list x nil)
+                                            (list (car x) (ps-macroexpand (cadr x)))))
+                                      bindings))
          (free-variables-in-binding-value-expressions (mapcan (lambda (x) (flatten (cadr x)))
                                                               normalized-bindings)))
     (flet ((maybe-rename-lexical-var (x)

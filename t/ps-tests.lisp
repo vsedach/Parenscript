@@ -1106,3 +1106,26 @@ var x1 = function (x) {
 };
 x1(x);")
 
+(test-ps-js macrolet-let-inteference
+  (macrolet ((a (n) `(+ ,n 5)))
+    (let ((a (a 1)))
+      (let ((b (a (- a 4))))
+        (+ a b))))
+  "var a = 1 + 5;
+var b = (a - 4) + 5;
+a + b;")
+
+(test-ps-js let-subtract-add
+  (let ((x 1))
+    (let ((x 2))
+      (- x x)
+      (- x)
+      (decf x)
+      (incf x)))
+  "var x = 1;
+var x1 = 2;
+x1 - x1;
+-x1;
+--x1;
+++x1;")
+

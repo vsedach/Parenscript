@@ -81,6 +81,14 @@
       `(@ (slot-value ,obj ,(if (symbolp (car props)) `',(car props) (car props))) ,@(cdr props))
       obj))
 
+(defpsmacro chain (&rest method-calls)
+  (labels ((do-chain (method-calls)
+             (if (cdr method-calls)
+                 `((@ ,(do-chain (cdr method-calls)) ,(caar method-calls)) ,@(cdar method-calls))
+                 (car method-calls))))
+    (do-chain (reverse method-calls))))
+
+
 (defpsmacro concatenate (result-type &rest sequences)
   (assert (equal result-type ''string) () "Right now Parenscript 'concatenate' only support strings.")
   (cons '+ sequences))

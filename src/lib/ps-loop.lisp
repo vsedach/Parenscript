@@ -7,7 +7,7 @@
 
 (defvar *loop-keywords*
   '(:for :do :when :unless :initially :finally :first-time :last-time :while :until
-    :from :to :below :downto :above :by :in :across :index := :then :sum :collect))
+    :from :to :below :downto :above :by :in :across :index := :then :sum :collect :into))
 
 (defun normalize-loop-keywords (args)
   (mapcar
@@ -22,7 +22,7 @@
         init-step-forms end-test-forms
         initially finally
         first-time last-time
-        accum-var accum-kind
+        default-accum-var default-accum-kind
         destructurings body)
     (macrolet ((with-local-var ((name expr) &body body)
                  (once-only (expr)
@@ -55,22 +55,25 @@
                  (when (next? term)
                    (consume)
                    (consume)))
-               (establish-accum-var (kind initial-val)
-                 (if accum-var
-                     (error "PS-LOOP encountered illegal ~a: a ~a was previously declared, and there can only be one accumulation per loop." kind accum-kind)
-                     (progn
-                       (setf accum-var (ps-gensym kind)
-                             accum-kind kind)
-                       (push `(var ,accum-var ,initial-val) prologue))))
+               (accumulate (kind term var)
+                 (when (null var)
+                   (when (and default-accum-kind (not (eq kind default-accum-kind)))
+                     (error "PS-LOOP encountered illegal ~a: ~a was already declared, and there can only be one kind of default accumulation per loop." kind default-accum-kind))
+                   (unless default-accum-var
+                     (setf default-accum-var (ps-gensym kind)
+                           default-accum-kind kind))
+                   (setf var default-accum-var))
+                 (let ((initial (case kind (:sum 0) (:collect '(array)))))
+                   (pushnew `(var ,var ,initial) prologue :key #'second))
+                 (case kind
+                   (:sum `(incf ,var ,term))
+                   (:collect `((@ ,var :push) ,term))))
                (body-clause (term)
                  (case term
                    ((:when :unless) (list (intern (symbol-name term))
                                           (consume)
                                           (body-clause (consume-atom))))
-                   (:sum (establish-accum-var :sum 0)
-                         `(incf ,accum-var ,(consume)))
-                   (:collect (establish-accum-var :collect '(array))
-                     `((@ ,accum-var :push) ,(consume)))
+                   ((:sum :collect) (accumulate term (consume) (consume-if :into)))
                    (:do (consume-progn))
                    (otherwise (err "a PS-LOOP keyword" term))))
                (for-from (var)
@@ -149,7 +152,7 @@
                 (nreverse finally)
                 (nreverse first-time)
                 (nreverse last-time)
-                accum-var
+                default-accum-var
                 (add-destructurings-to-body))))))
 
 (defpsmacro loop (&rest args)
@@ -157,12 +160,12 @@
                         init-step-forms end-test
                         initially finally
                         first-time last-time
-                        accum-var
+                        default-accum-var
                         body)
       (parse-ps-loop (normalize-loop-keywords args))
     (let ((first-guard (and first-time (ps-gensym)))
           (last-guard (and last-time (ps-gensym))))
-      `(,@(if accum-var '(with-lambda ()) '(progn))
+      `(,@(if default-accum-var '(with-lambda ()) '(progn))
           ,@(when first-time `((var ,first-guard t)))
           ,@(when last-time `((var ,last-guard nil)))
           ,@prologue
@@ -178,4 +181,4 @@
                     `((setf ,last-guard t))))
           ,@(when last-time `((when ,last-guard ,@last-time)))
           ,@finally
-          ,@(when accum-var `((return ,accum-var)))))))
+          ,@(when default-accum-var `((return ,default-accum-var)))))))

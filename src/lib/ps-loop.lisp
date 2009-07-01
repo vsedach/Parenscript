@@ -7,7 +7,8 @@
 
 (defvar *loop-keywords*
   '(:for :do :when :unless :initially :finally :first-time :last-time :while :until
-    :from :to :below :downto :above :by :in :across :index := :then :sum :collect :into))
+    :from :to :below :downto :above :by :in :across :index := :then :sum :collect
+    :count :minimize :maximize :into))
 
 (defun normalize-loop-keywords (args)
   (mapcar
@@ -60,20 +61,29 @@
                    (when (and default-accum-kind (not (eq kind default-accum-kind)))
                      (error "PS-LOOP encountered illegal ~a: ~a was already declared, and there can only be one kind of default accumulation per loop." kind default-accum-kind))
                    (unless default-accum-var
-                     (setf default-accum-var (ps-gensym kind)
+                     (setf default-accum-var (ps-gensym (case kind
+                                                          (:minimize 'min)
+                                                          (:maximize 'max)
+                                                          (t kind)))
                            default-accum-kind kind))
                    (setf var default-accum-var))
-                 (let ((initial (case kind (:sum 0) (:collect '(array)))))
+                 (let ((initial (case kind
+                                  ((:sum :count) 0)
+                                  ((:maximize :minimize) nil)
+                                  (:collect '(array)))))
                    (pushnew `(var ,var ,initial) prologue :key #'second))
                  (case kind
                    (:sum `(incf ,var ,term))
+                   (:count `(incf ,var))
+                   (:minimize `(setf ,var (if (null ,var) ,term (min ,var ,term))))
+                   (:maximize `(setf ,var (if (null ,var) ,term (max ,var ,term))))
                    (:collect `((@ ,var :push) ,term))))
                (body-clause (term)
                  (case term
                    ((:when :unless) (list (intern (symbol-name term))
                                           (consume)
                                           (body-clause (consume-atom))))
-                   ((:sum :collect) (accumulate term (consume) (consume-if :into)))
+                   ((:sum :collect :count :minimize :maximize) (accumulate term (consume) (consume-if :into)))
                    (:do (consume-progn))
                    (otherwise (err "a PS-LOOP keyword" term))))
                (for-from (var)

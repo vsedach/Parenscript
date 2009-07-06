@@ -5,8 +5,13 @@
 (defmacro ps (&body body)
   "Given Parenscript forms (an implicit progn), compiles those forms
 to a JavaScript string at macro-expansion time."
-  `(concatenate 'string ,@(parenscript-print (compile-parenscript-form `(progn ,@body) :expecting :statement))))
-
+  (let ((s (gensym)))
+    `(with-output-to-string (,s)
+       ,@(mapcar (lambda (x)
+                   `(write-string ,x ,s))
+                 (parenscript-print
+                  (compile-parenscript-form `(progn ,@body)
+                                            :expecting :statement))))))
 (defun ps* (&rest body)
   "Compiles BODY to a JavaScript string.
 Body is evaluated."

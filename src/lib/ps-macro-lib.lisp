@@ -144,14 +144,25 @@
                      (first args))))
     `((@ ,fn :apply) this ,arglist)))
 
-(defpsmacro destructuring-bind (vars expr &body body)
-  ;; a simple implementation that for now only supports flat lists,
-  ;; but does allow NIL bindings to indicate ignore (a la LOOP)
+(defun destructuring-wrap (arr n bindings body)
+  (cond ((null bindings)
+         body)
+        ((atom bindings)
+         ;; dotted destructuring list
+         `(let ((,bindings (when (> (length ,arr) ,n)
+                             ((@ ,arr :slice) ,n))))
+            ,body))
+        (t (let ((var (car bindings))
+                 (inner-body (destructuring-wrap arr (1+ n) (cdr bindings) body)))
+             (cond ((null var) inner-body)
+                   ((atom var) `(let ((,var (aref ,arr ,n)))
+                                  ,inner-body))
+                   (t `(destructuring-bind ,var (aref ,arr ,n)
+                         ,inner-body)))))))
+
+(defpsmacro destructuring-bind (bindings expr &body body)
   (let* ((arr (if (complex-js-expr? expr) (ps-gensym) expr))
-         (n -1)
-         (bindings
-          (append (unless (equal arr expr) `((,arr ,expr)))
-                  (mapcan (lambda (var)
-                            (incf n)
-                            (when var `((,var (aref ,arr ,n))))) vars))))
-    `(let* ,bindings ,@body)))
+         (bound (destructuring-wrap arr 0 bindings (cons 'progn body))))
+    (if (eq arr expr)
+        bound
+        `(let ((,arr ,expr)) ,bound))))

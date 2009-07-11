@@ -2,12 +2,13 @@
 
 (defun complex-js-expr? (expr)
   (if (symbolp expr)
-      (find #\. (symbol-name expr))
+      (or (find #\. (symbol-name expr))
+          (not (eq (ps-macroexpand expr) expr)))
       (consp expr)))
 
 (defvar *loop-keywords*
   '(:for :do :when :unless :initially :finally :first-time :last-time :while :until
-    :from :to :below :downto :above :by :in :across :index := :then :sum :collect
+    :from :to :below :downto :above :by :in :across :on :index := :then :sum :collect
     :count :minimize :maximize :into))
 
 (defun normalize-loop-keywords (args)
@@ -17,6 +18,11 @@
                   *loop-keywords*)
          x))
    args))
+
+(defun reduce-function-symbol (sym)
+  (if (and (consp sym) (eq 'function (first sym)))
+      (second sym)
+      sym))
 
 (defun parse-ps-loop (terms)
   (let (prologue
@@ -115,6 +121,15 @@
                      (setf terms (append equiv terms))
                      (clause)
                      (clause))))
+               (for-on (var)
+                 (with-local-var (arr (consume))
+                   (push `(or (null ,var) (= (length ,var) 0)) end-test-forms)
+                   (let* ((by (aif (consume-if :by)
+                                   `(,(reduce-function-symbol it) ,var)
+                                   `((@ ,var :slice) 1)))
+                          (equiv `(:for ,var := ,arr :then ,by)))
+                     (setf terms (append equiv terms))
+                     (clause))))
                (for-clause ()
                  (let* ((place (consume))
                         (var (when (atom place) place))
@@ -122,13 +137,14 @@
                         (term (consume-atom)))
                    (when varlist
                      (when (eq term :from)
-                       (err "an atom after FROM" varlist))
+                       (err "an atom after FOR" varlist))
                      (setf var (ps-gensym))
                      (push (list varlist var) destructurings))
                    (case term
                      (:from (for-from var))
                      (:= (for-= var))
                      ((:in :across) (for-in var))
+                     (:on (for-on var))
                      (otherwise (error "FOR ~s ~s is not valid in PS-LOOP." var term)))))
                (clause ()
                  (let ((term (consume-atom)))

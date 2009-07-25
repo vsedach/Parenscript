@@ -1129,3 +1129,10 @@ x1 - x1;
 --x1;
 ++x1;")
 
+(test-ps-js create-reserved-word
+  (create :default 1)
+  "{ 'default' : 1 };")
+
+(test-ps-js slot-value-reserved-word
+  (slot-value foo :default)
+  "foo['default'];")

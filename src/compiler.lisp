@@ -12,10 +12,10 @@
         "public" "short" "static" "super" "synchronized" "throws" "transient"
         "volatile"))
 
-(defun add-ps-literal (name)
+(defun add-ps-reserved-symbol (name)
   (pushnew (symbol-name-to-js-string name) *ps-reserved-symbol-names* :test #'equalp))
 
-(defun ps-literal-p (symbol)
+(defun ps-reserved-symbol-p (symbol)
   (find (symbol-name-to-js-string symbol) *ps-reserved-symbol-names* :test #'equalp))
 
 ;;; special forms
@@ -217,7 +217,7 @@ the form cannot be compiled to a symbol."
         (return-from compile-parenscript-form (compile-parenscript-form expansion :expecting expecting)))))
   (cond ((keywordp symbol) symbol)
         ((ps-special-form-p (list symbol))
-         (if (ps-literal-p symbol)
+         (if (ps-reserved-symbol-p symbol)
              (funcall (get-ps-special-form symbol) :symbol)
              (error "Attempting to use Parenscript special form ~a as variable" symbol)))
         (t `(js:variable ,symbol))))

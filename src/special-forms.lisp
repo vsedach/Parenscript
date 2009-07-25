@@ -9,7 +9,7 @@
 ;;; literals
 (defmacro defpsliteral (name string)
   `(progn
-     (add-ps-literal ',name)
+     (add-ps-reserved-symbol ',name)
      (define-ps-special-form ,name ()
        (list 'js:literal ,string))))
 
@@ -23,7 +23,7 @@
 
 (macrolet ((def-for-literal (name printer)
              `(progn
-                (add-ps-literal ',name)
+                (add-ps-reserved-symbol ',name)
                 (define-ps-special-form ,name (&optional label)
                   (list ',printer label)))))
   (def-for-literal break js:break)
@@ -471,7 +471,7 @@ lambda-list::=
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; objects
-(add-ps-literal '{})
+(add-ps-reserved-symbol '{})
 (define-ps-symbol-macro {} (create))
 
 (define-ps-special-form create (&rest arrows)
@@ -479,6 +479,9 @@ lambda-list::=
                      (let ((key (compile-parenscript-form (ps-macroexpand key-expr) :expecting :expression)))
                        (when (keywordp key)
                          (setf key `(js:variable ,key)))
+                       (when (and (listp key)
+                                  (ps-reserved-symbol-p (second key)))
+                         (setf key (symbol-name-to-js-string (second key))))
                        (assert (or (stringp key)
                                    (numberp key)
                                    (and (listp key)
@@ -488,16 +491,20 @@ lambda-list::=
                                "Slot key ~s is not one of js-variable, keyword, string or number." key)
                        (cons key (compile-parenscript-form (ps-macroexpand val-expr) :expecting :expression))))))
 
-(define-ps-special-form %js-slot-value (obj slot)
-  (let ((slot (ps-macroexpand slot)))
-    `(js:slot-value ,(compile-parenscript-form (ps-macroexpand obj) :expecting :expression)
-                    ,(if (and (listp slot) (eq 'quote (car slot)))
-                         (second slot) ;; assume we're quoting a symbol
-                         (compile-parenscript-form slot)))))
-
 (define-ps-special-form instanceof (value type)
   `(js:instanceof ,(compile-parenscript-form value :expecting :expression)
                   ,(compile-parenscript-form type :expecting :expression)))
+
+(define-ps-special-form %js-slot-value (obj slot)
+  (let ((slot (ps-macroexpand slot)))
+    `(js:slot-value ,(compile-parenscript-form (ps-macroexpand obj) :expecting :expression)
+                    ,(let ((slot (if (and (listp slot) (eq 'quote (car slot)))
+                                     (second slot) ;; assume we're quoting a symbol
+                                     (compile-parenscript-form slot))))
+                          (if (and (symbolp slot)
+                                   (ps-reserved-symbol-p slot))
+                              (symbol-name-to-js-string slot)
+                              slot)))))
 
 (defpsmacro slot-value (obj &rest slots)
   (if (null (rest slots))

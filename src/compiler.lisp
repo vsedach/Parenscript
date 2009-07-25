@@ -2,13 +2,21 @@
 
 ;;; reserved symbols/literals
 
-(defvar *ps-reserved-symbol-names* ()) ;; symbol names reserved for PS/JS literals
+(defvar *ps-reserved-symbol-names*
+  (list "break" "case" "catch" "continue" "default" "delete" "do" "else"
+        "finally" "for" "function" "if" "in" "instanceof" "new" "return"
+        "switch" "this" "throw" "try" "typeof" "var" "void" "while" "with"
+        "abstract" "boolean" "byte" "char" "class" "const" "debugger" "double"
+        "enum" "export" "extends" "final" "float" "goto" "implements" "import"
+        "int" "interface" "long" "native" "package" "private" "protected"
+        "public" "short" "static" "super" "synchronized" "throws" "transient"
+        "volatile"))
 
 (defun add-ps-literal (name)
-  (push (symbol-name name) *ps-reserved-symbol-names*))
+  (pushnew (symbol-name-to-js-string name) *ps-reserved-symbol-names* :test #'equalp))
 
 (defun ps-literal-p (symbol)
-  (find (symbol-name symbol) *ps-reserved-symbol-names* :test #'equalp))
+  (find (symbol-name-to-js-string symbol) *ps-reserved-symbol-names* :test #'equalp))
 
 ;;; special forms
 

@@ -170,17 +170,20 @@ compiled to an :expression (the default), a :statement, or a
 :symbol."))
 
 (defun adjust-ps-compilation-level (form level)
-  (cond ((or (and (consp form) (eq 'progn (car form)))
-             (and (symbolp form) (eq :toplevel level)))
-         level)
-        ((eq :toplevel level) :inside-toplevel-form)))
+  "Given the current *ps-compilation-level*, LEVEL, and the fully macroexpanded
+form, FORM, returns the new value for *ps-compilation-level*."
+  (cond ((or (and (consp form) (member (car form)
+                       '(progn locally macrolet symbol-macrolet compile-file)))
+         (and (symbolp form) (eq :toplevel level)))
+     level)
+    ((eq :toplevel level) :inside-toplevel-form)))
+
 
 (defmethod compile-parenscript-form :around (form &key expecting)
   (assert (if expecting (member expecting '(:expression :statement :symbol)) t))
   (if (eq expecting :symbol)
       (compile-to-symbol form)
-      (let ((*ps-compilation-level* (adjust-ps-compilation-level form *ps-compilation-level*)))
-        (call-next-method))))
+      (call-next-method)))
 
 (defun compile-to-symbol (form)
   "Compiles the given Parenscript form and guarantees that the
@@ -234,22 +237,25 @@ the form cannot be compiled to a symbol."
 (defmethod compile-parenscript-form ((form cons) &key (expecting :statement))
   (multiple-value-bind (form expanded-p)
       (ps-macroexpand form)
-    (cond (expanded-p (compile-parenscript-form form :expecting expecting))
-          ((ps-special-form-p form) (apply (get-ps-special-form (car form)) (cons expecting (cdr form))))
-          ((op-form-p form)
-           `(js:operator ,(ps-convert-op-name (compile-parenscript-form (car form) :expecting :symbol))
-                         ,@(mapcar (lambda (form)
-                                     (compile-parenscript-form (ps-macroexpand form) :expecting :expression))
-                                   (cdr form))))
-          ((funcall-form-p form)
-           `(js:funcall ,(compile-parenscript-form (if (symbolp (car form))
-                                                       (maybe-rename-local-function (car form))
-                                                       (ps-macroexpand (car form)))
-                                                   :expecting :expression)
-                        ,@(mapcar (lambda (arg)
-                                    (compile-parenscript-form (ps-macroexpand arg) :expecting :expression))
-                                  (cdr form))))
-          (t (error "Cannot compile ~S to a ParenScript form." form)))))
+    (let ((*ps-compilation-level* (if expanded-p
+                      *ps-compilation-level*
+                      (adjust-ps-compilation-level form *ps-compilation-level*))))
+      (cond (expanded-p (compile-parenscript-form form :expecting expecting))
+        ((ps-special-form-p form) (apply (get-ps-special-form (car form)) (cons expecting (cdr form))))
+        ((op-form-p form)
+         `(js:operator ,(ps-convert-op-name (compile-parenscript-form (car form) :expecting :symbol))
+               ,@(mapcar (lambda (form)
+                       (compile-parenscript-form (ps-macroexpand form) :expecting :expression))
+                     (cdr form))))
+        ((funcall-form-p form)
+         `(js:funcall ,(compile-parenscript-form (if (symbolp (car form))
+                             (maybe-rename-local-function (car form))
+                             (ps-macroexpand (car form)))
+                             :expecting :expression)
+              ,@(mapcar (lambda (arg)
+                      (compile-parenscript-form (ps-macroexpand arg) :expecting :expression))
+                    (cdr form))))
+        (t (error "Cannot compile ~S to a ParenScript form." form))))))
 
 (defvar *ps-gensym-counter* 0)
 

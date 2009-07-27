@@ -213,7 +213,7 @@ arguments, defines a printer for that form using the given body."
           (and (listp obj) (member (car obj) '(js:lambda js:object))))
       (parenthesize-print obj)
       (ps-print obj))
-  (if (symbolp slot)
+  (if (and (symbolp slot) (not (keywordp slot)))
       (progn (psw #\.) (psw (symbol-to-js-string slot)))
       (progn (psw #\[) (ps-print slot) (psw #\]))))
 

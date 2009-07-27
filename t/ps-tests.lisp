@@ -1175,3 +1175,7 @@ x1 - x1;
                   3)))))
       (declare (ignore js-output))
       (is (eql :cl-user *lisp-output*))))
+
+(test-ps-js slot-value-keyword
+  (slot-value foo :bar)
+  "foo['bar'];")

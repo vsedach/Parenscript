@@ -135,14 +135,14 @@
 
 (defpsmacro append (arr1 &rest arrs)
   (if arrs
-      `((@ ,arr1 :concat) ,@arrs)
+      `((@ ,arr1 concat) ,@arrs)
       arr1))
 
 (defpsmacro apply (fn &rest args)
   (let ((arglist (if (> (length args) 1)
                      `(append (list ,@(butlast args)) ,(car (last args)))
                      (first args))))
-    `((@ ,fn :apply) this ,arglist)))
+    `((@ ,fn apply) this ,arglist)))
 
 (defun destructuring-wrap (arr n bindings body)
   (cond ((null bindings)
@@ -150,7 +150,7 @@
         ((atom bindings)
          ;; dotted destructuring list
          `(let ((,bindings (when (> (length ,arr) ,n)
-                             ((@ ,arr :slice) ,n))))
+                             ((@ ,arr slice) ,n))))
             ,body))
         (t (let ((var (car bindings))
                  (inner-body (destructuring-wrap arr (1+ n) (cdr bindings) body)))

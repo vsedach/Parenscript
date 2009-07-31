@@ -9,7 +9,7 @@
 (defvar *loop-keywords*
   '(:for :do :when :unless :initially :finally :first-time :last-time :while :until
     :from :to :below :downto :above :by :in :across :on :index := :then :sum :collect
-    :count :minimize :maximize :into))
+    :count :minimize :maximize :into :repeat))
 
 (defun normalize-loop-keywords (args)
   (mapcar
@@ -146,10 +146,15 @@
                      ((:in :across) (for-in var))
                      (:on (for-on var))
                      (otherwise (error "FOR ~s ~s is not valid in PS-LOOP." var term)))))
+               (repeat-clause ()
+                 (let ((index (ps-gensym)))
+                   (setf terms (append `(:for ,index :from 0 :below ,(consume)) terms))
+                   (clause)))
                (clause ()
                  (let ((term (consume-atom)))
                    (case term
                      (:for (for-clause))
+                     (:repeat (repeat-clause))
                      (:while (push `(unless ,(consume) break) body))
                      (:until (push `(when ,(consume) break) body))
                      (:initially (push (consume-progn) initially))

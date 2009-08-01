@@ -185,6 +185,7 @@
       #:defined
       #:undefined
       #:@
+      #:chain
       #:with-lambda
       #:stringp
       #:numberp

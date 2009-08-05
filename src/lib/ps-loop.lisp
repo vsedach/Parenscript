@@ -80,7 +80,7 @@
                    (pushnew `(var ,var ,initial) prologue :key #'second))
                  (case kind
                    (:sum `(incf ,var ,term))
-                   (:count `(incf ,var))
+                   (:count `(unless (null ,term) (incf ,var)))
                    (:minimize `(setf ,var (if (null ,var) ,term (min ,var ,term))))
                    (:maximize `(setf ,var (if (null ,var) ,term (max ,var ,term))))
                    (:collect `((@ ,var :push) ,term))))

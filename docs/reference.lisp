@@ -349,15 +349,11 @@ a-variable  => aVariable;
 ;;; operator as function name.
 ;;;
 ;;; Please note that `=' is converted to `==' in JavaScript. The `='
-;;; Parenscript operator is not the assignment operator. Unlike
-;;; JavaScript, Parenscript supports multiple arguments to the
-;;; operators.
+;;; Parenscript operator is not the assignment operator.
 
 (* 1 2)   => 1 * 2;
 
 (= 1 2)   => 1 == 2;
-
-(eql 1 2) => 1 == 2;
 
 ;;; Note that the resulting expression is correctly parenthesized,
 ;;; according to the JavaScript operator precedence that can be found
@@ -384,13 +380,10 @@ a-variable  => aVariable;
 
 (1+ i) => i + 1;
 
-;;; The `not' operator actually optimizes the code a bit. If `not' is
-;;; used on another boolean-returning operator, the operator is
-;;; reversed.
+;;; If `not' is used on another boolean-returning operator, the
+;;; operator is reversed.
 
 (not (< i 2))   => i >= 2;
-
-(not (eql i 2)) => i != 2;
 
 ;;;# Body forms
 ;;;t \index{body form}
@@ -775,7 +768,7 @@ a-variable  => aVariable;
 (do* ((a) b (c (array "a" "b" "c" "d" "e"))
       (d 0 (1+ d))
       (e (aref c d) (aref c d)))
-     ((or (= d (@ c length)) (eql e "x")))
+     ((or (= d (@ c length)) (== e "x")))
   (setf a d b e)
   ((@ document write) (+ "a: " a " b: " b "<br/>")))
 => for (var a = null, b = null, c = ['a', 'b', 'c', 'd', 'e'], d = 0, e = c[d]; !(d == c.length || e == 'x'); d += 1, e = c[d]) {

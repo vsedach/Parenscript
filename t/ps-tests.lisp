@@ -516,9 +516,16 @@ __setf_someThing(_js1, _js2, _js3);")
 };")
 
 (test-ps-js cond-expression-final-t-clause
-  (defun foo () (return (cond ((< 1 2) (bar "foo") (* 4 5)) ((= a b) (+ c d)) ((< 1 2 3 4 5) x) (t "foo"))))
+  (defun foo ()
+    (return (cond ((< 1 2) (bar "foo") (* 4 5))
+                  ((= a b) (+ c d))
+                  ((< 1 2 3 4 5) x)
+                  (t "foo"))))
   "function foo() {
-    return 1 < 2 ? (bar('foo'), 4 * 5) : (a == b ? c + d : (1 < 2 < 3 < 4 < 5 ? x : 'foo'));
+    var _cmp3;
+    var _cmp2;
+    var _cmp1;
+    return 1 < 2 ? (bar('foo'), 4 * 5) : (a == b ? c + d : ((_cmp1 = 2, _cmp2 = 3, _cmp3 = 4, 1 < _cmp1 && _cmp1 < _cmp2 && _cmp2 < _cmp3 && _cmp3 < 5) ? x : 'foo'));
 };")
 
 (test-ps-js cond-expression-middle-t-clause ;; should this signal a warning?
@@ -1179,3 +1186,10 @@ x1 - x1;
 (test-ps-js slot-value-keyword
   (slot-value foo :bar)
   "foo['bar'];")
+
+(test-ps-js nary-comparison1
+  (lambda () (return (< 1 2 3)))
+  "function () {
+    var _cmp1;
+    return (_cmp1 = 2, 1 < _cmp1 && _cmp1 < 3);
+};")

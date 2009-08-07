@@ -184,36 +184,28 @@
   "1 == 2;")
 
 (test-ps-js operator-expressions-3
-  (eql 1 2)
-  "1 == 2;")
-
-(test-ps-js operator-expressions-4
   (* 1 (+ 2 3 4) 4 (/ 6 7))
   "1 * (2 + 3 + 4) * 4 * (6 / 7);")
 
-(test-ps-js operator-expressions-5
+(test-ps-js operator-expressions-4
   (incf i)
   "++i;")
 
-(test-ps-js operator-expressions-6
+(test-ps-js operator-expressions-5
   (decf i)
   "--i;")
 
-(test-ps-js operator-expressions-7
+(test-ps-js operator-expressions-6
   (1- i)
   "i - 1;")
 
-(test-ps-js operator-expressions-8
+(test-ps-js operator-expressions-7
   (1+ i)
   "i + 1;")
 
-(test-ps-js operator-expressions-9
+(test-ps-js operator-expressions-8
   (not (< i 2))
   "i >= 2;")
-
-(test-ps-js operator-expressions-10
-  (not (eql i 2))
-  "i != 2;")
 
 (test-ps-js body-forms-1
   (progn (blorg i) (blafoo i))
@@ -382,7 +374,7 @@ try {
   (do* ((a) b (c (array "a" "b" "c" "d" "e"))
       (d 0 (1+ d))
       (e (aref c d) (aref c d)))
-     ((or (= d (@ c length)) (eql e "x")))
+     ((or (= d (@ c length)) (== e "x")))
   (setf a d b e)
   ((@ document write) (+ "a: " a " b: " b "<br/>")))
   "for (var a = null, b = null, c = ['a', 'b', 'c', 'd', 'e'], d = 0, e = c[d]; !(d == c.length || e == 'x'); d += 1, e = c[d]) {

@@ -87,16 +87,16 @@
   "new Array(new Array(2, 3), new Array('foobar', 'bratzel bub'));")
 
 (test-ps-js object-literals-1
-  (create :foo "bar" :blorg 1)
-  "{ foo : 'bar', blorg : 1 };")
+  (create foo "bar" :blorg 1)
+  "{ foo : 'bar', 'blorg' : 1 };")
 
 (test-ps-js object-literals-2
-  (create :foo "hihi"
-        :blorg (array 1 2 3)
-        :another-object (create :schtrunz 1))
+  (create foo "hihi"
+        blorg (array 1 2 3)
+        another-object (create :schtrunz 1))
   "{ foo : 'hihi',
   blorg : [ 1, 2, 3 ],
-  anotherObject : { schtrunz : 1 } };")
+  anotherObject : { 'schtrunz' : 1 } };")
 
 (test-ps-js object-literals-3
   (slot-value an-object 'foo)
@@ -456,7 +456,7 @@ alert('Sum of ' + l + ' is: ' + (function () {
 })());")
 
 (test-ps-js iteration-constructs-8
-  (let ((obj (create :a 1 :b 2 :c 3)))
+  (let ((obj (create a 1 b 2 c 3)))
   (for-in (i obj)
     ((@ document write) (+ i ": " (aref obj i) "<br/>"))))
   "var obj = { a : 1, b : 2, c : 3 };
@@ -500,7 +500,7 @@ for (var i in obj) {
 };")
 
 (test-ps-js the-with-statement-1
-  (with (create :foo "foo" :i "i")
+  (with (create foo "foo" i "i")
   (alert (+ "i is now intermediary scoped: " i)))
   "with ({ foo : 'foo', i : 'i' }) {
     alert('i is now intermediary scoped: ' + i);

@@ -55,7 +55,7 @@ x = 2 + sideEffect() + x + 5;")
   "'hi'.toString();")
 
 (test-ps-js method-call-lit-object
-  ((@ (create :to-string (lambda () (return "it works"))) to-string))
+  ((@ (create to-string (lambda () (return "it works"))) to-string))
   "( { toString : function () { return 'it works'; } } ).toString();")
 
 (test-ps-js method-call-conditional
@@ -90,13 +90,13 @@ x = 2 + sideEffect() + x + 5;")
     (is (char= char-before a-parenthesis))))
 
 (test-ps-js simple-slot-value
-  (let ((foo (create :a 1)))
+  (let ((foo (create a 1)))
     (alert (slot-value foo 'a)))
   "var foo = { a : 1 };
    alert(foo.a);")
 
 (test-ps-js buggy-slot-value
-   (let ((foo (create :a 1))
+   (let ((foo (create a 1))
          (slot-name "a"))
     (alert (slot-value foo slot-name)))
   " var foo = { a : 1 };
@@ -749,7 +749,7 @@ try {
   "(window.eval || eval)()(foo, null);")
 
 (test-ps-js slot-value-object-literal
-  (slot-value (create :a 1) 'a)
+  (slot-value (create a 1) 'a)
   "({ a : 1 }).a;")
 
 (test-ps-js slot-value-lambda

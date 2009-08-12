@@ -191,15 +191,15 @@ UNDEFINED UNLESS VAR VOID VOLATILE WHEN WHILE WITH WITH-SLOTS
 ;;; to the `CREATE' form is a list of property names and values. To be
 ;;; more "lispy", the property names can be keywords.
 
-(create :foo "bar" :blorg 1)
-=> { foo : 'bar', blorg : 1 };
+(create foo "bar" :blorg 1)
+=> { foo : 'bar', 'blorg' : 1 };
 
-(create :foo "hihi"
-        :blorg (array 1 2 3)
-        :another-object (create :schtrunz 1))
+(create foo "hihi"
+        blorg (array 1 2 3)
+        another-object (create :schtrunz 1))
 => { foo : 'hihi',
      blorg : [ 1, 2, 3 ],
-     anotherObject : { schtrunz : 1 } };
+     anotherObject : { 'schtrunz' : 1 } };
 
 ;;; Object properties can be accessed using the `SLOT-VALUE' form,
 ;;; which takes an object and a slot-name.
@@ -856,7 +856,7 @@ a-variable  => aVariable;
 
 ;;; `FOR-IN' is translated to the JS `for...in' statement.
 
-(let ((obj (create :a 1 :b 2 :c 3)))
+(let ((obj (create a 1 b 2 c 3)))
   (for-in (i obj)
     ((@ document write) (+ i ": " (aref obj i) "<br/>"))))
 => var obj = { a : 1, b : 2, c : 3 };
@@ -939,7 +939,7 @@ a-variable  => aVariable;
 ;;; adds the object `object' as an intermediary scope objects when
 ;;; executing the body.
 
-(with (create :foo "foo" :i "i")
+(with (create foo "foo" i "i")
   (alert (+ "i is now intermediary scoped: " i)))
 => with ({ foo : 'foo', i : 'i' }) {
        alert('i is now intermediary scoped: ' + i);

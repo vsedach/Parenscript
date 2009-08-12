@@ -172,12 +172,8 @@ arguments, defines a printer for that form using the given body."
 (defprinter js:object (&rest slot-defs)
   (psw "{ ")
   (loop for ((slot-name . slot-value) . remaining) on slot-defs do
-        (if (and (listp slot-name) (eq 'quote (car slot-name)) (symbolp (second slot-name)))
-            (psw (symbol-to-js-string (second slot-name)))
-            (ps-print slot-name))
-        (psw " : ")
-        (ps-print slot-value)
-        (when remaining (psw ", ")))
+       (ps-print slot-name) (psw " : ") (ps-print slot-value)
+       (when remaining (psw ", ")))
   (psw " }"))
 
 (defprinter js:slot-value (obj slot)

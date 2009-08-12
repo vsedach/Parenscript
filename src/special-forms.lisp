@@ -475,22 +475,26 @@ lambda-list::=
 (define-ps-symbol-macro {} (create))
 
 (define-ps-special-form create (&rest arrows)
-  `(js:object ,@(loop for (key-expr val-expr) on arrows by #'cddr collecting
-                     (let ((key (compile-parenscript-form (ps-macroexpand key-expr) :expecting :expression)))
-                       (when (keywordp key)
-                         (setf key `(js:variable ,key)))
-                       (when (and (listp key)
-                                  (ps-reserved-symbol-p (second key)))
-                         (setf key (symbol-name-to-js-string (second key))))
-                       (assert (or (stringp key)
-                                   (numberp key)
-                                   (and (listp key)
-                                        (or (eq 'js:variable (car key))
-                                            (eq 'quote (car key)))))
-                               ()
-                               "Slot key ~s is not one of js-variable, keyword, string or number." key)
-                       (cons key (compile-parenscript-form (ps-macroexpand val-expr) :expecting :expression))))))
-
+  `(js:object
+    ,@(loop for (key-expr val-expr) on arrows by #'cddr collecting
+           (let ((compiled-key (compile-parenscript-form (ps-macroexpand key-expr)
+                                                         :expecting :expression)))
+             (assert (or (stringp compiled-key)
+                         (numberp compiled-key)
+                         (keywordp compiled-key)
+                         (and (listp compiled-key)
+                              (eq 'js:variable (car compiled-key))))
+                     ()
+                     "Slot key ~s is not one of js-variable, keyword, string or number."
+                     compiled-key)
+             (let ((key (aif (ps-reserved-symbol-p (if (listp compiled-key)
+                                                       (second compiled-key)
+                                                       compiled-key))
+                             it
+                             compiled-key)))
+               (cons key (compile-parenscript-form (ps-macroexpand val-expr)
+                                                   :expecting :expression)))))))
+  
 (define-ps-special-form instanceof (value type)
   `(js:instanceof ,(compile-parenscript-form value :expecting :expression)
                   ,(compile-parenscript-form type :expecting :expression)))

@@ -16,7 +16,8 @@
   (pushnew (symbol-name-to-js-string name) *ps-reserved-symbol-names* :test #'equalp))
 
 (defun ps-reserved-symbol-p (symbol)
-  (find (symbol-name-to-js-string symbol) *ps-reserved-symbol-names* :test #'equalp))
+  (when (symbolp symbol)
+    (find (symbol-name-to-js-string symbol) *ps-reserved-symbol-names* :test #'equalp)))
 
 ;;; special forms
 

@@ -263,7 +263,7 @@ Syntax of key spec:
          (init-form (if (listp spec) (second spec)))
          (supplied-p-var (if (listp spec) (third spec))))
     (values var init-form supplied-p-var)))
-  
+
 (defun parse-aux-spec (spec)
   "Returns two values: variable and init-form"
   ;; [&aux {var | (var [init-form])}*])
@@ -280,7 +280,7 @@ Syntax of key spec:
   "Returns two values: the effective arguments and body for a function with
 the given lambda-list and body."
 
-  ;; The lambda list is transformed as follows, since a javascript lambda list is just a 
+  ;; The lambda list is transformed as follows, since a javascript lambda list is just a
   ;; list of variable names, and you have access to the arguments variable inside the function:
   ;; * standard variables are the mapped directly into the js-lambda list
   ;; * optional variables' variable names are mapped directly into the lambda list,
@@ -345,10 +345,10 @@ the given lambda-list and body."
 (defpsmacro defun (name lambda-list &body body)
   "An extended defun macro that allows cool things like keyword arguments.
 lambda-list::=
- (var* 
-  [&optional {var | (var [init-form [supplied-p-parameter]])}*] 
-  [&rest var] 
-  [&key {var | ({var | (keyword-name var)} [init-form [supplied-p-parameter]])}* [&allow-other-keys]] 
+ (var*
+  [&optional {var | (var [init-form [supplied-p-parameter]])}*]
+  [&rest var]
+  [&key {var | ({var | (keyword-name var)} [init-form [supplied-p-parameter]])}* [&allow-other-keys]]
   [&aux {var | (var [init-form])}*])"
   (if (symbolp name)
       `(defun-function ,name ,lambda-list ,@body)
@@ -365,10 +365,10 @@ lambda-list::=
 (defpsmacro lambda (lambda-list &body body)
   "An extended defun macro that allows cool things like keyword arguments.
 lambda-list::=
- (var* 
-  [&optional {var | (var [init-form [supplied-p-parameter]])}*] 
-  [&rest var] 
-  [&key {var | ({var | (keyword-name var)} [init-form [supplied-p-parameter]])}* [&allow-other-keys]] 
+ (var*
+  [&optional {var | (var [init-form [supplied-p-parameter]])}*]
+  [&rest var]
+  [&key {var | ({var | (keyword-name var)} [init-form [supplied-p-parameter]])}* [&allow-other-keys]]
   [&aux {var | (var [init-form])}*])"
   (multiple-value-bind (effective-args effective-body)
       (parse-extended-function lambda-list body)
@@ -494,7 +494,7 @@ lambda-list::=
                              compiled-key)))
                (cons key (compile-parenscript-form (ps-macroexpand val-expr)
                                                    :expecting :expression)))))))
-  
+
 (define-ps-special-form instanceof (value type)
   `(js:instanceof ,(compile-parenscript-form value :expecting :expression)
                   ,(compile-parenscript-form type :expecting :expression)))

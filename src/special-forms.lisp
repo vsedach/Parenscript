@@ -377,7 +377,7 @@ lambda-list::=
 
 (define-ps-special-form flet (fn-defs &rest body)
   (let ((fn-renames (make-macro-dictionary)))
-    (loop for (fn-name . def) in fn-defs do
+    (loop for (fn-name) in fn-defs do
          (setf (gethash fn-name fn-renames) (ps-gensym fn-name)))
     (let ((fn-defs (compile-parenscript-form
                     `(progn ,@(loop for (fn-name . def) in fn-defs collect
@@ -388,7 +388,7 @@ lambda-list::=
 
 (define-ps-special-form labels (fn-defs &rest body)
   (with-local-macro-environment (local-fn-renames *ps-local-function-names*)
-    (loop for (fn-name . def) in fn-defs do
+    (loop for (fn-name) in fn-defs do
          (setf (gethash fn-name local-fn-renames) (ps-gensym fn-name)))
     (compile-parenscript-form
      `(progn ,@(loop for (fn-name . def) in fn-defs collect

@@ -31,7 +31,6 @@
   ((tokens :initarg :tokens :accessor tokens)
    (iterations :initform nil :accessor iterations)
    (prologue :initform nil :accessor prologue)
-   (destructurings :initform nil :accessor destructurings)
    (initially :initform nil :accessor initially)
    (finally :initform nil :accessor finally)
    (during-first :initform nil :accessor during-first)
@@ -45,11 +44,7 @@
 (defun nreverse-loop-state (state)
   (macrolet ((rev% (&rest accs)
                (cons 'progn (loop :for a :in accs :collect `(setf (,a state) (nreverse (,a state)))))))
-    (rev% iterations prologue initially finally during-first during-last)
-    (let ((body (nreverse (body state))))
-      (loop :for (list var) :in (destructurings state) :do
-        (setf body `((destructuring-bind ,list ,var ,@body))))
-      (setf (body state) body)))
+    (rev% iterations prologue initially finally during-first during-last body))
   state)
 
 (defun push-tokens (state toks)
@@ -96,46 +91,49 @@
     (let ((test (when test-op
                   (with-local-var (v end state)
                     (list test-op var v)))))
-      (push `(,var ,start (,op ,var ,(or by 1)) ,test) (iterations state)))))
+      (push `(,var nil ,start (,op ,var ,(or by 1)) ,test) (iterations state)))))
 
-(defun for-= (var state)
+(defun for-= (var bindings state)
   (let ((start (eat state))
         (then (eat state :if :then)))
-    (push (list var start (or then start) nil) (iterations state))))
+    (push (list var bindings start (or then start) nil) (iterations state))))
 
-(defun for-in (var state)
+(defun for-in (var bindings state)
   (with-local-var (arr (eat state) state)
     (let ((index (or (eat state :if :index) (ps-gensym))))
       (push-tokens state `(,index :from 0 :below (length ,arr)
                                   ,var := (aref ,arr ,index)))
       (for-clause state)
-      (for-clause state))))
+      (for-clause state)
+      ;; set bindings associated with original clause, e.g. "loop :for (a b) :in c"
+      (setf (second (car (iterations state))) bindings))))
 
-(defun for-on (var state)
+(defun for-on (var bindings state)
   (with-local-var (arr (eat state) state)
     (let ((by (aif (eat state :if :by)
                    `(,(reduce-function-symbol it) ,var)
                    `((@ ,var :slice) 1))))
       (push-tokens state `(,var := ,arr :then ,by))
       (for-clause state)
-      ;; set the end-test
-      (setf (fourth (car (iterations state))) `(or (null ,var) (= (length ,var) 0))))))
+      (let ((this-iteration (car (iterations state))))
+        (setf (second this-iteration) bindings)
+        ;; set the end-test
+        (setf (fifth this-iteration) `(or (null ,var) (= (length ,var) 0)))))))
 
 (defun for-clause (state)
   (let* ((place (eat state))
          (var (when (atom place) place))
-         (varlist (unless var place))
+         (bindings (unless var place))
          (term (eat state :atom)))
-    (when varlist
+    (when bindings
       (when (eq term :from)
-        (err "an atom after FROM" varlist))
-      (setf var (ps-gensym))
-      (push (list varlist var) (destructurings state)))
+        (err "an atom after FROM" bindings))
+      (setf var (ps-gensym)))
     (case term
       (:from (for-from var state))
-      (:= (for-= var state))
-      ((:in :across) (for-in var state))
-      (:on (for-on var state))
+      (:= (for-= var bindings state))
+      ((:in :across) (for-in var bindings state))
+      (:on (for-on var bindings state))
       (otherwise (error "FOR ~s ~s is not valid in PS-LOOP." var term)))))
 
 (defun accumulate (kind term var state)
@@ -210,38 +208,60 @@
   (> (length (iterations loop)) 1))
 
 (defun inits (loop)
-  (mapcar (lambda (x) (subseq x 0 2)) (iterations loop)))
+  (mapcar (lambda (x) (list (first x) (third x)))
+          (iterations loop)))
 
 (defun steps (loop)
-  (mapcar (lambda (x) `(setf ,(first x) ,(third x))) (iterations loop)))
+  (mapcar (lambda (x) `(setf ,(first x) ,(fourth x)))
+          (iterations loop)))
 
 (defun end-test (loop)
-  (aif (loop :for (nil nil nil test) :in (iterations loop)
+  (aif (loop :for (nil nil nil nil test) :in (iterations loop)
          :when test :collect test)
        (if (cdr it)
            (list 'not (cons 'or it))
            (cons 'not it))
        t))
 
-(defun inner-body (loop)
-  (if (multiple-fors? loop)
-      (append (body loop)
-              (loop :for (var nil step test) :in (iterations loop)
-                :collect `(setf ,var ,step)
-                :when test :collect `(when ,test (break))))
-      (body loop)))
+(defun wrap-with-dbinds (iterations forms)
+  (if (null iterations)
+      forms
+      (wrap-with-dbinds
+       (cdr iterations)
+       (aif (second (car iterations))
+            `((destructuring-bind ,it ,(first (car iterations)) ,@forms))
+            forms))))
+
+(defun outer-body (loop)
+  (wrap-with-dbinds
+   (iterations loop)
+   (if (multiple-fors? loop)
+       (append (body loop)
+               (loop :for (var nil nil step test) :in (iterations loop)
+                 :collect `(setf ,var ,step)
+                 :when test :collect `(when ,test (break))))
+       (body loop))))
 
 (defun the-actual-loop (loop)
   (let ((body `(,@(awhen (during-first loop)
                          `((when ,(first-guard loop)
                              ,@it
                              (setf ,(first-guard loop) nil))))
-                  ,@(inner-body loop)
+                  ,@(outer-body loop)
                   ,@(when (during-last loop)
                           `((setf ,(last-guard loop) t))))))
     (if (multiple-fors? loop)
         `(while t ,@body)
         `(for ,(inits loop) (,(end-test loop)) ,(steps loop) ,@body))))
+
+(defun init-and-test (iterations form)
+  (loop :for (var bindings init nil test) :in (reverse iterations) :do
+    (when test
+      (setf form `(unless ,test ,form)))
+    (when bindings
+      (setf form `(destructuring-bind ,bindings ,var ,form)))
+    (setf form `(let ((,var ,init)) ,form)))
+  form)
 
 (defun the-loop-form (loop)
   (let ((form `(progn
@@ -250,11 +270,9 @@
                  ,@(awhen (during-last loop)
                           `((when ,(last-guard loop) ,@it)))
                  ,@(finally loop))))
-    (when (multiple-fors? loop)
-      (loop :for (var init nil test) :in (reverse (iterations loop))
-        :when test :do (setf form `(unless ,test ,form))
-        :do (setf form `(let ((,var ,init)) ,form))))
-    form))
+    (if (multiple-fors? loop)
+        (init-and-test (iterations loop) form)
+        form)))
 
 (defpsmacro loop (&rest args)
   (let ((loop (parse-ps-loop (normalize-loop-keywords args))))

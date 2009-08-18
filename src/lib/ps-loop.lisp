@@ -223,56 +223,62 @@
            (cons 'not it))
        t))
 
-(defun wrap-with-dbinds (iterations forms)
+(defun wrap-with-destructurings (iterations forms)
   (if (null iterations)
       forms
-      (wrap-with-dbinds
+      (wrap-with-destructurings
        (cdr iterations)
        (aif (second (car iterations))
             `((destructuring-bind ,it ,(first (car iterations)) ,@forms))
             forms))))
 
 (defun outer-body (loop)
-  (wrap-with-dbinds
+  (wrap-with-destructurings
    (iterations loop)
-   (if (multiple-fors? loop)
-       (append (body loop)
-               (loop :for (var nil nil step test) :in (iterations loop)
-                 :collect `(setf ,var ,step)
-                 :when test :collect `(when ,test (break))))
-       (body loop))))
-
-(defun the-actual-loop (loop)
-  (let ((body `(,@(awhen (during-first loop)
-                         `((when ,(first-guard loop)
-                             ,@it
-                             (setf ,(first-guard loop) nil))))
-                  ,@(outer-body loop)
-                  ,@(when (during-last loop)
-                          `((setf ,(last-guard loop) t))))))
-    (if (multiple-fors? loop)
-        `(while t ,@body)
-        `(for ,(inits loop) (,(end-test loop)) ,(steps loop) ,@body))))
+   (append (body loop)
+           (loop :for (var nil nil step test) :in (iterations loop)
+             :collect `(setf ,var ,step)
+             :when test :collect `(when ,test (break))))))
 
 (defun init-and-test (iterations form)
-  (loop :for (var bindings init nil test) :in (reverse iterations) :do
+  (loop :for (var nil init nil test) :in (reverse iterations) :do
     (when test
       (setf form `(unless ,test ,form)))
-    (when bindings
-      (setf form `(destructuring-bind ,bindings ,var ,form)))
+    ;; (when bindings
+    ;;   (setf form `(destructuring-bind ,bindings ,var ,form)))
     (setf form `(let ((,var ,init)) ,form)))
   form)
 
-(defun the-loop-form (loop)
+(defun loop-form-with-alternating-tests (loop)
   (let ((form `(progn
                  ,@(initially loop)
-                 ,(the-actual-loop loop)
+                 (while t
+                   ,@(awhen (during-first loop)
+                            `((when ,(first-guard loop)
+                                ,@it
+                                (setf ,(first-guard loop) nil))))
+                   ,@(outer-body loop)
+                   ,@(when (during-last loop)
+                           `((setf ,(last-guard loop) t))))
                  ,@(awhen (during-last loop)
                           `((when ,(last-guard loop) ,@it)))
                  ,@(finally loop))))
-    (if (multiple-fors? loop)
-        (init-and-test (iterations loop) form)
-        form)))
+    (init-and-test (iterations loop) form)))
+
+(defun simple-for-form (loop)
+  `(progn
+     ,@(initially loop)
+     (for ,(inits loop) (,(end-test loop)) ,(steps loop)
+          ,@(awhen (during-first loop)
+                   `((when ,(first-guard loop)
+                       ,@it
+                       (setf ,(first-guard loop) nil))))
+          ,@(wrap-with-destructurings (iterations loop) (body loop))
+          ,@(when (during-last loop)
+                  `((setf ,(last-guard loop) t))))
+     ,@(awhen (during-last loop)
+              `((when ,(last-guard loop) ,@it)))
+     ,@(finally loop)))
 
 (defpsmacro loop (&rest args)
   (let ((loop (parse-ps-loop (normalize-loop-keywords args))))
@@ -280,5 +286,7 @@
         ,@(when (during-first loop) `((var ,(first-guard loop) t)))
         ,@(when (during-last loop) `((var ,(last-guard loop) nil)))
         ,@(prologue loop)
-        ,(the-loop-form loop)
+        ,(if (multiple-fors? loop)
+             (loop-form-with-alternating-tests loop)
+             (simple-for-form loop))
         ,@(when (default-accum-var loop) `((return ,(default-accum-var loop)))))))

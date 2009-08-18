@@ -144,7 +144,7 @@
                      (first args))))
     `((@ ,fn apply) this ,arglist)))
 
-(defun destructuring-wrap (arr n bindings body)
+(defun destructuring-wrap (arr n bindings body &key setf?)
   (cond ((null bindings)
          body)
         ((atom bindings)
@@ -153,12 +153,22 @@
                              ((@ ,arr slice) ,n))))
             ,body))
         (t (let ((var (car bindings))
-                 (inner-body (destructuring-wrap arr (1+ n) (cdr bindings) body)))
+                 (inner-body (destructuring-wrap arr (1+ n) (cdr bindings) body :setf? setf?)))
              (cond ((null var) inner-body)
-                   ((atom var) `(let ((,var (aref ,arr ,n)))
-                                  ,inner-body))
-                   (t `(destructuring-bind ,var (aref ,arr ,n)
+                   ((atom var) (if setf?
+                                   `(progn (setf ,var (aref ,arr ,n))
+                                           ,inner-body)
+                                   `(let ((,var (aref ,arr ,n)))
+                                      ,inner-body)))
+                   (t `(,(if setf? 'dset 'destructuring-bind)
+                         ,var (aref ,arr ,n)
                          ,inner-body)))))))
+
+(defpsmacro dset (bindings expr &body body)
+  (let ((arr (if (complex-js-expr? expr) (ps-gensym) expr)))
+    `(progn
+       ,@(unless (eq arr expr) `((setf ,arr ,expr)))
+       ,(destructuring-wrap arr 0 bindings (cons 'progn body) :setf? t))))
 
 (defpsmacro destructuring-bind (bindings expr &body body)
   (let* ((arr (if (complex-js-expr? expr) (ps-gensym) expr))

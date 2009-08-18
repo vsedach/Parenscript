@@ -232,23 +232,6 @@
             `((destructuring-bind ,it ,(first (car iterations)) ,@forms))
             forms))))
 
-(defun outer-body (loop)
-  (wrap-with-destructurings
-   (iterations loop)
-   (append (body loop)
-           (loop :for (var nil nil step test) :in (iterations loop)
-             :collect `(setf ,var ,step)
-             :when test :collect `(when ,test (break))))))
-
-(defun init-and-test (iterations form)
-  (loop :for (var nil init nil test) :in (reverse iterations) :do
-    (when test
-      (setf form `(unless ,test ,form)))
-    ;; (when bindings
-    ;;   (setf form `(destructuring-bind ,bindings ,var ,form)))
-    (setf form `(let ((,var ,init)) ,form)))
-  form)
-
 (defun loop-form-with-alternating-tests (loop)
   (let ((form `(progn
                  ,@(initially loop)
@@ -257,13 +240,26 @@
                             `((when ,(first-guard loop)
                                 ,@it
                                 (setf ,(first-guard loop) nil))))
-                   ,@(outer-body loop)
+                   ,@(body loop)
+                   ,@(loop :for (var bindings nil step test) :in (iterations loop)
+                       :collect `(setf ,var ,step)
+                       :collect `(dset ,bindings ,var)
+                       :when test :collect `(when ,test (break)))
                    ,@(when (during-last loop)
                            `((setf ,(last-guard loop) t))))
                  ,@(awhen (during-last loop)
                           `((when ,(last-guard loop) ,@it)))
                  ,@(finally loop))))
-    (init-and-test (iterations loop) form)))
+    ;; preface the whole thing with alternating inits and tests prior
+    ;; to the first pass through the loop. the goal is, like CL loop,
+    ;; to refrain from initializing subsequent clauses if a test fails
+    (loop :for (var bindings init nil test) :in (reverse (iterations loop)) :do
+      (when test
+        (setf form `(unless ,test ,form)))
+      (when bindings
+        (setf form `(destructuring-bind ,bindings ,var ,form)))
+      (setf form `(let ((,var ,init)) ,form)))
+    form))
 
 (defun simple-for-form (loop)
   `(progn

@@ -232,27 +232,37 @@
             `((destructuring-bind ,it ,(first (car iterations)) ,@forms))
             forms))))
 
+(defun wrap-with-first-and-last-guards (loop forms)
+  (append (awhen (during-first loop)
+            `((when ,(first-guard loop)
+                ,@it
+                (setf ,(first-guard loop) nil))))
+          forms
+          (when (during-last loop)
+            `((setf ,(last-guard loop) t)))))
+
+(defun wrap-with-initially-and-finally (loop form)
+  `(progn
+     ,@(initially loop)
+     ,form
+     ,@(awhen (during-last loop)
+              `((when ,(last-guard loop) ,@it)))
+     ,@(finally loop)))
+
 (defun loop-form-with-alternating-tests (loop)
-  (let ((form `(progn
-                 ,@(initially loop)
-                 (while t
-                   ,@(awhen (during-first loop)
-                            `((when ,(first-guard loop)
-                                ,@it
-                                (setf ,(first-guard loop) nil))))
-                   ,@(body loop)
-                   ,@(loop :for (var bindings nil step test) :in (iterations loop)
-                       :collect `(setf ,var ,step)
-                       :collect `(dset ,bindings ,var)
-                       :when test :collect `(when ,test (break)))
-                   ,@(when (during-last loop)
-                           `((setf ,(last-guard loop) t))))
-                 ,@(awhen (during-last loop)
-                          `((when ,(last-guard loop) ,@it)))
-                 ,@(finally loop))))
+  (let ((form (wrap-with-initially-and-finally
+               loop
+               `(while t
+                  ,@(wrap-with-first-and-last-guards
+                     loop
+                     (append (body loop)
+                             (loop :for (var bindings nil step test) :in (iterations loop)
+                               :collect `(setf ,var ,step)
+                               :collect `(dset ,bindings ,var)
+                               :when test :collect `(when ,test (break)))))))))
     ;; preface the whole thing with alternating inits and tests prior
-    ;; to the first pass through the loop. the goal is, like CL loop,
-    ;; to refrain from initializing subsequent clauses if a test fails
+    ;; to first executing the loop; this way, like CL LOOP, we refrain
+    ;; from initializing subsequent clauses if a test fails
     (loop :for (var bindings init nil test) :in (reverse (iterations loop)) :do
       (when test
         (setf form `(unless ,test ,form)))
@@ -262,19 +272,12 @@
     form))
 
 (defun simple-for-form (loop)
-  `(progn
-     ,@(initially loop)
-     (for ,(inits loop) (,(end-test loop)) ,(steps loop)
-          ,@(awhen (during-first loop)
-                   `((when ,(first-guard loop)
-                       ,@it
-                       (setf ,(first-guard loop) nil))))
-          ,@(wrap-with-destructurings (iterations loop) (body loop))
-          ,@(when (during-last loop)
-                  `((setf ,(last-guard loop) t))))
-     ,@(awhen (during-last loop)
-              `((when ,(last-guard loop) ,@it)))
-     ,@(finally loop)))
+  (wrap-with-initially-and-finally
+   loop
+   `(for ,(inits loop) (,(end-test loop)) ,(steps loop)
+         ,@(wrap-with-first-and-last-guards
+            loop
+            (wrap-with-destructurings (iterations loop) (body loop))))))
 
 (defpsmacro loop (&rest args)
   (let ((loop (parse-ps-loop (normalize-loop-keywords args))))

@@ -2,19 +2,36 @@
 
 (defparameter *js-target-version* 1.3)
 
+(defvar *parenscript-stream* nil)
+
 (defmacro ps (&body body)
   "Given Parenscript forms (an implicit progn), compiles those forms
 to a JavaScript string at macro-expansion time."
-  (let ((s (gensym)))
-    `(with-output-to-string (,s)
-       ,@(mapcar (lambda (x)
-                   `(write-string ,x ,s))
-                 (parenscript-print
-                  (ps-compile-statement `(progn ,@body)))))))
+  (let ((printed-forms (parenscript-print
+                        (ps-compile-statement `(progn ,@body))
+                        nil)))
+    (if (and (not (cdr printed-forms))
+             (stringp (car printed-forms)))
+        (car printed-forms)
+        (let ((s (gensym)))
+          `(with-output-to-string (,s)
+             ,@(mapcar (lambda (x) `(write-string ,x ,s)) printed-forms))))))
+
+(defmacro ps-to-stream (stream &body body)
+  (let ((printed-forms (parenscript-print
+                        (ps-compile-statement `(progn ,@body))
+                        nil)))
+    `(let ((*parenscript-stream* ,stream))
+       ,@(mapcar (lambda (x) `(write-string ,x *parenscript-stream*)) printed-forms))))
+
 (defun ps* (&rest body)
   "Compiles BODY to a JavaScript string.
 Body is evaluated."
-  (compiled-form-to-string (ps-compile-statement `(progn ,@body))))
+  (let ((*psw-stream* (or *parenscript-stream*
+                          (make-string-output-stream))))
+    (parenscript-print (ps-compile-statement `(progn ,@body)) t)
+    (unless *parenscript-stream*
+      (get-output-stream-string *psw-stream*))))
 
 (defmacro ps-doc (&body body)
   "Expands Parenscript forms in a clean environment."
@@ -27,11 +44,6 @@ Body is evaluated."
         (*ps-special-variables* nil))
     (ps* ps-form)))
 
-(defun compiled-form-to-string (ps-compiled-form)
-  (with-output-to-string (s)
-    (dolist (x (parenscript-print ps-compiled-form))
-      (write-string (if (stringp x) x (eval x)) s))))
-
 (defvar *js-inline-string-delimiter* #\"
   "Controls the string delimiter char used when compiling Parenscript in ps-inline.")
 
@@ -41,12 +53,16 @@ Body is evaluated."
 (defmacro/ps ps-inline (form &optional (string-delimiter *js-inline-string-delimiter*))
   `(concatenate 'string "javascript:"
                 ,@(let ((*js-string-delimiter* string-delimiter))
-                    (parenscript-print (ps-compile form)))))
+                    (parenscript-print (ps-compile form) nil))))
 
 (defvar *ps-read-function* #'read
   "This should be a function that takes the same inputs and returns the same
 outputs as the common lisp read function.  We declare it as a variable to allow
 a user-supplied reader instead of the default lisp reader.")
+
+(defun compiled-form-to-string (ps-compiled-form)
+  (with-output-to-string (*psw-stream*)
+    (parenscript-print ps-compiled-form t)))
 
 (defun ps-compile-stream (stream)
   "Compiles a source stream as if it were a file.  Outputs a Javascript string."

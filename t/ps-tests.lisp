@@ -541,7 +541,7 @@ __setf_someThing(_js1, _js2, _js3);")
                      :onclick (ps-inline (transport)))
                  img))
        img))
-  "document.write(LINKORNOT == 1 ? '<A HREF=\"#\" ONCLICK=\"' + ('javascript:' + 'transport' + '(' + ')') + '\">' + img + '</A>' : img);")
+  "document.write(LINKORNOT == 1 ? '<A HREF=\"#\" ONCLICK=\"' + ('javascript:' + 'transport()') + '\">' + img + '</A>' : img);")
 
 (test-ps-js negate-number-literal ;; ok, this was broken and fixed before, but no one bothered to add the test!
   (- 1)

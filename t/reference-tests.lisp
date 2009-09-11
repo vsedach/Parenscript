@@ -532,7 +532,7 @@ for (var i in obj) {
   ((@ document write)
   (ps-html ((:a :href "#"
                 :onclick (ps-inline (transport))) "link")))
-  "document.write('<A HREF=\"#\" ONCLICK=\"' + ('javascript:' + 'transport' + '(' + ')') + '\">link</A>');")
+  "document.write('<A HREF=\"#\" ONCLICK=\"' + ('javascript:' + 'transport()') + '\">link</A>');")
 
 (test-ps-js the-html-generator-4
   (let ((disabled nil)

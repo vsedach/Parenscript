@@ -219,6 +219,7 @@
       #:*js-target-version*
       #:compile-script
       #:ps
+      #:ps-to-stream
       #:ps-doc
       #:ps-doc*
       #:ps*

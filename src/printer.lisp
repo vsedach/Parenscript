@@ -10,19 +10,36 @@ in an html attribute delimited by #\\\" as opposed to #\\', or
 vice-versa.")
 
 (defvar *indent-level*)
-(defvar *print-accumulator*)
 
-(defmethod parenscript-print (form)
+(defvar *psw-stream*)
+
+(defun parenscript-print (form immediate?)
+  (declare (special immediate?))
   (let ((*indent-level* 0)
-        (*print-accumulator* ()))
+        (*psw-stream* (if immediate?
+                          *psw-stream*
+                          (make-string-output-stream)))
+        (%psw-accumulator ()))
+    (declare (special %psw-accumulator))
     (if (and (listp form) (eq 'js:block (car form))) ; ignore top-level block
         (loop for (statement . remaining) on (cdr form) do
-             (ps-print statement) (psw ";") (when remaining (psw #\Newline)))
+             (ps-print statement) (psw #\;) (when remaining (psw #\Newline)))
         (ps-print form))
-    (nreverse *print-accumulator*)))
+    (unless immediate?
+      (reverse (cons (get-output-stream-string *psw-stream*) %psw-accumulator)))))
 
 (defun psw (obj)
-  (push (if (characterp obj) (string obj) obj) *print-accumulator*))
+  (declare (special %psw-accumulator immediate?))
+  (typecase obj
+    (string (write-string obj *psw-stream*))
+    (character (write-char obj *psw-stream*))
+    (otherwise
+     (if immediate?
+         (write-string (eval obj) *psw-stream*)
+         (setf %psw-accumulator
+               (cons obj
+                     (cons (get-output-stream-string *psw-stream*)
+                           %psw-accumulator)))))))
 
 (defgeneric ps-print% (special-form-name special-form-args))
 
@@ -71,12 +88,12 @@ arguments, defines a printer for that form using the given body."
           for code = (char-code char)
           for special = (lisp-special-char-to-js char)
           do (cond (special (psw #\\) (psw special))
-                   ((or (<= code #x1f) (>= code #x80)) (psw (format nil "\\u~4,'0x" code)))
+                   ((or (<= code #x1f) (>= code #x80)) (format *psw-stream* "\\u~4,'0x" code))
                    (t (psw char))))
     (psw *js-string-delimiter*)))
 
 (defmethod ps-print ((number number))
-  (psw (format nil (if (integerp number) "~S" "~F") number)))
+  (format *psw-stream* (if (integerp number) "~S" "~F") number))
 
 ;;; expression and operator precedence rules
 
@@ -121,10 +138,10 @@ arguments, defines a printer for that form using the given body."
         (if (>= (expression-precedence arg) precedence)
             (parenthesize-print arg)
             (ps-print arg))
-        (when remaining (psw (format nil " ~(~A~) " op)))))
+        (when remaining (format *psw-stream* " ~(~A~) " op))))
 
 (defprinter js:unary-operator (op arg &key prefix space)
-  (when prefix (psw (format nil "~(~a~)~:[~; ~]" op space)))
+  (when prefix (format *psw-stream* "~(~a~)~:[~; ~]" op space))
   (if (> (expression-precedence arg)
          (op-precedence (case op
                           (+ 'unary+)
@@ -132,7 +149,7 @@ arguments, defines a printer for that form using the given body."
                           (t op))))
       (parenthesize-print arg)
       (ps-print arg))
-  (unless prefix (psw (format nil "~(~a~)" op))))
+  (unless prefix (format *psw-stream* "~(~a~)" op)))
 
 (defprinter js:funcall (fun-designator &rest args)
   (funcall (if (member (car fun-designator) '(js:variable js:aref js:slot-value js:funcall))
@@ -163,7 +180,7 @@ arguments, defines a printer for that form using the given body."
   (print-fun-def name args body))
 
 (defun print-fun-def (name args body-block)
-  (psw (format nil "function ~:[~;~A~](" name (symbol-to-js-string name)))
+  (format *psw-stream* "function ~:[~;~A~](" name (symbol-to-js-string name))
   (loop for (arg . remaining) on args do
         (psw (symbol-to-js-string arg)) (when remaining (psw ", ")))
   (psw ") ")
@@ -298,10 +315,8 @@ arguments, defines a printer for that form using the given body."
 
 ;;; regex
 (defprinter js:regex (regex)
-  (flet ((first-slash-p (string)
-           (and (> (length string) 0) (char= (char string 0) #\/))))
-    (let ((slash (unless (first-slash-p regex) "/")))
-      (psw (format nil (concatenate 'string slash "~A" slash) regex)))))
+  (let ((slash (unless (and (> (length regex) 0) (char= (char regex 0) #\/)) "/")))
+    (psw (concatenate 'string slash regex slash))))
 
 ;;; conditional compilation
 (defprinter js:cc-if (test &rest body)

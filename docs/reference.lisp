@@ -1000,7 +1000,7 @@ a-variable  => aVariable;
 ((@ document write)
   (ps-html ((:a :href "#"
                 :onclick (ps-inline (transport))) "link")))
-=> document.write('<A HREF=\"#\" ONCLICK=\"' + ('javascript:' + 'transport' + '(' + ')') + '\">link</A>');
+=> document.write('<A HREF=\"#\" ONCLICK=\"' + ('javascript:' + 'transport()') + '\">link</A>');
 
 ;;; Forms may be used in attribute lists to conditionally generate
 ;;; the next attribute. In this example the textarea is sometimes disabled.

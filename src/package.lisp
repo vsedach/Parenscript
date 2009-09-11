@@ -181,7 +181,6 @@
       #:concatenate
       #:concat-string
       #:length
-      #:null
       #:defined
       #:undefined
       #:@
@@ -331,6 +330,7 @@
       #:this
       #:typeof
       #:void
+      #:null
       
 
       ;; statements

@@ -10,12 +10,11 @@ to a JavaScript string at macro-expansion time."
        ,@(mapcar (lambda (x)
                    `(write-string ,x ,s))
                  (parenscript-print
-                  (compile-parenscript-form `(progn ,@body)
-                                            :expecting :statement))))))
+                  (ps-compile-statement `(progn ,@body)))))))
 (defun ps* (&rest body)
   "Compiles BODY to a JavaScript string.
 Body is evaluated."
-  (compiled-form-to-string (compile-parenscript-form `(progn ,@body) :expecting :statement)))
+  (compiled-form-to-string (ps-compile-statement `(progn ,@body))))
 
 (defmacro ps-doc (&body body)
   "Expands Parenscript forms in a clean environment."
@@ -42,7 +41,7 @@ Body is evaluated."
 (defmacro/ps ps-inline (form &optional (string-delimiter *js-inline-string-delimiter*))
   `(concatenate 'string "javascript:"
                 ,@(let ((*js-string-delimiter* string-delimiter))
-                    (parenscript-print (compile-parenscript-form form :expecting :statement)))))
+                    (parenscript-print (ps-compile form)))))
 
 (defvar *ps-read-function* #'read
   "This should be a function that takes the same inputs and returns the same
@@ -64,7 +63,7 @@ a user-supplied reader instead of the default lisp reader.")
 			     (remove-if
 			      #'(lambda (x) (or (null x) (= 0 (length x))))
 			      (mapcar 'compiled-form-to-string (nreverse compiled-forms)))))
-		(push (compile-parenscript-form form :expecting :statement) compiled-forms))))
+		(push (ps-compile-statement form) compiled-forms))))
 	js-string))))
 
 (defun ps-compile-file (source-file)

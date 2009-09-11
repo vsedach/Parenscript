@@ -27,17 +27,11 @@
   (gethash name *ps-special-forms*))
 
 (defmacro define-ps-special-form (name lambda-list &rest body)
-  "Define a special form NAME. The first argument (an anaphor called
-'expecting' automatically added to the arglist) to the special form is
-a keyword indicating whether the form is expected to produce
-an :expression or a :statement."
-  (let ((args (gensym "ps-arglist-")))
-    `(setf (gethash ',name *ps-special-forms*)
-           (lambda (&rest ,args)
-             (destructuring-bind ,(cons 'expecting lambda-list)
-                 ,args
-               (declare (ignorable expecting))
-               ,@body)))))
+  `(setf (gethash ',name *ps-special-forms*)
+         (lambda (&rest whole)
+           (destructuring-bind ,lambda-list
+               whole
+             ,@body))))
 
 (defun undefine-ps-special-form (name)
   (remhash name *ps-special-forms*))
@@ -106,7 +100,7 @@ stored as the second value.")
   (defparameter *ps-compilation-level* :toplevel
     "This value takes on the following values:
 :toplevel indicates that we are traversing toplevel forms.
-:inside-toplevel-form indicates that we are inside a call to compile-parenscript-form
+:inside-toplevel-form indicates that we are inside a call to ps-compile-*
 nil indicates we are no longer toplevel-related."))
 
 (defun lookup-macro-def (name env)
@@ -167,12 +161,6 @@ CL environment)."
        fun-name))
 
 ;;;; compiler interface
-(defgeneric compile-parenscript-form (form &key expecting)
-  (:documentation "Compiles a ParenScript form to the intermediate
-ParenScript representation. :expecting determines whether the form is
-compiled to an :expression (the default), a :statement, or a
-:symbol."))
-
 (defun adjust-ps-compilation-level (form level)
   "Given the current *ps-compilation-level*, LEVEL, and the fully macroexpanded
 form, FORM, returns the new value for *ps-compilation-level*."
@@ -183,47 +171,39 @@ form, FORM, returns the new value for *ps-compilation-level*."
     ((eq :toplevel level) :inside-toplevel-form)))
 
 
-(defmethod compile-parenscript-form :around (form &key expecting)
-  (assert (if expecting (member expecting '(:expression :statement)) t))
-  (call-next-method))
-
 (defun ps-compile-symbol (form)
   "Compiles the given Parenscript form and guarantees that the
 resultant symbol has an associated script-package. Raises an error if
 the form cannot be compiled to a symbol."
-  (let ((exp (compile-parenscript-form form :expecting :expression)))
+  (let ((exp (ps-compile-expression form)))
     (when (eq (first exp) 'js:variable)
       (setf exp (second exp)))
     (assert (symbolp exp) ()
             "~a is expected to be a symbol, but compiles to ~a (the ParenScript output for ~a alone is \"~a\"). This could be due to ~a being a special form." form exp form (ps* form) form)
     exp))
 
-(defmethod compile-parenscript-form (form &key expecting)
-  (declare (ignore expecting))
+(defmethod ps-compile (form)
   (error "The object ~S cannot be compiled by ParenScript." form))
 
-(defmethod compile-parenscript-form ((form number) &key expecting)
-  (declare (ignore expecting))
+(defmethod ps-compile ((form number))
   form)
 
-(defmethod compile-parenscript-form ((form string) &key expecting)
-  (declare (ignore expecting))
+(defmethod ps-compile ((form string))
   form)
 
-(defmethod compile-parenscript-form ((form character) &key expecting)
-  (declare (ignore expecting))
-  (compile-parenscript-form (string form)))
+(defmethod ps-compile ((form character))
+  (ps-compile (string form)))
 
-(defmethod compile-parenscript-form ((symbol symbol) &key expecting)
+(defmethod ps-compile ((symbol symbol))
   (when (eq *ps-compilation-level* :toplevel)
     (multiple-value-bind (expansion expanded-p)
         (ps-macroexpand symbol)
       (when expanded-p 
-        (return-from compile-parenscript-form (compile-parenscript-form expansion :expecting expecting)))))
+        (return-from ps-compile (ps-compile expansion)))))
   (cond ((keywordp symbol) symbol)
         ((ps-special-form-p (list symbol))
          (if (ps-reserved-symbol-p symbol)
-             (funcall (get-ps-special-form symbol) :symbol)
+             (funcall (get-ps-special-form symbol))
              (error "Attempting to use Parenscript special form ~a as variable" symbol)))
         (t `(js:variable ,symbol))))
 
@@ -256,7 +236,7 @@ the form cannot be compiled to a symbol."
     (not '!)
     (eql '\=\=)
     (=   '\=\=)
-    (t op)))
+   (t op)))
 
 (defun maybe-fix-nary-comparison-form (form)
   (if (< 2 (length (cdr form)))
@@ -278,20 +258,19 @@ the form cannot be compiled to a symbol."
 (defun compile-op-form (form)
   `(js:operator ,(ps-convert-op-name (ps-compile-symbol (car form)))
                 ,@(mapcar (lambda (form)
-                            (compile-parenscript-form (ps-macroexpand form) :expecting :expression))
+                            (ps-compile-expression (ps-macroexpand form)))
                           (cdr form))))
 
 (defun compile-funcall-form (form)
   `(js:funcall
-    ,(compile-parenscript-form (if (symbolp (car form))
-                                   (maybe-rename-local-function (car form))
-                                   (ps-macroexpand (car form)))
-                               :expecting :expression)
-    ,@(mapcar (lambda (arg)
-                (compile-parenscript-form (ps-macroexpand arg) :expecting :expression))
-              (cdr form))))
+    ,(ps-compile-expression (if (symbolp (car form))
+                                (maybe-rename-local-function (car form))
+                                (ps-macroexpand (car form))))
+    ,@(mapcar #'ps-compile-expression (cdr form))))
 
-(defmethod compile-parenscript-form ((form cons) &key (expecting :statement))
+(defvar compile-expression?)
+
+(defmethod ps-compile ((form cons))
   (multiple-value-bind (form expanded-p)
       (ps-macroexpand form)
     (let ((*ps-compilation-level*
@@ -299,18 +278,28 @@ the form cannot be compiled to a symbol."
                *ps-compilation-level*
                (adjust-ps-compilation-level form *ps-compilation-level*))))
       (cond (expanded-p
-             (compile-parenscript-form form :expecting expecting))
+             (ps-compile form))
             ((ps-special-form-p form)
-             (apply (get-ps-special-form (car form)) (cons expecting (cdr form))))
+             (apply (get-ps-special-form (car form)) (cdr form)))
             ((comparison-form-p form)
              (multiple-value-bind (form fixed?)
                  (maybe-fix-nary-comparison-form form)
                (if fixed?
-                   (compile-parenscript-form form :expecting expecting)
+                   (ps-compile form)
                    (compile-op-form form))))
-            ((op-form-p form) (compile-op-form form))
-            ((funcall-form-p form) (compile-funcall-form form))
+            ((op-form-p form)
+             (compile-op-form form))
+            ((funcall-form-p form)
+             (compile-funcall-form form))
             (t (error "Cannot compile ~S to a ParenScript form." form))))))
+
+(defun ps-compile-statement (form)
+  (let ((compile-expression? nil))
+    (ps-compile form)))
+
+(defun ps-compile-expression (form)
+  (let ((compile-expression? t))
+    (ps-compile form)))
 
 (defvar *ps-gensym-counter* 0)
 

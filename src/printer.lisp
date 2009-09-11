@@ -42,7 +42,7 @@ arguments, defines a printer for that form using the given body."
 (defmethod ps-print ((form null))) ; don't print top-level nils (ex: result of defining macros, etc.)
 
 (defmethod ps-print ((s symbol))
-  (assert (keywordp s))
+  (assert (keywordp s) nil "~S is not a symbol" s)
   (ps-print (string-downcase s)))
 
 (defmethod ps-print ((compiled-form cons))

@@ -150,7 +150,7 @@ CL environment)."
           (defpsmacro ,name ,args ,@body)))
 
 (defun ps-macroexpand (form)
-  (aif (or (lookup-macro-def form *ps-symbol-macro-env*)
+  (aif (or (and (symbolp form) (lookup-macro-def form *ps-symbol-macro-env*))
            (and (consp form) (lookup-macro-def (car form) *ps-macro-env*)))
        (values (ps-macroexpand (funcall it form)) t)
        form))

@@ -214,7 +214,7 @@
 (defvar *vars-bound-in-enclosing-lexical-scopes* ())
 
 (defun compile-function-definition (args body)
-  (let ((args (mapcar (lambda (arg) (compile-parenscript-form arg :expecting :symbol)) args)))
+  (let ((args (mapcar #'ps-compile-symbol args)))
     (list args
           (let* ((*enclosing-lexical-block-declarations* ())
                  (*vars-bound-in-enclosing-lexical-scopes* (append args
@@ -653,7 +653,7 @@ lambda-list::=
 ;;; iteration
 (defun make-for-vars/inits (init-forms)
   (mapcar (lambda (x)
-            (cons (compile-parenscript-form (ps-macroexpand (if (atom x) x (first x))) :expecting :symbol)
+            (cons (ps-compile-symbol (ps-macroexpand (if (atom x) x (first x))))
                   (compile-parenscript-form (ps-macroexpand (if (atom x) nil (second x))) :expecting :expression)))
           init-forms))
 
@@ -758,8 +758,8 @@ lambda-list::=
     (assert (or catch finally) ()
             "Try form should have either a catch or a finally clause or both.")
     `(js:try ,(compile-parenscript-form `(progn ,form))
-          :catch ,(when catch (list (compile-parenscript-form (caar catch) :expecting :symbol)
-                                   (compile-parenscript-form `(progn ,@(cdr catch)))))
+          :catch ,(when catch (list (ps-compile-symbol (caar catch))
+                                    (compile-parenscript-form `(progn ,@(cdr catch)))))
           :finally ,(when finally (compile-parenscript-form `(progn ,@finally))))))
 
 (define-ps-special-form cc-if (test &rest body)

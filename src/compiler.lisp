@@ -184,12 +184,10 @@ form, FORM, returns the new value for *ps-compilation-level*."
 
 
 (defmethod compile-parenscript-form :around (form &key expecting)
-  (assert (if expecting (member expecting '(:expression :statement :symbol)) t))
-  (if (eq expecting :symbol)
-      (compile-to-symbol form)
-      (call-next-method)))
+  (assert (if expecting (member expecting '(:expression :statement)) t))
+  (call-next-method))
 
-(defun compile-to-symbol (form)
+(defun ps-compile-symbol (form)
   "Compiles the given Parenscript form and guarantees that the
 resultant symbol has an associated script-package. Raises an error if
 the form cannot be compiled to a symbol."
@@ -278,7 +276,7 @@ the form cannot be compiled to a symbol."
       form))
 
 (defun compile-op-form (form)
-  `(js:operator ,(ps-convert-op-name (compile-parenscript-form (car form) :expecting :symbol))
+  `(js:operator ,(ps-convert-op-name (ps-compile-symbol (car form)))
                 ,@(mapcar (lambda (form)
                             (compile-parenscript-form (ps-macroexpand form) :expecting :expression))
                           (cdr form))))

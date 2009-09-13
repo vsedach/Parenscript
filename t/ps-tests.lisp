@@ -1193,3 +1193,15 @@ x1 - x1;
     var _cmp1;
     return (_cmp1 = 2, 1 < _cmp1 && _cmp1 < 3);
 };")
+
+(test-ps-js chain-slot-value1
+  (chain ($ "foo") (bar x z) frob (baz 5))
+  "$('foo').bar(x, z).frob.baz(5);")
+
+(test-ps-js chain-slot-value2
+  (chain ($ "foo") bar baz)
+  "$('foo').bar.baz;")
+
+(test-ps-js chain-slot-value3
+  (chain ($ "foo") bar (x y) baz)
+  "$('foo').bar.x(y).baz;")

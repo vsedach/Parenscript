@@ -41,14 +41,14 @@
                                      :test #'char=)))
            (strip-indentation (str indentation)
              (if indentation
-                 (parenscript::string-join (mapcar #'(lambda (str)
-                                          (if (> (length str) indentation)
-                                              (subseq str indentation)
-                                              str))
-                                      (parenscript::string-split str (list #\Newline)))
-                              (string #\Newline))
+                 (format nil "~{~A~^
+~}"
+                         (mapcar (lambda (str)
+                                   (if (> (length str) indentation)
+                                       (subseq str indentation)
+                                       str))
+                                 (cl-ppcre:split "\\n" str)))
                  str))
-
            (make-test ()
              (let* ((sep-pos (search "=>" built))
                     (cr-before-sep  (when sep-pos

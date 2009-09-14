@@ -1,25 +1,5 @@
 (in-package "PARENSCRIPT")
 
-(defun string-join (strings separator)
-  (format nil "~{~}" (format nil "~~a~~^~a" separator) strings))
-
-(defun string-split (string separators &key (keep-separators nil) (remove-empty-subseqs nil))
-  (do ((len (length string))
-       (i 0 (1+ i))
-       (last 0)
-       res)
-      ((= i len)
-       (let ((split (if (> i last)
-                     (cons (subseq string last i) res)
-                     res)))
-         (nreverse (if remove-empty-subseqs
-                       (delete "" split :test #'string-equal)
-                       split))))
-    (when (member (char string i) separators)
-      (push (subseq string last i) res)
-      (when keep-separators (push (string (char string i)) res))
-      (setf last (1+ i)))))
-
 (let ((cache (make-hash-table :test 'eq)))
   (defun symbol-name-to-js-string (symbol)
     "Given a Lisp symbol or string, produces to a valid JavaScript

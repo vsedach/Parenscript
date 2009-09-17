@@ -195,17 +195,16 @@ the form cannot be compiled to a symbol."
   (ps-compile (string form)))
 
 (defmethod ps-compile ((symbol symbol))
-  (when (eq *ps-compilation-level* :toplevel)
-    (multiple-value-bind (expansion expanded-p)
-        (ps-macroexpand symbol)
-      (when expanded-p 
-        (return-from ps-compile (ps-compile expansion)))))
-  (cond ((keywordp symbol) symbol)
-        ((ps-special-form-p (list symbol))
-         (if (ps-reserved-symbol-p symbol)
-             (funcall (get-ps-special-form symbol))
-             (error "Attempting to use Parenscript special form ~a as variable" symbol)))
-        (t `(js:variable ,symbol))))
+  (multiple-value-bind (expansion expanded?)
+      (ps-macroexpand symbol)
+    (if expanded?
+        (ps-compile expansion)
+        (cond ((keywordp symbol) symbol)
+              ((ps-special-form-p (list symbol))
+               (if (ps-reserved-symbol-p symbol)
+                   (funcall (get-ps-special-form symbol))
+                   (error "Attempting to use Parenscript special form ~a as variable" symbol)))
+              (t `(js:variable ,symbol))))))
 
 ;;; operators
 
@@ -267,9 +266,9 @@ the form cannot be compiled to a symbol."
 
 (defun compile-funcall-form (form)
   `(js:funcall
-    ,(ps-compile-expression (if (symbolp (car form))
-                                (maybe-rename-local-function (car form))
-                                (ps-macroexpand (car form))))
+    ,(if (symbolp (car form))
+         `(js:variable ,(maybe-rename-local-function (car form)))
+         (ps-compile-expression (ps-macroexpand (car form))))
     ,@(mapcar #'ps-compile-expression (cdr form))))
 
 (defvar compile-expression?)

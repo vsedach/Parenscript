@@ -595,6 +595,11 @@ __setf_someThing(_js1, _js2, _js3);")
          tst-sym-macro)
   "2;")
 
+(test-ps-js define-symbol-macro1
+  (progn (define-symbol-macro tst-sym-macro1 2)
+         (foo tst-sym-macro1))
+  "foo(2);")
+
 (test-ps-js expression-progn
   (defun f () (return (progn (foo) (if x 1 2))))
   "function f() {

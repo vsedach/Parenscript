@@ -160,6 +160,8 @@
                     (atom (second bindings)))
                (bind-rest (second bindings))
                (error "~a is invalid in destructuring list." bindings)))
+          ((eq (car bindings) '&optional)
+           (destructuring-wrap arr n (cdr bindings) body :setf? setf?))
           (t (let ((var (car bindings))
                    (inner-body (destructuring-wrap arr (1+ n) (cdr bindings) body :setf? setf?)))
                (cond ((null var) inner-body)

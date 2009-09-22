@@ -250,16 +250,14 @@
      ,@(finally loop)))
 
 (defun loop-form-with-alternating-tests (loop)
-  (let ((form (wrap-with-initially-and-finally
-               loop
-               `(while t
-                  ,@(wrap-with-first-and-last-guards
-                     loop
-                     (append (body loop)
-                             (loop :for (var bindings nil step test) :in (iterations loop)
-                               :collect `(setf ,var ,step)
-                               :collect `(dset ,bindings ,var)
-                               :when test :collect `(when ,test (break)))))))))
+  (let ((form `(while t
+                 ,@(wrap-with-first-and-last-guards
+                    loop
+                    (append (body loop)
+                            (loop :for (var bindings nil step test) :in (iterations loop)
+                              :collect `(setf ,var ,step)
+                              :collect `(dset ,bindings ,var)
+                              :when test :collect `(when ,test (break))))))))
     ;; preface the whole thing with alternating inits and tests prior
     ;; to first executing the loop; this way, like CL LOOP, we refrain
     ;; from initializing subsequent clauses if a test fails
@@ -269,7 +267,7 @@
       (when bindings
         (setf form `(destructuring-bind ,bindings ,var ,form)))
       (setf form `(let ((,var ,init)) ,form)))
-    form))
+    (wrap-with-initially-and-finally loop form)))
 
 (defun simple-for-form (loop)
   (wrap-with-initially-and-finally

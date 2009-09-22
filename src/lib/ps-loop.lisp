@@ -256,11 +256,11 @@
                     (append (body loop)
                             (loop :for (var bindings nil step test) :in (iterations loop)
                               :collect `(setf ,var ,step)
-                              :collect `(dset ,bindings ,var)
+                              :when bindings :collect `(dset ,bindings ,var)
                               :when test :collect `(when ,test (break))))))))
-    ;; preface the whole thing with alternating inits and tests prior
-    ;; to first executing the loop; this way, like CL LOOP, we refrain
-    ;; from initializing subsequent clauses if a test fails
+    ;; Preface the whole thing with alternating inits and tests prior
+    ;; to first executing the loop; this way, as in CL LOOP, we refrain
+    ;; from initializing subsequent clauses if a test fails.
     (loop :for (var bindings init nil test) :in (reverse (iterations loop)) :do
       (when test
         (setf form `(unless ,test ,form)))

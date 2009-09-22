@@ -147,10 +147,14 @@
     `((@ ,fn apply) this ,arglist)))
 
 (defun destructuring-wrap (arr n bindings body &key setf?)
-  (flet ((bind-rest (sym)
-           `(let ((,sym (when (> (length ,arr) ,n)
-                          ((@ ,arr slice) ,n))))
-              ,body)))
+  (labels ((bind-expr (var expr inner-body)
+             (if setf?
+                 `(progn (setf ,var ,expr) ,inner-body)
+                 `(let ((,var ,expr)) ,inner-body)))
+           (bind-rest (sym)
+             (bind-expr sym `(when (> (length ,arr) ,n)
+                               ((@ ,arr slice) ,n))
+                        body)))
     (cond ((null bindings)
            body)
           ((atom bindings) ;; dotted destructuring list
@@ -165,11 +169,7 @@
           (t (let ((var (car bindings))
                    (inner-body (destructuring-wrap arr (1+ n) (cdr bindings) body :setf? setf?)))
                (cond ((null var) inner-body)
-                     ((atom var) (if setf?
-                                     `(progn (setf ,var (aref ,arr ,n))
-                                             ,inner-body)
-                                     `(let ((,var (aref ,arr ,n)))
-                                        ,inner-body)))
+                     ((atom var) (bind-expr var `(aref ,arr ,n) inner-body))
                      (t `(,(if setf? 'dset 'destructuring-bind)
                            ,var (aref ,arr ,n)
                            ,inner-body))))))))

@@ -59,8 +59,9 @@ arguments, defines a printer for that form using the given body."
 (defmethod ps-print ((form null))) ; don't print top-level nils (ex: result of defining macros, etc.)
 
 (defmethod ps-print ((s symbol))
-  (assert (keywordp s) nil "~S is not a symbol" s)
-  (ps-print (string-downcase s)))
+  (if (keywordp s)
+      (ps-print (string-downcase s))
+      (psw (symbol-to-js-string s))))
 
 (defmethod ps-print ((compiled-form cons))
   (ps-print% (car compiled-form) (cdr compiled-form)))
@@ -126,7 +127,7 @@ arguments, defines a printer for that form using the given body."
         (psw #\[) (ps-print idx) (psw #\])))
 
 (defprinter js:variable (var)
-  (psw (symbol-to-js-string var)))
+  (ps-print var))
 
 ;;; arithmetic operators
 (defun parenthesize-print (ps-form)

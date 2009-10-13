@@ -471,22 +471,14 @@ lambda-list::=
 
 (define-ps-special-form create (&rest arrows)
   `(js:object
-    ,@(loop for (key-expr val-expr) on arrows by #'cddr collecting
-           (let ((compiled-key (ps-compile-expression (ps-macroexpand key-expr))))
-             (assert (or (stringp compiled-key)
-                         (numberp compiled-key)
-                         (keywordp compiled-key)
-                         (and (listp compiled-key)
-                              (eq 'js:variable (car compiled-key))))
+    ,@(loop for (key val-expr) on arrows by #'cddr collecting
+           (progn
+             (assert (or (stringp key) (numberp key) (symbolp key))
                      ()
-                     "Slot key ~s is not one of js-variable, keyword, string or number."
-                     compiled-key)
-             (let ((key (aif (ps-reserved-symbol-p (if (listp compiled-key)
-                                                       (second compiled-key)
-                                                       compiled-key))
-                             it
-                             compiled-key)))
-               (cons key (ps-compile-expression (ps-macroexpand val-expr))))))))
+                     "Slot key ~s is not one of symbol, string or number."
+                     key)
+             (cons (aif (ps-reserved-symbol-p key) it key)
+                   (ps-compile-expression (ps-macroexpand val-expr)))))))
 
 (define-ps-special-form instanceof (value type)
   `(js:instanceof ,(ps-compile-expression value)

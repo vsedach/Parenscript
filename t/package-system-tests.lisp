@@ -21,11 +21,9 @@
      };")
 
 (test-ps-js uniform-symbol-handling1
-  (progn (create 'ps-test.my-library::foo 1)
-         (create ps-test.my-library::foo 1)
+  (progn (create ps-test.my-library::foo 1)
          (slot-value foo 'ps-test.my-library::foo))
-  "{ 'my_library_foo' : 1 };
-{ my_library_foo : 1 };
+  "{ my_library_foo : 1 };
 foo.my_library_foo;")
 
 (defpackage "PS-TEST.OBFUSCATE-ME")

@@ -1062,7 +1062,7 @@ x + x;")
 (test-ps-js symbol-macro-obj
   (symbol-macrolet ((x y))
     (create x 1))
-  "{ y : 1 };")
+  "{ x : 1 };")
 
 (test-ps-js symbol-macro-conditional1
   (symbol-macrolet ((x y))

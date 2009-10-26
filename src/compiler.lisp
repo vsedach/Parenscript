@@ -296,6 +296,9 @@ the form cannot be compiled to a symbol."
              (compile-funcall-form form))
             (t (error "Cannot compile ~S to a ParenScript form." form))))))
 
+(defmethod ps-compile ((form vector))
+  (ps-compile (list 'quote (loop :for x :across form :collect x))))
+
 (defun ps-compile-statement (form)
   (let ((compile-expression? nil))
     (ps-compile form)))

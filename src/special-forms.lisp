@@ -30,14 +30,16 @@
   (def-for-literal continue js:continue))
 
 (define-ps-special-form quote (x)
-  (ps-compile-expression
-   (typecase x
-     (cons `(array ,@(mapcar (lambda (x) (when x `',x)) x)))
-     (null '(array))
-     (keyword x)
-     (symbol (symbol-to-js-string x))
-     (number x)
-     (string x))))
+  (flet ((quote% (expr) (when expr `',expr)))
+    (ps-compile-expression
+     (typecase x
+       (cons `(array ,@(mapcar #'quote% x)))
+       (null '(array))
+       (keyword x)
+       (symbol (symbol-to-js-string x))
+       (number x)
+       (string x)
+       (vector `(array ,@(loop :for el :across x :collect (quote% el))))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; unary operators

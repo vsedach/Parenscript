@@ -9,7 +9,7 @@
 (defvar *loop-keywords*
   '(:for :do :repeat :with :when :unless :while :until :initially :finally
     :from :to :below :downto :above :by :in :across :on := :then
-    :sum :collect :count :minimize :maximize :into))
+    :sum :collect :append :count :minimize :maximize :into))
 
 (defun normalize-loop-keywords (args)
   (mapcar
@@ -168,14 +168,15 @@
   (let ((initial (case kind
                    ((:sum :count) 0)
                    ((:maximize :minimize) nil)
-                   (:collect '(array)))))
+                   ((:collect :append) '(array)))))
     (prevar var initial state))
   (case kind
     (:sum `(incf ,var ,term))
     (:count `(unless (null ,term) (incf ,var)))
     (:minimize `(setf ,var (if (null ,var) ,term (min ,var ,term))))
     (:maximize `(setf ,var (if (null ,var) ,term (max ,var ,term))))
-    (:collect `((@ ,var :push) ,term))))
+    (:collect `((@ ,var :push) ,term))
+    (:append `(setf ,var (append ,var ,term)))))
 
 (defun repeat-clause (state)
   (let ((index (ps-gensym)))
@@ -184,10 +185,12 @@
 
 (defun body-clause (term state)
   (case term
-    ((:when :unless) (list (intern (symbol-name term))
-                           (eat state)
-                           (body-clause (eat state :atom) state)))
-    ((:sum :collect :count :minimize :maximize) (accumulate term (eat state) (eat state :if :into) state))
+    ((:when :unless)
+     (list (intern (symbol-name term))
+           (eat state)
+           (body-clause (eat state :atom) state)))
+    ((:sum :collect :append :count :minimize :maximize)
+     (accumulate term (eat state) (eat state :if :into) state))
     (:do (eat state :progn))
     (otherwise (err "a PS-LOOP keyword" term))))
 

@@ -7,8 +7,8 @@
       (consp expr)))
 
 (defvar *loop-keywords*
-  '(:for :do :when :unless :initially :finally :first-time :last-time :while :until
-    :from :to :below :downto :above :by :in :across :on :index := :then :sum :collect
+  '(:for :do :when :unless :initially :finally :while :until
+    :from :to :below :downto :above :by :in :across :on := :then :sum :collect
     :count :minimize :maximize :into :repeat))
 
 (defun normalize-loop-keywords (args)
@@ -33,10 +33,6 @@
    (prologue :initform nil :accessor prologue)
    (initially :initform nil :accessor initially)
    (finally :initform nil :accessor finally)
-   (during-first :initform nil :accessor during-first)
-   (first-guard :initform nil :accessor first-guard)
-   (during-last :initform nil :accessor during-last)
-   (last-guard :initform nil :accessor last-guard)
    (default-accum-var :initform nil :accessor default-accum-var)
    (default-accum-kind :initform nil :accessor default-accum-kind)
    (body :initform nil :accessor body)))
@@ -44,7 +40,7 @@
 (defun nreverse-loop-state (state)
   (macrolet ((rev% (&rest accs)
                (cons 'progn (loop :for a :in accs :collect `(setf (,a state) (nreverse (,a state)))))))
-    (rev% iterations prologue initially finally during-first during-last body))
+    (rev% iterations prologue initially finally body))
   state)
 
 (defun push-tokens (state toks)
@@ -100,7 +96,7 @@
 
 (defun for-in (var bindings state)
   (with-local-var (arr (eat state) state)
-    (let ((index (or (eat state :if :index) (ps-gensym))))
+    (let ((index (ps-gensym)))
       (push-tokens state `(,index :from 0 :below (length ,arr)
                                   ,var := (aref ,arr ,index)))
       (for-clause state)
@@ -160,16 +156,6 @@
     (:maximize `(setf ,var (if (null ,var) ,term (max ,var ,term))))
     (:collect `((@ ,var :push) ,term))))
 
-(defun first-time-clause (state)
-  (push (eat state :progn) (during-first state))
-  (unless (first-guard state)
-    (setf (first-guard state) (ps-gensym))))
-
-(defun last-time-clause (state)
-  (push (eat state :progn) (during-last state))
-  (unless (last-guard state)
-    (setf (last-guard state) (ps-gensym))))
-
 (defun repeat-clause (state)
   (let ((index (ps-gensym)))
     (setf (tokens state) (append `(,index :from 0 :below ,(eat state)) (tokens state)))
@@ -193,8 +179,6 @@
       (:until (push `(when ,(eat state) break) (body state)))
       (:initially (push (eat state :progn) (initially state)))
       (:finally (push (eat state :progn) (finally state)))
-      (:first-time (first-time-clause state))
-      (:last-time (last-time-clause state))
       (otherwise (push (body-clause term state) (body state))))))
 
 (defun parse-ps-loop (terms)
@@ -232,32 +216,19 @@
             `((destructuring-bind ,it ,(first (car iterations)) ,@forms))
             forms))))
 
-(defun wrap-with-first-and-last-guards (loop forms)
-  (append (awhen (during-first loop)
-            `((when ,(first-guard loop)
-                ,@it
-                (setf ,(first-guard loop) nil))))
-          forms
-          (when (during-last loop)
-            `((setf ,(last-guard loop) t)))))
-
 (defun wrap-with-initially-and-finally (loop form)
   `(progn
      ,@(initially loop)
      ,form
-     ,@(awhen (during-last loop)
-              `((when ,(last-guard loop) ,@it)))
      ,@(finally loop)))
 
 (defun loop-form-with-alternating-tests (loop)
   (let ((form `(while t
-                 ,@(wrap-with-first-and-last-guards
-                    loop
-                    (append (body loop)
-                            (loop :for (var bindings nil step test) :in (iterations loop)
-                              :collect `(setf ,var ,step)
-                              :when bindings :collect `(dset ,bindings ,var)
-                              :when test :collect `(when ,test (break))))))))
+                 ,@(append (body loop)
+                           (loop :for (var bindings nil step test) :in (iterations loop)
+                             :collect `(setf ,var ,step)
+                             :when bindings :collect `(dset ,bindings ,var)
+                             :when test :collect `(when ,test (break)))))))
     ;; Preface the whole thing with alternating inits and tests prior
     ;; to first executing the loop; this way, as in CL LOOP, we refrain
     ;; from initializing subsequent clauses if a test fails.
@@ -273,15 +244,11 @@
   (wrap-with-initially-and-finally
    loop
    `(for ,(inits loop) (,(end-test loop)) ,(steps loop)
-         ,@(wrap-with-first-and-last-guards
-            loop
-            (wrap-with-destructurings (iterations loop) (body loop))))))
+         ,@(wrap-with-destructurings (iterations loop) (body loop)))))
 
 (defpsmacro loop (&rest args)
   (let ((loop (parse-ps-loop (normalize-loop-keywords args))))
     `(,@(if (default-accum-var loop) '(with-lambda ()) '(progn))
-        ,@(when (during-first loop) `((var ,(first-guard loop) t)))
-        ,@(when (during-last loop) `((var ,(last-guard loop) nil)))
         ,@(prologue loop)
         ,(if (multiple-fors? loop)
              (loop-form-with-alternating-tests loop)

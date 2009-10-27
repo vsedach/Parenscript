@@ -7,9 +7,9 @@
       (consp expr)))
 
 (defvar *loop-keywords*
-  '(:for :do :when :unless :initially :finally :while :until
-    :from :to :below :downto :above :by :in :across :on := :then :sum :collect
-    :count :minimize :maximize :into :repeat))
+  '(:for :do :repeat :with :when :unless :while :until :initially :finally
+    :from :to :below :downto :above :by :in :across :on := :then
+    :sum :collect :count :minimize :maximize :into))
 
 (defun normalize-loop-keywords (args)
   (mapcar
@@ -19,7 +19,7 @@
          x))
    args))
 
-(defun reduce-function-symbol (sym)
+(defun turn-lisp-style-function-name-to-ordinary-js-name (sym)
   (if (and (consp sym) (eq 'function (first sym)))
       (second sym)
       sym))
@@ -64,8 +64,12 @@
                  tok))))
 
 (defun prevar (var expr state)
-  (pushnew (list 'var var expr) (prologue state) :key #'second)
+  (pushnew (list :var var expr) (prologue state) :key #'second)
   var)
+
+(defun prebind (bindings expr state)
+  (pushnew (list :dbind bindings expr) (prologue state) :key #'second :test #'equalp)
+  bindings)
 
 (defmacro with-local-var ((name expr state) &body body)
   (once-only (expr)
@@ -110,7 +114,7 @@
 (defun for-on (var bindings state)
   (with-local-var (arr (eat state) state)
     (let ((by (aif (eat state :if :by)
-                   `(,(reduce-function-symbol it) ,var)
+                   `(,(turn-lisp-style-function-name-to-ordinary-js-name it) ,var)
                    `((@ ,var :slice) 1))))
       (push-tokens state `(,var := ,arr :then ,by))
       (for-clause state)
@@ -119,21 +123,35 @@
         ;; set the end-test
         (setf (fifth this-iteration) `(or (null ,var) (= (length ,var) 0)))))))
 
-(defun for-clause (state)
+(defun var-or-bindings (state)
   (let* ((place (eat state))
          (var (when (atom place) place))
-         (bindings (unless var place))
-         (term (eat state :atom)))
-    (when bindings
-      (when (eq term :from)
-        (err "an atom after FROM" bindings))
-      (setf var (ps-gensym)))
-    (case term
-      (:from (for-from var state))
-      (:= (for-= var bindings state))
-      ((:in :across) (for-in var bindings state))
-      (:on (for-on var bindings state))
-      (otherwise (error "FOR ~s ~s is not valid in PS-LOOP." var term)))))
+         (bindings (unless var place)))
+    (values var bindings)))
+
+(defun for-clause (state)
+  (multiple-value-bind (var bindings)
+      (var-or-bindings state)
+    (let ((term (eat state :atom)))
+      (when bindings
+        (when (eq term :from)
+          (err "an atom after FROM" bindings))
+        (setf var (ps-gensym)))
+      (case term
+        (:from (for-from var state))
+        (:= (for-= var bindings state))
+        ((:in :across) (for-in var bindings state))
+        (:on (for-on var bindings state))
+        (otherwise (error "FOR ~s ~s is not valid in PS-LOOP." var term))))))
+
+(defun a-with-clause (state) ;; so named to avoid with-xxx macro convention
+  (multiple-value-bind (var bindings)
+      (var-or-bindings state)
+    (eat state :=)
+    (let ((expr (eat state)))
+      (if var
+          (prevar var expr state)
+          (prebind bindings expr state)))))
 
 (defun accumulate (kind term var state)
   (when (null var)
@@ -176,6 +194,7 @@
 (defun clause (state)
   (let ((term (eat state :atom)))
     (case term
+      (:with (a-with-clause state))
       (:for (for-clause state))
       (:repeat (repeat-clause state))
       (:while (push `(unless ,(eat state) break) (body state)))
@@ -257,13 +276,26 @@
       `(for ,(inits%) (,(test%)) ,(steps%)
             ,@(wrap-with-destructurings (iterations loop) (body loop))))))
 
+(defpsmacro with-prologue ((prologue) &body body)
+  (if (null prologue)
+      (cons 'progn body)
+      (ecase (caar prologue)
+        (:var (let ((decls '()))
+                (loop :for head :on prologue
+                  :while (eq (caar head) :var)
+                  :do (push (cdar head) decls)
+                  :finally (return `(let* ,(nreverse decls)
+                                      (with-prologue (,head) ,@body))))))
+        (:dbind `(destructuring-bind ,@(cdr (car prologue))
+                     (with-prologue (,(cdr prologue)) ,@body))))))
+
 (defpsmacro loop (&rest args)
   (let* ((loop (parse-ps-loop (normalize-loop-keywords args)))
          (main (or (straightforward-form loop)
                    (parallel-form loop))))
     `(,@(if (default-accum-var loop) '(with-lambda ()) '(progn))
-        ,@(prologue loop)
-        ,@(initially loop)
-        ,main
-        ,@(finally loop)
+        (with-prologue (,(prologue loop))
+          ,@(initially loop)
+          ,main
+          ,@(finally loop))
         ,@(when (default-accum-var loop) `((return ,(default-accum-var loop)))))))

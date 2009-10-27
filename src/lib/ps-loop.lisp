@@ -63,11 +63,14 @@
                    (err "an atom" tok))
                  tok))))
 
+(defun prevar (var expr state)
+  (pushnew (list 'var var expr) (prologue state) :key #'second)
+  var)
+
 (defmacro with-local-var ((name expr state) &body body)
   (once-only (expr)
     `(let ((,name (aif (and (complex-js-expr? ,expr) (ps-gensym))
-                       (progn (push (list 'var it ,expr) (prologue ,state))
-                              it)
+                       (prevar it ,expr ,state)
                        ,expr)))
        ,@body)))
 
@@ -87,12 +90,12 @@
     (let ((test (when test-op
                   (with-local-var (v end state)
                     (list test-op var v)))))
-      (push `(,var nil ,start (,op ,var ,(or by 1)) ,test) (iterations state)))))
+      (push `(,var nil ,start (,op ,var ,(or by 1)) ,test :from) (iterations state)))))
 
 (defun for-= (var bindings state)
   (let ((start (eat state))
         (then (eat state :if :then)))
-    (push (list var bindings start (or then start) nil) (iterations state))))
+    (push (list var bindings start (or then start) nil :=) (iterations state))))
 
 (defun for-in (var bindings state)
   (with-local-var (arr (eat state) state)
@@ -148,7 +151,7 @@
                    ((:sum :count) 0)
                    ((:maximize :minimize) nil)
                    (:collect '(array)))))
-    (pushnew `(var ,var ,initial) (prologue state) :key #'second))
+    (prevar var initial state))
   (case kind
     (:sum `(incf ,var ,term))
     (:count `(unless (null ,term) (incf ,var)))
@@ -188,25 +191,6 @@
         (loop :while (tokens state) :do (clause state))
         (nreverse-loop-state state))))
 
-(defun multiple-fors? (loop)
-  (> (length (iterations loop)) 1))
-
-(defun inits (loop)
-  (mapcar (lambda (x) (list (first x) (third x)))
-          (iterations loop)))
-
-(defun steps (loop)
-  (mapcar (lambda (x) `(setf ,(first x) ,(fourth x)))
-          (iterations loop)))
-
-(defun end-test (loop)
-  (aif (loop :for (nil nil nil nil test) :in (iterations loop)
-         :when test :collect test)
-       (if (cdr it)
-           (list 'not (cons 'or it))
-           (cons 'not it))
-       t))
-
 (defun wrap-with-destructurings (iterations forms)
   (if (null iterations)
       forms
@@ -216,41 +200,70 @@
             `((destructuring-bind ,it ,(first (car iterations)) ,@forms))
             forms))))
 
-(defun wrap-with-initially-and-finally (loop form)
-  `(progn
-     ,@(initially loop)
-     ,form
-     ,@(finally loop)))
-
-(defun loop-form-with-alternating-tests (loop)
+(defun parallel-form (loop)
+  ;; When there are parallel clauses, we want the loop to break as
+  ;; soon as any clause fails its initial test (the way CL does it).
+  ;; Javascript FOR loops won't give us this, because they evaluate
+  ;; every clause's init form up front and only then check the test
+  ;; forms. But we can get the desired behavior from a WHILE loop.
   (let ((form `(while t
                  ,@(append (body loop)
                            (loop :for (var bindings nil step test) :in (iterations loop)
                              :collect `(setf ,var ,step)
                              :when bindings :collect `(dset ,bindings ,var)
                              :when test :collect `(when ,test (break)))))))
-    ;; Preface the whole thing with alternating inits and tests prior
-    ;; to first executing the loop; this way, as in CL LOOP, we refrain
-    ;; from initializing subsequent clauses if a test fails.
-    (loop :for (var bindings init nil test) :in (reverse (iterations loop)) :do
-      (when test
-        (setf form `(unless ,test ,form)))
-      (when bindings
-        (setf form `(destructuring-bind ,bindings ,var ,form)))
-      (setf form `(let ((,var ,init)) ,form)))
-    (wrap-with-initially-and-finally loop form)))
+    ;; In addition, when :INITIALLY or :FINALLY are present, we need
+    ;; to lift declarations of iteration variables to prologue level,
+    ;; because these clauses must be evaluated regardless of whether
+    ;; or not we make it to the loop body.
+    (let ((lift? (or (initially loop) (finally loop))))
+      (when lift?
+        (loop :for iteration :in (reverse (iterations loop))
+          :for (var bindings init nil nil tag) = iteration :do
+          (mapcar (lambda (b) (prevar b nil loop)) (reverse bindings))
+          (if (eq tag :from)
+              (progn
+                (prevar var init loop)
+                (setf (third iteration) nil))
+              (prevar var nil loop))))
+      (loop :for (var bindings init nil test) :in (reverse (iterations loop)) :do
+        (when test
+          (setf form `(unless ,test ,form)))
+        (when bindings
+          (setf form `(,(if lift? 'dset 'destructuring-bind) ,bindings ,var ,form)))
+        (when init
+          (setf form `(progn (,(if lift? 'setf 'var) ,var ,init)
+                             ,form)))))
+    form))
 
-(defun simple-for-form (loop)
-  (wrap-with-initially-and-finally
-   loop
-   `(for ,(inits loop) (,(end-test loop)) ,(steps loop)
-         ,@(wrap-with-destructurings (iterations loop) (body loop)))))
+(defun straightforward-form (loop)
+  ;; An optimization for when we can get away with a nice tight FOR loop.
+  (unless (or (> (length (iterations loop)) 1)
+              (initially loop)
+              (finally loop))
+    (flet ((inits% ()
+             (mapcar (lambda (x) (list (first x) (third x)))
+                     (iterations loop)))
+           (steps% ()
+             (mapcar (lambda (x) `(setf ,(first x) ,(fourth x)))
+                     (iterations loop)))
+           (test% ()
+             (aif (loop :for x :in (iterations loop)
+                    :when (fifth x) :collect (fifth x))
+                  (if (cdr it)
+                      (list 'not (cons 'or it))
+                      (cons 'not it))
+                  t)))
+      `(for ,(inits%) (,(test%)) ,(steps%)
+            ,@(wrap-with-destructurings (iterations loop) (body loop))))))
 
 (defpsmacro loop (&rest args)
-  (let ((loop (parse-ps-loop (normalize-loop-keywords args))))
+  (let* ((loop (parse-ps-loop (normalize-loop-keywords args)))
+         (main (or (straightforward-form loop)
+                   (parallel-form loop))))
     `(,@(if (default-accum-var loop) '(with-lambda ()) '(progn))
         ,@(prologue loop)
-        ,(if (multiple-fors? loop)
-             (loop-form-with-alternating-tests loop)
-             (simple-for-form loop))
+        ,@(initially loop)
+        ,main
+        ,@(finally loop)
         ,@(when (default-accum-var loop) `((return ,(default-accum-var loop)))))))

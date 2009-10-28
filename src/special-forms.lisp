@@ -57,7 +57,12 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; statements
 (define-ps-special-form return (&optional value)
-  `(js:return ,(ps-compile-expression (ps-macroexpand value))))
+  (let ((value (ps-macroexpand value)))
+    (when (and (consp value) (eq (car value) 'js:return))
+      (if (> (length value) 1)
+          (error "Illegal double RETURN of ~s." (second value))
+          (error "Illegal double RETURN statement.")))
+    `(js:return ,(ps-compile-expression value))))
 
 (define-ps-special-form throw (value)
   `(js:throw ,(ps-compile-expression (ps-macroexpand value))))

@@ -19,7 +19,7 @@
     (let ((x 10))
       (defun side-effect() 
         (setf x 4)
-        (return 3))
+        3)
       (setf x (+ 2 (side-effect) x 5))))
   "var x = 10;
 function sideEffect() {
@@ -76,7 +76,7 @@ x = 2 + sideEffect() + x + 5;")
 
 (test-ps-js method-call-lambda-fn
   ((@ (lambda () (alert 10)) to-string))
-  "( function () { alert(10); } ).toString();")
+  "( function () { return alert(10); } ).toString();")
 
 (test-ps-js method-call-lambda-call
   ((@ ((lambda (x) (return x)) 10) to-string))
@@ -238,7 +238,7 @@ setBaz(_js2, _js3, _js1);")
            (setf (aref *some-thing* i1 i2) new-val))
          (setf (some-thing 1 2) "foo"))
 "function __setf_someThing(newVal, i1, i2) {
-    SOMETHING[i1][i2] = newVal;
+    return SOMETHING[i1][i2] = newVal;
 };
 var _js2 = 1;
 var _js3 = 2;
@@ -246,7 +246,8 @@ var _js1 = 'foo';
 __setf_someThing(_js1, _js2, _js3);")
 
 (test-ps-js defun-optional1
-  (defun test-opt (&optional x) (return (if x "yes" "no")))
+  (defun test-opt (&optional x)
+    (if x "yes" "no"))
   "function testOpt(x) {
     if (x === undefined) {
         x = null;
@@ -255,17 +256,18 @@ __setf_someThing(_js1, _js2, _js3);")
 };")
 
 (test-ps-js defun-optional2
-  (defun foo (x &optional y) (+ x y))
+  (defun foo (x &optional y)
+    (+ x y))
   "function foo(x, y) {
     if (y === undefined) {
         y = null;
     };
-    x + y;
+    return x + y;
 };")
 
 (test-ps-js defun-optional3
   (defun blah (&optional (x 0))
-    (return x))
+    x)
   "function blah(x) {
     if (x === undefined) {
         x = 0;
@@ -279,7 +281,7 @@ __setf_someThing(_js1, _js2, _js3);")
 
 (test-ps-js set-timeout
   (do-set-timeout (10) (alert "foo"))
-  "setTimeout(function () { alert('foo'); }, 10);")
+  "setTimeout(function () { return alert('foo'); }, 10);")
 
 (test-ps-js operator-precedence
   (* 3 (+ 4 5) 6)
@@ -362,13 +364,14 @@ __setf_someThing(_js1, _js2, _js3);")
   "[[1, 2], ['a', 'b']];")
 
 (test-ps-js defun-rest1
-  (defun foo (&rest bar) (alert (aref bar 1)))
+  (defun foo (&rest bar)
+    (alert (aref bar 1)))
   "function foo() {
     var bar = [];
     for (var i1 = 0; i1 < arguments.length - 0; i1 += 1) {
         bar[i1] = arguments[i1 + 0];
     };
-    alert(bar[1]);
+    return alert(bar[1]);
 };")
 
 (test-ps-js defun-rest2
@@ -464,7 +467,7 @@ __setf_someThing(_js1, _js2, _js3);")
     if (myName === undefined) {
         myName = 1;
     };
-    myName;
+    return myName;
 };")
 
 (test-ps-js keyword-funcall1
@@ -556,9 +559,7 @@ __setf_someThing(_js1, _js2, _js3);")
                                                (setf (,macroname x) 123)))))))
                (normalize-js-code
 "function test1() {
-    if (data[x]) {
-        data[x] = 123;
-    };
+    return data[x] ? (data[x] = 123) : null;
 };
 "))))
 
@@ -601,17 +602,13 @@ __setf_someThing(_js1, _js2, _js3);")
   "foo(2);")
 
 (test-ps-js expression-progn
-  (defun f () (return (progn (foo) (if x 1 2))))
-  "function f() {
-    return (foo(), x ? 1 : 2);
-};")
+  (1+ (progn (foo) (if x 1 2)))
+  "(foo(), x ? 1 : 2) + 1;")
 
 (test-ps-js let-decl-in-expression
   (defun f (x)
-    (return (if x
-                1
-                (let* ((foo x))
-                  foo))))
+    (if x 1 (let* ((foo x))
+              foo)))
   "function f(x) {
     var foo;
     return x ? 1 : (foo = x, foo);
@@ -759,7 +756,7 @@ try {
 
 (test-ps-js slot-value-lambda
   (slot-value (lambda ()) 'prototype)
-  "(function () { }).prototype;")
+  "(function () { return null; }).prototype;")
 
 (test-ps-js who-html1
   (who-ps-html (:span :class "ticker-symbol"
@@ -771,7 +768,7 @@ try {
 
 (test-ps-js flet1
   ((lambda () (flet ((foo (x)
-                       (return (1+ x))))
+                       (1+ x)))
                 (return (foo 1)))))
   "(function () {
     var foo1 = function (x) {
@@ -806,10 +803,10 @@ bar2(foo1(1));")
 
 (test-ps-js labels1
   ((lambda () (labels ((foo (x) 
-                         (return (if (=== 0 x)
-                                     0
-                                     (+ x (foo (1- x)))))))
-                (return (foo 3)))))
+                         (if (=== 0 x)
+                             0
+                             (+ x (foo (1- x))))))
+                (foo 3))))
   "(function () {
     var foo1 = function (x) {
         return 0 === x ? 0 : x + foo1(x - 1);
@@ -882,10 +879,11 @@ bar2(foo1(1));")
 (test-ps-js ps-js-target-version-keyword-test1
   (defun foo (x y &key bar baz))
   "function foo(x, y) {
+    var baz;
     var x1 = Array.prototype.indexOf.call(arguments, 'bar', 2);
     var bar = -1 == x1 ? null : arguments[x1 + 1];
     var x2 = Array.prototype.indexOf.call(arguments, 'baz', 2);
-    var baz = -1 == x2 ? null : arguments[x2 + 1];
+    return baz = -1 == x2 ? null : arguments[x2 + 1];
 };"
   :js-target-version 1.6)
 
@@ -955,14 +953,16 @@ x1 + y;")
 
 (test-ps-js let-exp1
   (lambda ()
-    (return (let (x) (+ x x))))
+    (let (x)
+      (+ x x)))
   "function () {
-    var x;
-    return (x = null, x + x);
+    var x = null;
+    return x + x;
 };")
 
 (test-ps-js let*1
-  (let* ((x 1)) (+ x x))
+  (let* ((x 1))
+    (+ x x))
 "var x = 1;
 x + x;")
 
@@ -1082,7 +1082,7 @@ x + x;")
   (flet ((foo () 'bar))
     (apply (function foo) nil))
   "var foo1 = function () {
-    'bar';
+    return 'bar';
 };
 foo1.apply(this, null);")
 

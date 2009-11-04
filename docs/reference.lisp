@@ -527,7 +527,7 @@ a-variable  => aVariable;
 (defun (setf color) (new-color el)
   (setf (slot-value (slot-value el 'style) 'color) new-color))
 => function __setf_color(newColor, el) {
-       el.style.color = newColor;
+       return el.style.color = newColor;
    };
 
 (setf (color some-div) (+ 23 "em"))
@@ -952,9 +952,9 @@ a-variable  => aVariable;
 ;;;t \index{exception}
 ;;;t \index{error handling}
 
-; (TRY body {(:CATCH (var) body)}? {(:FINALLY body)}?)
+; (TRY form {(:CATCH (var) body)}? {(:FINALLY body)}?)
 ;
-; body ::= a list of Parenscript statements
+; form ::= a Parenscript form
 ; var  ::= a Lisp symbol
 
 ;;; The `TRY' form is converted to a JavaScript `try' statement, and

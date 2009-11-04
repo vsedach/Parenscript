@@ -266,7 +266,7 @@ b = _js2;")
   (defun (setf color) (new-color el)
   (setf (slot-value (slot-value el 'style) 'color) new-color))
   "function __setf_color(newColor, el) {
-    el.style.color = newColor;
+    return el.style.color = newColor;
 };")
 
 (test-ps-js assignment-9

@@ -56,13 +56,40 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; statements
+
+(defun ps-statement? (exp)
+  (and (consp exp)
+       (member (car exp)
+               '(throw
+                 return
+                 do
+                 do*
+                 dotimes
+                 dolist
+                 for-in
+                 while))))
+
 (define-ps-special-form return (&optional value)
   (let ((value (ps-macroexpand value)))
-    (when (and (consp value) (eq (car value) 'js:return))
-      (if (> (length value) 1)
-          (error "Illegal double RETURN of ~s." (second value))
-          (error "Illegal double RETURN statement.")))
-    `(js:return ,(ps-compile-expression value))))
+    (if (consp value)
+        (case (car value)
+           (return
+             (ps-compile value))
+           ((case switch)
+            (ps-compile
+             (destructuring-bind (switch-case what clauses)
+                 value
+               (list switch-case what
+                     (loop for (cvalue . cbody) in clauses collect
+                          `(,cvalue ,@(butlast cbody) (return ,@(last cbody))))))))
+           ((with progn let flet labels)
+            (ps-compile (append (butlast value)
+                                `((return ,@(last value))))))
+           (try
+            (ps-compile `(try (return ,(second value))
+                              ,@(cddr value))))
+           (otherwise `(js:return ,(ps-compile-expression value))))
+        `(js:return ,(ps-compile-expression value)))))
 
 (define-ps-special-form throw (value)
   `(js:throw ,(ps-compile-expression (ps-macroexpand value))))
@@ -220,15 +247,27 @@
 
 (defvar *vars-bound-in-enclosing-lexical-scopes* ())
 
+(defun add-implicit-return (fbody)
+  (let ((last-thing (car (last fbody))))
+    (if (ps-statement? last-thing)
+        fbody
+        (append (butlast fbody)
+                `((return ,last-thing))))))
+
 (defun compile-function-definition (args body)
   (let ((args (mapcar #'ps-compile-symbol args)))
     (list args
-          (let* ((*enclosing-lexical-block-declarations* ())
-                 (*vars-bound-in-enclosing-lexical-scopes* (append args
-                                                                   *vars-bound-in-enclosing-lexical-scopes*))
-                 (body (ps-compile-statement `(progn ,@body)))
-                 (var-decls (ps-compile-statement
-                             `(progn ,@(mapcar (lambda (var) `(var ,var)) *enclosing-lexical-block-declarations*)))))
+          (let* ((*enclosing-lexical-block-declarations*
+                  ())
+                 (*vars-bound-in-enclosing-lexical-scopes*
+                  (append args *vars-bound-in-enclosing-lexical-scopes*))
+                 (body
+                  (ps-compile-statement `(progn ,@(add-implicit-return body))))
+                 (var-decls
+                  (ps-compile-statement
+                   `(progn ,@(mapcar (lambda (var)
+                                       `(var ,var))
+                                     *enclosing-lexical-block-declarations*)))))
             `(js:block ,@(cdr var-decls) ,@(cdr body))))))
 
 (define-ps-special-form %js-lambda (args &rest body)
@@ -238,9 +277,8 @@
   `(js:defun ,name ,@(compile-function-definition args body)))
 
 (defun parse-function-body (body)
-  (let* ((docstring
-          (when (stringp (first body))
-            (first body)))
+  (let* ((docstring (when (stringp (first body))
+                      (first body)))
          (body-forms (if docstring (rest body) body)))
     (values body-forms docstring)))
 
@@ -283,70 +321,93 @@ Syntax of key spec:
      (when (=== ,name undefined)
        (setf ,name ,value ,@(when suppl (list suppl nil))))))
 
-(defun parse-extended-function (lambda-list body &optional name)
+(defun parse-extended-function (lambda-list body)
   "Returns two values: the effective arguments and body for a function with
 the given lambda-list and body."
 
-  ;; The lambda list is transformed as follows, since a javascript lambda list is just a
-  ;; list of variable names, and you have access to the arguments variable inside the function:
-  ;; * standard variables are the mapped directly into the js-lambda list
-  ;; * optional variables' variable names are mapped directly into the lambda list,
-  ;;   and for each optional variable with name v, default value d, and
-  ;;   supplied-p parameter s, a form is produced (defaultf v d s)
-  ;; * keyword variables are not included in the js-lambda list, but instead are
-  ;;   obtained from the magic js ARGUMENTS pseudo-array. Code assigning values to
-  ;;   keyword vars is prepended to the body of the function. Defaults and supplied-p
+  ;; The lambda list is transformed as follows, since a javascript
+  ;; lambda list is just a list of variable names, and you have access
+  ;; to the arguments variable inside the function:
+  
+  ;; * standard variables are the mapped directly into the js-lambda
+  ;;   list
+  
+  ;; * optional variables' variable names are mapped directly into the
+  ;;   lambda list, and for each optional variable with name v,
+  ;;   default value d, and supplied-p parameter s, a form is produced
+  ;;   (defaultf v d s)
+  
+  ;; * keyword variables are not included in the js-lambda list, but
+  ;;   instead are obtained from the magic js ARGUMENTS
+  ;;   pseudo-array. Code assigning values to keyword vars is
+  ;;   prepended to the body of the function. Defaults and supplied-p
   ;;   are handled using the same mechanism as with optional vars.
-  (declare (ignore name))
-  (multiple-value-bind (requireds optionals rest? rest keys? keys allow? aux? aux
-                                  more? more-context more-count key-object)
+  (multiple-value-bind (requireds optionals rest? rest keys? keys allow? aux?
+                        aux more? more-context more-count key-object)
       (parse-lambda-list lambda-list)
     (declare (ignore allow? aux? aux more? more-context more-count key-object))
     (let* (;; optionals are of form (var default-value)
            (effective-args
-            (remove-if
-             #'null
-             (append requireds
-                     (mapcar #'parse-optional-spec optionals))))
+            (remove-if #'null
+                       (append requireds
+                               (mapcar #'parse-optional-spec optionals))))
            (opt-forms
-            (mapcar #'(lambda (opt-spec)
-                        (multiple-value-bind (var val suppl)
-                            (parse-optional-spec opt-spec)
-                          `(defaultf ,var ,val ,suppl)))
+            (mapcar (lambda (opt-spec)
+                      (multiple-value-bind (var val suppl)
+                          (parse-optional-spec opt-spec)
+                        `(defaultf ,var ,val ,suppl)))
                     optionals))
            (key-forms
             (when keys?
               (if (< *js-target-version* 1.6)
                   (with-ps-gensyms (n)
-                    (let ((decls nil) (assigns nil) (defaults nil))
-                      (mapc (lambda (k)
-                              (multiple-value-bind (var init-form keyword-str suppl)
-                                  (parse-key-spec k)
-                                (push `(var ,var) decls)
-                                (push `(,keyword-str (setf ,var (aref arguments (1+ ,n)))) assigns)
-                                (push (list 'defaultf var init-form suppl) defaults)))
-                            (reverse keys))
+                    (let ((decls nil)
+                          (assigns nil)
+                          (defaults nil))
+                      (mapc
+                       (lambda (k)
+                         (multiple-value-bind (var init-form
+                                                   keyword-str suppl)
+                             (parse-key-spec k)
+                           (push `(var ,var)
+                                 decls)
+                           (push `(,keyword-str (setf ,var (aref arguments (1+ ,n))))
+                                 assigns)
+                           (push (list 'defaultf var init-form suppl)
+                                 defaults)))
+                       (reverse keys))
                       `(,@decls
-                        (loop :for ,n :from ,(length requireds)
-                           :below (length arguments) :by 2 :do
-                           (case (aref arguments ,n) ,@assigns))
+                        (loop for ,n from ,(length requireds)
+                              below (length arguments) by 2 do
+                             (case (aref arguments ,n) ,@assigns))
                         ,@defaults)))
-                  (mapcar (lambda (k)
-                            (multiple-value-bind (var init-form keyword-str)
-                                (parse-key-spec k)
-                              (with-ps-gensyms (x)
-                                `(let ((,x ((@ *Array prototype index-of call) arguments ,keyword-str ,(length requireds))))
-                                   (var ,var (if (= -1 ,x) ,init-form (aref arguments (1+ ,x))))))))
-                          keys))))
+                  (mapcar
+                   (lambda (k)
+                     (multiple-value-bind (var init-form keyword-str)
+                         (parse-key-spec k)
+                       (with-ps-gensyms (x)
+                         `(let ((,x ((@ *Array prototype index-of call)
+                                     arguments ,keyword-str
+                                     ,(length requireds))))
+                            (var ,var (if (= -1 ,x)
+                                          ,init-form
+                                          (aref arguments (1+ ,x))))))))
+                   keys))))
            (rest-form
-            (if rest?
-                (with-ps-gensyms (i)
-                  `(progn (var ,rest (array))
-                    (dotimes (,i (- (slot-value arguments 'length) ,(length effective-args)))
-                      (setf (aref ,rest ,i) (aref arguments (+ ,i ,(length effective-args)))))))
-                `(progn)))
-           (body-paren-forms (parse-function-body body)) ; remove documentation
-           (effective-body (append opt-forms key-forms (list rest-form) body-paren-forms)))
+            (when rest?
+              (with-ps-gensyms (i)
+                `(progn (var ,rest (array))
+                        (dotimes (,i (- (slot-value arguments 'length)
+                                        ,(length effective-args)))
+                          (setf (aref ,rest
+                                      ,i)
+                                (aref arguments
+                                      (+ ,i ,(length effective-args)))))))))
+           (body-paren-forms (parse-function-body body))
+           (effective-body (append opt-forms
+                                   key-forms
+                                   (awhen rest-form (list it))
+                                   body-paren-forms)))
       (values effective-args effective-body))))
 
 (defpsmacro defun (name lambda-list &body body)
@@ -365,7 +426,7 @@ lambda-list::=
 
 (defpsmacro defun-function (name lambda-list &body body)
   (multiple-value-bind (effective-args effective-body)
-      (parse-extended-function lambda-list body name)
+      (parse-extended-function lambda-list body)
     `(%js-defun ,name ,effective-args
       ,@effective-body)))
 
@@ -388,8 +449,10 @@ lambda-list::=
          (setf (gethash fn-name fn-renames) (ps-gensym fn-name)))
     (let ((fn-defs (ps-compile
                     `(progn ,@(loop for (fn-name . def) in fn-defs collect
-                                   `(var ,(gethash fn-name fn-renames) (lambda ,@def))))))
-          (*ps-local-function-names* (cons fn-renames *ps-local-function-names*)))
+                                   `(var ,(gethash fn-name fn-renames)
+                                         (lambda ,@def))))))
+          (*ps-local-function-names*
+           (cons fn-renames *ps-local-function-names*)))
       (append fn-defs (cdr (ps-compile `(progn ,@body)))))))
 
 (define-ps-special-form labels (fn-defs &rest body)

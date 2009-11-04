@@ -189,3 +189,12 @@
     (if (eq arr expr)
         bound
         `(let ((,arr ,expr)) ,bound))))
+
+(defpsmacro prog1 (first &rest others)
+  (with-ps-gensyms (val)
+    `(let ((,val ,first))
+       ,@others
+       ,val)))
+
+(defpsmacro prog2 (first second &rest others)
+  `(progn ,first (prog1 ,second ,@others)))

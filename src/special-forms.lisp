@@ -447,13 +447,13 @@ lambda-list::=
   (let ((fn-renames (make-macro-dictionary)))
     (loop for (fn-name) in fn-defs do
          (setf (gethash fn-name fn-renames) (ps-gensym fn-name)))
-    (let ((fn-defs (ps-compile
-                    `(progn ,@(loop for (fn-name . def) in fn-defs collect
-                                   `(var ,(gethash fn-name fn-renames)
-                                         (lambda ,@def))))))
+    (let ((fn-defs (loop for (fn-name . def) in fn-defs collect
+                        (ps-compile `(var ,(gethash fn-name fn-renames)
+                                          (lambda ,@def)))))
           (*ps-local-function-names*
            (cons fn-renames *ps-local-function-names*)))
-      (append fn-defs (cdr (ps-compile `(progn ,@body)))))))
+      `(,(if compile-expression? 'js:|,| 'js:block)
+         ,@fn-defs ,@(flatten-blocks (mapcar #'ps-compile body))))))
 
 (define-ps-special-form labels (fn-defs &rest body)
   (with-local-macro-environment (local-fn-renames *ps-local-function-names*)

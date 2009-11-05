@@ -1210,3 +1210,10 @@ x1 - x1;
 (test-ps-js chain-slot-value3
   (chain ($ "foo") bar (x y) baz)
   "$('foo').bar.x(y).baz;")
+
+(test-ps-js flet-expression
+  (1+ (flet ((foo (x) (1+ x)))
+        (foo 1)))
+  "(foo1 = function (x) {
+    return x + 1;
+}, foo1(1)) + 1;")

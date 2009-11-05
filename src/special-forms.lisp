@@ -790,10 +790,14 @@ lambda-list::=
      ,@body))
 
 (defpsmacro dolist ((var array &optional (result nil result?)) &body body)
-  (let ((idx (ps-gensym "_js_idx"))
-        (arrvar (ps-gensym "_js_arrvar")))
+  (let* ((idx (ps-gensym "_js_idx"))
+         (introduce-array-var? (not (symbolp array)))
+         (arrvar (if introduce-array-var?
+                     (ps-gensym "_js_arrvar")
+                     array)))
     `(do* (,var
-           (,arrvar ,array)
+           ,@(when introduce-array-var?
+                   (list (list arrvar array)))
            (,idx 0 (1+ ,idx)))
           ((>= ,idx (slot-value ,arrvar 'length))
            ,@(when result? (list result)))

@@ -434,8 +434,8 @@ alert('Summation to 10 is ' + (function () {
   (dolist (c l)
     ((@ document write) (+ "c: " c "<br/>"))))
   "var l = [1, 2, 4, 8, 16, 32];
-for (var c = null, _js_arrvar2 = l, _js_idx1 = 0; _js_idx1 < _js_arrvar2.length; _js_idx1 += 1) {
-    c = _js_arrvar2[_js_idx1];
+for (var c = null, _js_idx1 = 0; _js_idx1 < l.length; _js_idx1 += 1) {
+    c = l[_js_idx1];
     document.write('c: ' + c + '<br/>');
 };")
 
@@ -448,8 +448,8 @@ for (var c = null, _js_arrvar2 = l, _js_idx1 = 0; _js_idx1 < _js_arrvar2.length;
   "var l = [1, 2, 4, 8, 16, 32];
 var s = 0;
 alert('Sum of ' + l + ' is: ' + (function () {
-    for (var c = null, _js_arrvar2 = l, _js_idx1 = 0; _js_idx1 < _js_arrvar2.length; _js_idx1 += 1) {
-        c = _js_arrvar2[_js_idx1];
+    for (var c = null, _js_idx1 = 0; _js_idx1 < l.length; _js_idx1 += 1) {
+        c = l[_js_idx1];
         s += c;
     };
     return s;

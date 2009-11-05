@@ -209,7 +209,7 @@ the form cannot be compiled to a symbol."
 ;;; operators
 
 (let ((precedence-table (make-hash-table :test 'eq)))
-  (loop for level in '((js:new js:slot-value js:aref)
+  (loop for level in '((js:new js:get-property js:aref)
                        (postfix++ postfix--)
                        (delete void typeof ++ -- unary+ unary- ~ !)
                        (* / %)

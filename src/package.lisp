@@ -127,7 +127,7 @@
 
       ;; slot access
       #:with-slots
-      #:slot-value
+      #:get-property
 
       ;; macros
       #:macrolet
@@ -264,6 +264,7 @@
       #:js
       #:js*
       #:symbol-to-js
+      #:slot-value
       ))
 
   (defparameter *javascript-exports*
@@ -361,7 +362,7 @@
       #:lambda
       #:object
       #:variable
-      #:slot-value
+      #:get-property
       #:funcall
       #:escape
       ))

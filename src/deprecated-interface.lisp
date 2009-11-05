@@ -64,3 +64,7 @@ is output to the OUTPUT-STREAM stream."
 
 (defun-js symbol-to-js symbol-to-js-string (symbol)
   (symbol-to-js-string symbol))
+
+(defpsmacro slot-value (&rest args)
+  (warn-deprecated 'slot-value 'get-property)
+  `(get-property ,@args))

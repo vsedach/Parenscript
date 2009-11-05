@@ -76,9 +76,9 @@
   `(not (undefined ,x)))
 
 (defpsmacro @ (obj &rest props)
-  "Handy slot-value/aref composition macro."
+  "Handy get-property/aref composition macro."
   (if props
-      `(@ (slot-value ,obj ,(if (symbolp (car props)) `',(car props) (car props))) ,@(cdr props))
+      `(@ (get-property ,obj ,(if (symbolp (car props)) `',(car props) (car props))) ,@(cdr props))
       obj))
 
 (defpsmacro chain (&rest method-calls)

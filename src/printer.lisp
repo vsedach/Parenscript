@@ -101,7 +101,7 @@ arguments, defines a printer for that form using the given body."
 (defun expression-precedence (expr)
   (if (consp expr)
       (case (car expr)
-        ((js:slot-value js:aref) (op-precedence (car expr)))
+        ((js:get-property js:aref) (op-precedence (car expr)))
         (js:= (op-precedence 'js:=))
         (js:? (op-precedence 'js:?))
         (js:unary-operator (op-precedence (second expr)))
@@ -153,7 +153,7 @@ arguments, defines a printer for that form using the given body."
   (unless prefix (format *psw-stream* "~(~a~)" op)))
 
 (defprinter js:funcall (fun-designator &rest args)
-  (funcall (if (member (car fun-designator) '(js:variable js:aref js:slot-value js:funcall))
+  (funcall (if (member (car fun-designator) '(js:variable js:aref js:get-property js:funcall))
                #'ps-print
                #'parenthesize-print)
            fun-designator)
@@ -194,8 +194,8 @@ arguments, defines a printer for that form using the given body."
        (when remaining (psw ", ")))
   (psw " }"))
 
-(defprinter js:slot-value (obj slot)
-  (if (or (> (expression-precedence obj) (op-precedence 'js:slot-value))
+(defprinter js:get-property (obj slot)
+  (if (or (> (expression-precedence obj) (op-precedence 'js:get-property))
           (numberp obj)
           (and (listp obj) (member (car obj) '(js:lambda js:object))))
       (parenthesize-print obj)

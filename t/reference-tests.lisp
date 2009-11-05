@@ -99,7 +99,7 @@
   anotherObject : { 'schtrunz' : 1 } };")
 
 (test-ps-js object-literals-3
-  (slot-value an-object 'foo)
+  (get-property an-object 'foo)
   "anObject.foo;")
 
 (test-ps-js object-literals-4
@@ -164,7 +164,7 @@
   "foobar(blorg(1, 2), blabla(3, 4), [ 2, 3, 4 ]);")
 
 (test-ps-js function-calls-and-method-calls-3
-  ((slot-value this 'blorg) 1 2)
+  ((get-property this 'blorg) 1 2)
   "this.blorg(1, 2);")
 
 (test-ps-js function-calls-and-method-calls-4
@@ -172,7 +172,7 @@
   "foo[i](1, 2);")
 
 (test-ps-js function-calls-and-method-calls-5
-  ((slot-value (aref foobar 1) 'blorg) NIL T)
+  ((get-property (aref foobar 1) 'blorg) NIL T)
   "foobar[1].blorg(null, true);")
 
 (test-ps-js operator-expressions-1
@@ -264,7 +264,7 @@ b = _js2;")
 
 (test-ps-js assignment-8
   (defun (setf color) (new-color el)
-  (setf (slot-value (slot-value el 'style) 'color) new-color))
+  (setf (get-property (get-property el 'style) 'color) new-color))
   "function __setf_color(newColor, el) {
     return el.style.color = newColor;
 };")
@@ -277,7 +277,7 @@ __setf_color(_js1, _js2);")
 
 (test-ps-js assignment-10
   (defsetf left (el) (offset)
-  `(setf (slot-value (slot-value ,el 'style) 'left) ,offset))
+  `(setf (get-property (get-property ,el 'style) 'left) ,offset))
   "null;")
 
 (test-ps-js assignment-11
@@ -288,7 +288,7 @@ _js2.style.left = _js1;")
 
 (test-ps-js assignment-12
   (macrolet ((left (el)
-             `(slot-value ,el 'offset-left)))
+             `(get-property ,el 'offset-left)))
   (left some-div))
   "someDiv.offsetLeft;")
 

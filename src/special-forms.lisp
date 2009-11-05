@@ -3,7 +3,7 @@
 (defmacro with-local-macro-environment ((var env) &body body)
   `(let* ((,var (make-macro-dictionary))
           (,env (cons ,var ,env)))
-    ,@body))
+     ,@body))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; literals
@@ -73,24 +73,24 @@
   (let ((value (ps-macroexpand value)))
     (if (consp value)
         (case (car value)
-           (return
-             (ps-compile value))
-           ((switch case)
-            (ps-compile
-             `(js:switch ,(second value)
-                ,@(loop for (cvalue . cbody) in (cddr value) collect
-                       (let ((last-n (if (eq 'js:break (car (last cbody)))
-                                         2
-                                         1)))
-                         `(,cvalue ,@(butlast cbody last-n)
-                                   (return ,(car (last cbody last-n)))))))))
-           ((with progn let flet labels)
-            (ps-compile (append (butlast value)
-                                `((return ,@(last value))))))
-           (try
-            (ps-compile `(try (return ,(second value))
-                              ,@(cddr value))))
-           (otherwise `(js:return ,(ps-compile-expression value))))
+          (return
+            (ps-compile value))
+          ((switch case)
+           (ps-compile
+            `(js:switch ,(second value)
+               ,@(loop for (cvalue . cbody) in (cddr value) collect
+                      (let ((last-n (if (eq 'js:break (car (last cbody)))
+                                        2
+                                        1)))
+                        `(,cvalue ,@(butlast cbody last-n)
+                                  (return ,(car (last cbody last-n)))))))))
+          ((with progn let flet labels)
+           (ps-compile (append (butlast value)
+                               `((return ,@(last value))))))
+          (try
+           (ps-compile `(try (return ,(second value))
+                             ,@(cddr value))))
+          (otherwise `(js:return ,(ps-compile-expression value))))
         `(js:return ,(ps-compile-expression value)))))
 
 (define-ps-special-form throw (value)
@@ -345,10 +345,10 @@ the given lambda-list and body."
   ;;   prepended to the body of the function. Defaults and supplied-p
   ;;   are handled using the same mechanism as with optional vars.
   (multiple-value-bind (requireds optionals rest? rest keys? keys allow? aux?
-                        aux more? more-context more-count key-object)
+                                  aux more? more-context more-count key-object)
       (parse-lambda-list lambda-list)
     (declare (ignore allow? aux? aux more? more-context more-count key-object))
-    (let* (;; optionals are of form (var default-value)
+    (let* ( ;; optionals are of form (var default-value)
            (effective-args
             (remove-if #'null
                        (append requireds
@@ -380,8 +380,8 @@ the given lambda-list and body."
                        (reverse keys))
                       `(,@decls
                         (loop for ,n from ,(length requireds)
-                              below (length arguments) by 2 do
-                             (case (aref arguments ,n) ,@assigns))
+                           below (length arguments) by 2 do
+                           (case (aref arguments ,n) ,@assigns))
                         ,@defaults)))
                   (mapcar
                    (lambda (k)
@@ -399,7 +399,7 @@ the given lambda-list and body."
             (when rest?
               (with-ps-gensyms (i)
                 `(progn (var ,rest (array))
-                        (dotimes (,i (- (slot-value arguments 'length)
+                        (dotimes (,i (- (get-property arguments 'length)
                                         ,(length effective-args)))
                           (setf (aref ,rest
                                       ,i)
@@ -430,7 +430,7 @@ lambda-list::=
   (multiple-value-bind (effective-args effective-body)
       (parse-extended-function lambda-list body)
     `(%js-defun ,name ,effective-args
-      ,@effective-body)))
+                ,@effective-body)))
 
 (defpsmacro lambda (lambda-list &body body)
   "An extended defun macro that allows cool things like keyword arguments.
@@ -443,7 +443,7 @@ lambda-list::=
   (multiple-value-bind (effective-args effective-body)
       (parse-extended-function lambda-list body)
     `(%js-lambda ,effective-args
-      ,@effective-body)))
+                 ,@effective-body)))
 
 (define-ps-special-form flet (fn-defs &rest body)
   (let ((fn-renames (make-macro-dictionary)))
@@ -484,16 +484,16 @@ lambda-list::=
         (compile nil
                  (let ((var-bindings (ordered-set-difference lambda-list lambda-list-keywords)))
                    `(lambda (access-fn-args store-form)
-                     (destructuring-bind ,lambda-list
-                               access-fn-args
-                       (let* ((,store-var (ps-gensym))
-                              (gensymed-names (loop repeat ,(length var-bindings) collecting (ps-gensym)))
-                              (gensymed-arg-bindings (mapcar #'list gensymed-names (list ,@var-bindings))))
-                         (destructuring-bind ,var-bindings
-                             gensymed-names
-                           `(let* (,@gensymed-arg-bindings
-                                   (,,store-var ,store-form))
-                             ,,form))))))))
+                      (destructuring-bind ,lambda-list
+                          access-fn-args
+                        (let* ((,store-var (ps-gensym))
+                               (gensymed-names (loop repeat ,(length var-bindings) collecting (ps-gensym)))
+                               (gensymed-arg-bindings (mapcar #'list gensymed-names (list ,@var-bindings))))
+                          (destructuring-bind ,var-bindings
+                              gensymed-names
+                            `(let* (,@gensymed-arg-bindings
+                                    (,,store-var ,store-form))
+                               ,,form))))))))
   nil)
 
 (defpsmacro defsetf-short (access-fn update-fn &optional docstring)
@@ -559,29 +559,29 @@ lambda-list::=
   `(js:instanceof ,(ps-compile-expression value)
                   ,(ps-compile-expression type)))
 
-(define-ps-special-form %js-slot-value (obj slot)
+(define-ps-special-form %js-get-property (obj slot)
   (let ((slot (ps-macroexpand slot)))
-    `(js:slot-value ,(ps-compile-expression (ps-macroexpand obj))
-                    ,(let ((slot (if (and (listp slot) (eq 'quote (car slot)))
-                                     (second slot) ;; assume we're quoting a symbol
-                                     (ps-compile-expression slot))))
-                          (if (and (symbolp slot)
-                                   (ps-reserved-symbol-p slot))
-                              (symbol-name-to-js-string slot)
-                              slot)))))
+    `(js:get-property ,(ps-compile-expression (ps-macroexpand obj))
+                      ,(let ((slot (if (and (listp slot) (eq 'quote (car slot)))
+                                       (second slot) ;; assume we're quoting a symbol
+                                       (ps-compile-expression slot))))
+                            (if (and (symbolp slot)
+                                     (ps-reserved-symbol-p slot))
+                                (symbol-name-to-js-string slot)
+                                slot)))))
 
-(defpsmacro slot-value (obj &rest slots)
+(defpsmacro get-property (obj &rest slots)
   (if (null (rest slots))
-      `(%js-slot-value ,obj ,(first slots))
-      `(slot-value (slot-value ,obj ,(first slots)) ,@(rest slots))))
+      `(%js-get-property ,obj ,(first slots))
+      `(get-property (get-property ,obj ,(first slots)) ,@(rest slots))))
 
 (defpsmacro with-slots (slots object &rest body)
   (flet ((slot-var (slot) (if (listp slot) (first slot) slot))
          (slot-symbol (slot) (if (listp slot) (second slot) slot)))
     `(symbol-macrolet ,(mapcar #'(lambda (slot)
-                                   `(,(slot-var slot) (slot-value ,object ',(slot-symbol slot))))
+                                   `(,(slot-var slot) (get-property ,object ',(slot-symbol slot))))
                                slots)
-      ,@body)))
+       ,@body)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; assignment and binding
@@ -801,7 +801,7 @@ lambda-list::=
            ,@(when introduce-array-var?
                    (list (list arrvar array)))
            (,idx 0 (1+ ,idx)))
-          ((>= ,idx (slot-value ,arrvar 'length))
+          ((>= ,idx (get-property ,arrvar 'length))
            ,@(when result? (list result)))
        (setq ,var (aref ,arrvar ,idx))
        ,@body)))
@@ -819,9 +819,9 @@ lambda-list::=
     (assert (or catch finally) ()
             "Try form should have either a catch or a finally clause or both.")
     `(js:try ,(ps-compile-statement `(progn ,form))
-          :catch ,(when catch (list (ps-compile-symbol (caar catch))
-                                    (ps-compile-statement `(progn ,@(cdr catch)))))
-          :finally ,(when finally (ps-compile-statement `(progn ,@finally))))))
+             :catch ,(when catch (list (ps-compile-symbol (caar catch))
+                                       (ps-compile-statement `(progn ,@(cdr catch)))))
+             :finally ,(when finally (ps-compile-statement `(progn ,@finally))))))
 
 (define-ps-special-form cc-if (test &rest body)
   `(js:cc-if ,test ,@(mapcar #'ps-compile-statement body)))

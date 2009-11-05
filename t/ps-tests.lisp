@@ -1228,3 +1228,11 @@ case 0:
 default: 
     return 2;
 };")
+
+(test-ps-js aplusplus
+ a++
+ "aplusplus;")
+
+(test-ps-js astarstar
+ a**
+ "astarstar;")

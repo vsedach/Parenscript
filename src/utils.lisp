@@ -16,7 +16,7 @@ SOMEGLOBAL."
                            (find-if (lambda (x) (find x '(#\. #\[ #\]))) sym-name))
                   (warn "Symbol ~A contains one of '.[]' - this compound naming convention is no longer supported by Parenscript!"
                         symbol))
-                (acond ((nth-value 1 (cl-ppcre:scan-to-strings "[\\*|\\+](.*)[\\*|\\+](.*)"
+                (acond ((nth-value 1 (cl-ppcre:scan-to-strings "[\\*|\\+](.+)[\\*|\\+](.*)"
                                                                sym-name :sharedp t))
                         (setf all-uppercase t
                               sym-name (concatenate 'string (aref it 0) (aref it 1))))

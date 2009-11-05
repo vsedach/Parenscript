@@ -1217,3 +1217,14 @@ x1 - x1;
   "(foo1 = function (x) {
     return x + 1;
 }, foo1(1)) + 1;")
+
+(test-ps-js return-case-break-elimination
+  (return (case 1
+            (0 1)
+            (otherwise 2)))
+  "switch (1) {
+case 0:
+    return 1;
+default: 
+    return 2;
+};")

@@ -75,13 +75,15 @@
         (case (car value)
            (return
              (ps-compile value))
-           ((case switch)
+           ((switch case)
             (ps-compile
-             (destructuring-bind (switch-case what clauses)
-                 value
-               (list switch-case what
-                     (loop for (cvalue . cbody) in clauses collect
-                          `(,cvalue ,@(butlast cbody) (return ,@(last cbody))))))))
+             `(js:switch ,(second value)
+                ,@(loop for (cvalue . cbody) in (cddr value) collect
+                       (let ((last-n (if (eq 'js:break (car (last cbody)))
+                                         2
+                                         1)))
+                         `(,cvalue ,@(butlast cbody last-n)
+                                   (return ,(car (last cbody last-n)))))))))
            ((with progn let flet labels)
             (ps-compile (append (butlast value)
                                 `((return ,@(last value))))))

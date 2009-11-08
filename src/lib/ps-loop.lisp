@@ -269,15 +269,15 @@
                      ,@(append (body loop)
                                (loop :for (var bindings nil step test) :in (iterations loop)
                                  :collect `(setf ,var ,step)
-                                 :when bindings :collect `(dset ,bindings ,var)
-                                 :when test :collect `(when ,test (break)))))))
+                                 :when test :collect `(when ,test (break))
+                                 :when bindings :collect `(dset ,bindings ,var))))))
         (loop :for (var bindings init nil test) :in (reverse (iterations loop)) :do
-          (when test
-            (setf form `(unless ,test ,form)))
           (when bindings
             (setf form `(,(if (member bindings lifted :test #'equalp)
                               'dset
                               'destructuring-bind) ,bindings ,var ,form)))
+          (when test
+            (setf form `(unless ,test ,form)))
           (when init
             (setf form `(progn (,(if (member var lifted) 'setf 'var) ,var ,init)
                                ,form))))

@@ -325,4 +325,4 @@
           ,@(initially loop)
           ,main
           ,@(finally loop))
-        ,@(when (default-accum-var loop) `((return ,(default-accum-var loop)))))))
+        ,(aif (default-accum-var loop) it nil))))

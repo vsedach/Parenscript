@@ -248,11 +248,15 @@ __setf_someThing(_js1, _js2, _js3);")
 (test-ps-js defun-optional1
   (defun test-opt (&optional x)
     (if x "yes" "no"))
-  "function testOpt(x) {
+"function testOpt(x) {
     if (x === undefined) {
         x = null;
     };
-    return x ? 'yes' : 'no';
+    if (x) {
+        return 'yes';
+    } else {
+        return 'no';
+    };
 };")
 
 (test-ps-js defun-optional2
@@ -500,7 +504,11 @@ __setf_someThing(_js1, _js2, _js3);")
 
 (test-ps-js if-exp-without-else-returns-null
   (return (if x 1))
-  "return x ? 1 : null;")
+  "if (x) {
+    return 1;
+} else {
+    return null;
+};")
 
 (test-ps-js progn-expression-single-statement
   (return (progn (* x y)))
@@ -546,7 +554,7 @@ __setf_someThing(_js1, _js2, _js3);")
        img))
   "document.write(LINKORNOT == 1 ? '<A HREF=\"#\" ONCLICK=\"' + ('javascript:' + 'transport()') + '\">' + img + '</A>' : img);")
 
-(test-ps-js negate-number-literal ;; ok, this was broken and fixed before, but no one bothered to add the test!
+(test-ps-js negate-number-literal
   (- 1)
   "-1;")
 
@@ -559,9 +567,12 @@ __setf_someThing(_js1, _js2, _js3);")
                                                (setf (,macroname x) 123)))))))
                (normalize-js-code
 "function test1() {
-    return data[x] ? (data[x] = 123) : null;
-};
-"))))
+    if (data[x]) {
+        return data[x] = 123;
+    } else {
+        return null;
+    };
+};"))))
 
 (test macro-environment2
   (is (string= (normalize-js-code (let ((outer-lexical-variable 1))
@@ -609,9 +620,13 @@ __setf_someThing(_js1, _js2, _js3);")
   (defun f (x)
     (if x 1 (let* ((foo x))
               foo)))
-  "function f(x) {
-    var foo;
-    return x ? 1 : (foo = x, foo);
+"function f(x) {
+    if (x) {
+        return 1;
+    } else {
+        var foo = x;
+        return foo;
+    };
 };")
 
 (test-ps-js special-var1
@@ -807,9 +822,13 @@ bar2(foo1(1));")
                              0
                              (+ x (foo (1- x))))))
                 (foo 3))))
-  "(function () {
+"(function () {
     var foo1 = function (x) {
-        return 0 === x ? 0 : x + foo1(x - 1);
+        if (0 === x) {
+            return 0;
+        } else {
+            return x + foo1(x - 1);
+        };
     };
     return foo1(3);
 })();")
@@ -889,11 +908,23 @@ bar2(foo1(1));")
 
 (test-ps-js nested-if-expressions1
   (return (if (if x y z) a b))
-  "return (x ? y : z) ? a : b;")
+  "if (x ? y : z) {
+    return a;
+} else {
+    return b;
+};")
 
 (test-ps-js nested-if-expressions2
   (return (if x y (if z a b)))
-  "return x ? y : (z ? a : b);")
+"if (x) {
+    return y;
+} else {
+    if (z) {
+        return a;
+    } else {
+        return b;
+    };
+};")
 
 (test-ps-js let1
   (let (x)
@@ -1076,7 +1107,11 @@ x + x;")
 (test-ps-js symbol-macro-conditional2
   (symbol-macrolet ((x y))
     (return (if x x x)))
-  "return y ? y : y;")
+"if (y) {
+    return y;
+} else {
+    return y;
+};")
 
 (test-ps-js flet-apply
   (flet ((foo () 'bar))
@@ -1236,3 +1271,43 @@ default:
 (test-ps-js astarstar
  a**
  "astarstar;")
+
+(test-ps-js switch-return-fallthrough
+  (return
+    (switch x
+            (1 (foo) break)
+            (2 (bar))
+            (default 4)))
+  "switch (x) {
+case 1:
+    return foo();
+case 2:
+    bar();
+default: 
+    return 4;
+};")
+
+(test-ps-js return-last-case
+  (return
+          (case x
+            (a 'eh)
+            (b 'bee)))
+  "switch (x) {
+case a:
+    return 'eh';
+case b:
+    return 'bee';
+};")
+
+(test-ps-js return-macrolet
+  (return
+    (macrolet ((x () 1))
+      (case (x)
+        (a 'eh)
+        (b 'bee))))
+  "switch (1) {
+case a:
+    return 'eh';
+case b:
+    return 'bee';
+};")

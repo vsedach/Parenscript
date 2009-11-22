@@ -61,7 +61,6 @@
   (and (consp exp)
        (member (car exp)
                '(throw
-                 return
                  do
                  do*
                  dotimes
@@ -71,27 +70,37 @@
 
 (define-ps-special-form return (&optional value)
   (let ((value (ps-macroexpand value)))
-    (if (consp value)
-        (case (car value)
-          (return
-            (ps-compile value))
-          ((switch case)
-           (ps-compile
-            `(js:switch ,(second value)
-               ,@(loop for (cvalue . cbody) in (cddr value) collect
-                      (let ((last-n (if (eq 'js:break (car (last cbody)))
-                                        2
-                                        1)))
-                        `(,cvalue ,@(butlast cbody last-n)
-                                  (return ,(car (last cbody last-n)))))))))
-          ((with progn let flet labels)
-           (ps-compile (append (butlast value)
-                               `((return ,@(last value))))))
-          (try
-           (ps-compile `(try (return ,(second value))
-                             ,@(cddr value))))
-          (otherwise `(js:return ,(ps-compile-expression value))))
-        `(js:return ,(ps-compile-expression value)))))
+    (if (ps-statement? value)
+        (ps-compile-statement value)
+        (if (consp value)
+            (case (car value)
+              (return
+                (ps-compile value))
+              (switch
+                  (ps-compile
+                   `(js:switch ,(second value)
+                      ,@(loop for (cvalue . cbody) in (cddr value)
+                           for remaining on (cddr value) collect
+                             (let ((last-n (cond ((or (eq 'js:default cvalue)
+                                                      (not (cdr remaining))) 1)
+                                                 ((eq 'js:break (car (last cbody))) 2))))
+                               (if last-n
+                                   `(,cvalue ,@(butlast cbody last-n)
+                                             (return ,(car (last cbody last-n))))
+                                   (cons cvalue cbody)))))))
+              ((with progn let flet labels macrolet)
+               (ps-compile (append (butlast value)
+                                   `((return ,@(last value))))))
+              (try
+               (ps-compile `(try (return ,(second value))
+                                 ,@(cddr value))))
+              (if
+               (ps-compile `(if ,(second value)
+                                (return ,(third value))
+                                (return ,(fourth value)))))
+              (otherwise
+               `(js:return ,(ps-compile-expression value))))
+            `(js:return ,(ps-compile-expression value))))))
 
 (define-ps-special-form throw (value)
   `(js:throw ,(ps-compile-expression (ps-macroexpand value))))

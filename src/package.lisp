@@ -217,8 +217,8 @@
   (defparameter *parenscript-interface-exports*
     '(;; compiler
       #:*js-target-version*
-      #:compile-script
       #:ps
+      #:*parenscript-stream*
       #:ps-to-stream
       #:ps-doc
       #:ps-doc*
@@ -265,6 +265,7 @@
       #:js*
       #:symbol-to-js
       #:slot-value
+      #:compile-script
       ))
 
   (defparameter *javascript-exports*

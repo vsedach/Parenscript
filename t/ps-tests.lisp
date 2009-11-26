@@ -1311,3 +1311,62 @@ case a:
 case b:
     return 'bee';
 };")
+
+(test-ps-js mv-bind1
+  (multiple-value-bind (a b)
+      (progn
+        (returns-mv)
+        (doesnt))
+    (alert a)
+    (alert b))
+  "returnsMv();
+var prevmv2 = arguments['callee']['mv'];
+try {
+    arguments['callee']['mv'] = true;
+    var a = doesnt();
+    var mv1 = typeof arguments['callee']['mv'] == 'object' ? arguments['callee']['mv'] : new Array(1);
+    var b = mv1[0];
+    alert(a);
+    alert(b);
+} finally {
+    if (undefined === prevmv2) {
+        delete arguments['callee']['mv'];
+    } else {
+        arguments['callee']['mv'] = prevmv2;
+    };
+};")
+
+(test-ps-js values0
+  (values)
+  "null;")
+
+(test-ps-js values1
+  (values x)
+  "x;")
+
+(test-ps-js values2
+  (values x y)
+  "var val1_1 = x;
+var valrest2 = [y];
+if (undefined !== arguments['callee']['caller']['mv']) {
+    arguments['callee']['caller']['mv'] = valrest2;
+};
+val1_1;")
+
+(test-ps-js values3
+  (values x y z)
+  "var val1_1 = x;
+var valrest2 = [y, z];
+if (undefined !== arguments['callee']['caller']['mv']) {
+    arguments['callee']['caller']['mv'] = valrest2;
+};
+val1_1;")
+
+(test-ps-js values-return
+  (return (values x y))
+  "var val1_1 = x;
+var valrest2 = [y];
+if (undefined !== arguments['callee']['caller']['mv']) {
+    arguments['callee']['caller']['mv'] = valrest2;
+};
+return val1_1;")

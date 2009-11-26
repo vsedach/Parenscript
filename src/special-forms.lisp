@@ -102,6 +102,40 @@
                `(js:return ,(ps-compile-expression value))))
             `(js:return ,(ps-compile-expression value))))))
 
+(defpsmacro values (&optional main &rest additional)
+  (when main
+    (if additional
+        (with-ps-gensyms (val1 valrest)
+          `(let ((,val1 ,main)
+                 (,valrest (list ,@additional)))
+             (when (defined (@ arguments :callee :caller :mv))
+               (setf (@ arguments :callee :caller :mv) ,valrest))
+             ,val1))
+        main)))
+
+(defpsmacro multiple-value-bind (vars expr &body body)
+  (let ((expr (ps-macroexpand expr)))
+    (if (and (consp expr)
+             (member (car expr) '(with progn let flet labels macrolet)))
+        `(,@(butlast expr)
+            (multiple-value-bind ,vars
+                ,@(last expr)
+              ,@body))
+        (with-ps-gensyms (mv prev-mv)
+          `(let ((,prev-mv (@ arguments :callee :mv)))
+             (try
+              (progn
+                (setf (@ arguments :callee :mv) t)
+                (let ((,(car vars) ,expr)
+                      (,mv (if (objectp (@ arguments :callee :mv))
+                               (@ arguments :callee :mv)
+                               (make-array ,(1- (length vars))))))
+                  (destructuring-bind ,(cdr vars) ,mv
+                    ,@body)))
+              (:finally (if (undefined ,prev-mv)
+                            (delete (@ arguments :callee :mv))
+                            (setf (@ arguments :callee :mv) ,prev-mv)))))))))
+
 (define-ps-special-form throw (value)
   `(js:throw ,(ps-compile-expression (ps-macroexpand value))))
 

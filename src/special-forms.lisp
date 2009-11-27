@@ -68,38 +68,47 @@
                  for-in
                  while))))
 
+(defun implicit-progn-form? (form)
+  (member (car form) '(with progn let flet labels macrolet symbol-macrolet)))
+  
 (define-ps-special-form return (&optional value)
   (let ((value (ps-macroexpand value)))
     (if (ps-statement? value)
         (ps-compile-statement value)
         (if (consp value)
-            (case (car value)
-              (return
-                (ps-compile value))
-              (switch
-                  (ps-compile
-                   `(js:switch ,(second value)
-                      ,@(loop for (cvalue . cbody) in (cddr value)
-                           for remaining on (cddr value) collect
-                             (let ((last-n (cond ((or (eq 'js:default cvalue)
-                                                      (not (cdr remaining))) 1)
-                                                 ((eq 'js:break (car (last cbody))) 2))))
-                               (if last-n
-                                   `(,cvalue ,@(butlast cbody last-n)
-                                             (return ,(car (last cbody last-n))))
-                                   (cons cvalue cbody)))))))
-              ((with progn let flet labels macrolet)
-               (ps-compile (append (butlast value)
-                                   `((return ,@(last value))))))
-              (try
-               (ps-compile `(try (return ,(second value))
-                                 ,@(cddr value))))
-              (if
-               (ps-compile `(if ,(second value)
-                                (return ,(third value))
-                                (return ,(fourth value)))))
-              (otherwise
-               `(js:return ,(ps-compile-expression value))))
+            (if (implicit-progn-form? value)
+                (ps-compile (append (butlast value)
+                                    `((return ,@(last value)))))
+                (case (car value)
+                  (return
+                    (ps-compile value))
+                  (switch
+                   (ps-compile
+                    `(js:switch ,(second value)
+                                ,@(loop for (cvalue . cbody) in (cddr value)
+                                     for remaining on (cddr value) collect
+                                       (let ((last-n
+                                              (cond ((or (eq 'js:default cvalue)
+                                                         (not (cdr remaining)))
+                                                     1)
+                                                    ((eq 'js:break
+                                                         (car (last cbody)))
+                                                     2))))
+                                         (if last-n
+                                             `(,cvalue
+                                               ,@(butlast cbody last-n)
+                                               (return
+                                                 ,(car (last cbody last-n))))
+                                             (cons cvalue cbody)))))))
+                  (try
+                   (ps-compile `(try (return ,(second value))
+                                     ,@(cddr value))))
+                  (if
+                   (ps-compile `(if ,(second value)
+                                    (return ,(third value))
+                                    (return ,(fourth value)))))
+                  (otherwise
+                   `(js:return ,(ps-compile-expression value)))))
             `(js:return ,(ps-compile-expression value))))))
 
 (defpsmacro values (&optional main &rest additional)
@@ -115,8 +124,7 @@
 
 (defpsmacro multiple-value-bind (vars expr &body body)
   (let ((expr (ps-macroexpand expr)))
-    (if (and (consp expr)
-             (member (car expr) '(with progn let flet labels macrolet)))
+    (if (and (consp expr) (implicit-progn-form? expr))
         `(,@(butlast expr)
             (multiple-value-bind ,vars
                 ,@(last expr)
@@ -568,10 +576,13 @@ lambda-list::=
       (dolist (macro symbol-macros)
         (destructuring-bind (name expansion)
             macro
-          (setf (gethash name local-macro-dict) (lambda (x) (declare (ignore x)) expansion))
+          (setf (gethash name local-macro-dict) (lambda (x)
+                                                  (declare (ignore x))
+                                                  expansion))
           (push name local-var-bindings)))
-      (let ((*vars-bound-in-enclosing-lexical-scopes* (append local-var-bindings
-                                                              *vars-bound-in-enclosing-lexical-scopes*)))
+      (let ((*vars-bound-in-enclosing-lexical-scopes*
+             (append local-var-bindings
+                     *vars-bound-in-enclosing-lexical-scopes*)))
         (ps-compile `(progn ,@body))))))
 
 (define-ps-special-form defmacro (name args &body body) ;; should this be a macro?

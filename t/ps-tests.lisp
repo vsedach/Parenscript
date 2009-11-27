@@ -1370,3 +1370,12 @@ if (undefined !== arguments['callee']['caller']['mv']) {
     arguments['callee']['caller']['mv'] = valrest2;
 };
 return val1_1;")
+
+(test-ps-js return-macrolet
+  (return
+    (symbol-macrolet ((x 2))
+      (loop do (+ x x))))
+  "for (; true; ) {
+    2 + 2;
+};
+return null;")

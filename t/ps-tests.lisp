@@ -515,34 +515,60 @@ __setf_someThing(_js1, _js2, _js3);")
   "return x * y;")
 
 (test-ps-js cond-expression1
-  (defun foo () (return (cond ((< 1 2) (bar "foo") (* 4 5)))))
+  (defun foo ()
+    (cond ((< 1 2) (bar "foo") (* 4 5))))
   "function foo() {
-    return 1 < 2 ? (bar('foo'), 4 * 5) : null;
+    if (1 < 2) {
+        bar('foo');
+        return 4 * 5;
+    };
 };")
 
 (test-ps-js cond-expression2
-  (defun foo () (return (cond ((< 2 1) "foo") ((= 7 7) "bar"))))
+  (defun foo ()
+    (cond ((< 2 1) "foo")
+          ((= 7 7) "bar")))
   "function foo() {
-    return 2 < 1 ? 'foo' : (7 == 7 ? 'bar' : null);
+    if (2 < 1) {
+        return 'foo';
+    } else if (7 == 7) {
+        return 'bar';
+    };
 };")
 
 (test-ps-js cond-expression-final-t-clause
   (defun foo ()
-    (return (cond ((< 1 2) (bar "foo") (* 4 5))
-                  ((= a b) (+ c d))
-                  ((< 1 2 3 4 5) x)
-                  (t "foo"))))
+    (cond ((< 1 2) (bar "foo") (* 4 5))
+          ((= a b) (+ c d))
+          ((< 1 2 3 4 5) x)
+          (t "foo")))
   "function foo() {
     var _cmp3;
     var _cmp2;
     var _cmp1;
-    return 1 < 2 ? (bar('foo'), 4 * 5) : (a == b ? c + d : ((_cmp1 = 2, _cmp2 = 3, _cmp3 = 4, 1 < _cmp1 && _cmp1 < _cmp2 && _cmp2 < _cmp3 && _cmp3 < 5) ? x : 'foo'));
+    if (1 < 2) {
+        bar('foo');
+        return 4 * 5;
+    } else if (a == b) {
+        return c + d;
+    } else if ((_cmp1 = 2, _cmp2 = 3, _cmp3 = 4, 1 < _cmp1 && _cmp1 < _cmp2 && _cmp2 < _cmp3 && _cmp3 < 5)) {
+        return x;
+    } else {
+        return 'foo';
+    };
 };")
 
 (test-ps-js cond-expression-middle-t-clause ;; should this signal a warning?
-  (defun foo () (return (cond ((< 2 1) 5) (t "foo") ((< 1 2) "bar"))))
+  (defun foo ()
+    (cond ((< 2 1) 5)
+          (t "foo")
+          ((< 1 2) "bar")))
   "function foo() {
-    return 2 < 1 ? 5 : 'foo';
+    if (2 < 1) {
+        return 5;
+    } else {
+        return 'foo';
+    };
 };")
 
 (test-ps-js funcall-if-expression
@@ -1379,3 +1405,29 @@ return val1_1;")
     2 + 2;
 };
 return null;")
+
+(test-ps-js return-cond
+  (return
+    (cond ((foo? x) (loop for y in x do (foo y)))
+          ((bar? x) x)
+          (t 3)))
+  "if (foowhat(x)) {
+    var _js2 = x.length;
+    var _js1 = 0;
+    if (_js1 < _js2) {
+        var y = x[_js1];
+        while (true) {
+            foo(y);
+            _js1 += 1;
+            if (_js1 >= _js2) {
+                break;
+            };
+            y = x[_js1];
+        };
+    };
+    return null;
+} else if (barwhat(x)) {
+    return x;
+} else {
+    return 3;
+};")

@@ -107,6 +107,11 @@
                    (ps-compile `(if ,(second value)
                                     (return ,(third value))
                                     (return ,(fourth value)))))
+                  (cond
+                    (ps-compile `(cond
+                                   ,@(loop for clause in (cdr value) collect
+                                          `(,@(butlast clause)
+                                              (return ,@(last clause)))))))
                   (otherwise
                    `(js:return ,(ps-compile-expression value)))))
             `(js:return ,(ps-compile-expression value))))))

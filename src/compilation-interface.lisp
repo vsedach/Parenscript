@@ -39,10 +39,10 @@ Body is evaluated."
         (*ps-special-variables* nil))
      (macroexpand-1 `(ps ,@body))))
 
-(defun ps-doc* (ps-form)
+(defun ps-doc* (&rest body)
   (let ((*ps-gensym-counter* 0)
         (*ps-special-variables* nil))
-    (ps* ps-form)))
+    (apply #'ps* body)))
 
 (defvar *js-inline-string-delimiter* #\"
   "Controls the string delimiter char used when compiling Parenscript in ps-inline.")

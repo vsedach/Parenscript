@@ -276,7 +276,11 @@
            (cons (if (eq val 'default)
                      'default
                      (ps-compile-expression val))
-                 (mapcar (lambda (x) (ps-compile-statement x))
+                 (mapcan (lambda (x)
+                           (let ((exp (ps-compile-statement x)))
+                             (if (and (listp exp) (eq 'js:block (car exp)))
+                                 (cdr exp)
+                                 (list exp))))
                          body)))))
 
 (defpsmacro case (value &rest clauses)

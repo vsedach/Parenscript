@@ -396,9 +396,7 @@ __setf_someThing(_js1, _js2, _js3);")
     for (var n1 = 2; n1 < _js2; n1 += 2) {
         switch (arguments[n1]) {
         case 'baz':
-            {
-                baz = arguments[n1 + 1];
-            };
+            baz = arguments[n1 + 1];
         };
     };
     if (baz === undefined) {
@@ -415,9 +413,7 @@ __setf_someThing(_js1, _js2, _js3);")
     for (var n1 = 0; n1 < _js2; n1 += 2) {
         switch (arguments[n1]) {
         case 'baz':
-            {
-                baz = arguments[n1 + 1];
-            };
+            baz = arguments[n1 + 1];
         };
     };
     if (baz === undefined) {
@@ -435,14 +431,10 @@ __setf_someThing(_js1, _js2, _js3);")
     for (var n1 = 0; n1 < _js2; n1 += 2) {
         switch (arguments[n1]) {
         case 'baz':
-            {
-                baz = arguments[n1 + 1];
-            };
+            baz = arguments[n1 + 1];
             break;
         case 'bar':
-            {
-                bar = arguments[n1 + 1];
-            };
+            bar = arguments[n1 + 1];
         };
     };
     if (baz === undefined) {
@@ -463,9 +455,7 @@ __setf_someThing(_js1, _js2, _js3);")
     for (var n1 = 0; n1 < _js2; n1 += 2) {
         switch (arguments[n1]) {
         case 'my-name-key':
-            {
-                myName = arguments[n1 + 1];
-            };
+            myName = arguments[n1 + 1];
         };
     };
     if (myName === undefined) {
@@ -1440,4 +1430,15 @@ case 1:
     for (var a = null, _js_idx1 = 0; _js_idx1 < b.length; _js_idx1 += 1) {
             a = b[_js_idx1];
     };
+};")
+
+(test-ps-js switch-folds-blocks
+  (case x
+    (1 (loop repeat 3 do (alert "foo"))))
+  "switch (x) {
+case 1:
+    for (var _js1 = 0; _js1 < 3; _js1 += 1) {
+        alert('foo');
+    };
+    null;
 };")

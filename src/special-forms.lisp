@@ -819,9 +819,8 @@ lambda-list::=
           (for ,(do-make-for-vars/init decls) ((not ,termination)) ,(do-make-for-steps decls)
                ,@body)
           (return ,result)))
-      `(progn
-         (for ,(do-make-for-vars/init decls) ((not ,termination)) ,(do-make-for-steps decls)
-              ,@body))))
+      `(for ,(do-make-for-vars/init decls) ((not ,termination)) ,(do-make-for-steps decls)
+            ,@body)))
 
 (defpsmacro do (decls (termination &optional (result nil result?)) &body body)
   (if result?

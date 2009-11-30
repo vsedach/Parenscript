@@ -1431,3 +1431,13 @@ return null;")
 } else {
     return 3;
 };")
+
+(test-ps-js switch-loop
+  (case x
+    (1 (dolist (a b))))
+  "switch (x) {
+case 1:
+    for (var a = null, _js_idx1 = 0; _js_idx1 < b.length; _js_idx1 += 1) {
+            a = b[_js_idx1];
+    };
+};")

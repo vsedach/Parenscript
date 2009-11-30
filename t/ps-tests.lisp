@@ -224,8 +224,9 @@ var _js1 = 3;
 setBaz(_js2, _js3, _js1);")
 
 (test-ps-js setf-macroexpands1
-  (macrolet ((baz (x y) `(aref ,x ,y 1)))
-    (setf (baz foo 2) 3))
+  (macrolet ((bar (x y)
+               `(aref ,x ,y 1)))
+    (setf (bar foo 2) 3))
   "foo[2][1] = 3;")
 
 (test-ps-js defsetf-short
@@ -1442,3 +1443,16 @@ case 1:
     };
     null;
 };")
+
+(test-ps-js setf-places-before-macros
+  (progn
+    (defsetf left (el) (offset)
+      `(setf (@ ,el style left) ,offset))
+    (macrolet ((left (el)
+                 `(@ ,el offset-left)))
+      (setf (left x) 10)
+      (left x)))
+  "var _js2 = x;
+var _js1 = 10;
+_js2.style.left = _js1;
+x.offsetLeft;")

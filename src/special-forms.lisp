@@ -664,24 +664,26 @@ lambda-list::=
     (/   '/=)
     (t   nil)))
 
-(define-ps-special-form setf1% (lhs rhs)
+(define-ps-special-form ps-assign (lhs rhs)
   (let ((lhs (ps-compile-expression (ps-macroexpand lhs)))
         (rhs (ps-compile-expression (ps-macroexpand rhs))))
     (if (and (listp rhs)
              (eq 'js:operator (car rhs))
              (member (cadr rhs) '(+ *))
              (equalp lhs (caddr rhs)))
-        `(js:operator ,(assignment-op (cadr rhs)) ,lhs (js:operator ,(cadr rhs) ,@(cdddr rhs)))
+        `(js:operator ,(assignment-op (cadr rhs))
+                      ,lhs
+                      (js:operator ,(cadr rhs) ,@(cdddr rhs)))
         `(js:= ,lhs ,rhs))))
 
 (defpsmacro setf (&rest args)
   (assert (evenp (length args)) ()
           "~s does not have an even number of arguments." `(setf ,args))
   `(progn ,@(loop for (place value) on args by #'cddr collect
-                 (let ((place (ps-macroexpand place)))
-                   (aif (and (listp place) (gethash (car place) *ps-setf-expanders*))
-                        (funcall it (cdr place) value)
-                        `(setf1% ,place ,value))))))
+                 (aif (and (listp place)
+                           (gethash (car place) *ps-setf-expanders*))
+                      (funcall it (cdr place) value)
+                      `(ps-assign ,place ,value)))))
 
 (defpsmacro psetf (&rest args)
   (let ((places (loop for x in args by #'cddr collect x))

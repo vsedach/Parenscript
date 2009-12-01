@@ -1456,3 +1456,10 @@ case 1:
 var _js1 = 10;
 _js2.style.left = _js1;
 x.offsetLeft;")
+
+(test-ps-js for-return
+  (return (dolist (arg args) (foo arg)))
+  "for (var arg = null, _js_idx1 = 0; _js_idx1 < args.length; _js_idx1 += 1) {
+    arg = args[_js_idx1];
+    foo(arg);
+};")

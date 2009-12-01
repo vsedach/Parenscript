@@ -61,10 +61,7 @@
   (and (consp exp)
        (member (car exp)
                '(throw
-                 do
-                 do*
-                 dotimes
-                 dolist
+                 labeled-for
                  for-in
                  while))))
 

@@ -295,7 +295,7 @@ arguments, defines a printer for that form using the given body."
     (loop for (val . statements) in clauses
           do (progn (newline-and-indent)
                     (if (eq val 'default)
-                        (progn (psw "default: ")
+                        (progn (psw "default:")
                                (print-body-statements statements))
                         (progn (psw "case ")
                                (ps-print val)

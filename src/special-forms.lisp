@@ -456,7 +456,7 @@ the given lambda-list and body."
             (when rest?
               (with-ps-gensyms (i)
                 `(progn (var ,rest (array))
-                        (dotimes (,i (- (get-property arguments 'length)
+                        (dotimes (,i (- (getprop arguments 'length)
                                         ,(length effective-args)))
                           (setf (aref ,rest
                                       ,i)
@@ -619,9 +619,9 @@ lambda-list::=
   `(js:instanceof ,(ps-compile-expression value)
                   ,(ps-compile-expression type)))
 
-(define-ps-special-form %js-get-property (obj slot)
+(define-ps-special-form %js-getprop (obj slot)
   (let ((slot (ps-macroexpand slot)))
-    `(js:get-property ,(ps-compile-expression (ps-macroexpand obj))
+    `(js:getprop ,(ps-compile-expression (ps-macroexpand obj))
                       ,(let ((slot (if (and (listp slot) (eq 'quote (car slot)))
                                        (second slot) ;; assume we're quoting a symbol
                                        (ps-compile-expression slot))))
@@ -630,16 +630,16 @@ lambda-list::=
                                 (symbol-name-to-js-string slot)
                                 slot)))))
 
-(defpsmacro get-property (obj &rest slots)
+(defpsmacro getprop (obj &rest slots)
   (if (null (rest slots))
-      `(%js-get-property ,obj ,(first slots))
-      `(get-property (get-property ,obj ,(first slots)) ,@(rest slots))))
+      `(%js-getprop ,obj ,(first slots))
+      `(getprop (getprop ,obj ,(first slots)) ,@(rest slots))))
 
 (defpsmacro with-slots (slots object &rest body)
   (flet ((slot-var (slot) (if (listp slot) (first slot) slot))
          (slot-symbol (slot) (if (listp slot) (second slot) slot)))
     `(symbol-macrolet ,(mapcar #'(lambda (slot)
-                                   `(,(slot-var slot) (get-property ,object ',(slot-symbol slot))))
+                                   `(,(slot-var slot) (getprop ,object ',(slot-symbol slot))))
                                slots)
        ,@body)))
 
@@ -862,7 +862,7 @@ lambda-list::=
            ,@(when introduce-array-var?
                    (list (list arrvar array)))
            (,idx 0 (1+ ,idx)))
-          ((>= ,idx (get-property ,arrvar 'length))
+          ((>= ,idx (getprop ,arrvar 'length))
            ,@(when result? (list result)))
        (setq ,var (aref ,arrvar ,idx))
        ,@body)))

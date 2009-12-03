@@ -80,7 +80,7 @@ DOTIMES DOUBLE ELSE ENUM EQL EXPORT EXTENDS F FALSE FINAL FINALLY
 FLOAT FLOOR FOR FOR-IN FUNCTION GOTO IF IMPLEMENTS IMPORT IN INCF
 INSTANCEOF INT INTERFACE JS LABELED-FOR LAMBDA LET LET* LISP LIST LONG
 MAKE-ARRAY NATIVE NEW NIL NOT OR PACKAGE PRIVATE PROGN PROTECTED
-PUBLIC RANDOM REGEX RETURN SETF SHORT GET-PROPERTY STATIC SUPER SWITCH
+PUBLIC RANDOM REGEX RETURN SETF SHORT GETPROP STATIC SUPER SWITCH
 SYMBOL-MACROLET SYNCHRONIZED T THIS THROW THROWS TRANSIENT TRY TYPEOF
 UNDEFINED UNLESS VAR VOID VOLATILE WHEN WHILE WITH WITH-SLOTS
 
@@ -164,11 +164,11 @@ UNDEFINED UNLESS VAR VOID VOLATILE WHEN WHILE WITH WITH-SLOTS
 ;;; that JavaScript knows of no such thing as an array. Subscripting
 ;;; an array is in fact reading a property from an object. So in a
 ;;; semantic sense, there is no real difference between `AREF' and
-;;; `GET-PROPERTY'.
+;;; `GETPROP'.
 
 ;;;## Object literals
 ;;;t \index{CREATE}
-;;;t \index{GET-PROPERTY}
+;;;t \index{GETPROP}
 ;;;t \index{@}
 ;;;t \index{WITH-SLOTS}
 ;;;t \index{object literal}
@@ -177,7 +177,7 @@ UNDEFINED UNLESS VAR VOID VOLATILE WHEN WHILE WITH WITH-SLOTS
 ;;;t \index{property}
 
 ; (CREATE {name value}*)
-; (GET-PROPERTY object slot-name)
+; (GETPROP object slot-name)
 ; (WITH-SLOTS ({slot-name}*) object body)
 ;
 ; name      ::= a Parenscript symbol or a Lisp keyword
@@ -201,10 +201,10 @@ UNDEFINED UNLESS VAR VOID VOLATILE WHEN WHILE WITH WITH-SLOTS
      blorg : [ 1, 2, 3 ],
      anotherObject : { 'schtrunz' : 1 } };
 
-;;; Object properties can be accessed using the `GET-PROPERTY' form,
+;;; Object properties can be accessed using the `GETPROP' form,
 ;;; which takes an object and a slot-name.
 
-(get-property an-object 'foo) => anObject.foo;
+(getprop an-object 'foo) => anObject.foo;
 
 ;;; The convenience macro `@' is provided to make multiple levels of
 ;;; indirection easy to express
@@ -212,7 +212,7 @@ UNDEFINED UNLESS VAR VOID VOLATILE WHEN WHILE WITH WITH-SLOTS
 (@ an-object foo bar) => anObject.foo.bar;
 
 ;;; The form `WITH-SLOTS' can be used to bind the given slot-name
-;;; symbols to a macro that will expand into a `GET-PROPERTY' form at
+;;; symbols to a macro that will expand into a `GETPROP' form at
 ;;; expansion time.
 
 (with-slots (a b c) this
@@ -322,11 +322,11 @@ a-variable  => aVariable;
 (foobar (blorg 1 2) (blabla 3 4) (array 2 3 4))
 => foobar(blorg(1, 2), blabla(3, 4), [ 2, 3, 4 ]);
 
-((get-property this 'blorg) 1 2) => this.blorg(1, 2);
+((getprop this 'blorg) 1 2) => this.blorg(1, 2);
 
 ((aref foo i) 1 2) => foo[i](1, 2);
 
-((get-property (aref foobar 1) 'blorg) NIL T) => foobar[1].blorg(null, true);
+((getprop (aref foobar 1) 'blorg) NIL T) => foobar[1].blorg(null, true);
 
 ;;;# Operator Expressions
 ;;;t \index{operator}
@@ -525,7 +525,7 @@ a-variable  => aVariable;
 ;;; prefix:
 
 (defun (setf color) (new-color el)
-  (setf (get-property (get-property el 'style) 'color) new-color))
+  (setf (getprop (getprop el 'style) 'color) new-color))
 => function __setf_color(newColor, el) {
        return el.style.color = newColor;
    };
@@ -542,7 +542,7 @@ a-variable  => aVariable;
 ;;; provide a uniform protocol for positioning elements in HTML pages:
 
 (defsetf left (el) (offset)
-  `(setf (get-property (get-property ,el 'style) 'left) ,offset))
+  `(setf (getprop (getprop ,el 'style) 'left) ,offset))
 => null;
 
 (setf (left some-div) (+ 123 "px"))
@@ -551,7 +551,7 @@ a-variable  => aVariable;
    _js2.style.left = _js1;
 
 (macrolet ((left (el)
-             `(get-property ,el 'offset-left)))
+             `(getprop ,el 'offset-left)))
   (left some-div))
 => someDiv.offsetLeft;
 
@@ -1073,7 +1073,7 @@ a-variable  => aVariable;
            ,@(when introduce-array-var?
                    (list (list arrvar array)))
            (,idx 0 (1+ ,idx)))
-          ((>= ,idx (get-property ,arrvar 'length))
+          ((>= ,idx (getprop ,arrvar 'length))
            ,@(when result? (list result)))
        (setq ,var (aref ,arrvar ,idx))
        ,@body)))
@@ -1112,7 +1112,7 @@ a-variable  => aVariable;
 
 (defpsmacro with-slots (slots object &rest body)
   `(symbol-macrolet ,(mapcar #'(lambda (slot)
-                                 `(,slot '(get-property ,object ',slot)))
+                                 `(,slot '(getprop ,object ',slot)))
                              slots)
     ,@body))
 

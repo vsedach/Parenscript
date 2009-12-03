@@ -22,7 +22,7 @@
 
 (test-ps-js uniform-symbol-handling1
   (progn (create ps-test.my-library::foo 1)
-         (get-property foo 'ps-test.my-library::foo))
+         (getprop foo 'ps-test.my-library::foo))
   "{ my_library_foo : 1 };
 foo.my_library_foo;")
 
@@ -60,6 +60,6 @@ foo.my_library_foo;")
 
 (ps-test::test-ps-js namespace-and-special-forms
   (let ((foo (create bar 1 not-a-keyword something)))
-    (return (and (not foo) (+ (get-property foo 'bar) some-other-var))))
+    (return (and (not foo) (+ (getprop foo 'bar) some-other-var))))
 "var prefix_foo = { prefix_bar : 1, prefix_notAKeyword : prefix_something };
 return !prefix_foo && prefix_foo.prefix_bar + prefix_someOtherVar;")

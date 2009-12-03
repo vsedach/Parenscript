@@ -89,23 +89,23 @@ x = 2 + sideEffect() + x + 5;")
          (a-parenthesis #\)))
     (is (char= char-before a-parenthesis))))
 
-(test-ps-js simple-get-property
+(test-ps-js simple-getprop
   (let ((foo (create a 1)))
-    (alert (get-property foo 'a)))
+    (alert (getprop foo 'a)))
   "var foo = { a : 1 };
    alert(foo.a);")
 
-(test-ps-js buggy-get-property
+(test-ps-js buggy-getprop
    (let ((foo (create a 1))
          (slot-name "a"))
-    (alert (get-property foo slot-name)))
+    (alert (getprop foo slot-name)))
   " var foo = { a : 1 };
     var slotName = 'a';
     alert(foo[slotName]);
    "); Last line was alert(foo.slotName) before bug-fix.
 
-(test-ps-js buggy-get-property-two
-  (get-property foo (get-slot-name))
+(test-ps-js buggy-getprop-two
+  (getprop foo (get-slot-name))
   "foo[getSlotName()];")
 
 (test-ps-js old-case-is-now-switch
@@ -185,16 +185,16 @@ x = 2 + sideEffect() + x + 5;")
           for wanted = (format nil "var x = 'hello\\~ahi';" js-escape)
           do (is (string= (normalize-js-code generated) wanted)))))
   
-(test-ps-js get-property-setf
-  (setf (get-property x 'y) (+ (+ a 3) 4))
+(test-ps-js getprop-setf
+  (setf (getprop x 'y) (+ (+ a 3) 4))
   "x.y = (a + 3) + 4;")
 
-(test-ps-js get-property-conditional1
-  (get-property (if zoo foo bar) 'x)
+(test-ps-js getprop-conditional1
+  (getprop (if zoo foo bar) 'x)
   "(zoo ? foo : bar).x;")
 
-(test-ps-js get-property-conditional2
-  (get-property (if (not zoo) foo bar) 'x)
+(test-ps-js getprop-conditional2
+  (getprop (if (not zoo) foo bar) 'x)
   "(!zoo ? foo : bar).x;")
 
 (test script-star-eval1
@@ -324,16 +324,16 @@ __setf_someThing(_js1, _js2, _js3);")
   (create "foo" 2)
   "{ 'foo' : 2 };")
 
-(test-ps-js get-property-string
-  (get-property foo "bar")
+(test-ps-js getprop-string
+  (getprop foo "bar")
   "foo['bar'];")
 
-(test-ps-js get-property-string1
-  (get-property "bar" 'length)
+(test-ps-js getprop-string1
+  (getprop "bar" 'length)
   "'bar'.length;")
 
-(test-ps-js get-property-progn
-  (get-property (progn (some-fun "abc") "123") "length")
+(test-ps-js getprop-progn
+  (getprop (progn (some-fun "abc") "123") "length")
   "(someFun('abc'), '123')['length'];")
 
 (test-ps-js method-call-block
@@ -697,8 +697,8 @@ try {
   "blahequals;")
 
 (test-ps-js setf-operator-priority
-  (return (or (get-property cache id)
-              (setf (get-property cache id) ((@ document get-element-by-id) id))))
+  (return (or (getprop cache id)
+              (setf (getprop cache id) ((@ document get-element-by-id) id))))
   "return cache[id] || (cache[id] = document.getElementById(id));")
 
 (test-ps-js aref-operator-priority
@@ -709,8 +709,8 @@ try {
   "(x && x.length > 0 ? x[0] : y)[z];")
 
 (test-ps-js aref-operator-priority1
-  (aref (or (get-property x 'y)
-            (get-property a 'b))
+  (aref (or (getprop x 'y)
+            (getprop a 'b))
         z)
   "(x.y || a.b)[z];")
 
@@ -758,12 +758,12 @@ try {
   (aref (or a b c) 0)
   "(a || b || c)[0];")
 
-(test-ps-js get-property-operator
-  (get-property (or a b c) 'd)
+(test-ps-js getprop-operator
+  (getprop (or a b c) 'd)
   "(a || b || c).d;")
 
-(test-ps-js get-property-parens
-  (get-property (get-property foo 'bar) 'baz)
+(test-ps-js getprop-parens
+  (getprop (getprop foo 'bar) 'baz)
   "foo.bar.baz;")
 
 (test-ps-js funcall-funcall
@@ -782,12 +782,12 @@ try {
   (((or (@ window eval) eval)) foo nil)
   "(window.eval || eval)()(foo, null);")
 
-(test-ps-js get-property-object-literal
-  (get-property (create a 1) 'a)
+(test-ps-js getprop-object-literal
+  (getprop (create a 1) 'a)
   "({ a : 1 }).a;")
 
-(test-ps-js get-property-lambda
-  (get-property (lambda ()) 'prototype)
+(test-ps-js getprop-lambda
+  (getprop (lambda ()) 'prototype)
   "(function () { return null; }).prototype;")
 
 (test-ps-js who-html1
@@ -1197,8 +1197,8 @@ x1 - x1;
   (create :default 1)
   "{ 'default' : 1 };")
 
-(test-ps-js get-property-reserved-word
-  (get-property foo :default)
+(test-ps-js getprop-reserved-word
+  (getprop foo :default)
   "foo['default'];")
 
 (test-ps-js eval-when-ps-side
@@ -1240,8 +1240,8 @@ x1 - x1;
       (declare (ignore js-output))
       (is (eql :cl-user *lisp-output*))))
 
-(test-ps-js get-property-keyword
-  (get-property foo :bar)
+(test-ps-js getprop-keyword
+  (getprop foo :bar)
   "foo['bar'];")
 
 (test-ps-js nary-comparison1
@@ -1251,15 +1251,15 @@ x1 - x1;
     return (_cmp1 = 2, 1 < _cmp1 && _cmp1 < 3);
 };")
 
-(test-ps-js chain-get-property1
+(test-ps-js chain-getprop1
   (chain ($ "foo") (bar x z) frob (baz 5))
   "$('foo').bar(x, z).frob.baz(5);")
 
-(test-ps-js chain-get-property2
+(test-ps-js chain-getprop2
   (chain ($ "foo") bar baz)
   "$('foo').bar.baz;")
 
-(test-ps-js chain-get-property3
+(test-ps-js chain-getprop3
   (chain ($ "foo") bar (x y) baz)
   "$('foo').bar.x(y).baz;")
 

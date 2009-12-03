@@ -66,5 +66,5 @@ is output to the OUTPUT-STREAM stream."
   (symbol-to-js-string symbol))
 
 (defpsmacro slot-value (&rest args)
-  (warn-deprecated 'slot-value 'get-property)
-  `(get-property ,@args))
+  (warn-deprecated 'slot-value 'getprop)
+  `(getprop ,@args))

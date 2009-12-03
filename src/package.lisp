@@ -127,7 +127,7 @@
 
       ;; slot access
       #:with-slots
-      #:get-property
+      #:getprop
 
       ;; macros
       #:macrolet
@@ -363,7 +363,7 @@
       #:lambda
       #:object
       #:variable
-      #:get-property
+      #:getprop
       #:funcall
       #:escape
       ))

@@ -76,9 +76,12 @@
   `(not (undefined ,x)))
 
 (defpsmacro @ (obj &rest props)
-  "Handy get-property/aref composition macro."
+  "Handy getprop/aref composition macro."
   (if props
-      `(@ (get-property ,obj ,(if (symbolp (car props)) `',(car props) (car props))) ,@(cdr props))
+      `(@ (getprop ,obj ,(if (symbolp (car props))
+                             `',(car props)
+                             (car props)))
+          ,@(cdr props))
       obj))
 
 (defpsmacro chain (&rest method-calls)

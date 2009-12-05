@@ -33,9 +33,10 @@ SOMEGLOBAL."
                   (loop for c across sym-name
                      do (acond ((eql c #\-)
                                 (setf lowercase (not lowercase)))
-                               ((position c "!?#@%+*/=:")
+                               ((position c "!?#@%+*/=:<>")
                                 (write-sequence (aref #("bang" "what" "hash" "at" "percent"
-                                                        "plus" "star" "slash" "equals" "colon")
+                                                        "plus" "star" "slash" "equals" "colon"
+                                                        "lessthan" "greaterthan")
                                                       it)
                                                 acc))
                                (t (write-char (cond (no-case-conversion c)
@@ -43,7 +44,7 @@ SOMEGLOBAL."
                                                     (t (char-upcase c)))
                                               acc)
                                   (setf lowercase t))))))))))
-  
+
 (defun ordered-set-difference (list1 list2 &key (test #'eql)) ; because the CL set-difference may not preserve order
   (reduce (lambda (list el) (remove el list :test test))
           (cons list1 list2)))

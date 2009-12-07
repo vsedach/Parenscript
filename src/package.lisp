@@ -208,7 +208,6 @@
       #:mapcar
       #:map-into
       #:map
-      #:map-until
       #:member
       #:append
       #:set-difference

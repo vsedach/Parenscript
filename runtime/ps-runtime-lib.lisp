@@ -33,14 +33,6 @@
           (setf idx (1+ idx)))
         (return result)))
 
-    (defun map-until (fn arr)
-      "Call FN on each element in ARR until it returns something. If so return that value."
-      (let ((result))
-        (dolist (el arr)
-          (setf result (fn el))
-          (unless (= result undefined)
-            (return result)))))
-
     (defun member (item arr)
       "Check if ITEM is a member of ARR."
       (dolist (el arr)

@@ -190,7 +190,6 @@
       #:numberp
       #:functionp
       #:objectp
-      #:memoize
       #:append
       #:apply
       #:destructuring-bind

@@ -3,11 +3,7 @@
 ;;; Handy utilities for doing common tasks found in many web browser
 ;;; JavaScript implementations
 
-(defpsmacro do-set-timeout ((timeout) &body body)
-  `(set-timeout (lambda () ,@body) ,timeout))
-
-;;; Arithmetic
-
+;;; Math
 (defmacro def-js-maths (&rest mathdefs)
   `(progn ,@(mapcar (lambda (def) (cons 'defpsmacro def)) mathdefs)))
 
@@ -47,13 +43,7 @@
 
 (define-ps-symbol-macro pi (@ *math *pi*))
 
-;;; Exception handling
-
-(defpsmacro ignore-errors (&body body)
-  `(try (progn ,@body) (:catch (e))))
-
 ;;; Data structures
-
 (defpsmacro [] (&rest args)
   `(array ,@(mapcar (lambda (arg)
                       (if (and (consp arg) (not (equal '[] (car arg))))
@@ -64,7 +54,18 @@
 (defpsmacro length (a)
   `(@ ,a length))
 
-;;; Misc
+;;; Types
+(defpsmacro stringp (x)
+  `(= (typeof ,x) "string"))
+
+(defpsmacro numberp (x)
+  `(= (typeof ,x) "number"))
+
+(defpsmacro functionp (x)
+  `(= (typeof ,x) "function"))
+
+(defpsmacro objectp (x)
+  `(= (typeof ,x) "object"))
 
 (defpsmacro null (x)
   `(= ,x nil))
@@ -74,6 +75,10 @@
 
 (defpsmacro defined (x)
   `(not (undefined ,x)))
+
+;;; Getters
+(defpsmacro elt (array index)
+  `(aref ,array ,index))
 
 (defpsmacro @ (obj &rest props)
   "Handy getprop/aref composition macro."
@@ -93,7 +98,7 @@
                  (car method-calls))))
     (do-chain (reverse method-calls))))
 
-
+;;; Concatenation
 (defpsmacro concatenate (result-type &rest sequences)
   (assert (equal result-type ''string) () "Right now Parenscript 'concatenate' only support strings.")
   (cons '+ sequences))
@@ -105,50 +110,12 @@
 (defpsmacro concat-string (&rest things)
   (cons '+ things))
 
-(defpsmacro elt (array index)
-  `(aref ,array ,index))
-
-(defpsmacro with-lambda (()  &body body)
-  "Wraps BODY in a lambda so that it can be treated as an expression."
-  `((lambda () ,@body)))
-
-(defpsmacro stringp (x)
-  `(= (typeof ,x) "string"))
-
-(defpsmacro numberp (x)
-  `(= (typeof ,x) "number"))
-
-(defpsmacro functionp (x)
-  `(= (typeof ,x) "function"))
-
-(defpsmacro objectp (x)
-  `(= (typeof ,x) "object"))
-
-(defpsmacro memoize (fn-expr)
-  (destructuring-bind (defun fn-name (arg) &rest fn-body)
-      fn-expr
-    (declare (ignore defun))
-    (with-ps-gensyms (table value compute-fn)
-      `(let ((,table {}))
-         (defun ,compute-fn (,arg) ,@fn-body)
-         (defun ,fn-name (,arg)
-           (let ((,value (aref ,table ,arg)))
-             (when (null ,value)
-               (setf ,value (,compute-fn ,arg))
-               (setf (aref ,table ,arg) ,value))
-             (return ,value)))))))
-
 (defpsmacro append (arr1 &rest arrs)
   (if arrs
       `((@ ,arr1 concat) ,@arrs)
       arr1))
 
-(defpsmacro apply (fn &rest args)
-  (let ((arglist (if (> (length args) 1)
-                     `(append (list ,@(butlast args)) ,(car (last args)))
-                     (first args))))
-    `((@ ,fn apply) this ,arglist)))
-
+;;; Destructuring bind
 (defun destructuring-wrap (arr n bindings body &key setf?)
   (labels ((bind-expr (var expr inner-body)
              (if setf?
@@ -190,6 +157,10 @@
         bound
         `(let ((,arr ,expr)) ,bound))))
 
+;;; Control structures
+(defpsmacro ignore-errors (&body body)
+  `(try (progn ,@body) (:catch (e))))
+
 (defpsmacro prog1 (first &rest others)
   (with-ps-gensyms (val)
     `(let ((,val ,first))
@@ -198,3 +169,17 @@
 
 (defpsmacro prog2 (first second &rest others)
   `(progn ,first (prog1 ,second ,@others)))
+
+(defpsmacro apply (fn &rest args)
+  (let ((arglist (if (> (length args) 1)
+                     `(append (list ,@(butlast args)) ,(car (last args)))
+                     (first args))))
+    `((@ ,fn apply) this ,arglist)))
+
+;;; Misc
+(defpsmacro do-set-timeout ((timeout) &body body)
+  `(set-timeout (lambda () ,@body) ,timeout))
+
+(defpsmacro with-lambda (()  &body body)
+  "Wraps BODY in a lambda so that it can be treated as an expression."
+  `((lambda () ,@body)))

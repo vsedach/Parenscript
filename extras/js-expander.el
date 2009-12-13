@@ -1,13 +1,14 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;; What this code does: put your cursor at a ParenScript expression
-;;;; in a ParenScript file and type 'C-c j' to bring up a buffer with
-;;;; the resulting Javascript code. This feature depends on Slime (and
-;;;; your ParenScript buffer being in slime-mode; it doesn't work in
-;;;; slime-repl-mode, which is intentional). It is inspired (and works
-;;;; like) the Slime 'C-c M-m' macroexpansion feature.
+;;;; This is an extension to SLIME that is inspired by (and works
+;;;; like) the SLIME 'C-c M-m' macroexpansion feature.
+
+;;;; After loading, 'C-c j' (PS) or 'C-c d' (PS-DOC) at a ParenScript
+;;;; expression in a slime-mode buffer will bring up a buffer with the
+;;;; resulting Javascript code. Note that the extension does not work
+;;;; in slime-repl-mode, which is intentional.
 
 ;;;; Copyright 2007, Vladimir Sedach. See the COPYING file in the
-;;;; above directory for licensing information.
+;;;; Parenscript distribution for licensing information.
 
 ;;; The code below is a generic facility for adding "macroexpand-like" buffer expansion to Slime
 (defun slime-eval-custom-expand (expander exp-str package buffer-name buffer-mode printer)

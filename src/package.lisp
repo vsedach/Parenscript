@@ -107,9 +107,6 @@
       ;; regex literals
       #:regex
 
-      ;; conditional compilation (IE)
-      #:cc-if
-
       ;; function definition
       #:defun
       #:lambda

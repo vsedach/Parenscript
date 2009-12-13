@@ -884,9 +884,6 @@ lambda-list::=
                                        (ps-compile-statement `(progn ,@(cdr catch)))))
              :finally ,(when finally (ps-compile-statement `(progn ,@finally))))))
 
-(define-ps-special-form cc-if (test &rest body)
-  `(js:cc-if ,test ,@(mapcar #'ps-compile-statement body)))
-
 (define-ps-special-form regex (regex)
   `(js:regex ,(string regex)))
 

@@ -319,17 +319,6 @@ arguments, defines a printer for that form using the given body."
   (let ((slash (unless (and (> (length regex) 0) (char= (char regex 0) #\/)) "/")))
     (psw (concatenate 'string slash regex slash))))
 
-;;; conditional compilation
-(defprinter js:cc-if (test &rest body)
-  (psw "/*@if ")
-  (ps-print test)
-  (incf *indent-level*)
-  (dolist (form body)
-    (newline-and-indent) (ps-print form) (psw #\;))
-  (decf *indent-level*)
-  (newline-and-indent)
-  (psw "@end @*/"))
-
 (defprinter js:instanceof (value type)
   (psw #\()
   (if (> (expression-precedence value) (op-precedence 'js:instanceof))

@@ -320,7 +320,7 @@
          ;; add to prologue, so compute main loop first.
          (main (or (parallel-form loop)
                    (straightforward-form loop))))
-    `(,@(if (default-accum-var loop) '(with-lambda ()) '(progn))
+    `(,@(if (default-accum-var loop) '((lambda ())) '(progn))
         (with-prologue (,(prologue loop))
           ,@(initially loop)
           ,main

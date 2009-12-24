@@ -179,7 +179,3 @@
 ;;; Misc
 (defpsmacro do-set-timeout ((timeout) &body body)
   `(set-timeout (lambda () ,@body) ,timeout))
-
-(defpsmacro with-lambda (()  &body body)
-  "Wraps BODY in a lambda so that it can be treated as an expression."
-  `((lambda () ,@body)))

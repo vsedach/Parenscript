@@ -182,7 +182,6 @@
       #:undefined
       #:@
       #:chain
-      #:with-lambda
       #:stringp
       #:numberp
       #:functionp

@@ -1,1 +1,0 @@
-python pbook.py -o manual.pdf introduction.lisp reference.lisp 

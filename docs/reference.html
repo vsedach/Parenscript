@@ -1,0 +1,1381 @@
+<html>
+
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    
+    <title>Parenscript Reference Manual</title>
+
+    <style type="text/css">
+      body {
+      margin-left:50px;
+      margin-right:50px;
+      }
+      pre {
+      margin-left:60px;
+      }
+      p {
+      margin-left:10px;
+      }
+      dd {
+      color:#909;
+      }
+    </style>
+  </head>
+
+  <body>
+    <center><h1>Parenscript Reference Manual</h1></center>
+
+    <h2>Table of Contents</h2>
+
+    <ol>
+      <li><a href="#section-ps-compiler">The Parenscript compiler</a></li>
+      <li><a href="#section-statements-expressions">Statements, expressions, and return</a></li>
+      <li><a href="#section-symbolconv">Symbol conversion</a></li>
+      <li><a href="#reserved-symbols">Reserved symbols</a></li>
+      <li><a href="#section-types">Types and type predicates</a></li>
+      <li><a href="#section-literals">Literals</a>
+        <ul>
+          <li><a href="#ssection-numbers">Numbers</a></li>
+          <li><a href="#ssection-strings-chars">Strings and characters</a></li>
+          <li><a href="#ssection-regex">Regular expressions</a></li>
+          <li><a href="#ssection-booleans">Booleans and undefined</a></li>
+        </ul>
+      </li>
+      <li><a href="#section-objects">Objects</a></li>
+      <li><a href="#section-arrays">Arrays</a></li>
+      <li><a href="#section-arithmetic">Arithmetic and boolean operators</a></li>
+      <li><a href="#section-math">Mathematical functions and constants</a></li>
+      <li><a href="#section-blocks">Blocks</a></li>
+      <li><a href="#section-functions">Functions and multiple values</a></li>
+      <li><a href="#section-control-transfer">Control transfer and exceptions</a></li>
+      <li><a href="#section-conditionals">Conditionals</a></li>
+      <li><a href="#section-variables">Variable binding and declaration</a></li>
+      <li><a href="#section-assignment">Assignment</a></li>
+      <li><a href="#section-iteration">Iteration</a></li>
+      <li><a href="#section-misc-forms">Misc forms</a></li>
+      <li><a href="#section-macros">Macros</a>
+        <ul>
+          <li><a href="#ssection-defining-macros">Defining macros</a></li>
+          <li><a href="#ssection-symbol-macros">Symbol macros</a></li>
+          <li><a href="#ssection-gensym">Gensym</a></li>
+        </ul>
+      </li>
+      <li><a href="#section-namespace">The Parenscript namespace system</a>
+        <ul>
+          <li><a href="#section-obfuscation">Identifier obfuscation</a></li>
+        </ul>
+      </li>
+      <li><a href="#section-utilities">Utilities</a>
+        <ul>
+          <li><a href="#ssection-dom">DOM</a></li>
+          <li><a href="#ssection-html-gen">HTML generation</a></li>
+        </ul>
+      </li>
+      <li><a href="#section-runtime-library">Runtime library</a></li>
+      <li><a href="#section-slime-integration">SLIME integration</a></li>
+    </ol>
+    
+    <h2 id="section-ps-compiler">The Parenscript compiler</h2>
+    <ul>
+      <li>(<code id="ps">PS</code> &body body)</li>
+      <li>(<code id="ps-to-stream">PS-TO-STREAM</code> stream &body body)</li>
+      <li>(<code id="ps*">PS*</code> &rest body)</li>
+      <li>(<code id="ps-doc">PS-DOC</code> &body body)</li>
+      <li>(<code id="ps-doc*">PS-DOC*</code> &body body)</li>
+      <li>(<code id="ps-inline">PS-INLINE</code> form &optional <code>*JS-STRING-DELIMITER*</code>)</li>
+      <li>(<code id="ps-inline*">PS-INLINE*</code> form &optional <code>*JS-STRING-DELIMITER*</code>)</li>
+      <li>(<code id="ps-compile-stream">PS-COMPILE-STREAM</code> stream)</li>
+      <li>(<code id="ps-compile-file">PS-COMPILE-FILE</code> file)</li>
+      <li>(<code id="lisp">LISP</code> lisp-forms)</li>
+      <li>(<code id="symbol-to-js-string">SYMBOL-TO-JS-STRING</code> symbol)</li>
+    
+      <li><code id="*js-target-version*">*JS-TARGET-VERSION*</code></li>
+      <li><code id="*parenscript-stream*">*PARENSCRIPT-STREAM*</code></li>
+      <li><code id="*js-string-delimiter*">*JS-STRING-DELIMITER*</code></li>
+      <li><code id="*js-inline-string-delimiter*">*JS-INLINE-STRING-DELIMITER*</code></li>
+      <li><code id="*ps-print-pretty*">*PS-PRINT-PRETTY*</code></li>
+      <li><code id="*indent-num-spaces*">*INDENT-NUM-SPACES*</code></li>
+      <li><code id="*ps-read-function*">*PS-READ-FUNCTION*</code></li>
+    </ul>
+
+    <dl>
+      <dt>body</dt> <dd>implicit <code>PROGN</code></dd>
+    </dl>
+    
+    <p>The difference between the regular and <code>*</code> versions
+      of the Parenscript compiler forms is roughly the difference
+      between <code>COMPILE</code>
+      and <code>EVAL</code>. The <code>*</code> forms are functions
+      that do all compilation when they are evaluated, while the
+      regular forms are macros that do almost all (except for the use
+      of the <code>LISP</code> special form, see below) compilation at
+      macro-expansion time.</p>
+
+    <p><code>PS</code> and <code>PS*</code> are the main interfaces to
+      the Parenscript compiler. They come with <code>PS-DOC</code>
+      and <code>PS-DOC*</code> counterparts which compile the given
+      code
+      with <a href="#*ps-gensym-counter*"><code>*PS-GENSYM-COUNTER*</code></a>
+      bound to 0, and are useful for writing automated tests.</p>
+
+    <p>By default, Parenscript writes output to a string. You can
+      output directly to a stream in one of two ways: either by
+      using <code>PS-TO-STREAM</code> instead of <code>PS</code>, or by
+      binding <code>*PARENSCRIPT-STREAM*</code> before
+      calling <code>PS*</code>.</p>
+    
+    <p><code>PS-INLINE</code> and <code>PS-INLINE*</code> take a single
+      Parenscript form and output a string starting
+      with <code>javascript:</code> that can be used in HTML node
+      attributes. As well, they provide an argument to bind the value of
+      <code>*JS-STRING-DELIMITER*</code> to control the value of the
+      JavaScript string escape character to be compatible with
+      whatever the HTML generation mechanism is used (for example, if
+      HTML strings are delimited using <code>#\'</code>,
+      using <code>#\&quot;</code> will avoid conflicts without
+      requiring the output JavaScript code to be escaped). By default
+      the value is taken
+      from <code>*JS-INLINE-STRING-DELIMITER*</code>.</p>
+
+    <p>Parenscript code can be compiled from a stream or file
+      via <code>PS-COMPILE-STREAM</code>
+      and <code>PS-COMPILE-FILE</code>, respectively. The special
+      variable <code>*PS-READ-FUNCTION*</code> is bound to the function
+      used to read the forms from the file/stream (<code>READ</code> by
+      default), and can be used to provide completely customizable
+      syntax for Parenscript files.</p>
+
+    <p><code>*PS-PRINT-PRETTY*</code>
+      and <code>*INDENT-NUM-SPACES*</code> control whether the resulting
+      JavaScript code is pretty-printed, and if so, how many spaces go
+      into each indent level, respectively. By default the code is
+      pretty-printed with 4 spaces per indent level.</p>
+    
+    <p>Parenscript can also call out to arbitrary Common Lisp code at
+      <i>output time</i> (that is, every time an expression containing
+      a call to the Parenscript compiler is evaluated, compared
+      to <i>compile time</i>, where the effect is accomplished using
+      macros) using the special form <code>LISP</code>. The form
+      provided to <code>LISP</code> is evaluated, and its result is
+      compiled as though it were Parenscript code. For <code>PS</code>
+      and <code>PS-INLINE</code>, the Parenscript output code is
+      generated at macro-expansion time, and the <code>LISP</code>
+      statements are inserted inline into the output and have access
+      to the enclosing Common Lisp lexical
+      environment. <code>PS*</code> and <code>PS1*</code> evaluate the
+      <code>LISP</code> forms using <code>EVAL</code>, providing them
+      access to the current dynamic environment only (of course,
+      using <code>LISP</code> when calling the <code>*</code> forms is
+      not strictly necessary, as the values can be inserted inline
+      into code).</p>
+
+    <p><code>*JS-TARGET-VERSION*</code> (<code>1.3</code> by default)
+      controls which version of JavaScript that Parenscript
+      targets. For newer versions of JS, some Parenscript special
+      forms may compile to more concise and/or efficient expressions
+      that are not present in earlier versions of JavaScript.</p>
+
+    <p><code>SYMBOL-TO-JS-STRING</code> is the Parenscript function
+      responsible for translating Common Lisp symbols to JavaScript
+      identifiers (see the section
+      on <a href="#section-symbolconv">symbol conversion</a> for the
+      translation rules). It is helpful for writing libraries or other
+      pieces of code that will interface with Parenscript-generated
+      JavaScript.</p>
+
+    <h2 id="section-statements-expressions">Statements, expressions, and return</h2>
+
+    <p>In contrast to Lisp, where everything is an expression,
+      JavaScript makes an arbitrary distinction between expressions,
+      which yield a value and can be nested in other expressions, and
+      statements, which have no value and cannot occur in
+      expressions.</p>
+    
+    <p>Some Parenscript special forms compile to expressions, while
+      others can only compile to statements. Certain Parenscript
+      forms, like <code>IF</code> and <code>PROGN</code>, generate
+      different JavaScript depending on if they are used in an
+      expression context or a statement context. In such cases,
+      Parenscript tries to generate statement code if possible to
+      increase readability, only falling back to the expression code
+      if it is necessary.</p>
+
+      <dl><dt><code>(+ i (if x (foo) (bar)))</code></dt>
+        <dd><code>i + (x ? foo() : bar());</code></dd>
+        
+        <dt><code>(if x (foo) (bar))</code></dt>
+        <dd><code>
+<pre>if (x) {
+    foo();
+} else {
+    bar();
+};</pre>
+          </code>
+        </dd>
+      </dl>
+
+    <p>One important feature found in Lisp but absent in JavaScript is
+      implicit return in functions. Parenscript supports implicit
+      return by having a <code>RETURN</code> special form that works
+      around the statement-expression dichotomy:</p>
+
+    <dl>
+      <dt><code>
+          <pre>(defun foo (x)
+  (1+ x))</pre>
+          </code>
+      </dt>
+      <dd><code>
+          <pre>function foo(x) {
+    return x + 1;
+};</pre>
+          </code>
+      </dd>
+
+      <dt><code>
+          <pre>(lambda (x)
+  (case x
+    (1 (loop repeat 3 do (alert "foo")))
+    (:bar (alert "bar"))
+    (otherwise 4)))</pre>
+          </code>
+      </dt>
+      <dd><code>
+          <pre>function (x) {
+    switch (x) {
+    case 1:
+        for (var _js1 = 0; _js1 < 3; _js1 += 1) {
+            alert('foo');
+        };
+        return null;
+    case 'bar':
+        return alert('bar');
+    default: 
+        return 4;
+    };
+};</pre>
+          </code>
+      </dd>
+    </dl>
+      
+    <p>Note that Parenscript does not enforce the statement-expression
+      dichotomy, so it is possible to generate syntactically incorrect
+      JavaScript by nesting special forms that only compile to
+      statements in a context that calls for an expression:</p>
+
+    <dl>
+      <dt><code>(+ 1 (dotimes (x 3) (+ x x)))</code></dt>
+      <dd>
+        <code>
+          <pre>1 + for (var x = 0; x < 3; x += 1) {
+    x + x;
+};</pre>
+        </code>
+      </dd>
+    </dl>
+    
+    <h2 id="section-symbolconv">Symbol conversion</h2>
+
+    <p>Lisp symbols (except for keywords) are converted to JavaScript
+      symbols by following a few simple rules. Special
+      characters <code>!, ?, #, @, %, /, *</code> and <code>+</code>
+      get replaced by their written-out equivalents "bang", "what",
+      "hash", "at", "percent", "slash", "start" and "plus"
+      respectively. The <code>$</code> character is untouched.</p>
+
+    <dl>
+      <dt><code>!?#@%</code></dt>
+      <dd><code>bangwhathashatpercent;</code></dd>
+    </dl>
+    
+    <p>The <code>-</code> is an indication that the following
+      character should be converted to uppercase.</p>
+
+    <dl>
+      <dt><code>bla-foo-bar</code></dt>
+      <dd><code>blaFooBar;</code></dd>
+    </dl>
+
+    <p>JavaScript identifiers that begin with an uppercase letter can
+      be obtained with a leading <code>-</code> or <code>*</code>.</p>
+
+    <dl>
+      <dt><code>*array</code></dt>
+      <dd><code>Array;</code></dd>
+    </dl>
+
+    <p>A symbol starting and ending with <code>+</code>
+      or <code>*</code> is converted to all uppercase, to signify that
+      this is a constant or a global variable.</p>
+
+    <dl>
+      <dt><code>*global-array*</code></dt>
+      <dd><code>GLOBALARRAY;</code></dd>
+    </dl>
+
+    <p>Keywords are not translated to JavaScript identifiers, but are
+      printed in lower case without any character substitution as
+      strings. This is done because strings are the closest equivalent
+      to Common Lisp keywords (being self-evaluating objects in
+      JavaScript), and to permit keywords to be used for identifying
+      various symbols (for example, as tokens in a parser).</p>
+
+    <dl>
+      <dt><code>:+</code></dt>
+      <dd><code>'+';</code></dd>
+      
+      <dt><code>:foo-Bar</code></dt>
+      <dd><code>'foo-bar';</code></dd>
+    </dl>
+    
+    <h2 id="reserved-symbols">Reserved symbols</h2>
+    
+    <p>The following symbols are reserved in Parenscript, and should not
+      be used as variable names.</p>
+    
+    <code>
+      ! ~ ++ -- * / % + - &lt;&lt; &gt;&gt; &gt;&gt;&gt; &lt; &gt;
+      &lt;= &gt;= == != ==== !== & ^ | && || *= /= %= += -= &lt;&lt;=
+      &gt;&gt;= &gt;&gt;&gt;= &= ^= |= 1- 1+ @ ABSTRACT AND AREF ARRAY
+      BOOLEAN BREAK BYTE CASE CATCH CHAR CLASS COMMA CONST CONTINUE
+      CREATE DEBUGGER DECF DEFAULT DEFUN DEFVAR DELETE DO DO* DOEACH
+      DOLIST DOTIMES DOUBLE ELSE ENUM EQL EXPORT EXTENDS F FALSE FINAL
+      FINALLY FLOAT FLOOR FOR FOR-IN FUNCTION GOTO IF IMPLEMENTS
+      IMPORT IN INCF INSTANCEOF INT INTERFACE JS LABELED-FOR LAMBDA
+      LET LET* LISP LIST LONG MAKE-ARRAY NATIVE NEW NIL NOT OR PACKAGE
+      PRIVATE PROGN PROTECTED PUBLIC RANDOM REGEX RETURN SETF SHORT
+      GETPROP STATIC SUPER SWITCH SYMBOL-MACROLET SYNCHRONIZED T THIS
+      THROW THROWS TRANSIENT TRY TYPEOF UNDEFINED UNLESS VAR VOID
+      VOLATILE WHEN WHILE WITH WITH-SLOTS
+    </code>
+
+    <h2 id="section-types">Types and type predicates</h2>
+    <ul>
+      <li>(<code id="typeof">TYPEOF</code> object)</li>
+      <li>(<code id="instanceof">INSTANCEOF</code> object type)</li>
+      <li>(<code id="null">NULL</code> object)</li>
+      <li>(<code id="undefined">UNDEFINED</code> object)</li>
+      <li>(<code id="defined">DEFINED</code> object)</li>
+      <li>(<code id="stringp">STRINGP</code> object)</li>
+      <li>(<code id="numberp">NUMBERP</code> object)</li>
+      <li>(<code id="functionp">FUNCTIONP</code> object)</li>
+      <li>(<code id="objectp">OBJECTP</code> object)</li>
+    </ul>
+
+    <dl>
+      <dt>object</dt> <dd>an expression yielding an object</dd>
+      <dt>type</dt> <dd>a type designator</dd>
+    </dl>
+
+    <p>Parenscript is based around the JavaScript type system, and
+    does not introduce any new types or objects, nor does it attempt
+    to provide a Common Lisp-like interface to the type system.</p>
+
+    <h2 id="section-literals">Literals</h2>
+    
+    <h3 id="ssection-numbers">Numbers</h3>
+    
+    <p>Parenscript prints all integer literals as integers, and floats
+    and rationals as floats, in base 10.</p>
+
+    <dl>
+      <dt><code>1</code></dt>
+      <dd><code>1;</code></dd>
+      
+      <dt><code>123.123</code></dt>
+      <dd><code>123.123;</code></dd>
+    
+      <dt><code>3/4</code></dt>
+      <dd><code>0.75;</code></dd>
+    
+      <dt><code>#x10</code></dt>
+      <dd><code>16;</code></dd>
+    </dl>
+
+    <h3 id="ssection-strings-chars">Strings and characters</h3>
+    
+    <p>Lisp strings are converted to JavaScript strings.</p>
+
+    <dl>
+      <dt><code>"foobar"</code></dt>
+      <dd><code>'foobar';</code></dd>
+    </dl>
+
+    <p>Parenscript makes no effort to interpolate C-style escape
+    strings. Rather, non-printable characters in Lisp strings are
+    output using escape sequences:</p>
+
+    <dl>
+      <dt><code>#\Tab</code></dt>
+      <dd><code>'\t';</code></dd>
+
+      <dt><code>"\\n"</code></dt>
+      <dd><code>'\\n';</code></dd>
+    </dl>
+
+    <h3 id="ssection-regex">Regular expressions</h3>
+    <ul>
+      <li>(<code id="regex">REGEX</code> regex)</li>
+    </ul>
+
+    <dl>
+      <dt>regex</dt> <dd>a string</dd>
+    </dl>
+
+    <p>Regular expressions can be created by using
+      the <code>REGEX</code> form. If the argument does not start with
+      <code>/</code>, it is surrounded by <code>/</code>, otherwise it
+      is left as it is.</p>
+
+    <dl>
+      <dt><code>(regex "foobar")</code></dt>
+      <dd><code>/foobar/;</code></dd>
+
+      <dt><code>(regex "/foobar/i")</code></dt>
+      <dd><code>/foobar/i;</code></dd>
+    </dl>
+
+    <p><a href="http://weitz.de/cl-interpol/">CL-INTERPOL</a> is
+      convenient for writing regular expressions:</p>
+    
+    <dl>
+      <dt><code>(regex #?r"/([^\s]+)foobar/i")</code></dt>
+      <dd><code>/([^\s]+)foobar/i;</code></dd>
+    </dl>
+
+    <h3 id="ssection-booleans">Booleans and undefined</h3>
+    <ul>
+      <li><code id="t">T</code></li>
+      <li><code id="f">F</code></li>
+      <li><code if="false">FALSE</code></li>
+      <li><code id="nil">NIL</code></li>
+      <li><code id="undefined">UNDEFINED</code></li>
+    </ul>
+
+    <p><code>T</code> and <code>FALSE</code> (or <code>F</code>) are
+      converted to their JavaScript boolean
+      equivalents <code>true</code> and <code>false</code>.</p>
+
+    <p><code>NIL</code> is converted to the JavaScript keyword
+      <code>null</code>.</p>
+
+    <p><code>UNDEFINED</code> is converted to the JavaScript global
+    variable <a href="https://developer.mozilla.org/en/Core_JavaScript_1.5_Reference/Global_Properties/undefined"><code>undefined</code></a>.</p>
+
+    <h2 id="section-objects">Objects</h2>
+    <ul>
+      <li>(<code id="new">NEW</code> constructor)</li>
+      <li>(<code id="create">CREATE</code> {name value}*)</li>
+      <li>(<code id="getprop">GETPROP</code> object {slot-specifier}*)</li>
+      <li>(<code id="@">@</code> {slot-specifier}*)</li>
+      <li>(<code id="chain">CHAIN</code> {slot-specifier | function-call}*)</li>
+      <li>(<code id="with-slots">WITH-SLOTS</code> ({slot-name}*) object body)</li>
+      <li>(<code id="delete">DELETE</code> object)</li>
+    </ul>
+
+    <dl>
+      <dt>constructor</dt> <dd>a function call to an object constructor</dd>
+      <dt>name</dt> <dd>symbol, string or keyword</dd>
+      <dt>value</dt> <dd>an expression</dd>
+      <dt>object</dt> <dd>an expression yielding an object</dd>
+      <dt>slot-specifier</dt> <dd>a quoted symbol, a string, a number, or an expression yielding a string or number</dd>
+      <dt>body</dt> <dd>implicit <code>PROGN</code></dd>
+    </dl>
+
+    <p>Object literals can be create
+      using <code>CREATE</code>. <code>CREATE</code> takes a property
+      list of property names and values.</p>
+
+    <dl>
+      <dt><code>(create foo "bar" :blorg 1)</code></dt>
+      <dd><code>{ foo : 'bar', 'blorg' : 1 };</code></dd>
+
+      <dt><code>
+<pre>(create foo "hihi"
+        blorg (array 1 2 3)
+        another-object (create :schtrunz 1))</pre>
+        </code>
+      </dt>
+      <dd><code>
+<pre>{ foo : 'hihi',
+     blorg : [ 1, 2, 3 ],
+     anotherObject : { 'schtrunz' : 1 } };</pre>
+          </code>
+      </dd>
+    </dl>
+
+    <p>Object properties can be accessed using
+      <code>GETPROP</code>, which takes an object and a list of
+      properties.</p>
+
+    <dl>
+      <dt><code>(getprop obj 'foo)</code></dt>
+      <dd><code>obj.foo;</code></dd>
+
+      <dt><code>(getprop obj foo)</code></dt>
+      <dd><code>obj[foo];</code></dd>
+
+      <dt><code>(getprop element i 'child-node 0 'node-value)</code></dt>
+      <dd><code>element[i].childNode[0].nodeValue;</code></dd>
+    </dl>
+
+    <p>The convenience macro <code>@</code> quotes all its given
+    symbol slot-specifiers to save typing:</p>
+
+    <dl>
+      <dt><code>(@ an-object foo bar)</code></dt>
+      <dd><code>anObject.foo.bar;</code></dd>
+
+      <dt><code>(@ foo bar child-node 0 node-value)</code></dt>
+      <dd><code>foo.bar.childNode[0].nodeValue;</code></dd>
+    </dl>
+
+    <p><code>CHAIN</code> can be used to conveniently chain together
+    accessors and function calls:</p>
+
+    <dl>
+      <dt><code>(chain foo (bar x y) 0 baz)</code></dt>
+      <dd><code>foo.bar(x, y)[0].baz;</code></dd>
+    </dl>
+
+    <p><code>WITH-SLOTS</code> can be used to bind the given
+      slot-names to a symbol macro that will expand into
+      a <code>GETPROP</code> form at expansion time:</p>
+
+    <dl>
+      <dt><code>
+<pre>(with-slots (a b c) this
+  (+ a b c))</pre>
+          </code>
+      </dt>
+      <dd><code>this.a + this.b + this.c;</code></dd>
+    </dl>
+
+    <h2 id="section-arrays">Arrays</h2>
+    <ul>
+      <li>(<code id="array">ARRAY</code> {values}*)</li>
+      <li>(<code id="list">LIST</code> {values}*)</li>
+      <li>(<code id="[]">[]</code> {values}*)</li>
+      <li>(<code id="make-array">MAKE-ARRAY</code> {values}*)</li>
+      <li>(<code id="length">LENGTH</code> array)</li>
+      <li>(<code id="aref">AREF</code> array index)</li>
+      <li>(<code id="elt">ELT</code> array index)</li>
+      <li>(<code id="destructuring-bind">DESTRUCTURING-BIND</code> bindings array body)</li>
+      <li>(<code id="concatenate">CONCATENATE 'STRING</code> {values}*)</li>
+      <li>(<code id="append">APPEND</code> {values}*)</li>
+    </ul>
+
+    <dl>
+      <dt>values</dt> <dd>an expression</dd>
+      <dt>array</dt> <dd>an expression</dd>
+      <dt>index</dt> <dd>an expression</dd>
+    </dl>
+
+    <p>Array literals can be created using the <code>ARRAY</code>
+      or <code>LIST</code> forms.</p>
+
+    <dl>
+      <dt><code>(array)</code></dt>
+      <dd><code>[];</code></dd>
+
+      <dt><code>(array 1 2 3)</code></dt>
+      <dd><code>[1, 2, 3];</code></dd>
+
+      <dt><code>(list (foo) (bar) 3)</code></dt>
+      <dd><code>[foo(), bar(), 3];</code></dd>
+
+      <dt><code>     
+          <pre>(array (array 2 3)
+  (array "foo" "bar"))</pre>
+        </code>
+      </dt>
+      <dd><code>[[ 2, 3 ], ['foo', 'bar']];</code></dd>
+    </dl>
+
+    <p>Arrays can also be created with a call to the <code>Array</code>
+      function using <code>MAKE-ARRAY</code>.</p>
+
+    <dl>
+      <dt><code>(make-array)</code></dt>
+      <dd><code>new Array();</code></dd>
+    
+      <dt><code>(make-array 1 2 3)</code></dt>
+      <dd><code>new Array(1, 2, 3);</code></dd>
+
+      <dt><code>
+<pre>(make-array
+ (make-array 2 3)
+ (make-array "foobar" "bratzel bub"))</pre>
+        </code>
+      </dt>
+      <dd><code>new Array(new Array(2, 3), new Array('foobar', 'bratzel bub'));</code></dd>
+    </dl>
+
+    <p>Array elements can be accessed using <code>AREF</code> or <code>ELT</code>.</p>
+
+    <h2 id="section-arithmetic">Arithmetic and boolean operators</h2>
+    <ul>
+      <li>(&lt;operator&gt; {argument}*)</li>
+      <li>(&lt;single-operator&gt; argument)</li>
+    </ul>
+
+    <dl>
+      <dt>&lt;operator&gt;</dt>
+      <dd>one of <code>*, /, %, +, -, <<, >>, >>>, < >, EQL,
+              ==, !=, =, ===, !==, &, ^, |, &&, AND, ||, OR</code>
+      </dd>
+
+      <dt>&lt;single-operator&gt;</dt>
+      <dd>one of <code>INCF, DECF, ++, --, NOT, !</code></dd>
+      
+      <dt>argument</dt> <dd>an expression</dd>
+    </dl>
+        
+    <p>Operator forms are similar to function call forms, but have an
+      operator as function name.</p>
+
+    <p>Please note that <code>=</code> is converted to <code>==</code> in
+      JavaScript. The <code>=</code> Parenscript operator is not the
+      assignment operator.</p>
+
+    <dl>
+      <dt><code>(* 1 2)</code></dt>
+      <dd><code>1 * 2;</code></dd>
+      
+      <dt><code>(= 1 2)</code></dt>
+      <dd><code>1 == 2;</code></dd>
+    </dl>
+
+    <h2 id="section-math">Mathematical functions and constants</h2>
+    <ul>
+      <li>(<code id="max">MAX</code> {number}*)</li>
+      <li>(<code id="min">MIN</code> {number}*)</li>
+      <li>(<code id="floor">FLOOR</code> number &optional divisor)</li>
+      <li>(<code id="ceiling">CEILING</code> number &optional divisor)</li>
+      <li>(<code id="round">ROUND</code> number &optional divisor)</li>
+      <li>(<code id="sin">SIN</code> number)</li>
+      <li>(<code id="cos">COS</code> number)</li>
+      <li>(<code id="tan">TAN</code> number)</li>
+      <li>(<code id="asin">ASIN</code> number)</li>
+      <li>(<code id="acos">ACOS</code> number)</li>
+      <li>(<code id="atan">ATAN</code> number1 &optional number2)</li>
+      <li>(<code id="sinh">SINH</code> number)</li>
+      <li>(<code id="cosh">COSH</code> number)</li>
+      <li>(<code id="tanh">TANH</code> number)</li>
+      <li>(<code id="asinh">ASINH</code> number)</li>
+      <li>(<code id="acosh">ACOSH</code> number)</li>
+      <li>(<code id="atanh">ATANH</code> number)</li>
+      <li>(<code id="1+">1+</code> number)</li>
+      <li>(<code id="1-">1-</code> number)</li>
+      <li>(<code id="abs">ABS</code> number)</li>
+      <li>(<code id="evenp">EVENP</code> number)</li>
+      <li>(<code id="oddp">ODDP</code> number)</li>
+      <li>(<code id="exp">EXP</code> number)</li>
+      <li>(<code id="expt">EXPT</code> base power)</li>
+      <li>(<code id="log">LOG</code> number &optional base)</li>
+      <li>(<code id="sqrt">SQRT</code> number)</li>
+      <li>(<code id="random">RANDOM</code> &optional limit)</li>
+      
+      <li><code id="pi">PI</code></li>
+    </ul>
+
+    <p>The mathematical functions listed above work mostly like their
+      Common Lisp counterparts when called directly, with the
+      exception that complex numbers are not supported. However, most
+      of them are implemented as macros, and as such cannot be treated
+      as first-class functions.</p>
+
+    <h2 id="section-blocks">Blocks</h2>
+    <ul>
+      <li>(<code id="progn">PROGN</code> {statement}*) in statement context</li>
+      <li>(<code>PROGN</code> {expression}*) in expression context</li>
+      <li>(<code id="prog1">PROG1</code> {expression | statement}*)</li>
+      <li>(<code ud="prog2">PROG2</code> {expression | statement}*)</li>
+    </ul>
+
+    <dl>
+      <dt>statement</dt> <dd>a form that compiles to a statement</dd>
+      <dt>expression</dt> <dd>a form that compiles to an expression</dd>
+    </dl>
+
+    <p>The translation of <code>PROGN</code> depends on whether it is
+    found in a statement or expression context:</p>
+    
+    <dl>
+      <dt><code>(progn (blorg i) (blafoo i))</code></dt>
+      <dd><code>
+<pre>blorg(i);
+blafoo(i);</pre>
+          </code>
+      </dd>
+
+      <dt><code>(+ i (progn (blorg i) (blafoo i)))</code></dt>
+      <dd><code>i + (blorg(i), blafoo(i));</code></dd>
+    </dl>
+
+    <h2 id="section-functions">Functions and multiple values</h2>
+    <ul>
+      <li>(<code id="defun">DEFUN</code> name lambda-list body)</li>
+      <li>(<code id="lambda">LAMBDA</code> lambda-list body)</li>
+      <li>(<code id="flet">FLET</code> ({(name lambda-list body)}*) body)</li>
+      <li>(<code id="labels">LABELS</code> ({(name lambda-list body)}*) body)</li>
+      <li>(<code id="values">VALUES</code> {expression}*)</li>
+      <li>(<code id="multiple-value-bind">MULTIPLE-VALUE-BIND</code> (var*) expression body)</li>
+      <li>(<code id="apply">APPLY</code> function expression*)</li>
+      <li>(<code id="funcall">FUNCALL</code> function expression*)</li>
+      <li><code id="this">THIS</code></li>
+    </ul>
+
+    <dl>
+      <dt>expression</dt> <dd>a form that compiles to an expression</dd>
+      <dt>name</dt> <dd>a symbol</dd>
+      <dt>lambda-list</dt> <dd>a lambda list</dd>
+      <dt>body</dt> <dd>implicit <code>PROGN</code></dd>
+      <dt>var</dt> <dd>a symbol naming a variable</dd>
+      <dt>function</dt> <dd>an expression that yields a function</dd>
+    </dl>
+
+    <p>New function definitions can be introduced using all the
+    regular Lisp forms
+    - <code>DEFUN</code>, <code>LAMBDA</code>, <code>FLET</code>,
+    and <code>LABELS</code>. Function lambda lists
+    support <code>&optional</code>, <code>&rest</code> and
+    <code>&key</code> arguments.</p>
+
+    <p>The Parenscript multiple value facility passes the first return
+    value using the regular JavaScript convention, therefore functions
+    returning multiple values can be called by regular JavaScript code
+    and <code>MULTIPLE-VALUE-BIND</code> works with regular JavaScript
+    functions.</p>
+    
+    <p><code>APPLY</code> is a macro that expands into a call to the
+    JavaScript <code>apply</code> method.</p>
+    
+    <h2 id="section-control-transfer">Control transfer and exceptions</h2>
+    <ul>
+      <li>(<code id="return">RETURN</code> {value}?)</li>
+      <li>(<code id="trow">THROW</code> {exp}?)</li>
+      <li>(<code id="try">TRY</code> form
+        {(<code id="catch">:CATCH</code> (var) body)}?
+        {(<code id="finaly">:FINALLY</code> body)}?)</li>
+      <li>(<code>IGNORE-ERRORS</code> body)</li>
+    </ul>
+
+    <dl>
+      <dt>value</dt> <dd>a statement or expression</dd>
+      <dt>exp</dt> <dd>an expression</dd>
+      <dt>var</dt> <dd>variable to which the value of the caught <code>THROW</code> is bound</dd>
+      <dt>body</dt> <dd>implicit <code>PROGN</code></dd>
+    </dl>
+
+    <p>Parenscript <code>RETURN</code> and <code>THROW</code> forms do
+    not work like the Common Lisp forms with the same names.</p>
+
+    <p><code>RETURN</code> can only be used to return a value from
+    a function - Parenscript has no analogue of Common Lisp's
+    blocks. <code>RETURN</code> works when given either expressions or
+    statements (in which case it performs semantic analysis to
+    determine what should be returned).</p>
+
+    <dl>
+      <dt><code>
+<pre>(lambda (x)
+  (return (case x
+            (1 :a)
+            (2 :b))))</pre>
+        </code>
+      </dt>
+      <dd><code>
+<pre>function (x) {
+    switch (x) {
+    case 1:
+        return 'a';
+    case 2:
+        return 'b';
+    };
+};</pre>
+        </code>
+      </dd>
+    </dl>
+
+    <p>Likewise, <code>THROW</code> translates directly into the
+    JavaScript <code>throw</code>, to be used with <code>TRY</code>,
+    which is translated to the JavaScript <code>try</code>.</p>
+
+    <dl>
+      <dt><code>
+<pre>(try (throw "i")
+ (:catch (error)
+   (alert (+ "an error happened: " error)))
+ (:finally
+   (alert "Leaving the try form")))</pre>
+        </code>
+      </dt>
+      <dd><code>
+<pre>try {
+       throw 'i';
+   } catch (error) {
+       alert('an error happened: ' + error);
+   } finally {
+       alert('Leaving the try form');
+   };</pre>
+        </code>
+      </dd>
+    </dl>
+
+    <h2 id="section-conditionals">Conditionals</h2>
+    <ul>
+      <li>(<code id="if">IF</code> condition then {else})</li>
+      <li>(<code id="when">WHEN</code> condition then)</li>
+      <li>(<code id="unless">UNLESS</code> condition then)</li>
+      <li>(<code id="cond">COND</code> {clauses}*)</li>
+      <li>(<code id="case">CASE</code> case-value clause*)</li>
+      <li>(<code id="switch">SWITCH</code> case-value clause*)</li>
+      <li><code id="break">BREAK</code></li>
+    </ul>
+
+    <dl>
+      <dt>condition</dt> <dd>an expression</dd>
+      <dt>then</dt> <dd>a statement in statement context, or an expression in expression context</dd>
+      <dt>else</dt> <dd>a statement in statement context, or an expression in expression context</dd>
+      <dt>clause</dt> <dd>(&lt;value&gt; body) | (default body)</dd>
+    </dl>
+
+    <p><code>IF, WHEN, UNLESS</code> and <code>COND</code> work like
+    their Lisp counterparts, and are compiled either into statements
+    or expressions, depending on the context:</p>
+
+    <dl>
+      <dt><code>(cond ((= x 1) (+ x (if (foo y) 2 3))))</code>
+      </dt>
+      <dd><code>
+<pre>if (x == 1) {
+    x + (foo(y) ? 2 : 3);
+};</pre>
+        </code>
+      </dd>
+    </dl>
+
+    <p><code>CASE</code> works like its Common Lisp equivalent. An
+    additional form, <code>SWITCH</code>, takes the same syntax
+    as <code>CASE</code>, but the individual branches must be
+    terminated with the
+    symbol <a href="#break"><code>BREAK</code></a>. This allows
+    C-style case "fall-throughs" in <code>switch</code> statements:</p>
+
+    <dl>
+      <dt><code>
+<pre>(switch (aref blorg i)
+  (1 (alert "If I get here"))
+  (2 (alert "I also get here") 
+     break)
+  (default (alert "I always get here")))</pre>
+        </code>
+      </dt>
+      <dd><code>
+<pre>switch (blorg[i]) {
+case 1:
+    alert('If I get here');
+case 2:
+    alert('I also get here');
+    break;
+default: 
+    alert('I always get here');
+};</pre>
+        </code>
+      </dd>
+    </dl>
+
+    <p>Note that the default case in a <code>SWITCH</code> statement
+    must be named <code id="default">DEFAULT</code>.</p>
+
+    <h2 id="section-variables">Variable binding and declaration</h2>
+    <ul>
+      <li>(<code id="let">LET</code> ({var | (var value)}*) body)</li>
+      <li>(<code id="let*">LET*</code> ({var | (var value)}*) body)</li>
+      <li>(<code id="defvar">DEFVAR</code> var {value}?)</li>
+      <li>(<code id="var">VAR</code> var {value}?)</li>
+      <li>(<code id="with">WITH</code> object body)</li>
+    </ul>
+
+    <dl>
+      <dt>var</dt> <dd>a symbol</dd>
+      <dt>value</dt> <dd>an expression</dd>
+      <dt>body</dt> <dd>implicit <code>PROGN</code></dd>
+      <dt>object</dt> <dd>an expression evaluating to an object</dd>
+    </dl>
+
+    <p>Parenscript provides the <code>LET</code> and <code>LET*</code>
+      special forms for creating new variable bindings. Both special
+      forms implement lexical scope by renaming the provided variables
+      via <a href="#ps-gensym"><code>GENSYM</code></a>, and implement
+      dynamic binding
+      using <a href="#try"><code>TRY-FINALLY</code></a>.</p>
+
+    <p>Top-level <code>LET</code> and <code>LET*</code> forms will
+      create new global variables, or overwrite the values of already
+      existing global variables with the same name.</p>
+
+    <p>The JavaScript <code>with</code> statement can be generated
+    using <code>WITH</code>.</p>
+
+    <p>Beware that lexical scoping rules in JavaScript differ from
+      Lisp, and may even be implemented incorrectly in certain browser
+      JavaScript implementations. This applies particularly to lexical
+      closures.</p>
+
+    <p>Special variables can be declared using
+      <code>DEFVAR</code>. Note that the result is undefined
+      if <code>DEFVAR</code> does not occur as a top-level form.</p>
+
+    <p>One Parenscript feature that is not part of Common Lisp is the
+      lexically-scoped global variable, which is declared using
+      the <code>VAR</code> special form. The result is undefined
+      if <code>VAR</code> does not occur as a top-level form.</p>
+
+    <p>An example of variable declaration and binding:</p>
+
+    <dl>
+      <dt><code>
+<pre>(defvar *a* 4)
+(var *b* 3)
+(lambda ()
+  (let ((x 1)
+        (*a* 2)
+        (*b* 6))
+    (let* ((y (+ x 1))
+           (x (+ x y)))
+      (+ *a* *b* x y))))</pre>
+        </code>
+      </dt>
+      <dd><code>
+<pre>var A = 4;
+var B = 3;
+function () {
+    var x = 1;
+    var B = 6;
+    var A_TMPSTACK1;
+    try {
+        A_TMPSTACK1 = A;
+        A = 2;
+        var y = x + 1;
+        var x2 = x + y;
+        return A + B + x2 + y;
+    } finally {
+        A = A_TMPSTACK1;
+    };
+};</pre>
+        </code>
+      </dd>
+    </dl>
+
+    <h2 id="section-assignment">Assignment</h2>
+
+    <p>Parenscript assignment is done via the
+      standard <code id="setf">SETF</code>, <code id="SETQ">SETQ</code>,
+      <code id="PSETF">PSETF</code>, and <code id="PSETQ">PSETQ</code>
+      Lisp special forms. Parenscript supports the Common Lisp
+      protocol of <code>SETF</code>able places.</p>
+
+    <p>New places can be defined in one of two ways: using
+      <code>DEFSETF</code> or using <code>DEFUN</code> with a setf
+      function name; both are analogous to their Common Lisp
+      counterparts. <code>DEFSETF</code> supports both long and short
+      forms, while <code>DEFUN</code> of a setf place generates a
+      JavaScript function name with the <code>__setf_</code>
+      prefix:</p>
+
+    <dl>
+      <dt><code>
+<pre>(defun (setf color) (new-color el)
+  (setf (@ el style color) new-color))</pre>
+          </code>
+      </dt>
+      <dd><code>
+<pre>function __setf_color(newColor, el) {
+    return el.style.color = newColor;
+};</pre>
+        </code>
+      </dd>
+
+      <dt><code>(setf (color some-div) (+ 23 "em"))</code></dt>
+      <dd><code>
+<pre>var _js2 = someDiv;
+var _js1 = 23 + 'em';
+__setf_color(_js1, _js2);</pre>
+          </code>
+      </dd>
+    </dl>
+
+    <p>The following example illustrates how setf places can be used
+      to provide a uniform protocol for positioning elements in HTML
+      pages:</p>
+
+    <dl>
+      <dt><code>
+<pre>(defsetf left (el) (offset)
+  `(setf (@ ,el style left) ,offset))
+
+(defmacro left (el)
+  `(@ ,el offset-left))
+  
+(setf (left some-div) (+ 123 "px"))
+(left some-div)</pre>
+        </code>
+      </dt>
+      <dd><code>
+<pre>var _js2 = someDiv;
+var _js1 = 123 + 'px';
+_js2.style.left = _js1;
+someDiv.offsetLeft;</pre>
+          </code>
+      </dd>
+    </dl>
+
+    <h2 id="section-iteration">Iteration</h2>
+    <ul>
+      <li>(<code id="do">DO</code> ({var | (var {init}? {step}?)}*) (end-test {result}?) body)</li>
+      <li>(<code id="do*">DO*</code> ({var | (var {init}? {step}?)}*) (end-test {result}?) body)</li>
+      <li>(<code id="dotimes">DOTIMES</code> (var numeric-form {result}?) body)</li>
+      <li>(<code id="dolist">DOLIST</code> (var list-form {result}?) body)</li>
+      <li>(<code id="for-in">FOR-IN</code> (var object) body)</li>
+      <li>(<code id="while">WHILE</code> end-test body)</li>
+      <li>(<code id="loop">LOOP</code> {loop clauses}*)</li>
+    </ul>
+
+    <dl>
+      <dt>var</dt> <dd>a symbol</dd>
+      <dt>numeric-form</dt> <dd>a number yielding expression</dd>
+      <dt>list-form</dt> <dd>an array yielding expression</dd>
+      <dt>object-form</dt>  <dd>an object yielding expression</dd>
+      <dt>init</dt> <dd>an expression</dd>
+      <dt>step</dt> <dd>an expression</dd>
+      <dt>end-test</dt> <dd>an expression</dd>
+      <dt>result</dt> <dd>an expression</dd>
+      <dt>body</dt> <dd>implicit <code>PROGN</code></dd>
+    </dl>
+
+    <p>Parenscript comes with a wide array of Common Lisp iteration
+    constructs that compile to efficient JavaScript code,
+    including a partial implementation of <code>LOOP</code>.</p>
+
+    <h2 id="section-misc-forms">Misc forms</h2>
+    <ul>
+      <li>(<code id="void">VOID</code> {value})</li>
+      <li>(<code id="do-set-timeout">DO-SET-TIMEOUT</code> (timeout) body)</li>
+    </ul>
+
+    <p><code>VOID</code> translates directly to the
+    JavaScript <a href="https://developer.mozilla.org/en/Core_JavaScript_1.5_Reference/Operators/Special_Operators/void_Operator"><code>void</code></a>
+    operator. <code>DO-SET-TIMEOUT</code> is a convenience macro for
+    using <code>set-timeout</code>.</p>
+    
+    <h2 id="section-macros">Macros</h2>
+    <h3 id="ssection-defining-macros">Defining macros</h3>
+    <ul>
+      <li>(<code id="defmacro">DEFMACRO</code> name lambda-list macro-body)</li>
+      <li>(<code id="defpsmacro">DEFPSMACRO</code> name lambda-list macro-body)</li>
+      <li>(<code id="defmacro/ps">DEFMACRO/PS</code> name lambda-list macro-body)</li>
+      <li>(<code id="defmacro+ps">DEFMACRO+PS</code> name lambda-list macro-body)</li>
+      <li>(<code id="import-macros-from-lisp">IMPORT-MACROS-FROM-LISP</code> symbol*)</li>
+      <li>(<code id="macrolet">MACROLET</code> ({name lambda-list macro-body}*) body)</li>
+    </ul>
+
+    <dl>
+      <dt>name</dt> <dd>a symbol</dd>
+      <dt>lambda-list</dt> <dd>a lambda list</dd>
+      <dt>macro-body</dt> <dd>Lisp code evaluating to Parenscript code</dd>
+      <dt>body</dt> <dd>implicit <code>PROGN</code></dd>
+      <dt>symbol</dt> <dd>symbol with a Lisp macro function definition</dd>
+    </dl>
+
+    <p>Parenscript macros are like Lisp macros in that they have
+    access to the full Lisp language, but different in that they must
+    produce Parenscript code. Since Parenscript provides a large
+    subset of Common Lisp, many Lisp macros already produce valid
+    Parenscript code, and vice-versa. Parenscript provides several
+    different ways to define new macros, and to use already existing
+    Common Lisp macros.</p>
+
+    <p><code>DEFMACRO</code> and <code>MACROLET</code> can be used to
+    define new macros in Parenscript code. Note that macros defined
+    this way are defined in a null lexical environment (ex
+    - <code>(let ((x 1)) (defmacro baz (y) `(+ ,y ,x)))</code> will
+    not work), since the surrounding Parenscript code is just
+    translated to JavaScript and not actually evaluated.</p>
+
+    <p><code>DEFPSMACRO</code> is a Lisp form (not a Parenscript one!)
+    that can be used by Lisp code to define Parenscript macros without
+    calling the Parenscript compiler.</p>
+
+    <p>The representation of Parenscript macro functions is the same
+      as that of Common Lisp, and in fact Parenscript can use already
+      defined macros this way. 
+
+    <p><code>DEFMACRO/PS</code> defines a Lisp macro and then imports
+      it into the Parenscript macro environment,
+      while <code>DEFMACRO+PS</code> defines two macros with the same name
+      and expansion, one in Parenscript and one in
+      Lisp. <code>DEFMACRO+PS</code> is used when the full macroexpansion of
+      the Lisp macro yields code that cannot be used by Parenscript.</p>
+
+    <p>Parenscript also supports the use of macros defined in the
+      underlying Lisp environment. Existing Lisp macros can be imported into
+      the Parenscript macro environment
+      by <code>IMPORT-MACROS-FROM-LISP</code>. This functionality enables
+      code sharing between Parenscript and Lisp, and is useful in debugging
+      since the full power of Lisp macroexpanders, editors and other
+      supporting facilities can be used. However, it is important to note
+      that the macroexpansion of Lisp macros and Parenscript macros takes
+      place in their own respective environments, and many Lisp macros
+      (especially those provided by the Lisp implementation) expand into
+      code that is not usable by Parenscript. To make it easy for users to
+      take advantage of these features, two additional macro definition
+      facilities are provided by Parenscript: </p>
+
+    <h3 id="ssection-symbol-macros">Symbol macros</h3>
+    (<code id="define-ps-symbol-macro">DEFINE-PS-SYMBOL-MACRO</code> symbol expansion)
+    (<code id="symbol-macrolet">SYMBOL-MACROLET</code> ({name macro-body}*) body)
+
+    <p>Symbol macros can be introduced using <code>SYMBOL-MACROLET</code>
+      or defined in Lisp with <code>DEFINE-PS-SYMBOL-MACRO</code>. For
+      example, the Parenscript
+      <code>WITH-SLOTS</code> is implemented using symbol macros:</p>
+    
+    <pre><code>
+(defpsmacro with-slots (slots object &rest body)
+  `(symbol-macrolet ,(mapcar #'(lambda (slot)
+                                 `(,slot '(getprop ,object ',slot)))
+                             slots)
+    ,@body))
+</code></pre>
+
+    <h3 id="ssection-gensym">Gensym</h3>
+    <ul>
+      <li>(<code id="ps-gensym">PS-GENSYM</code> {string})</li>
+      <li>(<code id="with-ps-gensyms">WITH-PS-GENSYMS</code> symbols &body body)</li>
+      <li>(<code id="ps-once-only">PS-ONCE-ONLY</code> (&rest vars) &body body)</li>
+      
+      <li><code id="*ps-gensym-counter*">*PS-GENSYM-COUNTER*</code></li>
+    </ul>
+
+    <p>JavaScript identifier equality is based on string
+    representations, as opposed to Common Lisp, where two uninterned
+    symbols with the same name are different objects. Therefore
+    Parenscript <code>GENSYM</code> depends
+    on <code>*PS-GENSYM-COUNTER*</code> values only for generating
+    unique identifiers. <code>*PS-GENSYM-COUNTER*</code> does not
+    persist and is not guaranteed to be thread-safe, so care should be
+    taken to avoid writing code where gensymed identifiers may clash
+    (for example, this could happen if you concatenate JS code from PS
+    compilers running in two different Lisp images, where the values
+    of <code>*PS-GENSYM-COUNTER*</code> overlap).
+    
+    <h2 id="section-namespace">The Parenscript namespace system</h2>
+    (setf (<code id="ps-package-prefix">PS-PACKAGE-PREFIX</code> package-designator) string)
+    
+    <p>Although JavaScript does not offer namespacing or a package system,
+      Parenscript does provide a namespace mechanism for generated
+      JavaScript by integrating with the Common Lisp package system. Since
+      Parenscript code is normally read in by the Lisp reader, all symbols
+      (except for uninterned ones, ie - those specified with
+      the <code>#:</code> reader macro) have a Lisp package. By default, no
+      packages are prefixed. You can specify that symbols in a particular
+      package receive a prefix when translated to JavaScript with the
+      <code>PS-PACKAGE-PREFIX</code> place.</p>
+
+    <code>
+<pre>(defpackage "PS-REF.MY-LIBRARY"
+  (:use "PARENSCRIPT"))
+(setf (ps-package-prefix "PS-REF.MY-LIBRARY") "my_library_")</pre>
+    </code>
+
+    <dl>
+      <dt><code>
+<pre>(defun ps-ref.my-library::library-function (x y)
+  (return (+ x y)))</pre>
+          </code>
+      </dt>
+      <dd><code>
+<pre>function my_library_libraryFunction(x, y) {
+    return x + y;
+};</pre>
+          </code>
+      </dd>
+    </dl>
+
+    <h3 id="section-obfuscation">Identifier obfuscation</h3>
+    <ul>
+      <li>(<code id="obfuscate-package">OBFUSCATE-PACKAGE</code> package-designator &optional symbol-map)</li>
+      <li>(<code id="unobfuscate-package">UNOBFUSCATE-PACKAGE</code> package-designator)</li>
+    </ul>
+
+    <p>Similar to the namespace mechanism, Parenscript provides a facility
+      to generate obfuscated identifiers in specified CL packages. The
+      function <code>OBFUSCATE-PACKAGE</code> may optionally be passed a
+      hash-table or a closure that maps symbols to their obfuscated
+      counterparts. By default, the mapping is done
+      using <code>PS-GENSYM</code>.</p>
+
+    <code>
+<pre>(defpackage "PS-REF.OBFUSCATE-ME")
+(obfuscate-package "PS-REF.OBFUSCATE-ME"
+  (let ((code-pt-counter #x8CF6)
+        (symbol-map (make-hash-table)))
+    (lambda (symbol)
+      (or (gethash symbol symbol-map)
+          (setf (gethash symbol symbol-map)
+                (make-symbol (string (code-char (incf code-pt-counter)))))))))</pre>
+    </code>
+
+    <dl>
+      <dt><code>
+<pre>(defun ps-ref.obfuscate-me::a-function (a b ps-ref.obfuscate-me::foo)
+  (+ a (ps-ref.my-library::library-function b ps-ref.obfuscate-me::foo)))</pre>
+          </code>
+      </dt>
+      <dd><code>
+<pre>function 賷(a, b, 賸) {
+    return a + libraryFunction(b, 賸);
+};</pre>
+          </code>
+      </dd>
+    </dl>
+
+    <p>The obfuscation and namespace facilities can be used on packages
+      at the same time.</p>
+
+    <h2 id="section-utilities">Utilities</h2>
+
+    <h3 id="ssection-dom">DOM</h3>
+    <ul>
+      <li>(<code>INNER-HTML</code> el)</li>
+      <li>(<code>URI-ENCODE</code> el)</li>
+      <li>(<code>ATTRIBUTE</code> el)</li>
+      <li>(<code>OFFSET</code> compass el)</li>
+      <li>(<code>SCROLL</code> compass el)</li>
+      <li>(<code>INNER</code> wh el)</li>
+      <li>(<code>CLIENT</code> wh el)</li>
+    </ul>
+
+    <dl>
+      <dt>el</dt> <dd>an expression that yields a DOM element</dd>
+      <dt>compass</dt> <dd>one of <code>:TOP, :LEFT, :HEIGHT, :WIDTH, :BOTTOM, :RIGHT</code></dd>
+      <dt>wh</dt> <dd>one of <code>:WIDTH, :HEIGHT</code></dd>
+    </dl>
+
+    <h3 id="ssection-html-gen">HTML generation</h3>
+    <ul>
+      <li>(<code id="ps-html">PS-HTML</code> html-expression)</li>
+      <li>(<code id="who-ps-html">WHO-PS-HTML</code> html-expression)</li>
+      <li><code id="*ps-html-empty-tag-aware-p*">*PS-HTML-EMPTY-TAG-AWARE-P*</code></li>
+      <li><code id="*ps-html-mode*">*PS-HTML-MODE*</code></li>
+    </ul>
+
+    <p>Parenscript comes with two HTML markup generation facilities
+      that produce Parenscript code - <code>PS-HTML</code>
+      and <code>WHO-PS-HTML</code>. The former
+      accepts <a href="http://opensource.franz.com/aserve/htmlgen.html">LHTML</a>
+      style markup, while the latter
+      accepts <a href="http://weitz.de/cl-who/">CL-WHO</a> style
+      markup.</p>
+
+    <p><code>*PS-HTML-EMPTY-TAG-AWARE-P*</code>
+      and <code>*PS-HTML-MODE*</code> control how tags are closed when an
+      HTML element has no
+      content. When <code>*PS-HTML-EMPTY-TAG-AWARE-P*</code> is nil, all
+      tags are fully closed (ex - <code>:BR</code> is translated
+      as <code>&lt;BR&gt;&lt;/BR&gt;</code>). When <code>*PS-HTML-EMPTY-TAG-AWARE-P*</code>
+      has a non-nil value and <code>*PS-HTML-MODE*</code>
+      is <code>:SGML</code>, tags such as <code>BR</code> are output without
+      being closed; when <code>*PS-HTML-MODE*</code> is <code>:XML</code>,
+      the XML-style closing tags are used (ex - <code>:BR</code> is
+      translated as <code>&lt;BR /&gt;</code>).</p>
+
+    <dl>
+      <dt><code>(ps-html ((:a :href "foobar") "blorg"))</code></dt>
+      <dd><code>'&lt;A HREF=\"foobar\"&gt;blorg&lt;/A&gt;';</code></dd>
+
+      <dt><code>(who-ps-html (:a :href (generate-a-link) "blorg"))</code></dt>
+      <dd><code>'&lt;A HREF=\"' + generateALink() + '\"&gt;blorg&lt;/A&gt;';</code></dd>
+    </dl>
+
+    <p>The Parenscript compiler can be recursively called in an HTML
+      expression:</p>
+
+    <dl>
+      <dt><code>
+<pre>((@ document write)
+  (ps-html ((:a :href "#"
+                :onclick (ps-inline (transport))) "link")))</pre>
+          </code>
+      </dt>
+      <dd><code>document.write('&lt;A HREF=\"#\" ONCLICK=\"' + ('javascript:' + 'transport()') + '\"&gt;link&lt;/A&gt;');</code></dd>
+    </dl>
+
+    <p>Forms may be used in attribute lists to conditionally generate
+      the next attribute. In this example the textarea is sometimes
+      disabled.</p>
+
+    <dl>
+      <dt><code>
+<pre>(let ((disabled nil)
+      (authorized t))
+   (setf (@ element inner-h-t-m-l)
+         (ps-html ((:textarea (or disabled (not authorized)) :disabled "disabled")
+                "Edit me"))))</pre>
+          </code>
+      </dt>
+      
+      <dd><code>
+<pre>var disabled = null;
+   var authorized = true;
+   element.innerHTML =
+   '&lt;TEXTAREA'
+   + (disabled || !authorized ? ' DISABLED=\"' + 'disabled' + '\"' : '')
+   + '&gt;Edit me&lt;/TEXTAREA&gt;';</pre>
+          </code>
+      </dd>
+    </dl>
+
+    <h2 id="section-runtime-library">Runtime library</h2>
+    <ul>
+      <li>(<code id="">MEMBER</code> object array)</li>
+      <li>(<code id="">MAP</code> function array)</li>
+      <li>(<code id="">MAPCAR</code> function {array}*)</li>
+      <li>(<code id="">REDUCE</code> function array object)</li>
+      <li>(<code id="">MAP-INTO</code> function array)</li>
+      <li>(<code id="">SET-DIFFERENCE</code> array1 array2)</li>
+      <li><code id="*ps-lisp-library*">*PS-LISP-LIBRARY*</code></li>
+    </ul>
+
+    <p>All the Parenscript constructs presented so far have been free
+      of any runtime dependencies. Parenscript also comes with a library
+      of useful predefined functions that can be added to your
+      project. These functions are kept as Parenscript code in
+      the <code>*PS-LISP-LIBRARY*</code> special variable.</p>
+
+    <p><code>MAP</code> differs from its Common Lisp counterpart by
+      virtue of being a <code>MAPCAR</code> that only accepts a single
+      sequence to map over. <code>MAP-UNTIL</code> is
+      like <code>MAP</code> but replaces the contents of the given
+      array in-place.</p>
+
+    <h2 id="section-slime-integration">SLIME integration</h2>
+
+    <p>The <code>extras</code> folder in the Parenscript distribution
+      contains <code>js-expander.el</code>, which when loaded in Emacs
+      with SLIME adds the ability to quickly see the translation of
+      any Lisp form in JavaScript, and works much like the Slime '<code>C-c
+        M-m</code>' macroexpansion feature.</p>
+
+    <p>'<code>C-c j</code>' (<a href="#ps"><code>PS</code></a>) or
+      '<code>C-c d</code>' (<a href="#ps-doc"><code>PS-DOC</code></a>)
+      at a ParenScript expression in a <code>slime-mode</code> buffer
+      will bring up a buffer with the resulting Javascript code. Note
+      that the extension does not work
+      in <code>slime-repl-mode</code>, which is intentional.</p>
+
+    <p style="font-size:xxx-small"><i>Last modified: 2009-12-25</i></p>
+  </body>
+</html>

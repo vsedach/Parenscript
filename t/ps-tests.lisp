@@ -1,6 +1,4 @@
-(in-package :ps-test)
-
-;;; Hand-written unit tests
+(in-package "PARENSCRIPT-TEST")
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (def-suite ps-tests))
@@ -27,16 +25,6 @@ function sideEffect() {
   return 3;
 };
 x = 2 + sideEffect() + x + 5;")
-;; Parenscript used to optimize incorrectly:
-;;   var x = 10;
-;;   function sideEffect() {
-;;     x = 4;
-;;     return 3;
-;;   };
-;;   x += 2 + sideEffect() + 5;
-;;
-;;   Which is 20, not 14
-
 
 (test-ps-js method-call-op-form
   ((@ (+ "" x) to-string))

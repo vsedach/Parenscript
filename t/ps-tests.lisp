@@ -1451,3 +1451,17 @@ x.offsetLeft;")
     arg = args[_js_idx1];
     foo(arg);
 };")
+
+(test-ps-js try-catch-return
+  (return (try (foo)
+               (:catch (e)
+                 (bar))
+               (:finally
+                (cleanup))))
+  "try {
+    return foo();
+} catch (e) {
+    return bar();
+} finally {
+    cleanup();
+};")

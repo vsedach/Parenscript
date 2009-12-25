@@ -98,8 +98,15 @@
                                                  ,(car (last cbody last-n))))
                                              (cons cvalue cbody)))))))
                   (try
-                   (ps-compile `(try (return ,(second value))
-                                     ,@(cddr value))))
+                   (ps-compile
+                    `(try (return ,(second value))
+                          ,@(let ((catch (cdr (assoc :catch (cdr value))))
+                                  (finally (assoc :finally (cdr value))))
+                                 (list (when catch
+                                         `(:catch ,(car catch)
+                                            ,@(butlast (cdr catch))
+                                            (return ,@(last (cdr catch)))))
+                                       finally)))))
                   (if
                    (ps-compile `(if ,(second value)
                                     (return ,(third value))

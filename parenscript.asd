@@ -1,44 +1,37 @@
 ;;;; -*- lisp -*-
 
-(in-package :cl-user)
-
-(defpackage :parenscript.system
-  (:use :cl :asdf))
-
-(in-package :parenscript.system)
-
 (defsystem :parenscript
   :name "parenscript"
   :author "Manuel Odendahl <manuel@bl0rg.net>"
   :maintainer "Vladimir Sedach <vsedach@gmail.com>"
   :licence "BSD"
-  :description "Parenscript is a Lispy language that compiles to JavaScript."
-  :components ((:static-file "parenscript.asd")
-               (:module :src
-                        :serial t
-                        :components ((:file "package")
-                                     (:file "utils")
-                                     (:file "namespace")
-                                     (:file "parse-lambda-list")
-                                     (:file "compiler")
-                                     (:file "printer")
-                                     (:file "compilation-interface")
-                                     (:file "special-forms")
-                                     (:file "deprecated-interface")
-                                     (:file "js-dom-symbol-exports")
-                                     ;; standard library
-                                     (:module :lib
-                                              :components ((:file "ps-html")
-                                                           (:file "ps-loop")
-                                                           (:file "ps-macro-lib")
-                                                           (:file "ps-dom"))
-                                              :depends-on ("compilation-interface"))))
-               (:module :runtime
-                        :components ((:file "ps-runtime-lib"))
-                        :depends-on (:src)))
+  :components
+  ((:static-file "parenscript.asd")
+   (:module :src
+            :serial t
+            :components ((:file "package")
+                         (:file "utils")
+                         (:file "namespace")
+                         (:file "parse-lambda-list")
+                         (:file "compiler")
+                         (:file "printer")
+                         (:file "compilation-interface")
+                         (:file "special-forms")
+                         (:file "deprecated-interface")
+                         (:file "js-dom-symbol-exports")
+                         (:module :lib
+                                  :components ((:file "ps-html")
+                                               (:file "ps-loop")
+                                               (:file "ps-macro-lib")
+                                               (:file "ps-dom"))
+                                  :depends-on ("compilation-interface"))))
+   (:module :runtime
+            :components ((:file "ps-runtime-lib"))
+            :depends-on (:src)))
   :depends-on (:cl-ppcre :anaphora))
 
-(defmethod asdf:perform :after ((op asdf:load-op) (system (eql (asdf:find-system :parenscript)))) 
+(defmethod asdf:perform :after
+    ((op asdf:load-op) (system (eql (asdf:find-system :parenscript))))
   (pushnew :parenscript cl:*features*))
 
 (defmethod asdf:perform ((o test-op) (c (eql (find-system :parenscript))))

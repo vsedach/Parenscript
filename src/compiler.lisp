@@ -74,34 +74,33 @@ lexical block.")
        (not (op-form-p form))
        (not (ps-special-form-p form))))
 
-;;; macro expansion
-(eval-when (:compile-toplevel :load-toplevel :execute)
-  (defun make-macro-dictionary ()
-    (make-hash-table :test 'eq))
+;;; macros
+(defun make-macro-dictionary ()
+  (make-hash-table :test 'eq))
   
-  (defvar *ps-macro-toplevel* (make-macro-dictionary)
-    "Toplevel macro environment dictionary.")
+(defvar *ps-macro-toplevel* (make-macro-dictionary)
+  "Toplevel macro environment dictionary.")
 
-  (defvar *ps-macro-env* (list *ps-macro-toplevel*)
-    "Current macro environment.")
+(defvar *ps-macro-env* (list *ps-macro-toplevel*)
+  "Current macro environment.")
 
-  (defvar *ps-symbol-macro-toplevel* (make-macro-dictionary))
+(defvar *ps-symbol-macro-toplevel* (make-macro-dictionary))
 
-  (defvar *ps-symbol-macro-env* (list *ps-symbol-macro-toplevel*))
+(defvar *ps-symbol-macro-env* (list *ps-symbol-macro-toplevel*))
 
-  (defvar *ps-local-function-names* ())
+(defvar *ps-local-function-names* ())
 
-  (defvar *ps-setf-expanders* (make-macro-dictionary)
-    "Setf expander dictionary. Key is the symbol of the access
+(defvar *ps-setf-expanders* (make-macro-dictionary)
+  "Setf expander dictionary. Key is the symbol of the access
 function of the place, value is an expansion function that takes the
 arguments of the access functions as a first value and the form to be
 stored as the second value.")
 
-  (defparameter *ps-compilation-level* :toplevel
-    "This value takes on the following values:
+(defparameter *ps-compilation-level* :toplevel
+  "This value takes on the following values:
 :toplevel indicates that we are traversing toplevel forms.
 :inside-toplevel-form indicates that we are inside a call to ps-compile-*
-nil indicates we are no longer toplevel-related."))
+nil indicates we are no longer toplevel-related.")
 
 (defun lookup-macro-def (name env)
   (loop for e in env thereis (gethash name e)))

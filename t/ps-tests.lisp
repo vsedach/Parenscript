@@ -1,7 +1,5 @@
 (in-package "PARENSCRIPT-TEST")
 
-(eval-when (:compile-toplevel :load-toplevel :execute)
-  (def-suite ps-tests))
 (in-suite ps-tests)
 
 (test-ps-js plus-is-not-commutative

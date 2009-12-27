@@ -1,8 +1,5 @@
 (in-package "PARENSCRIPT-TEST")
 
-(eval-when (:compile-toplevel :load-toplevel :execute)
-  (def-suite package-system-tests))
-
 (in-suite package-system-tests)
 
 (test-ps-js operator-packages1

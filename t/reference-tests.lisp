@@ -2,8 +2,6 @@
 
 ;;; These tests were originally generated from the reference manual
 
-(eval-when (:compile-toplevel :load-toplevel :execute)
-  (def-suite ref-tests))
 (in-suite ref-tests)
 
 (test-ps-js statements-and-expressions-1

@@ -36,6 +36,10 @@
                                            (ps-doc* ',parenscript)))
                       (normalize-js-code ,javascript)))))
 
+(def-suite ps-tests)
+(def-suite ref-tests)
+(def-suite package-system-tests)
+
 (defun run-tests()
   (format t "Running reference tests:~&")
   (run! 'ref-tests)

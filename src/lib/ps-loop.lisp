@@ -319,10 +319,13 @@
          ;; Variable lifting to support initially/finally may
          ;; add to prologue, so compute main loop first.
          (main (or (parallel-form loop)
-                   (straightforward-form loop))))
-    `(,@(if (default-accum-var loop) '((lambda ())) '(progn))
-        (with-prologue (,(prologue loop))
-          ,@(initially loop)
-          ,main
-          ,@(finally loop))
-        ,(aif (default-accum-var loop) it nil))))
+                   (straightforward-form loop)))
+         (full `(progn
+                  (with-prologue (,(prologue loop))
+                    ,@(initially loop)
+                    ,main
+                    ,@(finally loop))
+                  ,(aif (default-accum-var loop) it nil))))
+    (if (default-accum-var loop)
+        `((lambda () ,full))
+        full)))

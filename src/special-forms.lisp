@@ -536,28 +536,38 @@ lambda-list::=
 (defvar *defun-setf-name-prefix* "__setf_")
 
 (defpsmacro defun-setf (setf-name lambda-list &body body)
-  (let ((mangled-function-name (intern (concatenate 'string *defun-setf-name-prefix* (symbol-name (second setf-name)))
-                                       (symbol-package (second setf-name))))
-        (function-args (cdr (ordered-set-difference lambda-list lambda-list-keywords))))
-    (ps* `(defsetf ,(second setf-name) ,(cdr lambda-list) (store-var)
-            `(,',mangled-function-name ,store-var ,@(list ,@function-args))))
+  (let ((mangled-function-name
+         (intern (concatenate 'string *defun-setf-name-prefix*
+                              (symbol-name (second setf-name)))
+                 (symbol-package (second setf-name)))))
+    (setf (gethash (second setf-name) *ps-setf-expanders*)
+          (compile
+           nil
+           (lambda (access-args store-form)
+             `(,mangled-function-name ,store-form ,@access-args))))
     `(defun ,mangled-function-name ,lambda-list ,@body)))
 
+;;; slightly broken WRT lambda lists
 (defpsmacro defsetf-long (access-fn lambda-list (store-var) form)
   (setf (gethash access-fn *ps-setf-expanders*)
-        (compile nil
-                 (let ((var-bindings (ordered-set-difference lambda-list lambda-list-keywords)))
-                   `(lambda (access-fn-args store-form)
-                      (destructuring-bind ,lambda-list
-                          access-fn-args
-                        (let* ((,store-var (ps-gensym))
-                               (gensymed-names (loop repeat ,(length var-bindings) collecting (ps-gensym)))
-                               (gensymed-arg-bindings (mapcar #'list gensymed-names (list ,@var-bindings))))
-                          (destructuring-bind ,var-bindings
-                              gensymed-names
-                            `(let* (,@gensymed-arg-bindings
-                                    (,,store-var ,store-form))
-                               ,,form))))))))
+        (compile
+         nil
+         (let ((var-bindings (ordered-set-difference lambda-list
+                                                     lambda-list-keywords)))
+           `(lambda (access-fn-args store-form)
+              (destructuring-bind ,lambda-list
+                  access-fn-args
+                (let* ((,store-var (ps-gensym))
+                       (gensymed-names (loop repeat ,(length var-bindings)
+                                          collecting (ps-gensym)))
+                       (gensymed-arg-bindings (mapcar #'list
+                                                      gensymed-names
+                                                      (list ,@var-bindings))))
+                  (destructuring-bind ,var-bindings
+                      gensymed-names
+                    `(let* (,@gensymed-arg-bindings
+                            (,,store-var ,store-form))
+                       ,,form))))))))
   nil)
 
 (defpsmacro defsetf-short (access-fn update-fn &optional docstring)

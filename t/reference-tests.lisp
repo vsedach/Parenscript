@@ -268,9 +268,7 @@ b = _js2;")
 
 (test-ps-js assignment-9
   (setf (color some-div) (+ 23 "em"))
-  "var _js2 = someDiv;
-var _js1 = 23 + 'em';
-__setf_color(_js1, _js2);")
+  "__setf_color(23 + 'em', someDiv);")
 
 (test-ps-js assignment-10
   (defsetf left (el) (offset)

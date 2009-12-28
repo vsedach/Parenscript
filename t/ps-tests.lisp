@@ -227,10 +227,7 @@ setBaz(_js2, _js3, _js1);")
 "function __setf_someThing(newVal, i1, i2) {
     return SOMETHING[i1][i2] = newVal;
 };
-var _js2 = 1;
-var _js3 = 2;
-var _js1 = 'foo';
-__setf_someThing(_js1, _js2, _js3);")
+__setf_someThing('foo', 1, 2);")
 
 (test-ps-js defun-optional1
   (defun test-opt (&optional x)
@@ -1463,3 +1460,26 @@ x.offsetLeft;")
 } finally {
     cleanup();
 };")
+
+(test-ps-js defun-setf-optional
+  (defun (setf foo) (new-value b &optional c)
+    (setf (aref b (or c 0)) new-value))
+  "function __setf_foo(newValue, b, c) {
+    if (c === undefined) {
+        c = null;
+    };
+    return b[c || 0] = newValue;
+};")
+
+(test-ps-js defun-setf-rest
+  (progn (defun (setf foo) (new-value b &rest foo)
+           (do-something b foo new-value))
+         (setf (foo x 1 2 3 4) 5))
+  "function __setf_foo(newValue, b) {
+    var foo = [];
+    for (var i1 = 0; i1 < arguments.length - 2; i1 += 1) {
+        foo[i1] = arguments[i1 + 2];
+    };
+    return doSomething(b, foo, newValue);
+};
+__setf_foo(5, x, 1, 2, 3, 4);")

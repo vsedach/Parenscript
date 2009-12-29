@@ -1,27 +1,35 @@
 (in-package "PARENSCRIPT")
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; ParenScript namespace system
-
 ;;; Symbol obfuscation
 (defvar *obfuscated-packages* (make-hash-table))
 
-(defun obfuscate-package (package-designator &optional (symbol-map (make-hash-table)))
-  "symbol-map can either be a hash table or a closure that takes a symbol as its only argument."
-  (setf (gethash (find-package package-designator) *obfuscated-packages*) symbol-map))
+(defun obfuscate-package (package-designator &optional
+                          (symbol-map (make-hash-table)))
+  "symbol-map can either be a hash table or a closure that takes a
+symbol as its only argument."
+  (setf (gethash (find-package package-designator) *obfuscated-packages*)
+        symbol-map))
 
 (defun unobfuscate-package (package-designator)
   (remhash (find-package package-designator) *obfuscated-packages*))
 
 (defun maybe-obfuscate-symbol (symbol)
-  (ctypecase (gethash (symbol-package symbol) *obfuscated-packages*)
-    (hash-table (let ((symbol-map (gethash (symbol-package symbol) *obfuscated-packages*)))
-                  (or (gethash symbol symbol-map) (setf (gethash symbol symbol-map) (ps-gensym "G")))))
-    (function (funcall (gethash (symbol-package symbol) *obfuscated-packages*) symbol))
-    (null symbol)))
+  (if (and (symbol-package symbol)
+           (eq :external
+               (nth-value 1 (find-symbol (symbol-name symbol)
+                                         (symbol-package symbol)))))
+           symbol
+      (ctypecase (gethash (symbol-package symbol) *obfuscated-packages*)
+        (hash-table (let ((symbol-map (gethash (symbol-package symbol)
+                                               *obfuscated-packages*)))
+                      (or (gethash symbol symbol-map)
+                          (setf (gethash symbol symbol-map) (ps-gensym "G")))))
+        (function (funcall (gethash (symbol-package symbol)
+                                    *obfuscated-packages*)
+                           symbol))
+        (null symbol))))
 
 ;;; Interface for printing identifiers
-
 (defvar *package-prefix-table* (make-hash-table))
 
 (defmacro ps-package-prefix (package)

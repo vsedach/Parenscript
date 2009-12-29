@@ -4,4 +4,4 @@
   (:nicknames #:ps-test)
   (:use #:common-lisp #:parenscript #:5am)
   (:shadowing-import-from #:js #:!)
-  (:export #:run-tests))
+  (:export #:run-tests #:interface-function))

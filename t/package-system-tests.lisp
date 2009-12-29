@@ -60,3 +60,10 @@ foo.my_library_foo;")
     (return (and (not foo) (+ (getprop foo 'bar) some-other-var))))
 "var prefix_foo = { prefix_bar : 1, prefix_notAKeyword : prefix_something };
 return !prefix_foo && prefix_foo.prefix_bar + prefix_someOtherVar;")
+
+(ps-test::test-ps-js exported-interface
+  (defun ps-test:interface-function (baz)
+    (+ baz ps-test.obfuscate-me::foo))
+"function interfaceFunction(prefix_baz) {
+    return prefix_baz + g2;
+};")

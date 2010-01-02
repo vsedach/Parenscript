@@ -476,12 +476,10 @@ __setf_someThing('foo', 1, 2);")
     x * y;
 };")
 
-(test-ps-js if-exp-without-else-returns-null
+(test-ps-js if-exp-without-else-return
   (return (if x 1))
   "if (x) {
     return 1;
-} else {
-    return null;
 };")
 
 (test-ps-js progn-expression-single-statement
@@ -569,8 +567,6 @@ __setf_someThing('foo', 1, 2);")
 "function test1() {
     if (data[x]) {
         return data[x] = 123;
-    } else {
-        return null;
     };
 };"))))
 
@@ -1483,3 +1479,53 @@ x.offsetLeft;")
     return doSomething(b, foo, newValue);
 };
 __setf_foo(5, x, 1, 2, 3, 4);")
+
+(test-ps-js return-null
+  (return nil)
+  "return null;")
+
+(test-ps-js implicit-return-null
+  (lambda ()
+    )
+  "function () {
+    return null;
+};")
+
+(test-ps-js implicit-return-null
+  (lambda ()
+    nil)
+  "function () {
+    return null;
+};")
+
+(test-ps-js return-conditional-neste
+  (defun blep (ss x y)
+    (when foo?
+      (let ((pair (bar)))
+        (unless (null pair)
+          (destructuring-bind (a b) pair
+            (unless (or (null a) (null b))
+              (let ((val (baz a b)))
+                (unless (null val)
+                  (when (blah val)
+                    (unless (blee)
+                      t))))))))))
+  "function blep(ss, x, y) {
+    if (foowhat) {
+        var pair = bar();
+        if (pair != null) {
+            var a = pair[0];
+            var b = pair[1];
+            if (!(a == null || b == null)) {
+                var val = baz(a, b);
+                if (val != null) {
+                    if (blah(val)) {
+                        if (!blee()) {
+                            return true;
+                        };
+                    };
+                };
+            };
+        };
+    };
+};")

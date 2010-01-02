@@ -110,7 +110,8 @@
                   (if
                    (ps-compile `(if ,(second value)
                                     (return ,(third value))
-                                    (return ,(fourth value)))))
+                                    ,@(awhen (fourth value)
+                                        `((return ,it))))))
                   (cond
                     (ps-compile `(cond
                                    ,@(loop for clause in (cdr value) collect

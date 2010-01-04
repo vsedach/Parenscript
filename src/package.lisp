@@ -22,7 +22,6 @@
    #:ps-compile-stream
    ;; for parenscript macro definition within lisp
    #:defpsmacro
-   #:defmacro/ps
    #:defmacro+ps
    #:import-macros-from-lisp
 
@@ -57,6 +56,7 @@
    #:symbol-to-js
    #:slot-value
    #:compile-script
+   #:defmacro/ps
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Language

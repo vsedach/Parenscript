@@ -134,11 +134,6 @@ then that expansion is further expanded by ParenScript."
     (eval `(defpsmacro ,name (&rest args)
              (macroexpand `(,',name ,@args))))))
 
-(defmacro defmacro/ps (name args &body body)
-  "Define a Lisp macro and import it into the ParenScript macro environment."
-  `(progn (defmacro ,name ,args ,@body)
-          (import-macros-from-lisp ',name)))
-
 (defmacro defmacro+ps (name args &body body)
   "Define a Lisp macro and a ParenScript macro with the same macro
 function (ie - the same result from macroexpand-1), for cases when the

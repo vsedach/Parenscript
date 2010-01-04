@@ -68,3 +68,8 @@ is output to the OUTPUT-STREAM stream."
 (defpsmacro slot-value (&rest args)
   (warn-deprecated 'slot-value 'getprop)
   `(getprop ,@args))
+
+(defmacro defmacro/ps (name args &body body)
+  (warn-deprecated 'defmacro/ps 'defmacro+ps)
+  `(progn (defmacro ,name ,args ,@body)
+          (import-macros-from-lisp ',name)))

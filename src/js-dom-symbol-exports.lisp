@@ -31,7 +31,7 @@
    ;; DOMImplementation
    ; methods
    #:has-feature
-   
+
    ;; document interface
    ; attributes
    #:doctype
@@ -118,7 +118,7 @@
    ; methods
    #:split-text
 
-   ;;; Level 1 extended interfaces (XML) 
+   ;;; Level 1 extended interfaces (XML)
    ;; DocumentType
    ; attributes
    #:name
@@ -1019,7 +1019,7 @@
    #:top
    #:name
    #:frame-element
-   
+
    ;; timers
    ; methods
    #:set-timeout
@@ -1039,9 +1039,9 @@
    #:offset-top
    #:offset-height
    #:offset-width
-   
+
    #:offset-parent
-   
+
    #:scroll-left
    #:scroll-top
    #:scroll-width

@@ -101,7 +101,7 @@
    #:>>= #:<<=
    #:*= #:/= #:%= #:+= #:\&= #:^= #:\|= #:~=
    #:incf #:decf
-      
+
    ;; compile-time stuff
    #:eval-when
 
@@ -257,7 +257,7 @@
    #:scroll
    #:inner
    #:client
-      
+
    ;; js runtime utils
    #:*ps-lisp-library*
    #:mapcar
@@ -318,7 +318,7 @@
    #:&&
    #:||||
    #:!
-      
+
    ;; misc
    #:? ;; ternary
    #:|,|
@@ -349,7 +349,7 @@
    #:var
    #:while
    #:with
-      
+
    #:unary-operator
    #:literal
    #:array

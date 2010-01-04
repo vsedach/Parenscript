@@ -40,7 +40,7 @@
                              (setq ,n-tail ,n-res  ,n-value ,n-res)))))
                   forms)
         ,n-value))))
-  
+
 (defmacro collect (collections &body body)
   (let ((macros ())
         (binds ()))
@@ -68,7 +68,7 @@
                     (collect-normal-expander ',n-value ',kind args))
                   macros))))
     `(macrolet ,macros (let* ,(nreverse binds) ,@body))))
-  
+
 (defparameter *lambda-list-keywords*
  '(&allow-other-keys &aux &body &environment &key &key-object &optional &rest &whole))
 

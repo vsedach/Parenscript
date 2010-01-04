@@ -77,7 +77,7 @@ lexical block.")
 ;;; macros
 (defun make-macro-dictionary ()
   (make-hash-table :test 'eq))
-  
+
 (defvar *ps-macro-toplevel* (make-macro-dictionary)
   "Toplevel macro environment dictionary.")
 

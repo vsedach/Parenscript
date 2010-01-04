@@ -67,7 +67,7 @@
 
 (defun implicit-progn-form? (form)
   (member (car form) '(with progn let flet labels macrolet symbol-macrolet)))
-  
+
 (define-ps-special-form return (&optional value)
   (let ((value (ps-macroexpand value)))
     (if (ps-statement? value)
@@ -395,15 +395,15 @@ the given lambda-list and body."
   ;; The lambda list is transformed as follows, since a javascript
   ;; lambda list is just a list of variable names, and you have access
   ;; to the arguments variable inside the function:
-  
+
   ;; * standard variables are the mapped directly into the js-lambda
   ;;   list
-  
+
   ;; * optional variables' variable names are mapped directly into the
   ;;   lambda list, and for each optional variable with name v,
   ;;   default value d, and supplied-p parameter s, a form is produced
   ;;   (defaultf v d s)
-  
+
   ;; * keyword variables are not included in the js-lambda list, but
   ;;   instead are obtained from the magic js ARGUMENTS
   ;;   pseudo-array. Code assigning values to keyword vars is

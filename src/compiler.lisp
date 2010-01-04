@@ -88,7 +88,8 @@ lexical block.")
 
 (defvar *ps-symbol-macro-env* (list *ps-symbol-macro-toplevel*))
 
-(defvar *ps-local-function-names* ())
+(defvar *ps-local-function-names* ()) ;; contains a subset of
+(defvar *ps-enclosing-lexicals* ())
 
 (defvar *ps-setf-expanders* (make-macro-dictionary)
   "Setf expander dictionary. Key is the symbol of the access
@@ -149,11 +150,6 @@ CL environment)."
        (values (ps-macroexpand (funcall it form)) t)
        form))
 
-(defun maybe-rename-local-function (fun-name)
-  (aif (lookup-macro-def fun-name *ps-local-function-names*)
-       it
-       fun-name))
-
 ;;;; compiler interface
 (defun adjust-ps-compilation-level (form level)
   "Given the current *ps-compilation-level*, LEVEL, and the fully macroexpanded
@@ -163,7 +159,6 @@ form, FORM, returns the new value for *ps-compilation-level*."
          (and (symbolp form) (eq :toplevel level)))
      level)
     ((eq :toplevel level) :inside-toplevel-form)))
-
 
 (defun ps-compile-symbol (form)
   "Compiles the given Parenscript form and guarantees that the

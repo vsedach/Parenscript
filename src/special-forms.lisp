@@ -312,8 +312,6 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; function definition
 
-(defvar *vars-bound-in-enclosing-lexical-scopes* ())
-
 (defun add-implicit-return (fbody)
   (let ((last-thing (car (last fbody))))
     (if (ps-statement? last-thing)
@@ -324,10 +322,9 @@
 (defun compile-function-definition (args body)
   (let ((args (mapcar #'ps-compile-symbol args)))
     (list args
-          (let* ((*enclosing-lexical-block-declarations*
-                  ())
-                 (*vars-bound-in-enclosing-lexical-scopes*
-                  (append args *vars-bound-in-enclosing-lexical-scopes*))
+          (let* ((*enclosing-lexical-block-declarations* ())
+                 (*ps-enclosing-lexicals*
+                  (append args *ps-enclosing-lexicals*))
                  (body
                   (ps-compile-statement `(progn ,@(add-implicit-return body))))
                  (var-decls
@@ -510,25 +507,41 @@ lambda-list::=
     `(%js-lambda ,effective-args
                  ,@effective-body)))
 
+(defun maybe-rename-local-function (fun-name)
+  (aif (getf *ps-local-function-names* fun-name)
+       it
+       fun-name))
+
+(defun collect-function-names (fn-defs)
+  (loop for (fn-name) in fn-defs 
+     collect fn-name
+     collect (if (member fn-name *ps-enclosing-lexicals*)
+                 (ps-gensym fn-name)
+                 fn-name)))
+
 (define-ps-special-form flet (fn-defs &rest body)
-  (let ((fn-renames (make-macro-dictionary)))
-    (loop for (fn-name) in fn-defs do
-         (setf (gethash fn-name fn-renames) (ps-gensym fn-name)))
-    (let ((fn-defs (loop for (fn-name . def) in fn-defs collect
-                        (ps-compile `(var ,(gethash fn-name fn-renames)
-                                          (lambda ,@def)))))
-          (*ps-local-function-names*
-           (cons fn-renames *ps-local-function-names*)))
-      `(,(if compile-expression? 'js:|,| 'js:block)
-         ,@fn-defs ,@(flatten-blocks (mapcar #'ps-compile body))))))
+  (let* ((fn-renames (collect-function-names fn-defs))
+         (fn-defs (loop for (fn-name . def) in fn-defs collect
+                       (ps-compile `(var ,(getf fn-renames fn-name)
+                                         (lambda ,@def)))))
+         (*ps-enclosing-lexicals*
+          (append fn-renames *ps-enclosing-lexicals*))
+         (*ps-local-function-names*
+          (append fn-renames *ps-local-function-names*)))
+    `(,(if compile-expression? 'js:|,| 'js:block)
+       ,@fn-defs
+       ,@(flatten-blocks (mapcar #'ps-compile body)))))
 
 (define-ps-special-form labels (fn-defs &rest body)
-  (with-local-macro-environment (local-fn-renames *ps-local-function-names*)
-    (loop for (fn-name) in fn-defs do
-         (setf (gethash fn-name local-fn-renames) (ps-gensym fn-name)))
+  (let* ((fn-renames (collect-function-names fn-defs))
+         (*ps-local-function-names*
+          (append fn-renames *ps-local-function-names*))
+         (*ps-enclosing-lexicals*
+          (append fn-renames *ps-enclosing-lexicals*)))
     (ps-compile
      `(progn ,@(loop for (fn-name . def) in fn-defs collect
-                    `(var ,(gethash fn-name local-fn-renames) (lambda ,@def)))
+                    `(var ,(getf *ps-local-function-names* fn-name)
+                          (lambda ,@def)))
              ,@body))))
 
 (define-ps-special-form function (fn-name)
@@ -604,16 +617,16 @@ lambda-list::=
                                                   (declare (ignore x))
                                                   expansion))
           (push name local-var-bindings)))
-      (let ((*vars-bound-in-enclosing-lexical-scopes*
+      (let ((*ps-enclosing-lexicals*
              (append local-var-bindings
-                     *vars-bound-in-enclosing-lexical-scopes*)))
+                     *ps-enclosing-lexicals*)))
         (ps-compile `(progn ,@body))))))
 
-(define-ps-special-form defmacro (name args &body body) ;; should this be a macro?
+(define-ps-special-form defmacro (name args &body body)
   (eval `(defpsmacro ,name ,args ,@body))
   nil)
 
-(define-ps-special-form define-symbol-macro (name expansion) ;; should this be a macro?
+(define-ps-special-form define-symbol-macro (name expansion)
   (eval `(define-ps-symbol-macro ,name ,expansion))
   nil)
 
@@ -747,7 +760,7 @@ lambda-list::=
          (free-variables-in-binding-value-expressions (mapcan (lambda (x) (flatten (cadr x)))
                                                               normalized-bindings)))
     (flet ((maybe-rename-lexical-var (x)
-             (if (or (member x *vars-bound-in-enclosing-lexical-scopes*)
+             (if (or (member x *ps-enclosing-lexicals*)
                      (member x free-variables-in-binding-value-expressions))
                  (ps-gensym x)
                  (progn (push x lexical-bindings-introduced-here) nil)))
@@ -764,8 +777,9 @@ lambda-list::=
                                                  when (rename x) collect
                                                  `(,(var x) ,(rename x)))
                               ,@body))
-             (*vars-bound-in-enclosing-lexical-scopes* (append lexical-bindings-introduced-here
-                                                               *vars-bound-in-enclosing-lexical-scopes*)))
+             (*ps-enclosing-lexicals*
+              (append lexical-bindings-introduced-here
+                      *ps-enclosing-lexicals*)))
         (ps-compile
          `(progn
             ,@(mapcar (lambda (x) `(var ,(or (rename x) (var x)) ,(val x))) lexical-bindings)

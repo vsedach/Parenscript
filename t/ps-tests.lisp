@@ -782,35 +782,39 @@ try {
                        (1+ x)))
                 (return (foo 1)))))
   "(function () {
-    var foo1 = function (x) {
+    var foo = function (x) {
         return x + 1;
     };
-    return foo1(1);
+    return foo(1);
 })();")
 
 (test-ps-js flet2
   (flet ((foo (x) (return (1+ x)))
          (bar (y) (return (+ 2 y))))
     (bar (foo 1)))
-"var foo1 = function (x) {
+"var foo = function (x) {
     return x + 1;
 };
-var bar2 = function (y) {
+var bar = function (y) {
     return 2 + y;
 };
-bar2(foo1(1));")
+bar(foo(1));")
 
 (test-ps-js flet3
-  (flet ((foo (x) (return (1+ x)))
-         (bar (y) (return (+ 2 (foo y)))))
-    (bar (foo 1)))
-  "var foo1 = function (x) {
+  (flet ((foo (x) (+ 2 x)))
+    (flet ((foo (x) (1+ x))
+           (bar (y) (+ 2 (foo y))))
+      (bar (foo 1))))
+  "var foo = function (x) {
+    return 2 + x;
+};
+var foo1 = function (x) {
     return x + 1;
 };
-var bar2 = function (y) {
+var bar = function (y) {
     return 2 + foo(y);
 };
-bar2(foo1(1));")
+bar(foo1(1));")
 
 (test-ps-js labels1
   ((lambda () (labels ((foo (x) 
@@ -819,39 +823,39 @@ bar2(foo1(1));")
                              (+ x (foo (1- x))))))
                 (foo 3))))
 "(function () {
-    var foo1 = function (x) {
+    var foo = function (x) {
         if (0 === x) {
             return 0;
         } else {
-            return x + foo1(x - 1);
+            return x + foo(x - 1);
         };
     };
-    return foo1(3);
+    return foo(3);
 })();")
 
 (test-ps-js labels2
   (labels ((foo (x) (return (1+ (bar x))))
            (bar (y) (return (+ 2 (foo y)))))
     (bar (foo 1)))
-  "var foo1 = function (x) {
-    return bar2(x) + 1;
+  "var foo = function (x) {
+    return bar(x) + 1;
 };
-var bar2 = function (y) {
-    return 2 + foo1(y);
+var bar = function (y) {
+    return 2 + foo(y);
 };
-bar2(foo1(1));")
+bar(foo(1));")
 
 (test-ps-js labels3
   (labels ((foo (x) (return (1+ x)))
            (bar (y) (return (+ 2 (foo y)))))
     (bar (foo 1)))
-  "var foo1 = function (x) {
+  "var foo = function (x) {
     return x + 1;
 };
-var bar2 = function (y) {
-    return 2 + foo1(y);
+var bar = function (y) {
+    return 2 + foo(y);
 };
-bar2(foo1(1));")
+bar(foo(1));")
 
 (test-ps-js for-loop-var-init-exp
   ((lambda (x)
@@ -1112,10 +1116,10 @@ x + x;")
 (test-ps-js flet-apply
   (flet ((foo () 'bar))
     (apply (function foo) nil))
-  "var foo1 = function () {
+  "var foo = function () {
     return 'bar';
 };
-foo1.apply(this, null);")
+foo.apply(this, null);")
 
 (test-ps-js let-apply
   (let ((foo (lambda () (return 1))))
@@ -1133,15 +1137,35 @@ foo1.apply(this, null);")
   (flet ((x (x) (return (1+ x))))
     (let ((x 2))
       (x x)))
-  "var x1 = function (x) {
+  "var x = function (x) {
     return x + 1;
 };
-var x = 2;
-x1(x);")
+var x1 = 2;
+x(x1);")
 
 (test-ps-js let-flet
   (let ((x 2))
     (flet ((x (x) (return (1+ x))))
+      (x x)))
+  "var x = 2;
+var x1 = function (x) {
+    return x + 1;
+};
+x1(x);")
+
+(test-ps-js labels-let
+  (labels ((x (x) (return (1+ x))))
+    (let ((x 2))
+      (x x)))
+  "var x = function (x) {
+    return x + 1;
+};
+var x1 = 2;
+x(x1);")
+
+(test-ps-js let-labels
+  (let ((x 2))
+    (labels ((x (x) (return (1+ x))))
       (x x)))
   "var x = 2;
 var x1 = function (x) {
@@ -1245,9 +1269,9 @@ x1 - x1;
 (test-ps-js flet-expression
   (1+ (flet ((foo (x) (1+ x)))
         (foo 1)))
-  "(foo1 = function (x) {
+  "(foo = function (x) {
     return x + 1;
-}, foo1(1)) + 1;")
+}, foo(1)) + 1;")
 
 (test-ps-js return-case-break-elimination
   (return (case 1

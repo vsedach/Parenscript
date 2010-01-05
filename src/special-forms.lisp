@@ -68,14 +68,15 @@
 (defun implicit-progn-form? (form)
   (member (car form) '(with progn let flet labels macrolet symbol-macrolet)))
 
-(define-ps-special-form return (&optional value)
+(define-ps-special-form return (&optional value force-conditional?)
   (let ((value (ps-macroexpand value)))
     (if (ps-statement? value)
         (ps-compile-statement value)
         (if (consp value)
             (if (implicit-progn-form? value)
                 (ps-compile (append (butlast value)
-                                    `((return ,@(last value)))))
+                                    `((return ,@(last value)
+                                              ,force-conditional?))))
                 (case (car value)
                   (return
                     (ps-compile value))
@@ -95,28 +96,33 @@
                                              `(,cvalue
                                                ,@(butlast cbody last-n)
                                                (return
-                                                 ,(car (last cbody last-n))))
+                                                 ,(car (last cbody last-n))
+                                                 t))
                                              (cons cvalue cbody)))))))
                   (try
                    (ps-compile
-                    `(try (return ,(second value))
+                    `(try (return ,(second value) t)
                           ,@(let ((catch (cdr (assoc :catch (cdr value))))
                                   (finally (assoc :finally (cdr value))))
                                  (list (when catch
                                          `(:catch ,(car catch)
                                             ,@(butlast (cdr catch))
-                                            (return ,@(last (cdr catch)))))
+                                            (return ,@(last (cdr catch)) t)))
                                        finally)))))
                   (if
                    (ps-compile `(if ,(second value)
-                                    (return ,(third value))
-                                    ,@(awhen (fourth value)
-                                        `((return ,it))))))
+                                    (return ,(third value) ,force-conditional?)
+                                    ,@(acond ((fourth value)
+                                              `((return ,it
+                                                        ,force-conditional?)))
+                                             (force-conditional?
+                                              '((return nil)))))))
                   (cond
                     (ps-compile `(cond
                                    ,@(loop for clause in (cdr value) collect
                                           `(,@(butlast clause)
-                                              (return ,@(last clause)))))))
+                                              (return ,@(last clause)
+                                                      ,force-conditional?))))))
                   (otherwise
                    `(js:return ,(ps-compile-expression value)))))
             `(js:return ,(ps-compile-expression value))))))

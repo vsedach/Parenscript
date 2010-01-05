@@ -1553,3 +1553,36 @@ __setf_foo(5, x, 1, 2, 3, 4);")
         };
     };
 };")
+
+(test-ps-js return-case-conditional
+  (return
+    (case foo
+      (123 (when (bar) t))
+      (345 (blah))))
+  "switch (foo) {
+case 123:
+    if (bar()) {
+        return true;
+    } else {
+        return null;
+    };
+case 345:
+    return blah();
+};")
+
+(test-ps-js return-try-conditional
+  (return
+    (try (when x 1)
+         (:catch (x) 2)
+         (:finally (bar))))
+  "try {
+    if (x) {
+        return 1;
+    } else {
+        return null;
+    };
+} catch (x) {
+    return 2;
+} finally {
+    bar();
+};")

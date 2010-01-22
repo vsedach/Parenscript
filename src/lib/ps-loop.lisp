@@ -278,9 +278,9 @@
                               'destructuring-bind) ,bindings ,var ,form)))
           (when test
             (setf form `(unless ,test ,form)))
-          (when init
-            (setf form `(progn (,(if (member var lifted) 'setf 'var) ,var ,init)
-                               ,form))))
+          (let ((setter (if (member var lifted) 'setf 'var)))
+            (when (or (eq setter 'var) init) ; only set to null if variable is being introduced
+              (setf form `(progn (,setter ,var ,init) ,form)))))
         form))))
 
 (defun straightforward-form (loop)

@@ -325,20 +325,34 @@
         (append (butlast fbody)
                 `((return ,last-thing))))))
 
+(defmacro with-declaration-effects (body-var &body body)
+  `(let* ((local-specials (when (and (listp (car ,body-var))
+                                     (eq (caar ,body-var) 'declare))
+                            (cdr (find 'special (cdar ,body-var) :key #'car))))
+          (,body-var (if local-specials
+                         (cdr ,body-var)
+                         ,body-var))
+          (*ps-special-variables*
+           (append local-specials *ps-special-variables*)))
+     ,@body))
+
 (defun compile-function-definition (args body)
-  (let ((args (mapcar #'ps-compile-symbol args)))
-    (list args
-          (let* ((*enclosing-lexical-block-declarations* ())
-                 (*ps-enclosing-lexicals*
-                  (append args *ps-enclosing-lexicals*))
-                 (body
-                  (ps-compile-statement `(progn ,@(add-implicit-return body))))
-                 (var-decls
-                  (ps-compile-statement
-                   `(progn ,@(mapcar (lambda (var)
-                                       `(var ,var))
-                                     *enclosing-lexical-block-declarations*)))))
-            `(js:block ,@(cdr var-decls) ,@(cdr body))))))
+  (with-declaration-effects body
+    (let ((args (mapcar #'ps-compile-symbol args)))
+      (list args
+            (let* ((*enclosing-lexical-block-declarations* ())
+                   (*ps-enclosing-lexicals*
+                    (append args *ps-enclosing-lexicals*))
+                   (body
+                    (ps-compile-statement `(progn
+                                             ,@(add-implicit-return body))))
+                   (var-decls
+                    (ps-compile-statement
+                     `(progn
+                        ,@(mapcar (lambda (var)
+                                    `(var ,var))
+                                  *enclosing-lexical-block-declarations*)))))
+              `(js:block ,@(cdr var-decls) ,@(cdr body)))))))
 
 (define-ps-special-form %js-lambda (args &rest body)
   `(js:lambda ,@(compile-function-definition args body)))
@@ -757,47 +771,64 @@ lambda-list::=
   `(var ,name ,@(when value-provided? (list value))))
 
 (define-ps-special-form let (bindings &body body)
-  (let* (lexical-bindings-introduced-here
-         (normalized-bindings (mapcar (lambda (x)
-                                        (if (symbolp x)
-                                            (list x nil)
-                                            (list (car x) (ps-macroexpand (cadr x)))))
-                                      bindings))
-         (free-variables-in-binding-value-expressions (mapcan (lambda (x) (flatten (cadr x)))
-                                                              normalized-bindings)))
-    (flet ((maybe-rename-lexical-var (x)
-             (if (or (member x *ps-enclosing-lexicals*)
-                     (member x free-variables-in-binding-value-expressions))
-                 (ps-gensym x)
-                 (progn (push x lexical-bindings-introduced-here) nil)))
-           (rename (x) (first x))
-           (var (x) (second x))
-           (val (x) (third x)))
-      (let* ((lexical-bindings (loop for x in normalized-bindings
-                                  unless (ps-special-variable-p (car x))
-                                  collect (cons (maybe-rename-lexical-var (car x)) x)))
-             (dynamic-bindings (loop for x in normalized-bindings
-                                  when (ps-special-variable-p (car x))
-                                  collect (cons (ps-gensym (format nil "~A_~A" (car x) 'tmp-stack)) x)))
-             (renamed-body `(symbol-macrolet ,(loop for x in lexical-bindings
-                                                 when (rename x) collect
-                                                 `(,(var x) ,(rename x)))
-                              ,@body))
-             (*ps-enclosing-lexicals*
-              (append lexical-bindings-introduced-here
-                      *ps-enclosing-lexicals*)))
-        (ps-compile
-         `(progn
-            ,@(mapcar (lambda (x) `(var ,(or (rename x) (var x)) ,(val x))) lexical-bindings)
-            ,(if dynamic-bindings
-                 `(progn ,@(mapcar (lambda (x) `(var ,(rename x))) dynamic-bindings)
-                         (try (progn (setf ,@(loop for x in dynamic-bindings append
-                                                  `(,(rename x) ,(var x)
-                                                     ,(var x) ,(val x))))
-                                     ,renamed-body)
-                              (:finally
-                               (setf ,@(mapcan (lambda (x) `(,(var x) ,(rename x))) dynamic-bindings)))))
-                 renamed-body)))))))
+  (with-declaration-effects body
+    (let* ((lexical-bindings-introduced-here ())
+           (normalized-bindings
+            (mapcar (lambda (x)
+                      (if (symbolp x)
+                          (list x nil)
+                          (list (car x) (ps-macroexpand (cadr x)))))
+                    bindings))
+           (free-variables-in-binding-value-expressions
+            (mapcan (lambda (x)
+                      (flatten (cadr x)))
+                    normalized-bindings)))
+      (flet ((maybe-rename-lexical-var (x)
+               (if (or (member x *ps-enclosing-lexicals*)
+                       (member x free-variables-in-binding-value-expressions))
+                   (ps-gensym x)
+                   (progn (push x lexical-bindings-introduced-here) nil)))
+             (rename (x) (first x))
+             (var (x) (second x))
+             (val (x) (third x)))
+        (let* ((lexical-bindings
+                (loop for x in normalized-bindings
+                   unless (ps-special-variable-p (car x))
+                   collect (cons (maybe-rename-lexical-var (car x)) x)))
+               (dynamic-bindings
+                (loop for x in normalized-bindings
+                   when (ps-special-variable-p (car x))
+                   collect (cons (ps-gensym (format nil "~A_~A"
+                                                    (car x) 'tmp-stack))
+                                 x)))
+               (renamed-body `(symbol-macrolet ,(loop for x in lexical-bindings
+                                                   when (rename x) collect
+                                                   `(,(var x) ,(rename x)))
+                                ,@body))
+               (*ps-enclosing-lexicals*
+                (append lexical-bindings-introduced-here
+                        *ps-enclosing-lexicals*)))
+          (ps-compile
+           `(progn
+              ,@(mapcar (lambda (x)
+                          `(var ,(or (rename x)
+                                     (var x))
+                                ,(val x)))
+                        lexical-bindings)
+              ,(if dynamic-bindings
+                   `(progn ,@(mapcar (lambda (x)
+                                       `(var ,(rename x)))
+                                     dynamic-bindings)
+                           (try (progn
+                                  (setf ,@(loop for x in dynamic-bindings append
+                                               `(,(rename x) ,(var x)
+                                                  ,(var x) ,(val x))))
+                                  ,renamed-body)
+                                (:finally
+                                 (setf ,@(mapcan (lambda (x)
+                                                   `(,(var x) ,(rename x)))
+                                                 dynamic-bindings)))))
+                   renamed-body))))))))
 
 (defpsmacro let* (bindings &body body)
   (if bindings

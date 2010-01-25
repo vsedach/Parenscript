@@ -1586,3 +1586,32 @@ case 345:
 } finally {
     bar();
 };")
+
+(test-ps-js function-declare-special
+  (lambda ()
+    (declare (special *foo*))
+    (let ((*foo* 1))
+      (1+ *foo*)))
+  "function () {
+    var FOO_TMPSTACK1;
+    try {
+        FOO_TMPSTACK1 = FOO;
+        FOO = 1;
+        return FOO + 1;
+    } finally {
+        FOO = FOO_TMPSTACK1;
+    };
+};")
+
+(test-ps-js declare-special-let
+  (let ((*foo* 123))
+    (declare (special *foo*))
+    (blah))
+  "var FOO_TMPSTACK1;
+try {
+    FOO_TMPSTACK1 = FOO;
+    FOO = 123;
+    blah();
+} finally {
+    FOO = FOO_TMPSTACK1;
+};")

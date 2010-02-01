@@ -129,8 +129,10 @@
   "false;")
 
 (test-ps-js literal-symbols-4
-  NIL
-  "null;")
+  (lambda () NIL)
+  "function () {
+    return null;
+};")
 
 (test-ps-js literal-symbols-5
   UNDEFINED
@@ -272,8 +274,8 @@ b = _js2;")
 
 (test-ps-js assignment-10
   (defsetf left (el) (offset)
-  `(setf (getprop (getprop ,el 'style) 'left) ,offset))
-  "null;")
+    `(setf (getprop (getprop ,el 'style) 'left) ,offset))
+  "")
 
 (test-ps-js assignment-11
   (setf (left some-div) (+ 123 "px"))

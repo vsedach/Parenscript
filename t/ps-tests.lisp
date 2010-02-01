@@ -189,10 +189,6 @@ x = 2 + sideEffect() + x + 5;")
 (test script-star-eval2
   (is (string= "x = 1;" (normalize-js-code (ps* '(setf x 1))))))
 
-(test-ps-js unquoted-nil
-  nil
-  "null;")
-
 (test-ps-js list-with-single-nil
   (array nil)
   "[null];")
@@ -1357,8 +1353,10 @@ try {
 };")
 
 (test-ps-js values0
-  (values)
-  "null;")
+  (lambda () (values))
+  "function () {
+    return null;
+};")
 
 (test-ps-js values1
   (values x)
@@ -1615,3 +1613,10 @@ try {
 } finally {
     FOO = FOO_TMPSTACK1;
 };")
+
+(test-ps-js macro-null-toplevel
+  (progn
+    (defmacro macro-null-toplevel ()
+      nil)
+    (macro-null-toplevel))
+  "")

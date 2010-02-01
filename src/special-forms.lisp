@@ -247,8 +247,17 @@
     (if (and compile-expression? (= 1 (length body)))
         (ps-compile-expression (car body))
         `(,(if compile-expression? 'js:|,| 'js:block)
-           ,@(let* ((block (flatten-blocks (remove nil (mapcar #'ps-compile body)))))
-                   (append (remove-if #'constant-literal-form-p (butlast block)) (last block)))))))
+           ,@(let* ((block (flatten-blocks
+                            (remove nil (mapcar #'ps-compile body))))
+                    (last (last block)))
+               (append (remove-if #'constant-literal-form-p
+                                  (butlast block))
+                       (if (and (eq *ps-compilation-level* :toplevel)
+                                (listp (car last))
+                                (eq 'js:literal (caar last))
+                                (equal "null" (cadar last)))
+                           nil
+                           (last block))))))))
 
 (define-ps-special-form cond (&rest clauses)
   (if compile-expression?

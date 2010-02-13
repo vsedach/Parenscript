@@ -1620,3 +1620,27 @@ try {
       nil)
     (macro-null-toplevel))
   "")
+
+(test-ps-js define-symbol-macro-let
+  (progn
+    (define-symbol-macro test-symbol-macro 1)
+    (let ((test-symbol-macro 2))
+      (1+ test-symbol-macro))
+    (1+ test-symbol-macro))
+  "var testSymbolMacro1 = 2;
+testSymbolMacro1 + 1;
+1 + 1;")
+
+(test-ps-js define-symbol-macro-flet
+  (progn
+    (define-symbol-macro test-symbol-macro1 1)
+    (flet ((test-symbol-macro1 () 2))
+      (1+ test-symbol-macro1)
+      (test-symbol-macro1))
+    (1+ test-symbol-macro1))
+  "var testSymbolMacro1_1 = function () {
+    return 2;
+};
+1 + 1;
+testSymbolMacro1_1();
+1 + 1;")

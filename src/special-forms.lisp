@@ -544,7 +544,8 @@ lambda-list::=
 (defun collect-function-names (fn-defs)
   (loop for (fn-name) in fn-defs 
      collect fn-name
-     collect (if (member fn-name *ps-enclosing-lexicals*)
+     collect (if (or (member fn-name *ps-enclosing-lexicals*)
+                     (lookup-macro-def fn-name *ps-symbol-macro-env*))
                  (ps-gensym fn-name)
                  fn-name)))
 
@@ -794,6 +795,7 @@ lambda-list::=
                     normalized-bindings)))
       (flet ((maybe-rename-lexical-var (x)
                (if (or (member x *ps-enclosing-lexicals*)
+                       (lookup-macro-def x *ps-symbol-macro-env*)
                        (member x free-variables-in-binding-value-expressions))
                    (ps-gensym x)
                    (progn (push x lexical-bindings-introduced-here) nil)))

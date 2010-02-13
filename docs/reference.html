@@ -1075,7 +1075,6 @@ someDiv.offsetLeft;</pre>
     <ul>
       <li>(<code id="defmacro">DEFMACRO</code> name lambda-list macro-body)</li>
       <li>(<code id="defpsmacro">DEFPSMACRO</code> name lambda-list macro-body)</li>
-      <li>(<code id="defmacro/ps">DEFMACRO/PS</code> name lambda-list macro-body)</li>
       <li>(<code id="defmacro+ps">DEFMACRO+PS</code> name lambda-list macro-body)</li>
       <li>(<code id="import-macros-from-lisp">IMPORT-MACROS-FROM-LISP</code> symbol*)</li>
       <li>(<code id="macrolet">MACROLET</code> ({name lambda-list macro-body}*) body)</li>
@@ -1112,9 +1111,7 @@ someDiv.offsetLeft;</pre>
       as that of Common Lisp, and in fact Parenscript can use already
       defined macros this way. 
 
-    <p><code>DEFMACRO/PS</code> defines a Lisp macro and then imports
-      it into the Parenscript macro environment,
-      while <code>DEFMACRO+PS</code> defines two macros with the same name
+    <p><code>DEFMACRO+PS</code> defines two macros with the same name
       and expansion, one in Parenscript and one in
       Lisp. <code>DEFMACRO+PS</code> is used when the full macroexpansion of
       the Lisp macro yields code that cannot be used by Parenscript.</p>

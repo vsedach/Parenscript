@@ -1169,7 +1169,9 @@ someDiv.offsetLeft;</pre>
     of <code>*PS-GENSYM-COUNTER*</code> overlap).
     
     <h2 id="section-namespace">The Parenscript namespace system</h2>
-    (setf (<code id="ps-package-prefix">PS-PACKAGE-PREFIX</code> package-designator) string)
+    <ul>
+      <li>(setf (<code id="ps-package-prefix">PS-PACKAGE-PREFIX</code> package-designator) string)</li>
+    </ul>
     
     <p>Although JavaScript does not offer namespacing or a package system,
       Parenscript does provide a namespace mechanism for generated
@@ -1207,12 +1209,12 @@ someDiv.offsetLeft;</pre>
       <li>(<code id="unobfuscate-package">UNOBFUSCATE-PACKAGE</code> package-designator)</li>
     </ul>
 
-    <p>Similar to the namespace mechanism, Parenscript provides a facility
-      to generate obfuscated identifiers in specified CL packages. The
-      function <code>OBFUSCATE-PACKAGE</code> may optionally be passed a
-      hash-table or a closure that maps symbols to their obfuscated
-      counterparts. By default, the mapping is done
-      using <code>PS-GENSYM</code>.</p>
+    <p>Similar to the namespace mechanism, Parenscript provides a
+      facility to generate obfuscated identifiers in specified CL
+      packages. The function <code>OBFUSCATE-PACKAGE</code> may
+      optionally be passed a closure that maps symbols to their
+      obfuscated counterparts. By default, the mapping is done
+      using <code><a href="#ps-gensym">PS-GENSYM</a></code>.</p>
 
     <code>
 <pre>(defpackage "PS-REF.OBFUSCATE-ME")
@@ -1373,6 +1375,6 @@ someDiv.offsetLeft;</pre>
       that the extension does not work
       in <code>slime-repl-mode</code>, which is intentional.</p>
 
-    <p style="font-size:xxx-small"><i>Last modified: 2009-12-25</i></p>
+    <p style="font-size:xxx-small"><i>Last modified: 2010-02-24</i></p>
   </body>
 </html>

@@ -55,34 +55,16 @@ Body is evaluated."
                 ,@(let ((*js-string-delimiter* string-delimiter))
                     (parenscript-print (ps-compile form) nil))))
 
-(defvar *ps-read-function* #'read
-  "This should be a function that takes the same inputs and returns the same
-outputs as the common lisp read function.  We declare it as a variable to allow
-a user-supplied reader instead of the default lisp reader.")
-
-(defun compiled-form-to-string (ps-compiled-form)
-  (with-output-to-string (*psw-stream*)
-    (parenscript-print ps-compiled-form t)))
+(defvar *ps-read-function* #'read)
 
 (defun ps-compile-stream (stream)
-  "Compiles a source stream as if it were a file.  Outputs a Javascript string."
   (let ((*ps-compilation-level* :toplevel)
-	(*package* *package*)
-	(end-read-form '#:unique))
-    (flet ((read-form () (funcall *ps-read-function* stream nil end-read-form)))
-      (let* ((js-string
-	      ;; cons up the forms, compiling as we go, and print the result
-	      (do ((form (read-form) (read-form))
-		   (compiled-forms nil))
-		  ((eql form end-read-form)
-		     (format nil "~{~A~^;~%~}"
-			     (remove-if
-			      #'(lambda (x) (or (null x) (= 0 (length x))))
-			      (mapcar 'compiled-form-to-string (nreverse compiled-forms)))))
-		(push (ps-compile-statement form) compiled-forms))))
-	js-string))))
+	(eof '#:eof))
+    (ps* (cons 'progn
+               (loop for form = (funcall *ps-read-function* stream nil eof)
+                     until (eq form eof)
+                     collect form)))))
 
 (defun ps-compile-file (source-file)
-  "Compiles the given Parenscript source file and returns a Javascript string."
   (with-open-file (stream source-file :direction :input)
     (ps-compile-stream stream)))

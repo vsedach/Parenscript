@@ -968,20 +968,20 @@ lambda-list::=
   `(js:regex ,(string regex)))
 
 (define-ps-special-form lisp (lisp-form)
-  ;; (ps (foo (lisp bar))) is in effect equivalent to (ps* `(foo ,bar))
-  ;; when called from inside of ps*, lisp-form has access only to the dynamic environment (like for eval)
-  `(js:escape (compiled-form-to-string (let ((compile-expression? ,compile-expression?))
-                                         (ps-compile ,lisp-form)))))
+  ;; (ps (foo (lisp bar))) is like (ps* `(foo ,bar))
+  ;; When called from inside of ps*, lisp-form has access to the
+  ;; dynamic environment only, analogoues to eval.
+  `(js:escape
+    (with-output-to-string (*psw-stream*)
+      (let ((compile-expression? ,compile-expression?))
+        (parenscript-print (ps-compile ,lisp-form) t)))))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; eval-when
 (define-ps-special-form eval-when (situation-list &body body)
-  "(eval-when (situation*) body-form*)
-
-The body forms are evaluated only during the given SITUATION. The accepted SITUATIONS are
-:load-toplevel, :compile-toplevel, and :execute.  The code in BODY-FORM is assumed to be
-COMMON-LISP code in :compile-toplevel and :load-toplevel sitations, and parenscript code in
-:execute.  "
+  "The body is evaluated only during the given situations. The
+accepted situations are :load-toplevel, :compile-toplevel,
+and :execute. The code in BODY is assumed to be Common-Lisp code
+in :compile-toplevel and :load-toplevel sitations, and Parenscript
+code in :execute."
   (when (and (member :compile-toplevel situation-list)
 	     (member *ps-compilation-level* '(:toplevel :inside-toplevel-form)))
     (eval `(progn ,@body)))

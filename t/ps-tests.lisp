@@ -1644,3 +1644,12 @@ testSymbolMacro1 + 1;
 1 + 1;
 testSymbolMacro1_1();
 1 + 1;")
+
+(test compile-stream-nulls
+  (is (string=
+       ""
+       (with-input-from-string (s "
+   (defmacro macro-null-toplevel ()
+     nil)
+   (macro-null-toplevel)")
+         (ps-compile-stream s)))))

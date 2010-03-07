@@ -55,4 +55,11 @@
         (do* ((i (if init -1 0) (1+ i))
               (acc (if init init (elt list 0)) (func acc (elt list i))))
              ((>= i (1- (length list)))))
-        (return acc)))))
+        (return acc)))
+
+    (defun nconc (arr &rest arrs)
+    (when (and arr (> (length arr) 0))
+      (loop :for other :in arrs :when (and other (> (length other) 0)) :do
+        ((@ arr :splice :apply) arr
+         (append (list (length arr) (length other)) other))))
+    arr)))

@@ -1653,3 +1653,12 @@ testSymbolMacro1_1();
      nil)
    (macro-null-toplevel)")
          (ps-compile-stream s)))))
+
+(test equality-nary1
+  (let ((x 10) (y 10) (z 10))
+    (= x y z))
+  "var x = 10;
+var y = 10;
+var z = 10;
+var _cmp1 = y;
+x == _cmp1 && _cmp1 == z;")

@@ -61,7 +61,7 @@ lexical block.")
 ;;; form predicates
 
 (defun comparison-form-p (form)
-  (member (car form) '(< > <= >= == != === !==)))
+  (member (car form) '(< > <= >= = == != === !==)))
 
 (defun op-form-p (form)
   (and (listp form)

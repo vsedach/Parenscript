@@ -57,6 +57,7 @@
    #:slot-value
    #:compile-script
    #:defmacro/ps
+   #:labeled-for
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Language

@@ -29,6 +29,12 @@
   (def-for-literal break js:break)
   (def-for-literal continue js:continue))
 
+(define-ps-special-form label (label &rest statements)
+  `(js:label ,label
+             ,(if (> (length statements) 1)
+                  `(js:block ,@(mapcar #'ps-compile-statement statements))
+                  (ps-compile-statement (car statements)))))
+
 (define-ps-special-form quote (x)
   (flet ((quote% (expr) (when expr `',expr)))
     (ps-compile-expression
@@ -61,12 +67,12 @@
   (and (consp exp)
        (member (car exp)
                '(throw
-                 labeled-for
+                 for
                  for-in
                  while))))
 
 (defun implicit-progn-form? (form)
-  (member (car form) '(with progn let flet labels macrolet symbol-macrolet)))
+  (member (car form) '(with progn label let flet labels macrolet symbol-macrolet)))
 
 (define-ps-special-form return (&optional value force-conditional?)
   (let ((value (ps-macroexpand value)))
@@ -542,7 +548,7 @@ lambda-list::=
        fun-name))
 
 (defun collect-function-names (fn-defs)
-  (loop for (fn-name) in fn-defs 
+  (loop for (fn-name) in fn-defs
      collect fn-name
      collect (if (or (member fn-name *ps-enclosing-lexicals*)
                      (lookup-macro-def fn-name *ps-symbol-macro-env*))
@@ -856,15 +862,11 @@ lambda-list::=
                   (ps-compile-expression (ps-macroexpand (if (atom x) nil (second x))))))
           init-forms))
 
-(define-ps-special-form labeled-for (label init-forms cond-forms step-forms &rest body)
-  `(js:for ,label
-           ,(make-for-vars/inits init-forms)
-           ,(mapcar (lambda (x) (ps-compile-expression (ps-macroexpand x))) cond-forms)
-           ,(mapcar (lambda (x) (ps-compile-expression (ps-macroexpand x))) step-forms)
-           ,(ps-compile-statement `(progn ,@body))))
-
-(defpsmacro for (init-forms cond-forms step-forms &body body)
-  `(labeled-for nil ,init-forms ,cond-forms ,step-forms ,@body))
+(define-ps-special-form for (init-forms cond-forms step-forms &body body)
+  `(js:for ,(make-for-vars/inits init-forms)
+     ,(mapcar (lambda (x) (ps-compile-expression (ps-macroexpand x))) cond-forms)
+     ,(mapcar (lambda (x) (ps-compile-expression (ps-macroexpand x))) step-forms)
+     ,(ps-compile-statement `(progn ,@body))))
 
 (defun do-make-let-bindings (decls)
   (mapcar (lambda (x)

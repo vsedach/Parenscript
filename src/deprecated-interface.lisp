@@ -73,3 +73,7 @@ is output to the OUTPUT-STREAM stream."
   (warn-deprecated 'defmacro/ps 'defmacro+ps)
   `(progn (defmacro ,name ,args ,@body)
           (import-macros-from-lisp ',name)))
+
+(defpsmacro labeled-for (label init-forms cond-forms step-forms &rest body)
+  (warn-deprecated 'labeled-for 'label)
+  `(label ,label (for ,init-forms ,cond-forms ,step-forms ,@body)))

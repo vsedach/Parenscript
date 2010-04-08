@@ -239,6 +239,11 @@ arguments, defines a printer for that form using the given body."
     (psw " = ")
     (ps-print (car var-value))))
 
+(defprinter js:label (label statement)
+  (psw (symbol-to-js-string label))
+  (psw ": ")
+  (ps-print statement))
+
 (defprinter js:break (&optional label)
   (psw "break")
   (when label
@@ -252,8 +257,7 @@ arguments, defines a printer for that form using the given body."
     (psw (symbol-to-js-string label))))
 
 ;;; iteration
-(defprinter js:for (label vars tests steps body-block)
-  (when label (psw (symbol-to-js-string label)) (psw ": ") (newline-and-indent))
+(defprinter js:for (vars tests steps body-block)
   (psw "for (")
   (loop for ((var-name . var-init) . remaining) on vars
         for decl = "var " then "" do

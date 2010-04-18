@@ -1653,3 +1653,17 @@ a === b;")
 (test-ps-js getprop-quote-reserved
   (getprop foo ':break)
   "foo['break'];")
+
+(test-ps-js label1
+  (label scope
+    (foo)
+    (when (bar)
+      (break scope))
+    (blee))
+  "scope: {
+    foo();
+    if (bar()) {
+        break scope;
+    };
+    blee();
+};")

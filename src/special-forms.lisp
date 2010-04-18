@@ -35,14 +35,12 @@
     new        js:new
     delete     js:delete
     in         js:in ;; maybe rename to slot-boundp?
+    break      js:break
     ))
 
 (define-ps-special-form - (&rest args)
   (let ((args (mapcar #'compile-expression args)))
     (cons (if (cdr args) 'js:- 'js:negate) args)))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; n-ary equality
 
 (defun fix-nary-comparison (operator objects)
   (let* ((tmp-var-forms (butlast (cdr objects)))
@@ -77,18 +75,6 @@
   ;; nontrivial runtime algorithm), so we restrict it to binary in PS
   `(js:!== ,(compile-expression a) ,(compile-expression b)))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; literals
-
-(define-ps-special-form break (&optional label)
-  `(js:break ,label))
-
-(define-ps-special-form label (label &rest statements)
-  `(js:label ,label
-             ,(if (> (length statements) 1)
-                  `(js:block ,@(mapcar #'ps-compile-statement statements))
-                  (ps-compile-statement (car statements)))))
-
 (define-ps-special-form quote (x)
   (flet ((quote% (expr) (when expr `',expr)))
     (compile-expression
@@ -100,9 +86,6 @@
        (number x)
        (string x)
        (vector `(array ,@(loop :for el :across x :collect (quote% el))))))))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; statements
 
 (defun ps-statement? (exp)
   (and (consp exp)
@@ -174,9 +157,6 @@
                    `(js:return ,(compile-expression value)))))
             `(js:return ,(compile-expression value))))))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; operators
-
 (define-ps-special-form incf (x &optional (delta 1))
   (let ((delta (ps-macroexpand delta)))
     (if (eql delta 1)
@@ -202,9 +182,6 @@
              ((and (listp form) (cadr (assoc (car form) inverses)))
               `(,it ,@(cdr form)))
              (t `(js:! ,form))))))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; progn
 
 (defun flatten-blocks (body)
   (when body
@@ -685,6 +662,9 @@ the given lambda-list and body."
 (define-ps-special-form while (test &rest body)
   `(js:while ,(compile-expression test)
      ,(compile-statement `(progn ,@body))))
+
+(define-ps-special-form label (label &rest body)
+  `(js:label ,label ,(compile-statement `(progn ,@body))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; misc

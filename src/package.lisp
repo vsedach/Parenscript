@@ -152,7 +152,7 @@
    #:defvar
 
    ;; iteration
-   #:labeled-for
+   #:label
    #:for
    #:for-in
    #:while

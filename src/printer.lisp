@@ -239,18 +239,20 @@ vice-versa.")
   (print-op-argument op else))
 
 (defprinter js:var (var-name &rest var-value)
-  "var " (psw (symbol-to-js-string var-name))
+  "var "(psw (symbol-to-js-string var-name))
   (when var-value
     (psw " = ") (ps-print (car var-value))))
+
+(defprinter js:label (label statement)
+  (psw (symbol-to-js-string label))": "(ps-print statement))
 
 (defprinter (js:continue js:break) (&optional label)
   (print-op op) (when label
                   (psw " " (symbol-to-js-string label))))
 
 ;;; iteration
-(defprinter js:for (label vars tests steps body-block)
-  (when label (psw (symbol-to-js-string label) ": ") (newline-and-indent))
-  "for ("
+(defprinter js:for (vars tests steps body-block)
+  (psw "for (")
   (loop for ((var-name . var-init) . remaining) on vars
         for decl = "var " then "" do
         (psw decl (symbol-to-js-string var-name) " = ") (ps-print var-init) (when remaining (psw ", ")))

@@ -200,9 +200,6 @@ lambda-list::=
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; iteration
 
-(defpsmacro for (init-forms cond-forms step-forms &body body)
-  `(labeled-for nil ,init-forms ,cond-forms ,step-forms ,@body))
-
 (defun do-make-let-bindings (decls)
   (mapcar (lambda (x)
             (if (atom x)

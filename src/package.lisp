@@ -2,7 +2,7 @@
 
 (defpackage "PARENSCRIPT"
   (:use "COMMON-LISP" "ANAPHORA")
-  (:nicknames "JS" "PS")
+  (:nicknames "PS")
   (:export
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Compiler interface
@@ -57,6 +57,8 @@
    #:slot-value
    #:compile-script
    #:defmacro/ps
+   #:==
+   #:===
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Language
@@ -64,10 +66,8 @@
    ;; literals
    #:t
    #:f
-   #:true
    #.(symbol-name 'nil) ; for case-sensitive Lisps like some versions of Allegro
    #:this
-   #:false
    #:undefined
    #:{}
 
@@ -84,23 +84,33 @@
    #:[]
 
    ;; operators
-   #:! #:not #:~
-   #:* #:/ #:%
-   #:+ #:-
-   #:<< #:>>
-   #:>>>
-   #:< #:> #:<= #:>=
-   #:in
-   #:== #:!= #:=
-   #:=== #:!==
-   #:&
-   #:^
-   #:\|
-   #:\&\& #:and
-   #:\|\| #:or
-   #:>>= #:<<=
-   #:*= #:/= #:%= #:+= #:\&= #:^= #:\|= #:~=
-   #:incf #:decf
+   ;; logical boolean
+   #:not
+   #:and
+   #:or
+
+   ;; bitwise boolean
+   #:logand
+   #:logior
+   #:logxor
+   #:lognot
+
+   #:*
+   #:/
+   #:%
+   #:+
+   #:-
+   #:<
+   #:>
+   #:<=
+   #:>=
+   #:incf
+   #:decf
+   #:equalp
+   #:equal
+   #:eql
+   #:eq
+   #:=
 
    ;; compile-time stuff
    #:eval-when
@@ -123,7 +133,6 @@
 
    ;; single argument expressions
    #:delete
-   #:void
    #:typeof
    #:instanceof
    #:new
@@ -184,6 +193,7 @@
    ;; slot access
    #:with-slots
    #:getprop
+   #:in
 
    ;; macros
    #:macrolet
@@ -266,20 +276,29 @@
    #:member
    #:append
    #:set-difference
+   ))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; Intermediate representation (will be moved to js-toolkit)
+
+(defpackage "JS"
+  (:shadowing-import-from
+   "COMMON-LISP"
+   #:+
+   #:-
+   #:*
+   #:/)
+  (:export
    ;; operators
    ;; arithmetic
    #:+
    #:-
+   #:negate
    #:*
    #:/
    #:%
 
    ;; bitwise
    #:&
-   #:|\||
+   #:\|
    #:^
    #:~
    #:>>
@@ -295,7 +314,8 @@
    #:%=
    #:&=
    #:\|=
-   #:^+
+   #:^=
+   #:~=
    #:>>=
    #:<<=
    #:>>>=
@@ -303,6 +323,8 @@
    ;; increment/decrement
    #:++
    #:--
+   #:post++
+   #:post--
 
    ;; comparison
    #:==
@@ -316,7 +338,7 @@
 
    ;; logical
    #:&&
-   #:||||
+   #:\|\|
    #:!
 
    ;; misc
@@ -328,10 +350,15 @@
    #:in
    #:instanceof
    #:new
-   #:this
    #:typeof
    #:void
-   #:null
+
+   ;; literals
+   #:nil
+   #:t
+   #:f
+   #:undefined
+   #:this
 
    ;; statements
    #:block
@@ -344,22 +371,21 @@
    #:label
    #:return
    #:switch
+   #:default
    #:throw
    #:try
    #:var
    #:while
    #:with
 
-   #:unary-operator
-   #:literal
    #:array
    #:aref
-   #:operator
    #:cond
    #:lambda
+   #:defun
    #:object
-   #:variable
    #:getprop
    #:funcall
    #:escape
+   #:regex
    ))

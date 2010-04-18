@@ -17,6 +17,7 @@
                          (:file "printer")
                          (:file "compilation-interface")
                          (:file "special-forms")
+                         (:file "macros")
                          (:file "deprecated-interface")
                          (:file "js-dom-symbol-exports")
                          (:module :lib

@@ -8,7 +8,7 @@
   "Given Parenscript forms (an implicit progn), compiles those forms
 to a JavaScript string at macro-expansion time."
   (let ((printed-forms (parenscript-print
-                        (ps-compile-statement `(progn ,@body))
+                        (compile-statement `(progn ,@body))
                         nil)))
     (if (and (not (cdr printed-forms))
              (stringp (car printed-forms)))
@@ -19,7 +19,7 @@ to a JavaScript string at macro-expansion time."
 
 (defmacro ps-to-stream (stream &body body)
   (let ((printed-forms (parenscript-print
-                        (ps-compile-statement `(progn ,@body))
+                        (compile-statement `(progn ,@body))
                         nil)))
     `(let ((*parenscript-stream* ,stream))
        ,@(mapcar (lambda (x) `(write-string ,x *parenscript-stream*)) printed-forms))))
@@ -29,7 +29,7 @@ to a JavaScript string at macro-expansion time."
 Body is evaluated."
   (let ((*psw-stream* (or *parenscript-stream*
                           (make-string-output-stream))))
-    (parenscript-print (ps-compile-statement `(progn ,@body)) t)
+    (parenscript-print (compile-statement `(progn ,@body)) t)
     (unless *parenscript-stream*
       (get-output-stream-string *psw-stream*))))
 

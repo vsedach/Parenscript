@@ -8,7 +8,7 @@
 
 (test-ps-js plus-works-if-first
   (setf x (+ x "middle" "after"))
-  "x += 'middle' + 'after';")
+  "x = x + 'middle' + 'after';")
 
 (test-ps-js setf-side-effects
   (progn
@@ -25,24 +25,16 @@ function sideEffect() {
 x = 2 + sideEffect() + x + 5;")
 
 (test-ps-js method-call-op-form
-  ((@ (+ "" x) to-string))
+  (funcall (getprop (+ "" x) 'to-string))
   "('' + x).toString();")
 
 (test-ps-js method-call-op-form-args
-  ((@ (+ "" x) to-string) 1 2 :baz 3)
-  "('' + x).toString(1, 2, 'baz', 3);")
-
-(test-ps-js method-call-number
-  ((@ 10 to-string))
-  "( 10 ).toString();")
+  (funcall (getprop (+ "" x) 'foo) 1 2 :baz 3)
+  "('' + x).foo(1, 2, 'baz', 3);")
 
 (test-ps-js method-call-string
-  ((@ "hi" to-string))
+  ((getprop "hi" 'to-string))
   "'hi'.toString();")
-
-(test-ps-js method-call-lit-object
-  ((@ (create to-string (lambda () (return "it works"))) to-string))
-  "( { toString : function () { return 'it works'; } } ).toString();")
 
 (test-ps-js method-call-conditional
   ((if a x y) 1)
@@ -56,16 +48,8 @@ x = 2 + sideEffect() + x + 5;")
   ((@ (list 10 20) to-string))
   "[ 10, 20 ].toString();")
 
-(test-ps-js method-call-fn-call
-  ((@ (foo) to-string))
-  "foo().toString();")
-
-(test-ps-js method-call-lambda-fn
-  ((@ (lambda () (alert 10)) to-string))
-  "( function () { return alert(10); } ).toString();")
-
 (test-ps-js method-call-lambda-call
-  ((@ ((lambda (x) (return x)) 10) to-string))
+  (funcall (getprop (funcall (lambda (x) (return x)) 10) 'to-string))
   "(function (x) { return x; })(10).toString();")
 
 (test no-whitespace-before-dot
@@ -82,13 +66,8 @@ x = 2 + sideEffect() + x + 5;")
    alert(foo.a);")
 
 (test-ps-js buggy-getprop
-   (let ((foo (create a 1))
-         (slot-name "a"))
-    (alert (getprop foo slot-name)))
-  " var foo = { a : 1 };
-    var slotName = 'a';
-    alert(foo[slotName]);
-   "); Last line was alert(foo.slotName) before bug-fix.
+  (getprop foo slot-name)
+  "foo[slotName];")
 
 (test-ps-js buggy-getprop-two
   (getprop foo (get-slot-name))
@@ -173,7 +152,7 @@ x = 2 + sideEffect() + x + 5;")
   
 (test-ps-js getprop-setf
   (setf (getprop x 'y) (+ (+ a 3) 4))
-  "x.y = (a + 3) + 4;")
+  "x.y = a + 3 + 4;")
 
 (test-ps-js getprop-conditional1
   (getprop (if zoo foo bar) 'x)
@@ -458,16 +437,16 @@ __setf_someThing('foo', 1, 2);")
   
 (test-ps-js cond1
   (cond ((= x 1) 1))
-  "if (x == 1) {
+  "if (x === 1) {
     1;
 };")
 
 (test-ps-js cond2
   (cond ((= x 1) 2)
         ((= y (* x 4)) (foo "blah") (* x y)))
-  "if (x == 1) {
+  "if (x === 1) {
     2;
-} else if (y == x * 4) {
+} else if (y === x * 4) {
     foo('blah');
     x * y;
 };")
@@ -499,7 +478,7 @@ __setf_someThing('foo', 1, 2);")
   "function foo() {
     if (2 < 1) {
         return 'foo';
-    } else if (7 == 7) {
+    } else if (7 === 7) {
         return 'bar';
     };
 };")
@@ -517,9 +496,9 @@ __setf_someThing('foo', 1, 2);")
     if (1 < 2) {
         bar('foo');
         return 4 * 5;
-    } else if (a == b) {
+    } else if (a === b) {
         return c + d;
-    } else if ((_cmp1 = 2, _cmp2 = 3, _cmp3 = 4, 1 < _cmp1 && _cmp1 < _cmp2 && _cmp2 < _cmp3 && _cmp3 < 5)) {
+    } else if (_cmp1 = 2, _cmp2 = 3, _cmp3 = 4, 1 < _cmp1 && _cmp1 < _cmp2 && _cmp2 < _cmp3 && _cmp3 < 5) {
         return x;
     } else {
         return 'foo';
@@ -540,13 +519,13 @@ __setf_someThing('foo', 1, 2);")
 };")
 
 (test-ps-js funcall-if-expression
-  ((@ document write)
-   (if (= *linkornot* 1)
-       (ps-html ((:a :href "#"
-                     :onclick (ps-inline (transport)))
-                 img))
-       img))
-  "document.write(LINKORNOT == 1 ? '<A HREF=\"#\" ONCLICK=\"' + ('javascript:' + 'transport()') + '\">' + img + '</A>' : img);")
+  (funcall (getprop document 'write)
+    (if (= *linkornot* 1)
+        (ps-html ((:a :href "#"
+                      :onclick (ps-inline (transport)))
+                  img))
+        img))
+  "document.write(LINKORNOT === 1 ? '<A HREF=\"#\" ONCLICK=\"' + 'javascript:' + 'transport()' + '\">' + img + '</A>' : img);")
 
 (test-ps-js negate-number-literal
   (- 1)
@@ -693,7 +672,7 @@ try {
   (aref (if a b c) 0)
   "(a ? b : c)[0];")
 
-(test-ps-js negative-operator-priority
+(test-ps-js negate-operator-priority
   (- (if x y z))
   "-(x ? y : z);")
 
@@ -719,7 +698,7 @@ try {
 
 (test-ps-js op-p7
   (or x (if (= x 0) "zero" "empty"))
-  "x || (x == 0 ? 'zero' : 'empty');")
+  "x || (x === 0 ? 'zero' : 'empty');")
 
 (test-ps-js named-op-expression
   (throw (if a b c))
@@ -756,14 +735,6 @@ try {
 (test-ps-js expression-funcall2
   (((or (@ window eval) eval)) foo nil)
   "(window.eval || eval)()(foo, null);")
-
-(test-ps-js getprop-object-literal
-  (getprop (create a 1) 'a)
-  "({ a : 1 }).a;")
-
-(test-ps-js getprop-lambda
-  (getprop (lambda ()) 'prototype)
-  "(function () { return null; }).prototype;")
 
 (test-ps-js who-html1
   (who-ps-html (:span :class "ticker-symbol"
@@ -814,7 +785,7 @@ bar(foo1(1));")
 
 (test-ps-js labels1
   ((lambda () (labels ((foo (x) 
-                         (if (=== 0 x)
+                         (if (= 0 x)
                              0
                              (+ x (foo (1- x))))))
                 (foo 3))))
@@ -861,7 +832,7 @@ bar(foo(1));")
    true)
   "(function (x) {
     return (function () {
-        for (var y = x ? 0 : 1, z = 0; y != 3; y += 1, z += 1) {
+        for (var y = x ? 0 : 1, z = 0; y !== 3; y += 1, z += 1) {
         };
         return z;
     })();
@@ -896,9 +867,9 @@ bar(foo(1));")
   "function foo(x, y) {
     var baz;
     var x1 = Array.prototype.indexOf.call(arguments, 'bar', 2);
-    var bar = -1 == x1 ? null : arguments[x1 + 1];
+    var bar = -1 === x1 ? null : arguments[x1 + 1];
     var x2 = Array.prototype.indexOf.call(arguments, 'baz', 2);
-    return baz = -1 == x2 ? null : arguments[x2 + 1];
+    return baz = -1 === x2 ? null : arguments[x2 + 1];
 };"
   :js-target-version 1.6)
 
@@ -1028,7 +999,7 @@ x1 + y;")
 
 (test-ps-js setf-conditional1
   (setf x (unless (null a) (1+ a)))
-  "x = a != null ? a + 1 : null;")
+  "x = a !== null ? a + 1 : null;")
 
 (test-ps-js setf-let1
   (setf x (let ((a 1)) a))
@@ -1038,7 +1009,7 @@ x1 + y;")
   (setf x (let ((a (foo)))
             (unless (null a)
               (1+ a))))
-  "x = (a = foo(), a != null ? a + 1 : null);")
+  "x = (a = foo(), a !== null ? a + 1 : null);")
 
 (test-ps-js symbol-macro-env1
   (symbol-macrolet ((bar 1))
@@ -1175,7 +1146,7 @@ x1(x);")
       (let ((b (a (- a 4))))
         (+ a b))))
   "var a = 1 + 5;
-var b = (a - 4) + 5;
+var b = a - 4 + 5;
 a + b;")
 
 (test-ps-js let-subtract-add
@@ -1198,6 +1169,10 @@ x1 - x1;
 
 (test-ps-js getprop-reserved-word
   (getprop foo :default)
+  "foo['default'];")
+
+(test-ps-js getprop-reserved-word1
+  (getprop foo 'default)
   "foo['default'];")
 
 (test-ps-js eval-when-ps-side
@@ -1340,7 +1315,7 @@ var prevmv2 = arguments['callee']['mv'];
 try {
     arguments['callee']['mv'] = true;
     var a = doesnt();
-    var mv1 = typeof arguments['callee']['mv'] == 'object' ? arguments['callee']['mv'] : new Array(1);
+    var mv1 = typeof arguments['callee']['mv'] === 'object' ? arguments['callee']['mv'] : new Array(1);
     var b = mv1[0];
     alert(a);
     alert(b);
@@ -1442,7 +1417,6 @@ case 1:
     for (var _js1 = 0; _js1 < 3; _js1 += 1) {
         alert('foo');
     };
-    null;
 };")
 
 (test-ps-js setf-places-before-macros
@@ -1520,7 +1494,7 @@ __setf_foo(5, x, 1, 2, 3, 4);")
     return null;
 };")
 
-(test-ps-js return-conditional-neste
+(test-ps-js return-conditional-nested
   (defun blep (ss x y)
     (when foo?
       (let ((pair (bar)))
@@ -1535,12 +1509,12 @@ __setf_foo(5, x, 1, 2, 3, 4);")
   "function blep(ss, x, y) {
     if (foowhat) {
         var pair = bar();
-        if (pair != null) {
+        if (pair !== null) {
             var a = pair[0];
             var b = pair[1];
-            if (!(a == null || b == null)) {
+            if (!(a === null || b === null)) {
                 var val = baz(a, b);
-                if (val != null) {
+                if (val !== null) {
                     if (blah(val)) {
                         if (!blee()) {
                             return true;
@@ -1635,15 +1609,15 @@ testSymbolMacro1 + 1;
   (progn
     (define-symbol-macro test-symbol-macro1 1)
     (flet ((test-symbol-macro1 () 2))
-      (1+ test-symbol-macro1)
+      (foo test-symbol-macro1)
       (test-symbol-macro1))
-    (1+ test-symbol-macro1))
+    (bar test-symbol-macro1))
   "var testSymbolMacro1_1 = function () {
     return 2;
 };
-1 + 1;
+foo(1);
 testSymbolMacro1_1();
-1 + 1;")
+bar(1);")
 
 (test compile-stream-nulls
   (is (string=
@@ -1654,11 +1628,28 @@ testSymbolMacro1_1();
    (macro-null-toplevel)")
          (ps-compile-stream s)))))
 
-(test equality-nary1
+(test-ps-js equality-nary1
   (let ((x 10) (y 10) (z 10))
     (= x y z))
   "var x = 10;
 var y = 10;
 var z = 10;
 var _cmp1 = y;
-x == _cmp1 && _cmp1 == z;")
+x === _cmp1 && _cmp1 === z;")
+
+(test-ps-js equality1
+  (progn
+    (equalp a b)
+    (equal a b)
+    (eql a b)
+    (eq a b)
+    (= a b))
+  "a === b;
+a === b;
+a === b;
+a === b;
+a === b;")
+
+(test-ps-js getprop-quote-reserved
+  (getprop foo ':break)
+  "foo['break'];")

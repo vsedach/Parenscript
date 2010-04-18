@@ -180,11 +180,11 @@
 
 (test-ps-js operator-expressions-2
   (= 1 2)
-  "1 == 2;")
+  "1 === 2;")
 
 (test-ps-js operator-expressions-3
   (* 1 (+ 2 3 4) 4 (/ 6 7))
-  "1 * (2 + 3 + 4) * 4 * (6 / 7);")
+  "1 * (2 + 3 + 4) * 4 * 6 / 7;")
 
 (test-ps-js operator-expressions-4
   (incf i)
@@ -241,7 +241,7 @@ x = a + b + c;")
 
 (test-ps-js assignment-3
   (setf a (+ a 2 3 4 a))
-  "a += 2 + 3 + 4 + a;")
+  "a = a + 2 + 3 + 4 + a;")
 
 (test-ps-js assignment-4
   (setf a (- 1 a))
@@ -305,7 +305,7 @@ _js2.style.left = _js1;")
   (if (= (typeof blorg) *string)
     (alert (+ "blorg is a string: " blorg))
     (alert "blorg is not a string"))
-  "if (typeof blorg == String) {
+  "if (typeof blorg === String) {
     alert('blorg is a string: ' + blorg);
 } else {
     alert('blorg is not a string');
@@ -371,10 +371,10 @@ try {
   (do* ((a) b (c (array "a" "b" "c" "d" "e"))
       (d 0 (1+ d))
       (e (aref c d) (aref c d)))
-     ((or (= d (@ c length)) (== e "x")))
+     ((or (= d (@ c length)) (equal e "x")))
   (setf a d b e)
-  ((@ document write) (+ "a: " a " b: " b "<br/>")))
-  "for (var a = null, b = null, c = ['a', 'b', 'c', 'd', 'e'], d = 0, e = c[d]; !(d == c.length || e == 'x'); d += 1, e = c[d]) {
+  (funcall (@ document write) (+ "a: " a " b: " b "<br/>")))
+  "for (var a = null, b = null, c = ['a', 'b', 'c', 'd', 'e'], d = 0, e = c[d]; !(d === c.length || e === 'x'); d += 1, e = c[d]) {
     a = d;
     b = e;
     document.write('a: ' + a + ' b: ' + b + '<br/>');
@@ -384,13 +384,13 @@ try {
   (do ((i 0 (1+ i))
      (s 0 (+ s i (1+ i))))
     ((> i 10))
-  ((@ document write) (+ "i: " i " s: " s "<br/>")))
+  (funcall (@ document write) (+ "i: " i " s: " s "<br/>")))
   "var i = 0;
 var s = 0;
 for (; i <= 10; ) {
     document.write('i: ' + i + ' s: ' + s + '<br/>');
     var _js1 = i + 1;
-    var _js2 = s + i + (i + 1);
+    var _js2 = s + i + i + 1;
     i = _js1;
     s = _js2;
 };")
@@ -400,7 +400,7 @@ for (; i <= 10; ) {
       (s 0 (+ s i (1- i))))
      ((> i 10))
   ((@ document write) (+ "i: " i " s: " s "<br/>")))
-  "for (var i = 0, s = 0; i <= 10; i += 1, s += i + (i - 1)) {
+  "for (var i = 0, s = 0; i <= 10; i += 1, s = s + i + i - 1) {
     document.write('i: ' + i + ' s: ' + s + '<br/>');
 };")
 
@@ -529,7 +529,7 @@ for (var i in obj) {
   ((@ document write)
   (ps-html ((:a :href "#"
                 :onclick (ps-inline (transport))) "link")))
-  "document.write('<A HREF=\"#\" ONCLICK=\"' + ('javascript:' + 'transport()') + '\">link</A>');")
+  "document.write('<A HREF=\"#\" ONCLICK=\"' + 'javascript:' + 'transport()' + '\">link</A>');")
 
 (test-ps-js the-html-generator-4
   (let ((disabled nil)

@@ -293,9 +293,6 @@ lambda-list::=
 (defpsmacro make-array (&rest initial-values)
   `(new (*array ,@initial-values)))
 
-(defpsmacro funcall (&rest arg-form)
-  arg-form)
-
 (defpsmacro defvar (name &optional
                          (value (values) value-provided?)
                          documentation)

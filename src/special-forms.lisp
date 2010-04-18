@@ -36,6 +36,7 @@
     delete     js:delete
     in         js:in ;; maybe rename to slot-boundp?
     break      js:break
+    funcall    js:funcall
     ))
 
 (define-ps-special-form - (&rest args)

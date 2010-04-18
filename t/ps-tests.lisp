@@ -1667,3 +1667,20 @@ a === b;")
     };
     blee();
 };")
+
+(test-ps-js let-funcall
+  (let ((x foo))
+    (funcall x)
+    (let ((x bar))
+      (funcall x))
+    (funcall x))
+  "var x = foo;
+x();
+var x1 = bar;
+x1();
+x();")
+
+(test-ps-js symbol-macrolet-funcall
+  (symbol-macrolet ((foo bar))
+    (funcall foo 1 2 3))
+  "bar(1, 2, 3);")

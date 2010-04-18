@@ -27,11 +27,11 @@
 (defmacro ps-package-prefix (package)
   `(gethash (find-package ,package) *package-prefix-table*))
 
-(defun symbol-to-js-string (symbol &optional (mangle-symbol-name t))
-  (let ((symbol-name (funcall (if mangle-symbol-name
-                                  #'symbol-name-to-js-string
-                                  #'symbol-name)
-                              (maybe-obfuscate-symbol symbol))))
+(defun symbol-to-js-string (symbol &optional (mangle-symbol-name? t))
+  (let* ((symbol-name (symbol-name (maybe-obfuscate-symbol symbol)))
+         (identifier (if mangle-symbol-name?
+                         (encode-js-identifier symbol-name)
+                         symbol-name)))
     (aif (ps-package-prefix (symbol-package symbol))
-         (concatenate 'string it symbol-name)
-         symbol-name)))
+         (concatenate 'string it identifier)
+         identifier)))

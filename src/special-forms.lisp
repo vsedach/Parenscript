@@ -670,9 +670,9 @@ the given lambda-list and body."
 
 (define-ps-special-form for (init-forms cond-forms step-forms &body body)
   `(js:for ,(make-for-vars/inits init-forms)
-     ,(mapcar (lambda (x) (ps-compile-expression (ps-macroexpand x))) cond-forms)
-     ,(mapcar (lambda (x) (ps-compile-expression (ps-macroexpand x))) step-forms)
-     ,(ps-compile-statement `(progn ,@body))))
+     ,(mapcar #'compile-expression cond-forms)
+     ,(mapcar #'compile-expression step-forms)
+     ,(compile-statement `(progn ,@body))))
 
 (define-ps-special-form continue (&optional label)
   `(js:continue ,label))

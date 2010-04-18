@@ -41,7 +41,7 @@
                                  `(floor (* ,upto ((@ *math random))))
                                  '((@ *math random)))))
 
-(define-ps-symbol-macro pi (@ *math *pi*))
+(define-ps-symbol-macro pi (getprop *math '*pi*))
 
 ;;; Data structures
 (defpsmacro [] (&rest args)
@@ -52,34 +52,31 @@
                     args)))
 
 (defpsmacro length (a)
-  `(@ ,a length))
+  `(getprop ,a 'length))
 
 ;;; Types
 (defpsmacro stringp (x)
-  `(= (typeof ,x) "string"))
+  `(equal (typeof ,x) "string"))
 
 (defpsmacro numberp (x)
-  `(= (typeof ,x) "number"))
+  `(equal (typeof ,x) "number"))
 
 (defpsmacro functionp (x)
-  `(= (typeof ,x) "function"))
+  `(equal (typeof ,x) "function"))
 
 (defpsmacro objectp (x)
-  `(= (typeof ,x) "object"))
+  `(equal (typeof ,x) "object"))
 
 (defpsmacro null (x)
-  `(= ,x nil))
+  `(equal ,x nil))
 
 (defpsmacro undefined (x)
-  `(=== undefined ,x))
+  `(equal undefined ,x))
 
 (defpsmacro defined (x)
   `(not (undefined ,x)))
 
 ;;; Getters
-(defpsmacro elt (array index)
-  `(aref ,array ,index))
-
 (defpsmacro @ (obj &rest props)
   "Handy getprop/aref composition macro."
   (if props

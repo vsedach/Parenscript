@@ -69,6 +69,14 @@ is output to the OUTPUT-STREAM stream."
   (warn-deprecated 'slot-value 'getprop)
   `(getprop ,@args))
 
+(defpsmacro === (&rest args)
+  (warn-deprecated '=== 'eql)
+  `(eql ,@args))
+
+(defpsmacro == (&rest args)
+  (warn-deprecated '== 'equal)
+  `(equal ,@args))
+
 (defmacro defmacro/ps (name args &body body)
   (warn-deprecated 'defmacro/ps 'defmacro+ps)
   `(progn (defmacro ,name ,args ,@body)

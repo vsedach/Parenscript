@@ -148,7 +148,7 @@ form, FORM, returns the new value for *ps-compilation-level*."
     (character
      (string obj))
     (vector
-     (ps-compile (cons 'quote (coerce obj 'list))))
+     (ps-compile `(quote ,(coerce obj 'list))))
     (symbol
      (multiple-value-bind (expansion expanded?)
          (ps-macroexpand obj)

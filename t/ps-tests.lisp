@@ -1688,3 +1688,7 @@ x();")
 (test-ps-js times-assign
   (setf x (* x 1000))
   "x *= 1000;")
+
+(test-ps-js vector-literal
+  #(1 2 3)
+  "[1, 2, 3];")

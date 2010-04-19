@@ -1684,3 +1684,7 @@ x();")
   (symbol-macrolet ((foo bar))
     (funcall foo 1 2 3))
   "bar(1, 2, 3);")
+
+(test-ps-js times-assign
+  (setf x (* x 1000))
+  "x *= 1000;")

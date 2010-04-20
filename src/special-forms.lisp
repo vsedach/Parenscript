@@ -71,6 +71,9 @@
     >=    js:>=
     equal js:===))
 
+(define-ps-special-form null (x) ;; this is the only case where '==' makes sense
+  `(js:== ,(compile-expression x) nil))
+
 (define-ps-special-form /= (a b)
   ;; for n>2, /= is finding duplicates in an array of numbers (ie -
   ;; nontrivial runtime algorithm), so we restrict it to binary in PS

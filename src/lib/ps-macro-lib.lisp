@@ -67,9 +67,6 @@
 (defpsmacro objectp (x)
   `(equal (typeof ,x) "object"))
 
-(defpsmacro null (x)
-  `(equal ,x nil))
-
 (defpsmacro undefined (x)
   `(equal undefined ,x))
 

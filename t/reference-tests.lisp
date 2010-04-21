@@ -371,7 +371,7 @@ try {
   (do* ((a) b (c (array "a" "b" "c" "d" "e"))
       (d 0 (1+ d))
       (e (aref c d) (aref c d)))
-     ((or (= d (@ c length)) (equal e "x")))
+     ((or (= d (@ c length)) (string= e "x")))
   (setf a d b e)
   (funcall (@ document write) (+ "a: " a " b: " b "<br/>")))
   "for (var a = null, b = null, c = ['a', 'b', 'c', 'd', 'e'], d = 0, e = c[d]; !(d === c.length || e === 'x'); d += 1, e = c[d]) {

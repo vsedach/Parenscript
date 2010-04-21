@@ -56,19 +56,19 @@
 
 ;;; Types
 (defpsmacro stringp (x)
-  `(equal (typeof ,x) "string"))
+  `(string= (typeof ,x) "string"))
 
 (defpsmacro numberp (x)
-  `(equal (typeof ,x) "number"))
+  `(string= (typeof ,x) "number"))
 
 (defpsmacro functionp (x)
-  `(equal (typeof ,x) "function"))
+  `(string= (typeof ,x) "function"))
 
 (defpsmacro objectp (x)
-  `(equal (typeof ,x) "object"))
+  `(string= (typeof ,x) "object"))
 
 (defpsmacro undefined (x)
-  `(equal undefined ,x))
+  `(eql undefined ,x))
 
 (defpsmacro defined (x)
   `(not (undefined ,x)))

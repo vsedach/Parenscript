@@ -1644,8 +1644,8 @@ x === _cmp1 && _cmp1 === z;")
     (eql a b)
     (eq a b)
     (= a b))
-  "a === b;
-a === b;
+  "a == b;
+a == b;
 a === b;
 a === b;
 a === b;")

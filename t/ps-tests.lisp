@@ -999,7 +999,7 @@ x1 + y;")
 
 (test-ps-js setf-conditional1
   (setf x (unless (null a) (1+ a)))
-  "x = a !== null ? a + 1 : null;")
+  "x = a != null ? a + 1 : null;")
 
 (test-ps-js setf-let1
   (setf x (let ((a 1)) a))
@@ -1009,7 +1009,7 @@ x1 + y;")
   (setf x (let ((a (foo)))
             (unless (null a)
               (1+ a))))
-  "x = (a = foo(), a !== null ? a + 1 : null);")
+  "x = (a = foo(), a != null ? a + 1 : null);")
 
 (test-ps-js symbol-macro-env1
   (symbol-macrolet ((bar 1))
@@ -1509,12 +1509,12 @@ __setf_foo(5, x, 1, 2, 3, 4);")
   "function blep(ss, x, y) {
     if (foowhat) {
         var pair = bar();
-        if (pair !== null) {
+        if (pair != null) {
             var a = pair[0];
             var b = pair[1];
-            if (!(a === null || b === null)) {
+            if (!(a == null || b == null)) {
                 var val = baz(a, b);
-                if (val !== null) {
+                if (val != null) {
                     if (blah(val)) {
                         if (!blee()) {
                             return true;

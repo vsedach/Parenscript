@@ -17,6 +17,7 @@
     -          js:-
     *          js:*
     /          js:/
+    rem        js:%
     and        js:&&
     or         js:\|\|
 

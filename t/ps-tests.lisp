@@ -1692,3 +1692,7 @@ x();")
 (test-ps-js vector-literal
   #(1 2 3)
   "[1, 2, 3];")
+
+(test-ps-js rem1
+  (+ 1 (rem 2 (+ 3 4)))
+  "1 + 2 % (3 + 4);")

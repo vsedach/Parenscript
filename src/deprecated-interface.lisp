@@ -65,22 +65,20 @@ is output to the OUTPUT-STREAM stream."
 (defun-js symbol-to-js symbol-to-js-string (symbol)
   (symbol-to-js-string symbol))
 
-(defpsmacro slot-value (&rest args)
-  (warn-deprecated 'slot-value 'getprop)
-  `(getprop ,@args))
-
-(defpsmacro === (&rest args)
-  (warn-deprecated '=== 'eql)
-  `(eql ,@args))
-
-(defpsmacro == (&rest args)
-  (warn-deprecated '== 'equal)
-  `(equal ,@args))
-
 (defmacro defmacro/ps (name args &body body)
   (warn-deprecated 'defmacro/ps 'defmacro+ps)
   `(progn (defmacro ,name ,args ,@body)
           (import-macros-from-lisp ',name)))
+
+(defmacro defpsmacro-deprecated (old new)
+  `(defpsmacro ,old (&rest args)
+     (warn-deprecated ',old ',new)
+     (cons ',new args)))
+
+(defpsmacro-deprecated slot-value getprop)
+(defpsmacro-deprecated === eql)
+(defpsmacro-deprecated == equal)
+(defpsmacro-deprecated % rem)
 
 (defpsmacro labeled-for (label init-forms cond-forms step-forms &rest body)
   (warn-deprecated 'labeled-for 'label)

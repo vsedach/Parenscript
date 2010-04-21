@@ -163,7 +163,7 @@ vice-versa.")
 (defprinter js:post-- (x)
   (ps-print x)"--")
 
-(defprinter (js:+ js:- js:* js:/ js:&& js:\|\| js:& js:\| js:-= js:+= js:*= js:/= js:^ js:= js:== js:=== js:!== js:in js:!= js:> js:>= js:< js:<=)
+(defprinter (js:+ js:- js:* js:/ js:% js:&& js:\|\| js:& js:\| js:-= js:+= js:*= js:/= js:^ js:= js:== js:=== js:!== js:in js:!= js:> js:>= js:< js:<=)
     (&rest args)
   (loop for (arg . remaining) on args do
        (print-op-argument op arg)

@@ -18,7 +18,121 @@
 (defpsmacro null (x)
   `(equal ,x nil))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Math
+
+(defmacro def-js-maths (&rest mathdefs)
+  `(progn ,@(mapcar (lambda (def) (cons 'defpsmacro def)) mathdefs)))
+
+(def-js-maths
+    (max (&rest nums) `((@ *math max) ,@nums))
+    (min (&rest nums) `((@ *math min) ,@nums))
+    (floor (n &optional divisor) `((@ *math floor) ,(if divisor `(/ ,n ,divisor) n)))
+    (ceiling (n &optional divisor) `((@ *math ceil) ,(if divisor `(/ ,n ,divisor) n)))
+    (round (n &optional divisor) `((@ *math round) ,(if divisor `(/ ,n ,divisor) n)))
+    (sin (n) `((@ *math sin) ,n))
+    (cos (n) `((@ *math cos) ,n))
+    (tan (n) `((@ *math tan) ,n))
+    (asin (n) `((@ *math asin) ,n))
+    (acos (n) `((@ *math acos) ,n))
+    (atan (y &optional x) (if x `((@ *math atan2) ,y ,x) `((@ *math atan) ,y)))
+    (sinh (n) `((lambda (x) (return (/ (- (exp x) (exp (- x))) 2))) ,n))
+    (cosh (n) `((lambda (x) (return (/ (+ (exp x) (exp (- x))) 2))) ,n))
+    (tanh (n) `((lambda (x) (return (/ (- (exp x) (exp (- x))) (+ (exp x) (exp (- x)))))) ,n))
+    (asinh (n) `((lambda (x) (return (log (+ x (sqrt (1+ (* x x))))))) ,n))
+    (acosh (n) `((lambda (x) (return (* 2 (log (+ (sqrt (/ (1+ x) 2)) (sqrt (/ (1- x) 2))))))) ,n))
+    (atanh (n) `((lambda (x) (return (/ (- (log (+ 1 x)) (log (- 1 x))) 2))) ,n))
+    (1+ (n) `(+ ,n 1))
+    (1- (n) `(- ,n 1))
+    (abs (n) `((@ *math abs) ,n))
+    (evenp (n) `(not (oddp ,n)))
+    (oddp (n) `(% ,n 2))
+    (exp (n) `((@ *math exp) ,n))
+    (expt (base power) `((@ *math pow) ,base ,power))
+    (log (n &optional base)
+      (or (and (null base) `((@ *math log) ,n))
+          (and (numberp base) (= base 10) `(* (log ,n) (@ *math *log10e*)))
+          `(/ (log ,n) (log ,base))))
+    (sqrt (n) `((@ *math sqrt) ,n))
+    (random (&optional upto) (if upto
+                                 `(floor (* ,upto ((@ *math random))))
+                                 '((@ *math random)))))
+
+(define-ps-symbol-macro pi (getprop *math '*pi*))
+
+;;; Types
+
+(defpsmacro stringp (x)
+  `(string= (typeof ,x) "string"))
+
+(defpsmacro numberp (x)
+  `(string= (typeof ,x) "number"))
+
+(defpsmacro functionp (x)
+  `(string= (typeof ,x) "function"))
+
+(defpsmacro objectp (x)
+  `(string= (typeof ,x) "object"))
+
+(defpsmacro undefined (x)
+  `(eql undefined ,x))
+
+(defpsmacro defined (x)
+  `(not (undefined ,x)))
+
+;;; Data structures
+
+(defpsmacro [] (&rest args)
+  `(array ,@(mapcar (lambda (arg)
+                      (if (and (consp arg) (not (equal '[] (car arg))))
+                          (cons '[] arg)
+                          arg))
+                    args)))
+
+(defpsmacro make-array (&rest initial-values)
+  `(new (*array ,@initial-values)))
+
+(defpsmacro length (a)
+  `(getprop ,a 'length))
+
+;;; Getters
+
+(defpsmacro getprop (obj &rest slots)
+  (if (null (rest slots))
+      `(%js-getprop ,obj ,(first slots))
+      `(getprop (getprop ,obj ,(first slots)) ,@(rest slots))))
+
+(defpsmacro @ (obj &rest props)
+  "Handy getprop/aref composition macro."
+  (if props
+      `(@ (getprop ,obj ,(if (symbolp (car props))
+                             `',(car props)
+                             (car props)))
+          ,@(cdr props))
+      obj))
+
+(defpsmacro chain (&rest method-calls)
+  (labels ((do-chain (method-calls)
+             (if (cdr method-calls)
+                 (if (listp (car method-calls))
+                     `((@ ,(do-chain (cdr method-calls)) ,(caar method-calls)) ,@(cdar method-calls))
+                     `(@ ,(do-chain (cdr method-calls)) ,(car method-calls)))
+                 (car method-calls))))
+    (do-chain (reverse method-calls))))
+
+(defpsmacro with-slots (slots object &rest body)
+  (flet ((slot-var (slot)
+           (if (listp slot)
+               (first slot)
+               slot))
+         (slot-symbol (slot)
+           (if (listp slot)
+               (second slot)
+               slot)))
+    `(symbol-macrolet ,(mapcar (lambda (slot)
+                                 `(,(slot-var slot) (getprop ,object ',(slot-symbol slot))))
+                               slots)
+       ,@body)))
+
 ;;; multiple values
 
 (defpsmacro values (&optional main &rest additional)
@@ -54,7 +168,6 @@
                             (delete (@ arguments :callee :mv))
                             (setf (@ arguments :callee :mv) ,prev-mv)))))))))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; conditionals
 
 (defpsmacro case (value &rest clauses)
@@ -80,7 +193,6 @@
   `(when (not ,test)
      ,@body))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; function definition
 
 (defpsmacro defun (name lambda-list &body body)
@@ -116,7 +228,6 @@ lambda-list::=
     `(%js-lambda ,effective-args
                  ,@effective-body)))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; defining setf expanders
 
 (defvar *defun-setf-name-prefix* "__setf_")
@@ -166,7 +277,6 @@ lambda-list::=
 (defpsmacro defsetf (access-fn &rest args)
   `(,(if (= (length args) 3) 'defsetf-long 'defsetf-short) ,access-fn ,@args))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; setf
 
 (defpsmacro setf (&rest args)
@@ -199,7 +309,6 @@ lambda-list::=
   (check-setq-args args)
   `(psetf ,@args))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; iteration
 
 (defun do-make-let-bindings (decls)
@@ -289,11 +398,88 @@ lambda-list::=
        (setq ,var (aref ,arrvar ,idx))
        ,@body)))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; misc
+;;; Concatenation
 
-(defpsmacro make-array (&rest initial-values)
-  `(new (*array ,@initial-values)))
+(defpsmacro concatenate (result-type &rest sequences)
+  (assert (equal result-type ''string) () "Right now Parenscript 'concatenate' only support strings.")
+  (cons '+ sequences))
+
+(defmacro concat-string (&rest things)
+  "Like concatenate but prints all of its arguments."
+  `(format nil "~@{~A~}" ,@things))
+
+(defpsmacro concat-string (&rest things)
+  (cons '+ things))
+
+(defpsmacro append (arr1 &rest arrs)
+  (if arrs
+      `((@ ,arr1 concat) ,@arrs)
+      arr1))
+
+;;; Destructuring bind
+
+(defun destructuring-wrap (arr n bindings body &key setf?)
+  (labels ((bind-expr (var expr inner-body)
+             (if setf?
+                 `(progn (setf ,var ,expr) ,inner-body)
+                 `(let ((,var ,expr)) ,inner-body)))
+           (bind-rest (sym)
+             (bind-expr sym `(when (> (length ,arr) ,n)
+                               ((@ ,arr slice) ,n))
+                        body)))
+    (cond ((null bindings)
+           body)
+          ((atom bindings) ;; dotted destructuring list
+           (bind-rest bindings))
+          ((eq (car bindings) '&rest)
+           (if (and (= (length bindings) 2)
+                    (atom (second bindings)))
+               (bind-rest (second bindings))
+               (error "~a is invalid in destructuring list." bindings)))
+          ((eq (car bindings) '&optional)
+           (destructuring-wrap arr n (cdr bindings) body :setf? setf?))
+          (t (let ((var (car bindings))
+                   (inner-body (destructuring-wrap arr (1+ n) (cdr bindings) body :setf? setf?)))
+               (cond ((null var) inner-body)
+                     ((atom var) (bind-expr var `(aref ,arr ,n) inner-body))
+                     (t `(,(if setf? 'dset 'destructuring-bind)
+                           ,var (aref ,arr ,n)
+                           ,inner-body))))))))
+
+(defpsmacro dset (bindings expr &body body)
+  (let ((arr (if (complex-js-expr? expr) (ps-gensym) expr)))
+    `(progn
+       ,@(unless (eq arr expr) `((setf ,arr ,expr)))
+       ,(destructuring-wrap arr 0 bindings (cons 'progn body) :setf? t))))
+
+(defpsmacro destructuring-bind (bindings expr &body body)
+  (let* ((arr (if (complex-js-expr? expr) (ps-gensym) expr))
+         (bound (destructuring-wrap arr 0 bindings (cons 'progn body))))
+    (if (eq arr expr)
+        bound
+        `(let ((,arr ,expr)) ,bound))))
+
+;;; Control structures
+
+(defpsmacro ignore-errors (&body body)
+  `(try (progn ,@body) (:catch (e))))
+
+(defpsmacro prog1 (first &rest others)
+  (with-ps-gensyms (val)
+    `(let ((,val ,first))
+       ,@others
+       ,val)))
+
+(defpsmacro prog2 (first second &rest others)
+  `(progn ,first (prog1 ,second ,@others)))
+
+(defpsmacro apply (fn &rest args)
+  (let ((arglist (if (> (length args) 1)
+                     `(append (list ,@(butlast args)) ,(car (last args)))
+                     (first args))))
+    `((@ ,fn apply) this ,arglist)))
+
+;;; misc
 
 (defpsmacro defvar (name &optional
                          (value (values) value-provided?)
@@ -311,21 +497,5 @@ lambda-list::=
            ,@body))
       `(progn ,@body)))
 
-(defpsmacro getprop (obj &rest slots)
-  (if (null (rest slots))
-      `(%js-getprop ,obj ,(first slots))
-      `(getprop (getprop ,obj ,(first slots)) ,@(rest slots))))
-
-(defpsmacro with-slots (slots object &rest body)
-  (flet ((slot-var (slot)
-           (if (listp slot)
-               (first slot)
-               slot))
-         (slot-symbol (slot)
-           (if (listp slot)
-               (second slot)
-               slot)))
-    `(symbol-macrolet ,(mapcar (lambda (slot)
-                                 `(,(slot-var slot) (getprop ,object ',(slot-symbol slot))))
-                               slots)
-       ,@body)))
+(defpsmacro do-set-timeout ((timeout) &body body)
+  `(set-timeout (lambda () ,@body) ,timeout))

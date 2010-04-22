@@ -23,7 +23,6 @@
                          (:module :lib
                                   :components ((:file "ps-html")
                                                (:file "ps-loop")
-                                               (:file "ps-macro-lib")
                                                (:file "ps-dom"))
                                   :depends-on ("compilation-interface"))))
    (:module :runtime

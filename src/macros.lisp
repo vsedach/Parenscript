@@ -9,7 +9,6 @@
                        `(defpsmacro ,macro-name (&rest args)
                           (cons ',ps-op args))))))
   (define-trivial-mappings
-    equalp  equal
     string= eql
     eq      eql
     =       eql

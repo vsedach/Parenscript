@@ -1639,13 +1639,11 @@ x === _cmp1 && _cmp1 === z;")
 
 (test-ps-js equality1
   (progn
-    (equalp a b)
     (equal a b)
     (eql a b)
     (eq a b)
     (= a b))
   "a == b;
-a == b;
 a === b;
 a === b;
 a === b;")

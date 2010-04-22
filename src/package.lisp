@@ -108,7 +108,6 @@
    #:>=
    #:incf
    #:decf
-   #:equalp
    #:equal
    #:eql
    #:eq

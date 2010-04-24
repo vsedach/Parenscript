@@ -80,6 +80,14 @@ is output to the OUTPUT-STREAM stream."
 (defpsmacro-deprecated == equal)
 (defpsmacro-deprecated % rem)
 
+(defpsmacro !== (&rest args)
+  (warn-deprecated '!==)
+  `(not (eql ,@args)))
+
+(defpsmacro != (&rest args)
+  (warn-deprecated '!=)
+  `(not (equal ,@args)))
+
 (defpsmacro labeled-for (label init-forms cond-forms step-forms &rest body)
   (warn-deprecated 'labeled-for 'label)
   `(label ,label (for ,init-forms ,cond-forms ,step-forms ,@body)))

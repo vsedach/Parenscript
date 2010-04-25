@@ -132,18 +132,19 @@ vice-versa.")
   (defun op-precedence (op)
     (gethash op precedence-table -1)))
 
-(defun expression-precedence (expr)
-  (if (consp expr)
-      (op-precedence (car expr))
-      -1))
+(defun associative? (op)
+  (member op '(js:+ js:* js:& js:&& js:\| js:\|\|
+               js:funcall js:aref js:getprop))) ;; these aren't really associative, but RPN
 
 (defun parenthesize-print (ps-form)
   (psw #\() (ps-print ps-form) (psw #\)))
 
 (defun print-op-argument (op argument)
-  (if (< (op-precedence op) (expression-precedence argument))
-      (parenthesize-print argument)
-      (ps-print argument)))
+  (let ((arg-op (when (listp argument) (car argument))))
+    (if (or (< (op-precedence op) (op-precedence arg-op))
+            (and (eq op arg-op) (not (associative? op))))
+        (parenthesize-print argument)
+        (ps-print argument))))
 
 (defun print-op (op)
   (psw (string-downcase op)))

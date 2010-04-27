@@ -27,9 +27,6 @@
                whole
              ,@body))))
 
-(defun undefine-ps-special-form (name)
-  (remhash name *ps-special-forms*))
-
 (defun ps-special-form-p (form)
   (and (consp form)
        (symbolp (car form))
@@ -94,15 +91,14 @@ nil indicates we are no longer toplevel-related.")
          ,@body))))
 
 (defmacro defpsmacro (name args &body body)
-  `(progn (undefine-ps-special-form ',name)
-          (setf (gethash ',name *ps-macro-toplevel*) ,(make-ps-macro-function args body))
-          ',name))
+  `(setf (gethash ',name *ps-macro-toplevel*)
+         ,(make-ps-macro-function args body)))
 
 (defmacro define-ps-symbol-macro (symbol expansion)
-  (let ((x (gensym)))
-    `(progn (undefine-ps-special-form ',symbol)
-            (setf (gethash ',symbol *ps-symbol-macro-toplevel*) (lambda (,x) (declare (ignore ,x)) ',expansion))
-            ',symbol)))
+  `(setf (gethash ',symbol *ps-symbol-macro-toplevel*)
+         (lambda (form)
+           (declare (ignore form))
+           ',expansion)))
 
 (defun import-macros-from-lisp (&rest names)
   "Import the named Lisp macros into the ParenScript macro

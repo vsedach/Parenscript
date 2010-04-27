@@ -92,6 +92,9 @@ vice-versa.")
     (#\r . #\Return)
     (#\t . #\Tab)))
 
+(defmethod ps-print ((char character))
+  (ps-print (string char)))
+
 (defmethod ps-print ((string string))
   (flet ((lisp-special-char-to-js (lisp-char)
            (car (rassoc lisp-char *js-lisp-escaped-chars*))))

@@ -139,10 +139,8 @@ form, FORM, returns the new value for *ps-compilation-level*."
 
 (defun ps-compile (obj)
   (etypecase obj
-    ((or number string)
+    ((or number string character)
      obj)
-    (character
-     (string obj))
     (vector
      (ps-compile `(quote ,(coerce obj 'list))))
     (symbol

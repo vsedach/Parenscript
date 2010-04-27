@@ -195,9 +195,7 @@ form, FORM, returns the new value for *ps-compilation-level*."
                          (incf *ps-gensym-counter*)))))
 
 (defmacro with-ps-gensyms (symbols &body body)
-  "Evaluate BODY with SYMBOLS bound to unique ParenScript identifiers.
-
-Each element of SYMBOLS is either a symbol or a list of (symbol
+  "Each element of SYMBOLS is either a symbol or a list of (symbol
 gensym-prefix-string)."
   `(let* ,(mapcar (lambda (symbol)
                     (destructuring-bind (symbol &optional prefix)
@@ -210,13 +208,7 @@ gensym-prefix-string)."
                   symbols)
      ,@body))
 
-(defun %check-once-only-vars (vars)
-  (let ((bad-var (find-if (lambda (x) (or (not (symbolp x)) (keywordp x))) vars)))
-    (when bad-var
-      (error "PS-ONLY-ONCE expected a non-keyword symbol but got ~s" bad-var))))
-
 (defmacro ps-once-only ((&rest vars) &body body)
-  (%check-once-only-vars vars)
   (let ((gensyms (mapcar (lambda (x) (ps-gensym (string x))) vars)))
     `(let ,(mapcar (lambda (g v) `(,g (ps-gensym ,(string v)))) gensyms vars)
        `(let* (,,@(mapcar (lambda (g v) ``(,,g ,,v)) gensyms vars))

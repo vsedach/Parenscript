@@ -277,7 +277,7 @@ vice-versa.")
   (print-op op)" ("(ps-print expression)") "
   (ps-print body-block))
 
-(defprinter js:switch (test clauses)
+(defprinter js:switch (test &rest clauses)
   "switch ("(ps-print test)") {"
   (flet ((print-body-statements (body-statements)
            (incf *indent-level*)

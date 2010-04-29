@@ -243,16 +243,16 @@
 
 (define-ps-special-form switch (test-expr &rest clauses)
   `(js:switch ,(compile-expression test-expr)
-     ,(loop for (val . body) in clauses collect
-           (cons (if (eq val 'default)
-                     'js:default
-                     (compile-expression val))
-                 (mapcan (lambda (x)
-                           (let ((exp (compile-statement x)))
-                             (if (and (listp exp) (eq 'js:block (car exp)))
-                                 (cdr exp)
-                                 (list exp))))
-                         body)))))
+     ,@(loop for (val . body) in clauses collect
+            (cons (if (eq val 'default)
+                      'js:default
+                      (compile-expression val))
+                  (mapcan (lambda (x)
+                            (let ((exp (compile-statement x)))
+                              (if (and (listp exp) (eq 'js:block (car exp)))
+                                  (cdr exp)
+                                  (list exp))))
+                          body)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; function definition

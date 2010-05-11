@@ -5,13 +5,13 @@
 
 (defparameter *ps-lisp-library*
   '(progn
-    (defun mapcar (fun &rest as)
+    (defun mapcar (fun &rest arrs)
       (let ((result-array (make-array)))
-        (if (= 1 (length as))
-            (dolist (element (aref as 0))
+        (if (= 1 (length arrs))
+            (dolist (element (aref arrs 0))
               ((@ result-array push) (fun element)))
-            (dotimes (i (length (aref as 0)))
-              (let ((args-array (mapcar (lambda (a) (return (aref a i))) as)))
+            (dotimes (i (length (aref arrs 0)))
+              (let ((args-array (mapcar (lambda (a) (return (aref a i))) arrs)))
                 ((@ result-array push) ((@ fun apply) fun args-array)))))
         (return result-array)))
 

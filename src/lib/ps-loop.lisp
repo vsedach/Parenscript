@@ -191,10 +191,10 @@
            (push (list var nil expr expr test tag) (iterations state)))))
 
   (defun while-clause (state)
-    (while-or-until :while (gensym) state))
+    (while-or-until :while (ps-gensym) state))
 
   (defun until-clause (state)
-    (while-or-until :until (gensym) state)))
+    (while-or-until :until (ps-gensym) state)))
 
 (defun body-clause (term state)
   (case term

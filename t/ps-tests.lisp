@@ -1707,3 +1707,9 @@ x();")
         return bar(y + 1);
     }).apply(this, x);
 };")
+
+(test-ps-js operator-expressions-nested-let
+  (let ((x (let ((y 1))
+             y)))
+    x)
+  "var x = (y = 1, y); x;")

@@ -240,7 +240,7 @@ vice-versa.")
 (defprinter js:var (var-name &rest var-value)
   "var "(psw (symbol-to-js-string var-name))
   (when var-value
-    (psw " = ") (ps-print (car var-value))))
+    (psw " = ") (print-op-argument 'js:= (car var-value))))
 
 (defprinter js:label (label statement)
   (psw (symbol-to-js-string label))": "(ps-print statement))

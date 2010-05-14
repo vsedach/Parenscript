@@ -181,7 +181,8 @@ vice-versa.")
 
 (defun print-comma-delimited-list (ps-forms)
   (loop for (form . remaining) on ps-forms do
-        (ps-print form) (when remaining (psw ", "))))
+        (print-op-argument 'js:|,| form)
+        (when remaining (psw ", "))))
 
 (defprinter js:array (&rest initial-contents)
   "["(print-comma-delimited-list initial-contents)"]")

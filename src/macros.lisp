@@ -54,8 +54,8 @@
           `(/ (log ,n) (log ,base))))
     (sqrt (n) `((@ *math sqrt) ,n))
     (random (&optional upto) (if upto
-                                 `(floor (* ,upto ((@ *math random))))
-                                 '((@ *math random)))))
+                                 `(* ,upto (random))
+                                 '(funcall (@ *math random)))))
 
 (define-ps-symbol-macro pi (getprop *math '*pi*))
 

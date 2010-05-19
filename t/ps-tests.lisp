@@ -1699,3 +1699,11 @@ x();")
   (+ (/ 1 (/ 2 3)) (- 1 (- 2 3)))
   "1 / (2 / 3) + 1 - (2 - 3);")
 
+(test-ps-js lambda-apply
+  (lambda (x)
+    (apply (lambda (y) (bar (1+ y))) x))
+  "function (x) {
+    return (function (y) {
+        return bar(y + 1);
+    }).apply(this, x);
+};")

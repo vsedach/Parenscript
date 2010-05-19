@@ -112,6 +112,7 @@ vice-versa.")
 
 (let ((precedence-table (make-hash-table :test 'eq)))
   (loop for level in '((js:getprop js:aref js:new js:funcall)
+                       (js:lambda) ;; you won't find this in JS books
                        (js:++ js:-- js:post++ js:post--)
                        (js:! js:~ js:negate js:typeof js:delete)
                        (js:* js:/ js:%)
@@ -189,13 +190,7 @@ vice-versa.")
   (print-comma-delimited-list expressions))
 
 (defprinter js:funcall (fun-designator &rest args)
-  ;; JS grammar rules are retarded. There were more exceptions before,
-  ;; but I (vsedach) decided they weren't going to occur in "Real Code"
-  (if (and (listp fun-designator)
-           (eq 'js:lambda (car fun-designator)))
-      (parenthesize-print fun-designator)
-      (print-op-argument op fun-designator))
-  "("(print-comma-delimited-list args)")")
+  (print-op-argument op fun-designator)"("(print-comma-delimited-list args)")")
 
 (defprinter js:block (&rest statements)
   "{" (incf *indent-level*)

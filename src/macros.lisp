@@ -477,7 +477,7 @@ lambda-list::=
   (let ((arglist (if (> (length args) 1)
                      `(append (list ,@(butlast args)) ,(car (last args)))
                      (first args))))
-    `((@ ,fn apply) this ,arglist)))
+    `(funcall (getprop ,fn 'apply) this ,arglist)))
 
 ;;; misc
 

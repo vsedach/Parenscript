@@ -6,18 +6,25 @@
           (not (eq (ps-macroexpand expr) expr)))
       (consp expr)))
 
-(defvar *loop-keywords*
-  '(:for :do :repeat :with :when :unless :while :until :initially :finally
-    :from :to :below :downto :above :by :in :across :on := :then
-    :sum :collect :append :count :minimize :maximize :into))
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (defvar *loop-keywords*
+    '(:for :do :repeat :with :when :unless :while :until :initially :finally
+      :from :to :below :downto :above :by :in :across :on := :then
+      :sum :collect :append :count :minimize :maximize :into))
 
-(defun normalize-loop-keywords (args)
-  (mapcar
-   (lambda (x)
-     (or (find-if (lambda (key) (and (symbolp x) (equal (symbol-name x) (symbol-name key))))
-                  *loop-keywords*)
-         x))
-   args))
+  (defun as-keyword (key)
+    (intern (symbol-name key) :keyword)))
+
+(defmacro loop-case (key &body forms)
+  (loop :for (match . nil) :in forms
+    :for keys = (if (listp match) match (list match)) :do
+    (loop :for k :in keys :do
+      (assert (member k (append *loop-keywords* '(t otherwise)))
+              nil "~a isn't a recognized loop keyword." k)))
+  `(case (as-keyword ,key) ,@forms))
+
+(defun loop-keyword? (term &rest keys)
+  (member (as-keyword term) keys))
 
 (defun turn-lisp-style-function-name-to-ordinary-js-name (sym)
   (if (and (consp sym) (eq 'function (first sym)))
@@ -51,7 +58,7 @@
 
 (defun eat (state &optional what tag)
   (case what
-    (:if (when (eq (peek state) tag)
+    (:if (when (loop-keyword? (peek state) tag)
            (eat state)
            (eat state)))
     (:progn (cons 'progn (loop :collect (if (consp (peek state))
@@ -84,12 +91,12 @@
         (test-op nil)
         (by nil)
         (end nil))
-    (loop while (member (peek state) '(:to :below :downto :above :by)) do
+    (loop while (loop-keyword? (peek state) :to :below :downto :above :by) do
           (let ((term (eat state)))
-            (if (eq term :by)
+            (if (loop-keyword? term :by)
                 (setf by (eat state))
-                (setf op (case term ((:downto :above) '-) (otherwise '+))
-                      test-op (case term (:to '>) (:below '>=) (:downto '<) (:above '<=))
+                (setf op (loop-case term ((:downto :above) '-) (otherwise '+))
+                      test-op (loop-case term (:to '>) (:below '>=) (:downto '<) (:above '<=))
                       end (eat state)))))
     (let ((test (when test-op
                   (with-local-var (v end state)
@@ -134,15 +141,15 @@
       (var-or-bindings state)
     (let ((term (eat state :atom)))
       (when bindings
-        (when (eq term :from)
+        (when (loop-keyword? term :from)
           (err "an atom after FROM" bindings))
         (setf var (ps-gensym)))
-      (case term
-        (:from (for-from var state))
-        (:= (for-= var bindings state))
-        ((:in :across) (for-in var bindings state))
-        (:on (for-on var bindings state))
-        (otherwise (error "FOR ~s ~s is not valid in PS-LOOP." var term))))))
+      (loop-case term
+            (:from (for-from var state))
+            (:= (for-= var bindings state))
+            ((:in :across) (for-in var bindings state))
+            (:on (for-on var bindings state))
+            (otherwise (error "FOR ~s ~s is not valid in PS-LOOP." var term))))))
 
 (defun a-with-clause (state) ;; so named to avoid with-xxx macro convention
   (multiple-value-bind (var bindings)
@@ -159,24 +166,24 @@
       (error "PS-LOOP encountered illegal ~a: ~a was already declared, and there can only be one kind of default accumulation per loop." kind (default-accum-kind state)))
     (unless (default-accum-var state)
       (setf (default-accum-var state)
-            (ps-gensym (case kind
-                         (:minimize 'min)
-                         (:maximize 'max)
-                         (t kind))))
+            (ps-gensym (loop-case kind
+                             (:minimize 'min)
+                             (:maximize 'max)
+                             (t kind))))
       (setf (default-accum-kind state) kind))
     (setf var (default-accum-var state)))
-  (let ((initial (case kind
-                   ((:sum :count) 0)
-                   ((:maximize :minimize) nil)
-                   ((:collect :append) '(array)))))
+  (let ((initial (loop-case kind
+                       ((:sum :count) 0)
+                       ((:maximize :minimize) nil)
+                       ((:collect :append) '(array)))))
     (prevar var initial state))
-  (case kind
-    (:sum `(incf ,var ,term))
-    (:count `(unless (null ,term) (incf ,var)))
-    (:minimize `(setf ,var (if (null ,var) ,term (min ,var ,term))))
-    (:maximize `(setf ,var (if (null ,var) ,term (max ,var ,term))))
-    (:collect `((@ ,var :push) ,term))
-    (:append `(setf ,var (append ,var ,term)))))
+  (loop-case kind
+        (:sum `(incf ,var ,term))
+        (:count `(unless (null ,term) (incf ,var)))
+        (:minimize `(setf ,var (if (null ,var) ,term (min ,var ,term))))
+        (:maximize `(setf ,var (if (null ,var) ,term (max ,var ,term))))
+        (:collect `((@ ,var :push) ,term))
+        (:append `(setf ,var (append ,var ,term)))))
 
 (defun repeat-clause (state)
   (let ((index (ps-gensym)))
@@ -197,27 +204,27 @@
     (while-or-until :until (ps-gensym) state)))
 
 (defun body-clause (term state)
-  (case term
-    ((:when :unless)
-     (list (intern (symbol-name term))
-           (eat state)
-           (body-clause (eat state :atom) state)))
-    ((:sum :collect :append :count :minimize :maximize)
-     (accumulate term (eat state) (eat state :if :into) state))
-    (:do (eat state :progn))
-    (otherwise (err "a PS-LOOP keyword" term))))
+  (loop-case term
+        ((:when :unless)
+         (list (intern (symbol-name term))
+               (eat state)
+               (body-clause (eat state :atom) state)))
+        ((:sum :collect :append :count :minimize :maximize)
+         (accumulate term (eat state) (eat state :if :into) state))
+        (:do (eat state :progn))
+        (otherwise (err "a PS-LOOP keyword" term))))
 
 (defun clause (state)
   (let ((term (eat state :atom)))
-    (case term
-      (:with (a-with-clause state))
-      (:for (for-clause state))
-      (:repeat (repeat-clause state))
-      (:while (while-clause state))
-      (:until (until-clause state))
-      (:initially (push (eat state :progn) (initially state)))
-      (:finally (push (eat state :progn) (finally state)))
-      (otherwise (push (body-clause term state) (body state))))))
+    (loop-case term
+          (:with (a-with-clause state))
+          (:for (for-clause state))
+          (:repeat (repeat-clause state))
+          (:while (while-clause state))
+          (:until (until-clause state))
+          (:initially (push (eat state :progn) (initially state)))
+          (:finally (push (eat state :progn) (finally state)))
+          (otherwise (push (body-clause term state) (body state))))))
 
 (defun parse-ps-loop (terms)
   (if (null terms)
@@ -245,11 +252,11 @@
       (loop :for iteration :in (reverse (iterations loop))
         :for (var bindings init nil nil tag) = iteration
         ;; only lift named iteration vars, not anonymous ones (e.g. for :WHILE or :UNTIL)
-        :when (member tag '(:for-from :for-=)) :do
+        :when (loop-keyword? tag :for-from :for-=) :do
         (when bindings
           (mapcar (lambda (b) (prevar b nil loop)) (reverse bindings))
           (push bindings lifted))
-        (if (eq tag :for-from)
+        (if (loop-keyword? tag :for-from)
             (progn
               (prevar var init loop)
               (setf (third iteration) nil))
@@ -314,8 +321,8 @@
         (:dbind `(destructuring-bind ,@(cdr (car prologue))
                      (with-prologue (,(cdr prologue)) ,@body))))))
 
-(defpsmacro loop (&rest args)
-  (let* ((loop (parse-ps-loop (normalize-loop-keywords args)))
+(defpsmacro loop (&rest keywords-and-forms)
+  (let* ((loop (parse-ps-loop keywords-and-forms))
          ;; Variable lifting to support initially/finally may
          ;; add to prologue, so compute main loop first.
          (main (or (parallel-form loop)

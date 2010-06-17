@@ -18,11 +18,13 @@
 (defpsmacro offset (what el)
   (if (consp what)
       `(offset ,(eval what) ,el)
-      (progn (assert-is-one-of what '(:top :left :height :width :bottom :right))
-             (if (member what '(:top :left :height :width))
-                 `(@ ,el ,(intern (format nil "OFFSET-~a" what)))
-                 (aif (assoc what '((:bottom :top :height) (:right :left :width)))
-                      `(+ (offset ,(second it) ,el) (offset ,(third it) ,el)))))))
+      (case what
+        ((:top :left :height :width) `(@ ,el ,(intern (format nil "OFFSET-~a" what))))
+        (:right `(+ (offset :left ,el) (offset :width ,el)))
+        (:bottom `(+ (offset :top ,el) (offset :height ,el)))
+        (:hcenter `(+ (offset :left ,el) (/ (offset :width ,el) 2)))
+        (:vcenter `(+ (offset :top ,el) (/ (offset :height ,el) 2)))
+        (t (error "The OFFSET macro doesn't accept ~s as a key." what)))))
 
 (defpsmacro scroll (what el)
   (assert-is-one-of what '(:top :left :right :bottom :width :height))

@@ -409,7 +409,9 @@ lambda-list::=
   `(format nil "~@{~A~}" ,@things))
 
 (defpsmacro concat-string (&rest things)
-  (cons '+ things))
+  (if (and (= (length things) 1) (stringp (car things)))
+      (car things)
+      `((@ (list ,@things) :join) "")))
 
 (defpsmacro append (arr1 &rest arrs)
   (if arrs

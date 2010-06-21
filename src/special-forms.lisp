@@ -195,7 +195,7 @@
 
 (define-ps-special-form progn (&rest body)
   (let ((body (mapcar #'ps-macroexpand body)))
-    (if (and compile-expression? (= 1 (length body)))
+    (if (and compile-expression? (not (cdr body)))
         (compile-expression (car body))
         `(,(if compile-expression? 'js:|,| 'js:block)
            ,@(let* ((block (flatten-blocks

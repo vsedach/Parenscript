@@ -1725,3 +1725,17 @@ x();")
 (test-ps-js ps-inline-toplevel
   (ps-inline (foo))
   "'javascript:' + 'foo()';")
+
+(test-ps-js no-clause-progn-exp
+  (setf x (progn))
+  "x = null;")
+
+(test-ps-js empty-cond-clause
+  (setf x (cond ((foo))))
+  "x = foo() ? null : null;")
+
+(test-ps-js empty-cond-clause1
+  (setf x (cond ((foo) 123)
+                ((bar))
+                (t 456)))
+  "x = foo() ? 123 : (bar() ? null : 456);")

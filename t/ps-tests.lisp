@@ -1721,3 +1721,7 @@ x();")
 (test-ps-js add-subtract-precedence
   (- x (+ y z))
   "x - (y + z);")
+
+(test-ps-js ps-inline-toplevel
+  (ps-inline (foo))
+  "'javascript:' + 'foo()';")

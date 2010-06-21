@@ -53,7 +53,7 @@ Body is evaluated."
 (defmacro+ps ps-inline (form &optional (string-delimiter *js-inline-string-delimiter*))
   `(concatenate 'string "javascript:"
                 ,@(let ((*js-string-delimiter* string-delimiter))
-                    (parenscript-print (ps-compile form) nil))))
+                    (parenscript-print (compile-statement form) nil))))
 
 (defvar *ps-read-function* #'read)
 

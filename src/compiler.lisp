@@ -74,6 +74,9 @@ lexical block.")
 (defvar *loop-scope-lexicals*)
 (defvar *loop-scope-lexicals-captured*)
 
+(defvar *local-function-names* ())
+;; is a subset of
+(defvar *enclosing-lexicals* ())
 (defvar *function-block-names* ())
 (defvar *lexical-extent-return-tags* ())
 (defvar *dynamic-extent-return-tags* ())
@@ -83,6 +86,14 @@ lexical block.")
 
 (defun special-variable? (sym)
   (member sym *special-variables*))
+
+;;; meta info
+
+(defvar *macro-toplevel-lambda-list* (make-hash-table)
+  "Table of lambda lists for toplevel macros.")
+
+(defvar *function-lambda-list* (make-hash-table)
+  "Table of lambda lists for defined functions.")
 
 ;;; macros
 (defun make-macro-dictionary ()
@@ -98,10 +109,6 @@ lexical block.")
 
 (defvar *symbol-macro-env* (list *symbol-macro-toplevel*))
 
-(defvar *local-function-names* ())
-;; is a subset of
-(defvar *enclosing-lexicals* ())
-
 (defvar *setf-expanders* (make-macro-dictionary)
   "Setf expander dictionary. Key is the symbol of the access
 function of the place, value is an expansion function that takes the
@@ -112,17 +119,28 @@ stored as the second value.")
   (loop for e in env thereis (gethash name e)))
 
 (defun make-ps-macro-function (args body)
+  "Given the arguments and body to a parenscript macro, returns a
+function that may be called on the entire parenscript form and outputs
+some parenscript code.  Returns a second value that is the effective
+lambda list from a Parenscript perspective."
   (let* ((whole-var (when (eql '&whole (first args)) (second args)))
          (effective-lambda-list (if whole-var (cddr args) args))
          (whole-arg (or whole-var (gensym "ps-macro-form-arg-"))))
-    `(lambda (,whole-arg)
-       (destructuring-bind ,effective-lambda-list
-           (cdr ,whole-arg)
-         ,@body))))
+    (values
+     `(lambda (,whole-arg)
+        (destructuring-bind ,effective-lambda-list
+            (cdr ,whole-arg)
+          ,@body))
+     effective-lambda-list)))
 
 (defmacro defpsmacro (name args &body body)
   (defined-operator-override-check name
-      `(setf (gethash ',name *macro-toplevel*) ,(make-ps-macro-function args body))))
+      (multiple-value-bind (macro-fn-form effective-lambda-list)
+          (make-ps-macro-function args body)
+        `(progn
+           (setf (gethash ',name *macro-toplevel*) ,macro-fn-form)
+           (setf (gethash ',name *macro-toplevel-lambda-list*) ',effective-lambda-list)
+           ',name))))
 
 (defmacro define-ps-symbol-macro (symbol expansion)
   (defined-operator-override-check symbol

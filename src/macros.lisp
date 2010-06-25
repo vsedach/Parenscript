@@ -175,7 +175,8 @@ lambda-list::=
   [&key {var | ({var | (keyword-name var)} [init-form [supplied-p-parameter]])}* [&allow-other-keys]]
   [&aux {var | (var [init-form])}*])"
   (if (symbolp name)
-      `(defun% ,name ,lambda-list ,@body)
+      (progn (setf (gethash name *function-lambda-list*) lambda-list)
+             `(defun% ,name ,lambda-list ,@body))
       (progn (assert (and (listp name) (= (length name) 2) (eq 'setf (car name))) ()
                      "(defun ~s ~s ...) needs to have a symbol or (setf symbol) for a name." name lambda-list)
              `(defun-setf ,name ,lambda-list ,@body))))

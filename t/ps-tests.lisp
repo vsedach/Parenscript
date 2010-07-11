@@ -525,7 +525,7 @@ __setf_someThing('foo', 1, 2);")
                       :onclick (ps-inline (transport)))
                   img))
         img))
-  "document.write(LINKORNOT === 1 ? '<A HREF=\"#\" ONCLICK=\"' + 'javascript:' + 'transport()' + '\">' + img + '</A>' : img);")
+  "document.write(LINKORNOT === 1 ? ['<A HREF=\"#\" ONCLICK=\"', 'javascript:' + 'transport()', '\">', img, '</A>']['join']('') : img);")
 
 (test-ps-js negate-number-literal
   (- 1)
@@ -742,7 +742,7 @@ try {
                       (:a :href "http://foo.com"
                           symbol)
                       (:span :class "ticker-symbol-popup")))
-  "'<SPAN CLASS=\"ticker-symbol\" TICKER-SYMBOL=\"' + symbol + '\"><A HREF=\"http://foo.com\">' + symbol + '</A><SPAN CLASS=\"ticker-symbol-popup\"></SPAN></SPAN>';")
+  "['<SPAN CLASS=\"ticker-symbol\" TICKER-SYMBOL=\"', symbol, '\"><A HREF=\"http://foo.com\">', symbol, '</A><SPAN CLASS=\"ticker-symbol-popup\"></SPAN></SPAN>']['join']('');")
 
 (test-ps-js flet1
   ((lambda () (flet ((foo (x)

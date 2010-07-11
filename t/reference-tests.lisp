@@ -523,23 +523,20 @@ for (var i in obj) {
 
 (test-ps-js the-html-generator-2
   (ps-html ((:a :href (generate-a-link)) "blorg"))
-  "'<A HREF=\"' + generateALink() + '\">blorg</A>';")
+  "['<A HREF=\"', generateALink(), '\">blorg</A>']['join']('');")
 
 (test-ps-js the-html-generator-3
-  ((@ document write)
-  (ps-html ((:a :href "#"
-                :onclick (ps-inline (transport))) "link")))
-  "document.write('<A HREF=\"#\" ONCLICK=\"' + 'javascript:' + 'transport()' + '\">link</A>');")
+  (funcall (getprop document 'write)
+           (ps-html ((:a :href "#"
+                         :onclick (ps-inline (transport))) "link")))
+  "document.write(['<A HREF=\"#\" ONCLICK=\"', 'javascript:' + 'transport()', '\">link</A>']['join'](''));")
 
 (test-ps-js the-html-generator-4
   (let ((disabled nil)
-      (authorized t))
-   (setf (@ element inner-h-t-m-l)
-         (ps-html ((:textarea (or disabled (not authorized)) :disabled "disabled")
-                "Edit me"))))
+        (authorized t))
+    (setf (getprop element 'inner-h-t-m-l)
+          (ps-html ((:textarea (or disabled (not authorized)) :disabled "disabled")
+                    "Edit me"))))
   "var disabled = null;
 var authorized = true;
-element.innerHTML =
-'<TEXTAREA'
-+ (disabled || !authorized ? ' DISABLED=\"' + 'disabled' + '\"' : '')
-+ '>Edit me</TEXTAREA>';")
+element.innerHTML = ['<TEXTAREA', disabled || !authorized ? [' DISABLED=\"', 'disabled', '\"']['join']('') : '', '>Edit me</TEXTAREA>']['join']('');")

@@ -262,23 +262,20 @@ b = _js2;")
   "a = 1;")
 
 (test-ps-js assignment-8
-  (defun (setf color) (new-color el)
-  (setf (getprop (getprop el 'style) 'color) new-color))
+  (progn
+    (defun (setf color) (new-color el)
+      (setf (getprop (getprop el 'style) 'color) new-color))
+    (setf (color some-div) (+ 23 "em")))
   "function __setf_color(newColor, el) {
     return el.style.color = newColor;
-};")
-
-(test-ps-js assignment-9
-  (setf (color some-div) (+ 23 "em"))
-  "__setf_color(23 + 'em', someDiv);")
+};
+__setf_color(23 + 'em', someDiv);")
 
 (test-ps-js assignment-10
-  (defsetf left (el) (offset)
-    `(setf (getprop (getprop ,el 'style) 'left) ,offset))
-  "")
-
-(test-ps-js assignment-11
-  (setf (left some-div) (+ 123 "px"))
+  (progn
+    (defsetf left (el) (offset)
+      `(setf (getprop (getprop ,el 'style) 'left) ,offset))
+    (setf (left some-div) (+ 123 "px")))
   "var _js2 = someDiv;
 var _js1 = 123 + 'px';
 _js2.style.left = _js1;")
@@ -286,7 +283,7 @@ _js2.style.left = _js1;")
 (test-ps-js assignment-12
   (macrolet ((left (el)
              `(getprop ,el 'offset-left)))
-  (left some-div))
+    (left some-div))
   "someDiv.offsetLeft;")
 
 (test-ps-js single-argument-statements-1

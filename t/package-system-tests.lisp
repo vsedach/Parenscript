@@ -23,27 +23,34 @@
   "{ my_library_foo : 1 };
 foo.my_library_foo;")
 
+(let ((map (make-hash-table)))
+  (defun symbol-obfuscator (symbol)
+    (or #1=(gethash symbol map)
+        (setf #1# (make-symbol (map 'string (lambda (x)
+                                              (code-char (1+ (char-code x))))
+                                    (symbol-name symbol)))))))
+
 (defpackage "PS-TEST.OBFUSCATE-ME")
-(obfuscate-package "PS-TEST.OBFUSCATE-ME")
+(obfuscate-package "PS-TEST.OBFUSCATE-ME" #'symbol-obfuscator)
 
 (test-ps-js obfuscation1
-  (defun ps-test.obfuscate-me::library-function2 (a b ps-test.obfuscate-me::foo)
+  (defun ps-test.obfuscate-me::libfun2 (a b ps-test.obfuscate-me::foo)
     (+ a (ps-test.my-library::library-function b ps-test.obfuscate-me::foo)))
-  "function g1(a, b, g2) {
-    return a + my_library_libraryFunction(b, g2);
+  "function mjcgvo3(a, b, gpp) {
+    return a + my_library_libraryFunction(b, gpp);
 };")
 
 (defpackage "PS-TEST.OBFUSCATE-AND-PREFIX")
-(obfuscate-package "PS-TEST.OBFUSCATE-AND-PREFIX")
+(obfuscate-package "PS-TEST.OBFUSCATE-AND-PREFIX" #'symbol-obfuscator)
 (setf (ps-package-prefix "PS-TEST.OBFUSCATE-AND-PREFIX") "__FOO___")
 
 (test-ps-js obfuscate-and-prefix
-  (defun ps-test.obfuscate-and-prefix::some-function (a ps-test.obfuscate-and-prefix::b ps-test.my-library::d)
+  (defun ps-test.obfuscate-and-prefix::xfun (a ps-test.obfuscate-and-prefix::b ps-test.my-library::d)
     (* a
-       (ps-test.obfuscate-me::library-function2 ps-test.obfuscate-and-prefix::b a)
+       (ps-test.obfuscate-me::libfun2 ps-test.obfuscate-and-prefix::b a)
        (ps-test.my-library::library-function ps-test.my-library::d ps-test.obfuscate-and-prefix::b)))
-  "function __FOO___g1(a, __FOO___g2, my_library_d) {
-    return a * g1(__FOO___g2, a) * my_library_libraryFunction(my_library_d, __FOO___g2);
+  "function __FOO___ygvo(a, __FOO___c, my_library_d) {
+    return a * mjcgvo3(__FOO___c, a) * my_library_libraryFunction(my_library_d, __FOO___c);
 };")
 
 (defpackage "PS-TEST.PSTSTPKG"
@@ -65,5 +72,5 @@ return !prefix_foo && prefix_foo.prefix_bar + prefix_someOtherVar;")
   (defun ps-test:interface-function (baz)
     (+ baz ps-test.obfuscate-me::foo))
 "function interfaceFunction(prefix_baz) {
-    return prefix_baz + g2;
+    return prefix_baz + gpp;
 };")

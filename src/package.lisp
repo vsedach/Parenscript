@@ -63,6 +63,7 @@
    #:!=
    #:!==
    #:labeled-for
+   #:do-set-timeout
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Language
@@ -217,7 +218,6 @@
    #:who-ps-html
 
    ;; utils
-   #:do-set-timeout
    #:max
    #:min
    #:floor

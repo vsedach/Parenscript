@@ -498,6 +498,3 @@ lambda-list::=
          (let* ,(cdr bindings)
            ,@body))
       `(progn ,@body)))
-
-(defpsmacro do-set-timeout ((timeout) &body body)
-  `(set-timeout (lambda () ,@body) ,timeout))

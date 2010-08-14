@@ -243,7 +243,7 @@ __setf_someThing('foo', 1, 2);")
   "return null;")
 
 (test-ps-js set-timeout
-  (do-set-timeout (10) (alert "foo"))
+  (set-timeout (lambda () (alert "foo")) 10)
   "setTimeout(function () { return alert('foo'); }, 10);")
 
 (test-ps-js operator-precedence

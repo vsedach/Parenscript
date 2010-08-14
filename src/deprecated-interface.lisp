@@ -91,3 +91,7 @@ is output to the OUTPUT-STREAM stream."
 (defpsmacro labeled-for (label init-forms cond-forms step-forms &rest body)
   (warn-deprecated 'labeled-for 'label)
   `(label ,label (for ,init-forms ,cond-forms ,step-forms ,@body)))
+
+(defpsmacro do-set-timeout ((timeout) &body body)
+  (warn-deprecated 'do-set-timeout 'set-timeout)
+  `(set-timeout (lambda () ,@body) ,timeout))

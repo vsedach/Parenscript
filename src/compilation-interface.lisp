@@ -1,4 +1,4 @@
-(in-package "PARENSCRIPT")
+(in-package #:parenscript)
 
 (defparameter *js-target-version* 1.3)
 

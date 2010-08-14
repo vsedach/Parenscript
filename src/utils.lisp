@@ -1,4 +1,4 @@
-(in-package "PARENSCRIPT")
+(in-package #:parenscript)
 
 (let ((cache (make-hash-table :test 'equal)))
   (defun encode-js-identifier (identifier)

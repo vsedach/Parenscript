@@ -1,4 +1,4 @@
-(in-package "PARENSCRIPT")
+(in-package #:parenscript)
 
 (defmacro with-local-macro-environment ((var env) &body body)
   `(let* ((,var (make-macro-dictionary))

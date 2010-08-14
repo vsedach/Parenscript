@@ -1,4 +1,4 @@
-(in-package "COMMON-LISP")
+(in-package #:cl)
 
 ;; These are convenience packages that export JS and browser DOM
 ;; symbols. If you :use the packages in a package FOO and then
@@ -9,7 +9,7 @@
 ;; PS-WINDOW-WD-SYMBOLS (which includes DOM level 2 and the w3c Window
 ;; working draft), and possibly the PS-DOM-NONSTANDARD-SYMBOLS.
 
-(defpackage "PS-JS-SYMBOLS"
+(defpackage #:ps-js-symbols
   (:export
    #:to-fixed
    #:encode-u-r-i-component
@@ -24,8 +24,8 @@
    #:call
    ))
 
-(defpackage "PS-DOM1-SYMBOLS"
-  (:use "COMMON-LISP") ;; ensure we don't have naming collisions w/symbols defined in CL
+(defpackage #:ps-dom1-symbols
+  (:use #:cl) ;; ensure we don't have naming collisions w/symbols defined in CL
   (:export
    ;;; Core
    ;; DOMImplementation
@@ -621,8 +621,8 @@
    #:src
    #:width))
 
-(defpackage "PS-DOM2-SYMBOLS"
-  (:use "PS-DOM1-SYMBOLS" "COMMON-LISP")
+(defpackage #:ps-dom2-symbols
+  (:use #:ps-dom1-symbols #:cl)
   (:export
    ;;; Core
    ;; DOMImplementation
@@ -990,9 +990,9 @@
    )
   )
 
-(defpackage "PS-WINDOW-WD-SYMBOLS"
+(defpackage #:ps-window-wd-symbols
   ;;; The window object (w3c working draft)
-  (:use "PS-DOM2-SYMBOLS" "COMMON-LISP")
+  (:use #:ps-dom2-symbols #:cl)
   (:export
    ; attributes
    #:window
@@ -1029,7 +1029,7 @@
    )
   )
 
-(defpackage "PS-DOM-NONSTANDARD-SYMBOLS"
+(defpackage #:ps-dom-nonstandard-symbols
    ;;; Non-standard (incl. DOM level 0) but useful
   (:export
    #:inner-h-t-m-l

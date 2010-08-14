@@ -1,4 +1,4 @@
-(in-package "PARENSCRIPT")
+(in-package #:parenscript)
 
 (defvar *obfuscated-packages* (make-hash-table))
 

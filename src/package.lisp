@@ -1,10 +1,10 @@
-(in-package "CL-USER")
+(in-package #:cl)
 
 (provide :parenscript)
 
-(defpackage "PARENSCRIPT"
-  (:use "COMMON-LISP" "ANAPHORA")
-  (:nicknames "PS")
+(defpackage #:parenscript
+  (:use #:cl #:anaphora)
+  (:nicknames #:ps)
   (:export
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Compiler interface
@@ -284,9 +284,8 @@
    ))
 
 
-(defpackage "JS"
-  (:shadowing-import-from
-   "COMMON-LISP"
+(defpackage #:js
+  (:shadowing-import-from #:cl
    #:+
    #:-
    #:*

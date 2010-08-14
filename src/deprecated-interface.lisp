@@ -1,4 +1,4 @@
-(in-package :parenscript)
+(in-package #:parenscript)
 
 (define-condition simple-style-warning (simple-condition style-warning)
   ())

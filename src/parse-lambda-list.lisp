@@ -1,4 +1,4 @@
-(in-package :parenscript)
+(in-package #:parenscript)
 
 ;;;; This software was taken from the SBCL system, mostly verbatim.
 

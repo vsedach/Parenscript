@@ -1,4 +1,4 @@
-(in-package :parenscript)
+(in-package #:parenscript)
 
 (defun complex-js-expr? (expr)
   (if (symbolp expr)

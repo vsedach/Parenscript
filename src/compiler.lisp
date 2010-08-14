@@ -1,4 +1,4 @@
-(in-package "PARENSCRIPT")
+(in-package #:parenscript)
 
 (defvar *ps-reserved-symbol-names*
   (list "break" "case" "catch" "continue" "default" "delete" "do" "else"

@@ -1,4 +1,4 @@
-(in-package "PARENSCRIPT-TEST")
+(in-package #:parenscript-test)
 
 (in-suite ps-tests)
 

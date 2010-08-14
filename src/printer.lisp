@@ -1,4 +1,4 @@
-(in-package "PARENSCRIPT")
+(in-package #:parenscript)
 
 (defvar *ps-print-pretty* t)
 (defvar *indent-num-spaces* 4)

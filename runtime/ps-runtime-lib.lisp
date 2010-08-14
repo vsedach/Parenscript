@@ -1,4 +1,4 @@
-(in-package "PARENSCRIPT")
+(in-package #:parenscript)
 
 ;;; Script of library functions you can include with your own code to
 ;;; provide standard Lisp functionality.

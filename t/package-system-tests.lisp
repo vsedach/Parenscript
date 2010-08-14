@@ -1,4 +1,4 @@
-(in-package "PARENSCRIPT-TEST")
+(in-package #:parenscript-test)
 
 (in-suite package-system-tests)
 
@@ -6,9 +6,9 @@
   (#:new)
   "new();")
 
-(defpackage "PS-TEST.MY-LIBRARY"
-  (:use "PARENSCRIPT"))
-(setf (ps-package-prefix "PS-TEST.MY-LIBRARY") "my_library_")
+(defpackage #:ps-test.my-library
+  (:use #:parenscript))
+(setf (ps-package-prefix '#:ps-test.my-library) "my_library_")
 
 (test-ps-js lib-function1
   (defun ps-test.my-library::library-function (x y)
@@ -30,8 +30,8 @@ foo.my_library_foo;")
                                               (code-char (1+ (char-code x))))
                                     (symbol-name symbol)))))))
 
-(defpackage "PS-TEST.OBFUSCATE-ME")
-(obfuscate-package "PS-TEST.OBFUSCATE-ME" #'symbol-obfuscator)
+(defpackage #:ps-test.obfuscate-me)
+(obfuscate-package '#:ps-test.obfuscate-me #'symbol-obfuscator)
 
 (test-ps-js obfuscation1
   (defun ps-test.obfuscate-me::libfun2 (a b ps-test.obfuscate-me::foo)
@@ -40,9 +40,9 @@ foo.my_library_foo;")
     return a + my_library_libraryFunction(b, gpp);
 };")
 
-(defpackage "PS-TEST.OBFUSCATE-AND-PREFIX")
-(obfuscate-package "PS-TEST.OBFUSCATE-AND-PREFIX" #'symbol-obfuscator)
-(setf (ps-package-prefix "PS-TEST.OBFUSCATE-AND-PREFIX") "__FOO___")
+(defpackage #:ps-test.obfuscate-and-prefix)
+(obfuscate-package '#:ps-test.obfuscate-and-prefix #'symbol-obfuscator)
+(setf (ps-package-prefix '#:ps-test.obfuscate-and-prefix) "__FOO___")
 
 (test-ps-js obfuscate-and-prefix
   (defun ps-test.obfuscate-and-prefix::xfun (a ps-test.obfuscate-and-prefix::b ps-test.my-library::d)
@@ -53,14 +53,14 @@ foo.my_library_foo;")
     return a * mjcgvo3(__FOO___c, a) * my_library_libraryFunction(my_library_d, __FOO___c);
 };")
 
-(defpackage "PS-TEST.PSTSTPKG"
-  (:use "PARENSCRIPT"))
+(defpackage #:ps-test.pststpkg
+  (:use #:parenscript))
 
 (test namespace1 ()
-  (setf (ps-package-prefix "PS-TEST.PSTSTPKG") "prefix_")
+  (setf (ps-package-prefix '#:ps-test.pststpkg) "prefix_")
   (is (string= "prefix_foo;" (normalize-js-code (ps* 'ps-test.pststpkg::foo)))))
 
-(common-lisp:in-package "PS-TEST.PSTSTPKG")
+(common-lisp:in-package #:ps-test.pststpkg)
 
 (ps-test::test-ps-js namespace-and-special-forms
   (let ((foo (create bar 1 not-a-keyword something)))

@@ -1,4 +1,4 @@
-(in-package "PARENSCRIPT")
+(in-package #:parenscript)
 
 ;; Utilities for accessing standard DOM functionality in a Lispier, PSier way.
 

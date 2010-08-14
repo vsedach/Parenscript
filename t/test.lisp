@@ -1,4 +1,4 @@
-(in-package "PARENSCRIPT-TEST")
+(in-package #:parenscript-test)
 
 (defun normalize-whitespace (str)
   (substitute #\Space #\Newline (substitute #\Space #\Tab str)))

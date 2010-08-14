@@ -1,4 +1,4 @@
-(in-package "PARENSCRIPT")
+(in-package #:parenscript)
 
 (defvar *ps-html-empty-tag-aware-p* t)
 (defvar *ps-html-mode* :sgml "One of :sgml or :xml")

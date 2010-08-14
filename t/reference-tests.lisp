@@ -1,4 +1,4 @@
-(in-package "PARENSCRIPT-TEST")
+(in-package #:parenscript-test)
 
 ;;; These tests were originally generated from the reference manual
 

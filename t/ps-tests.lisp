@@ -455,6 +455,8 @@ __setf_someThing('foo', 1, 2);")
   (return (if x 1))
   "if (x) {
     return 1;
+} else {
+    return null;
 };")
 
 (test-ps-js progn-expression-single-statement
@@ -535,9 +537,9 @@ __setf_someThing('foo', 1, 2);")
   (is (string= (normalize-js-code (let* ((macroname (gensym)))
                                     (ps* `(defmacro ,macroname (x) `(+ ,x 123))
                                          `(defun test1 ()
-                                           (macrolet ((,macroname (x) `(aref data ,x)))
-                                             (when (,macroname x)
-                                               (setf (,macroname x) 123)))))))
+                                            (macrolet ((,macroname (x) `(aref data ,x)))
+                                              (when (,macroname x)
+                                                (setf (,macroname x) 123)))))))
                (normalize-js-code
 "function test1() {
     if (data[x]) {
@@ -1526,6 +1528,19 @@ __setf_foo(5, x, 1, 2, 3, 4);")
     };
 };")
 
+(test-ps-js return-when-returns
+  (lambda ()
+    (return (when x 1))
+    (+ 2 3))
+  "function () {
+    if (x) {
+        return 1;
+    } else {
+        return null;
+    };
+    return 2 + 3;
+};")
+
 (test-ps-js return-case-conditional
   (return
     (case foo
@@ -1739,3 +1754,8 @@ x();")
                 ((bar))
                 (t 456)))
   "x = foo() ? 123 : (bar() ? null : 456);")
+
+(test-ps-js let-no-body
+  (return (let ((foo bar))))
+  "var foo = bar;
+return null;")

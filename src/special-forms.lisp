@@ -90,75 +90,63 @@
        (string x)
        (vector `(array ,@(loop :for el :across x :collect (quote% el))))))))
 
-(defun ps-statement? (exp)
-  (and (consp exp)
-       (member (car exp)
-               '(throw
-                 for
-                 for-in
-                 while))))
+(defvar return-null-else? t)
 
-(defun implicit-progn-form? (form)
-  (member (car form) '(with progn label let flet labels macrolet symbol-macrolet)))
+(defun expressionize (form func)
+  (let ((form (ps-macroexpand form)))
+    (if (consp form)
+        (case (car form)
+          (progn
+            `(,@(butlast form) ,(expressionize (car (last form)) func)))
+          (switch
+              `(switch ,(second form)
+                 ,@(loop for (cvalue . cbody) in (cddr form)
+                      for remaining on (cddr form) collect
+                        (let ((last-n
+                               (cond ((or (eq 'default cvalue)
+                                          (not (cdr remaining)))
+                                      1)
+                                     ((eq 'break
+                                          (car (last cbody)))
+                                      2))))
+                          (if last-n
+                              `(,cvalue
+                                ,@(butlast cbody last-n)
+                                ,(expressionize (car (last cbody last-n)) func))
+                              (cons cvalue cbody))))))
+          (try
+           `(try ,(expressionize (second form) func)
+                 ,@(let ((catch (cdr (assoc :catch (cdr form))))
+                         (finally (assoc :finally (cdr form))))
+                        (list (when catch
+                                `(:catch ,(car catch)
+                                   ,@(butlast (cdr catch))
+                                   ,(expressionize (car (last (cdr catch)))
+                                                   func)))
+                              finally))))
+          (if
+           `(if ,(second form)
+                ,(let ((return-null-else? nil))
+                   (expressionize (third form) func))
+                ,@(when (or (fourth form) return-null-else?)
+                    (list (expressionize (fourth form) func)))))
+          (cond
+            `(cond ,@(loop for clause in (cdr form) collect
+                          `(,@(butlast clause)
+                              ,(expressionize (car (last clause)) func)))))
+          (otherwise
+           (cond ((find (car form)
+                        '(with label let flet labels macrolet symbol-macrolet))
+                  `(,(first form) ,(second form)
+                     ,@(butlast (cddr form))
+                     ,(expressionize (car (last (cddr form))) func)))
+                 ((find (car form) '(for for-in return-exp throw while))
+                  form)
+                 (t (funcall func form)))))
+        (funcall func form))))
 
-(define-ps-special-form return (&optional value force-conditional?)
-  (let ((value (ps-macroexpand value)))
-    (if (ps-statement? value)
-        (compile-statement value)
-        (if (consp value)
-            (if (implicit-progn-form? value)
-                (ps-compile (append (butlast value)
-                                    `((return ,@(last value)
-                                              ,force-conditional?))))
-                (case (car value)
-                  (return
-                    (ps-compile value))
-                  (switch
-                    (ps-compile
-                     `(switch ,(second value)
-                       ,@(loop for (cvalue . cbody) in (cddr value)
-                            for remaining on (cddr value) collect
-                              (let ((last-n
-                                     (cond ((or (eq 'default cvalue)
-                                                (not (cdr remaining)))
-                                            1)
-                                           ((eq 'break
-                                                (car (last cbody)))
-                                            2))))
-                                (if last-n
-                                    `(,cvalue
-                                      ,@(butlast cbody last-n)
-                                      (return
-                                        ,(car (last cbody last-n))
-                                        t))
-                                    (cons cvalue cbody)))))))
-                  (try
-                   (ps-compile
-                    `(try (return ,(second value) t)
-                          ,@(let ((catch (cdr (assoc :catch (cdr value))))
-                                  (finally (assoc :finally (cdr value))))
-                                 (list (when catch
-                                         `(:catch ,(car catch)
-                                            ,@(butlast (cdr catch))
-                                            (return ,@(last (cdr catch)) t)))
-                                       finally)))))
-                  (if
-                   (ps-compile `(if ,(second value)
-                                    (return ,(third value) ,force-conditional?)
-                                    ,@(acond ((fourth value)
-                                              `((return ,it
-                                                        ,force-conditional?)))
-                                             (force-conditional?
-                                              '((return nil)))))))
-                  (cond
-                    (ps-compile `(cond
-                                   ,@(loop for clause in (cdr value) collect
-                                          `(,@(butlast clause)
-                                              (return ,@(last clause)
-                                                      ,force-conditional?))))))
-                  (otherwise
-                   `(js:return ,(compile-expression value)))))
-            `(js:return ,(compile-expression value))))))
+(define-ps-special-form return-exp (&optional form)
+  `(js:return ,(compile-expression form)))
 
 (define-ps-special-form incf (x &optional (delta 1))
   (let ((delta (ps-macroexpand delta)))
@@ -257,13 +245,6 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; function definition
 
-(defun add-implicit-return (fbody)
-  (let ((last-thing (car (last fbody))))
-    (if (ps-statement? last-thing)
-        fbody
-        (append (butlast fbody)
-                `((return ,last-thing))))))
-
 (defmacro with-declaration-effects (body-var &body body)
   `(let* ((local-specials (when (and (listp (car ,body-var))
                                      (eq (caar ,body-var) 'declare))
@@ -279,17 +260,15 @@
   (with-declaration-effects body
     (list args
           (let* ((*enclosing-lexical-block-declarations* ())
-                 (*ps-enclosing-lexicals*
-                  (append args *ps-enclosing-lexicals*))
-                 (body
-                  (compile-statement `(progn
-                                        ,@(add-implicit-return body))))
+                 (*ps-enclosing-lexicals* (append args *ps-enclosing-lexicals*))
+                 (body (compile-statement
+                        `(progn ,@(butlast body)
+                                ,(let ((return-null-else? nil))
+                                   (ps-macroexpand `(return ,@(last body)))))))
                  (var-decls
                   (compile-statement
-                   `(progn
-                      ,@(mapcar (lambda (var)
-                                  `(var ,var))
-                                *enclosing-lexical-block-declarations*)))))
+                   `(progn ,@(mapcar (lambda (var) `(var ,var))
+                                     *enclosing-lexical-block-declarations*)))))
             `(js:block ,@(cdr var-decls) ,@(cdr body))))))
 
 (define-ps-special-form %js-lambda (args &rest body)

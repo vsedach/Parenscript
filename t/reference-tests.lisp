@@ -435,10 +435,10 @@ for (var c = null, _js_idx1 = 0; _js_idx1 < l.length; _js_idx1 += 1) {
 
 (test-ps-js iteration-constructs-7
   (let ((l '(1 2 4 8 16 32))
-      (s 0))
-  (alert (+ "Sum of " l " is: "
-            (dolist (c l s)
-              (incf s c)))))
+        (s 0))
+    (alert (+ "Sum of " l " is: "
+              (dolist (c l s)
+                (incf s c)))))
   "var l = [1, 2, 4, 8, 16, 32];
 var s = 0;
 alert('Sum of ' + l + ' is: ' + (function () {

@@ -147,26 +147,22 @@
         main)))
 
 (defpsmacro multiple-value-bind (vars expr &body body)
-  (let ((expr (ps-macroexpand expr)))
-    (if (and (consp expr) (implicit-progn-form? expr))
-        `(,@(butlast expr)
-            (multiple-value-bind ,vars
-                ,@(last expr)
-              ,@body))
-        (with-ps-gensyms (mv prev-mv)
-          `(let ((,prev-mv (@ arguments :callee :mv)))
-             (try
-              (progn
-                (setf (@ arguments :callee :mv) t)
-                (let ((,(car vars) ,expr)
-                      (,mv (if (objectp (@ arguments :callee :mv))
-                               (@ arguments :callee :mv)
-                               (make-array ,(1- (length vars))))))
-                  (destructuring-bind ,(cdr vars) ,mv
-                    ,@body)))
-              (:finally (if (undefined ,prev-mv)
-                            (delete (@ arguments :callee :mv))
-                            (setf (@ arguments :callee :mv) ,prev-mv)))))))))
+  (expressionize expr
+    (lambda (expr)
+      (with-ps-gensyms (mv prev-mv)
+        `(let ((,prev-mv (@ arguments :callee :mv)))
+           (try
+            (progn
+              (setf (@ arguments :callee :mv) t)
+              (let ((,(car vars) ,expr)
+                    (,mv (if (objectp (@ arguments :callee :mv))
+                             (@ arguments :callee :mv)
+                             (make-array ,(1- (length vars))))))
+                (destructuring-bind ,(cdr vars) ,mv
+                  ,@body)))
+            (:finally (if (undefined ,prev-mv)
+                          (delete (@ arguments :callee :mv))
+                          (setf (@ arguments :callee :mv) ,prev-mv)))))))))
 
 ;;; conditionals
 
@@ -463,6 +459,9 @@ lambda-list::=
         `(let ((,arr ,expr)) ,bound))))
 
 ;;; Control structures
+
+(defpsmacro return (&optional form)
+  (expressionize form (lambda (x) `(return-exp ,x))))
 
 (defpsmacro ignore-errors (&body body)
   `(try (progn ,@body) (:catch (e))))

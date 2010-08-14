@@ -1,5 +1,7 @@
 (in-package "CL-USER")
 
+(provide :parenscript)
+
 (defpackage "PARENSCRIPT"
   (:use "COMMON-LISP" "ANAPHORA")
   (:nicknames "PS")

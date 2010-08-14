@@ -30,24 +30,7 @@
             :depends-on (:src)))
   :depends-on (:cl-ppcre :anaphora))
 
-(defmethod asdf:perform :after
-    ((op asdf:load-op) (system (eql (asdf:find-system :parenscript))))
-  (pushnew :parenscript cl:*features*))
-
 (defmethod asdf:perform ((o test-op) (c (eql (find-system :parenscript))))
-  (asdf:operate 'asdf:test-op :parenscript.test))
-
-(defsystem :parenscript.test
-  :components ((:module :t
-                        :serial t
-                        :components ((:file "test-package")
-                                     (:file "test")
-                                     (:file "reference-tests")
-                                     (:file "ps-tests")
-                                     (:file "package-system-tests"))))
-  :depends-on (:parenscript :fiveam))
-
-(defmethod asdf:perform ((o test-op) (c (eql (find-system :parenscript.test))))
   (asdf:operate 'asdf:load-op :parenscript.test)
-  (funcall (intern (symbol-name :run-tests)
-                   (find-package :parenscript-test))))
+  (funcall (intern (symbol-name '#:run-tests)
+                   (find-package '#:parenscript-test))))

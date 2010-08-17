@@ -267,8 +267,10 @@
                                    (ps-macroexpand `(return ,@(last body)))))))
                  (var-decls
                   (compile-statement
-                   `(progn ,@(mapcar (lambda (var) `(var ,var))
-                                     *enclosing-lexical-block-declarations*)))))
+                   `(progn
+                      ,@(mapcar (lambda (var) `(var ,var))
+                                (remove-duplicates
+                                 *enclosing-lexical-block-declarations*))))))
             `(js:block ,@(cdr var-decls) ,@(cdr body))))))
 
 (define-ps-special-form %js-lambda (args &rest body)

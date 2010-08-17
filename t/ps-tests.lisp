@@ -1759,3 +1759,12 @@ x();")
   (return (let ((foo bar))))
   "var foo = bar;
 return null;")
+
+(test-ps-js dont-hoist-lexical-dupes
+  (lambda ()
+    (list (let ((foo 12)) (* foo 2))
+          (let ((foo 13)) (* foo 3))))
+  "function () {
+    var foo;
+    return [(foo = 12, foo * 2), (foo = 13, foo * 3)];
+};")

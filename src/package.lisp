@@ -1,6 +1,6 @@
 (in-package #:cl)
 
-(provide :parenscript)
+(pushnew :parenscript *features*)
 
 (defpackage #:parenscript
   (:use #:cl #:anaphora)

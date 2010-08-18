@@ -238,6 +238,17 @@ __setf_someThing('foo', 1, 2);")
     return x;
 };")
 
+(test-ps-js defun-optional4
+  (lambda (&optional (x 0 supplied?))
+    x)
+  "function (x) {
+    var suppliedwhat = x !== undefined;
+    if (!suppliedwhat) {
+        x = 0;
+    };
+    return x;
+};")
+
 (test-ps-js return-nothing
   (return)
   "return null;")
@@ -350,7 +361,7 @@ __setf_someThing('foo', 1, 2);")
 (test-ps-js defun-keyword1
   (defun zoo (foo bar &key baz) (return (+ foo bar baz)))
 "function zoo(foo, bar) {
-    var baz;
+    var baz = null;
     var _js2 = arguments.length;
     for (var n1 = 2; n1 < _js2; n1 += 2) {
         switch (arguments[n1]) {
@@ -358,16 +369,13 @@ __setf_someThing('foo', 1, 2);")
             baz = arguments[n1 + 1];
         };
     };
-    if (baz === undefined) {
-        baz = null;
-    };
     return foo + bar + baz;
 };")
 
 (test-ps-js defun-keyword2
   (defun zoo (&key baz) (return (* baz baz)))
   "function zoo() {
-    var baz;
+    var baz = null;
     var _js2 = arguments.length;
     for (var n1 = 0; n1 < _js2; n1 += 2) {
         switch (arguments[n1]) {
@@ -375,17 +383,14 @@ __setf_someThing('foo', 1, 2);")
             baz = arguments[n1 + 1];
         };
     };
-    if (baz === undefined) {
-        baz = null;
-    };
     return baz * baz;
 };")
 
 (test-ps-js defun-keyword3
   (defun zoo (&key baz (bar 4)) (return (* baz bar)))
   "function zoo() {
-    var baz;
-    var bar;
+    var baz = null;
+    var bar = 4;
     var _js2 = arguments.length;
     for (var n1 = 0; n1 < _js2; n1 += 2) {
         switch (arguments[n1]) {
@@ -396,12 +401,6 @@ __setf_someThing('foo', 1, 2);")
             bar = arguments[n1 + 1];
         };
     };
-    if (baz === undefined) {
-        baz = null;
-    };
-    if (bar === undefined) {
-        bar = 4;
-    };
     return baz * bar;
 };")
 
@@ -409,7 +408,7 @@ __setf_someThing('foo', 1, 2);")
   (defun hello-world (&key ((:my-name-key my-name) 1))
     my-name)
   "function helloWorld() {
-    var myName;
+    var myName = 1;
     var _js2 = arguments.length;
     for (var n1 = 0; n1 < _js2; n1 += 2) {
         switch (arguments[n1]) {
@@ -417,10 +416,24 @@ __setf_someThing('foo', 1, 2);")
             myName = arguments[n1 + 1];
         };
     };
-    if (myName === undefined) {
-        myName = 1;
-    };
     return myName;
+};")
+
+(test-ps-js defun-keyword-supplied
+  (lambda (&key (foo 1 supplied?))
+    foo)
+"function () {
+    var suppliedwhat = null;
+    var foo = 1;
+    var _js2 = arguments.length;
+    for (var n1 = 0; n1 < _js2; n1 += 2) {
+        switch (arguments[n1]) {
+        case 'foo':
+            foo = arguments[n1 + 1];
+            suppliedwhat = true;
+        };
+    };
+    return foo;
 };")
 
 (test-ps-js keyword-funcall1
@@ -869,9 +882,20 @@ bar(foo(1));")
   "function foo(x, y) {
     var baz;
     var x1 = Array.prototype.indexOf.call(arguments, 'bar', 2);
-    var bar = -1 === x1 ? null : arguments[x1 + 1];
+    var bar = x1 !== -1 ? arguments[x1 + 1] : null;
     var x2 = Array.prototype.indexOf.call(arguments, 'baz', 2);
-    return baz = -1 === x2 ? null : arguments[x2 + 1];
+    return baz = x2 !== -1 ? arguments[x2 + 1] : null;
+};"
+  :js-target-version 1.6)
+
+(test-ps-js ps-js-target-version-keyword-test2
+  (lambda (&key (foo 1 supplied?))
+    foo)
+  "function () {
+    var x1 = Array.prototype.indexOf.call(arguments, 'foo', 0);
+    var suppliedwhat = x1 !== -1;
+    var foo = suppliedwhat ? arguments[x1 + 1] : 1;
+    return foo;
 };"
   :js-target-version 1.6)
 

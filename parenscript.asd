@@ -29,8 +29,3 @@
             :components ((:file "ps-runtime-lib"))
             :depends-on (:src)))
   :depends-on (:cl-ppcre :anaphora))
-
-(defmethod asdf:perform ((o test-op) (c (eql (find-system :parenscript))))
-  (asdf:operate 'asdf:load-op :parenscript.test)
-  (funcall (intern (symbol-name '#:run-tests)
-                   (find-package '#:parenscript-test))))

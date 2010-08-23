@@ -79,6 +79,7 @@ is output to the OUTPUT-STREAM stream."
 (defpsmacro-deprecated === eql)
 (defpsmacro-deprecated == equal)
 (defpsmacro-deprecated % rem)
+(defpsmacro-deprecated concat-string stringify)
 
 (defpsmacro !== (&rest args)
   (warn-deprecated '!==)
@@ -95,3 +96,7 @@ is output to the OUTPUT-STREAM stream."
 (defpsmacro do-set-timeout ((timeout) &body body)
   (warn-deprecated 'do-set-timeout 'set-timeout)
   `(set-timeout (lambda () ,@body) ,timeout))
+
+(defun concat-string (&rest things)
+  (warn-deprecated 'concat-string 'stringify)
+  (apply #'stringify things))

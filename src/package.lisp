@@ -66,6 +66,7 @@
    #:!==
    #:labeled-for
    #:do-set-timeout
+   #:concat-string
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Language
@@ -250,7 +251,7 @@
    #:random
    #:ignore-errors
    #:concatenate
-   #:concat-string
+   #:stringify
    #:length
    #:defined
    #:undefined

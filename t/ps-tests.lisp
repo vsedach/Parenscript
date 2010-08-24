@@ -877,28 +877,6 @@ bar(foo(1));")
 (test ps-lisp-dynamic-environment
   (is (string= "1 + 2;" (let ((*print-level* 2)) (ps (+ 1 (lisp *print-level*)))))))
 
-(test-ps-js ps-js-target-version-keyword-test1
-  (defun foo (x y &key bar baz))
-  "function foo(x, y) {
-    var baz;
-    var x1 = Array.prototype.indexOf.call(arguments, 'bar', 2);
-    var bar = x1 !== -1 ? arguments[x1 + 1] : null;
-    var x2 = Array.prototype.indexOf.call(arguments, 'baz', 2);
-    return baz = x2 !== -1 ? arguments[x2 + 1] : null;
-};"
-  :js-target-version 1.6)
-
-(test-ps-js ps-js-target-version-keyword-test2
-  (lambda (&key (foo 1 supplied?))
-    foo)
-  "function () {
-    var x1 = Array.prototype.indexOf.call(arguments, 'foo', 0);
-    var suppliedwhat = x1 !== -1;
-    var foo = suppliedwhat ? arguments[x1 + 1] : 1;
-    return foo;
-};"
-  :js-target-version 1.6)
-
 (test-ps-js nested-if-expressions1
   (return (if (if x y z) a b))
   "if (x ? y : z) {

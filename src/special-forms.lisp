@@ -350,38 +350,24 @@ Syntax of key spec:
                     optionals))
            (key-forms
             (when keys?
-              (if (< *js-target-version* 1.6)
-                  (with-ps-gensyms (n)
-                    (let ((decls ())
-                          (assigns ()))
-                      (mapc
-                       (lambda (k)
-                         (multiple-value-bind (var init-form keyword-str suppl)
-                             (parse-key-spec k)
-                           (push `(var ,var ,init-form) decls)
-                           (when suppl (push `(var ,suppl nil) decls))
-                           (push `(,keyword-str
-                                   (setf ,var (aref arguments (1+ ,n))
-                                         ,@(when suppl `(,suppl t))))
-                                 assigns)))
-                       (reverse keys))
-                      `(,@decls
-                        (loop for ,n from ,(length requireds)
-                           below (length arguments) by 2 do
-                           (case (aref arguments ,n) ,@assigns)))))
-                  (mapcar
+              (with-ps-gensyms (n)
+                (let ((decls ())
+                      (assigns ()))
+                  (mapc
                    (lambda (k)
-                     (multiple-value-bind (var init-form keyword-str supplied)
+                     (multiple-value-bind (var init-form keyword-str suppl)
                          (parse-key-spec k)
-                       (with-ps-gensyms (x)
-                         `(let ((,x (chain *Array prototype index-of
-                                           (call arguments ,keyword-str
-                                                 ,(length requireds)))))
-                            ,@(when supplied `((var ,supplied (/= ,x -1))))
-                            (var ,var (if ,(if supplied supplied `(/= ,x -1))
-                                          (aref arguments (1+ ,x))
-                                          ,init-form))))))
-                   keys))))
+                       (push `(var ,var ,init-form) decls)
+                       (when suppl (push `(var ,suppl nil) decls))
+                       (push `(,keyword-str
+                               (setf ,var (aref arguments (1+ ,n))
+                                     ,@(when suppl `(,suppl t))))
+                             assigns)))
+                   (reverse keys))
+                  `(,@decls
+                    (loop for ,n from ,(length requireds)
+                       below (length arguments) by 2 do
+                         (case (aref arguments ,n) ,@assigns)))))))
            (rest-form
             (when rest?
               (with-ps-gensyms (i)

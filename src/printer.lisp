@@ -83,6 +83,16 @@ vice-versa.")
              (loop repeat (* *indent-level* *indent-num-spaces*) do (psw #\Space)))
       (psw #\Space)))
 
+(defun print-comment (comment-str)
+  (when *ps-print-pretty*
+    (let ((lines (cl-ppcre:split #\Newline comment-str)))
+      (if (cdr lines)
+          (progn (psw "/**") (newline-and-indent)
+                 (dolist (x lines) (psw " * " x) (newline-and-indent))
+                 (psw " */"))
+          (psw "/** " comment-str " */"))
+      (newline-and-indent))))
+
 (defparameter *js-lisp-escaped-chars*
   '((#\' . #\')
     (#\\ . #\\)
@@ -204,7 +214,8 @@ vice-versa.")
 (defprinter js:lambda (args body)
   (print-fun-def nil args body))
 
-(defprinter js:defun (name args body)
+(defprinter js:defun (name args docstring body)
+  (when docstring (print-comment docstring))
   (print-fun-def name args body))
 
 (defun print-fun-def (name args body-block)
@@ -239,10 +250,10 @@ vice-versa.")
   (print-op-argument op then) " : "
   (print-op-argument op else))
 
-(defprinter js:var (var-name &rest var-value)
+(defprinter js:var (var-name &optional (value (values) value?) docstring)
+  (when docstring (print-comment docstring))
   "var "(psw (symbol-to-js-string var-name))
-  (when var-value
-    (psw " = ") (print-op-argument 'js:= (car var-value))))
+  (when value? (psw " = ") (print-op-argument 'js:= value)))
 
 (defprinter js:label (label statement)
   (psw (symbol-to-js-string label))": "(ps-print statement))

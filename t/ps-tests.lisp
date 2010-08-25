@@ -1770,3 +1770,21 @@ return null;")
     var foo;
     return [(foo = 12, foo * 2), (foo = 13, foo * 3)];
 };")
+
+(test-ps-js defun-comment1
+  (defun foo (x) 
+    "BARBAR is a revolutionary new foobar.
+X y and x." 
+    (1+ x))
+  "/**
+ * BARBAR is a revolutionary new foobar.
+ * X y and x.
+ */
+function foo(x) {
+    return x + 1;
+};")
+
+(test-ps-js var-comment
+  (var x 1 "foo")
+  "/** foo */
+var x = 1;")

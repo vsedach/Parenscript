@@ -258,32 +258,27 @@
 
 (defun compile-function-definition (args body)
   (with-declaration-effects body
-    (list args
-          (let* ((*enclosing-lexical-block-declarations* ())
-                 (*ps-enclosing-lexicals* (append args *ps-enclosing-lexicals*))
-                 (body (compile-statement
-                        `(progn ,@(butlast body)
-                                ,(let ((return-null-else? nil))
-                                   (ps-macroexpand `(return ,@(last body)))))))
-                 (var-decls
-                  (compile-statement
-                   `(progn
-                      ,@(mapcar (lambda (var) `(var ,var))
-                                (remove-duplicates
-                                 *enclosing-lexical-block-declarations*))))))
-            `(js:block ,@(cdr var-decls) ,@(cdr body))))))
+    (let* ((*enclosing-lexical-block-declarations* ())
+           (*ps-enclosing-lexicals* (append args *ps-enclosing-lexicals*))
+           (body (compile-statement
+                  `(progn ,@(butlast body)
+                          ,(let ((return-null-else? nil))
+                                (ps-macroexpand `(return ,@(last body)))))))
+           (var-decls
+            (compile-statement
+             `(progn ,@(mapcar (lambda (var) `(var ,var))
+                               (remove-duplicates
+                                *enclosing-lexical-block-declarations*))))))
+      `(js:block ,@(cdr var-decls) ,@(cdr body)))))
 
 (define-ps-special-form %js-lambda (args &rest body)
-  `(js:lambda ,@(compile-function-definition args body)))
+  `(js:lambda ,args ,(compile-function-definition args body)))
 
 (define-ps-special-form %js-defun (name args &rest body)
-  `(js:defun ,name ,@(compile-function-definition args body)))
-
-(defun parse-function-body (body)
-  (let* ((docstring (when (stringp (first body))
-                      (first body)))
-         (body-forms (if docstring (rest body) body)))
-    (values body-forms docstring)))
+  (let ((docstring (and (cdr body) (stringp (car body)) (car body))))
+    `(js:defun ,name ,args ,docstring
+               ,(compile-function-definition args
+                                             (if docstring (cdr body) body)))))
 
 (defun parse-key-spec (key-spec)
   "parses an &key parameter.  Returns 5 values:
@@ -378,8 +373,10 @@ Syntax of key spec:
                                       ,i)
                                 (aref arguments
                                       (+ ,i ,(length effective-args)))))))))
-           (body-paren-forms (parse-function-body body))
-           (effective-body (append opt-forms
+           (docstring (when (stringp (first body)) (first body)))
+           (body-paren-forms (if docstring (rest body) body))
+           (effective-body (append (when docstring (list docstring))
+                                   opt-forms
                                    key-forms
                                    (awhen rest-form (list it))
                                    body-paren-forms)))
@@ -518,18 +515,13 @@ Syntax of key spec:
                           (third rhs)))
          (list 'js:= lhs rhs))))
 
-(define-ps-special-form var (name &optional
-                                  (value (values) value-provided?)
-                                  documentation)
-  (declare (ignore documentation))
+(define-ps-special-form var (name &optional (value (values) value?) docstr)
   (let ((name (ps-macroexpand name)))
     (if compile-expression?
         (progn (push name *enclosing-lexical-block-declarations*)
-               (when value-provided?
-                 (compile-expression `(setf ,name ,value))))
+               (when value? (compile-expression `(setf ,name ,value))))
         `(js:var ,name
-                 ,@(when value-provided?
-                         (list (compile-expression value)))))))
+                 ,@(when value? (list (compile-expression value) docstr))))))
 
 (define-ps-special-form let (bindings &body body)
   (with-declaration-effects body

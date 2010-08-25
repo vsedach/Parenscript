@@ -251,7 +251,7 @@
    #:random
    #:ignore-errors
    #:concatenate
-   #:stringify
+   #:str
    #:length
    #:defined
    #:undefined

@@ -400,11 +400,11 @@ lambda-list::=
   (assert (equal result-type ''string) () "Right now Parenscript 'concatenate' only support strings.")
   (cons '+ sequences))
 
-(defun str (&rest things)
+(defun stringify (&rest things)
   "Like concatenate but prints all of its arguments."
   (format nil "~{~A~}" things))
 
-(defpsmacro str (&rest things)
+(defpsmacro stringify (&rest things)
   (if (and (= (length things) 1) (stringp (car things)))
       (car things)
       `((@ (list ,@things) :join) "")))

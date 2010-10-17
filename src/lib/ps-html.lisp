@@ -40,7 +40,7 @@
                        attr-val (pop attrs))
                  (if attr-test
                      (push `(if ,attr-test
-                                (str ,(format nil " ~A=\"" attr-name) ,attr-val "\"")
+                                (stringify ,(format nil " ~A=\"" attr-name) ,attr-val "\"")
                                 "")
                            r)
                      (progn
@@ -96,7 +96,7 @@
       (concat-constant-strings (reverse r)))))
 
 (defmacro+ps ps-html (&rest html-forms)
-  `(str ,@(process-html-forms-lhtml html-forms)))
+  `(stringify ,@(process-html-forms-lhtml html-forms)))
 
 (defmacro+ps who-ps-html (&rest html-forms)
-  `(str ,@(process-html-forms-cl-who html-forms)))
+  `(stringify ,@(process-html-forms-cl-who html-forms)))

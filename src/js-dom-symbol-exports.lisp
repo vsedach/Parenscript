@@ -1053,4 +1053,3 @@
    #:client-height
    #:client-width
    ))
-

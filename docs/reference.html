@@ -2,7 +2,7 @@
 
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-    
+
     <title>Parenscript Reference Manual</title>
 
     <style type="text/css">
@@ -73,7 +73,7 @@
       <li><a href="#section-runtime-library">Runtime library</a></li>
       <li><a href="#section-slime-integration">SLIME integration</a></li>
     </ol>
-    
+
     <h2 id="section-ps-compiler">The Parenscript compiler</h2>
     <ul>
       <li>(<code id="ps">PS</code> &body body)</li>
@@ -87,7 +87,7 @@
       <li>(<code id="ps-compile-file">PS-COMPILE-FILE</code> file)</li>
       <li>(<code id="lisp">LISP</code> lisp-forms)</li>
       <li>(<code id="symbol-to-js-string">SYMBOL-TO-JS-STRING</code> symbol)</li>
-    
+
       <li><code id="*js-target-version*">*JS-TARGET-VERSION*</code></li>
       <li><code id="*parenscript-stream*">*PARENSCRIPT-STREAM*</code></li>
       <li><code id="*js-string-delimiter*">*JS-STRING-DELIMITER*</code></li>
@@ -100,7 +100,7 @@
     <dl>
       <dt>body</dt> <dd>implicit <code>PROGN</code></dd>
     </dl>
-    
+
     <p>The difference between the regular and <code>*</code> versions
       of the Parenscript compiler forms is roughly the difference
       between <code>COMPILE</code>
@@ -122,7 +122,7 @@
       using <code>PS-TO-STREAM</code> instead of <code>PS</code>, or by
       binding <code>*PARENSCRIPT-STREAM*</code> before
       calling <code>PS*</code>.</p>
-    
+
     <p><code>PS-INLINE</code> and <code>PS-INLINE*</code> take a single
       Parenscript form and output a string starting
       with <code>javascript:</code> that can be used in HTML node
@@ -149,7 +149,7 @@
       JavaScript code is pretty-printed, and if so, how many spaces go
       into each indent level, respectively. By default the code is
       pretty-printed with 4 spaces per indent level.</p>
-    
+
     <p>Parenscript can also call out to arbitrary Common Lisp code at
       <i>output time</i> (that is, every time an expression containing
       a call to the Parenscript compiler is evaluated, compared
@@ -189,7 +189,7 @@
       which yield a value and can be nested in other expressions, and
       statements, which have no value and cannot occur in
       expressions.</p>
-    
+
     <p>Some Parenscript special forms compile to expressions, while
       others can only compile to statements. Certain Parenscript
       forms, like <code>IF</code> and <code>PROGN</code>, generate
@@ -201,7 +201,7 @@
 
       <dl><dt><code>(+ i (if x (foo) (bar)))</code></dt>
         <dd><code>i + (x ? foo() : bar());</code></dd>
-        
+
         <dt><code>(if x (foo) (bar))</code></dt>
         <dd><code>
 <pre>if (x) {
@@ -249,14 +249,14 @@
         return null;
     case 'bar':
         return alert('bar');
-    default: 
+    default:
         return 4;
     };
 };</pre>
           </code>
       </dd>
     </dl>
-      
+
     <p>Note that Parenscript does not enforce the statement-expression
       dichotomy, so it is possible to generate syntactically incorrect
       JavaScript by nesting special forms that only compile to
@@ -272,7 +272,7 @@
         </code>
       </dd>
     </dl>
-    
+
     <h2 id="section-symbolconv">Symbol conversion</h2>
 
     <p>Lisp symbols (except for keywords) are converted to JavaScript
@@ -286,7 +286,7 @@
       <dt><code>!?#@%</code></dt>
       <dd><code>bangwhathashatpercent;</code></dd>
     </dl>
-    
+
     <p>The <code>-</code> is an indication that the following
       character should be converted to uppercase.</p>
 
@@ -322,16 +322,16 @@
     <dl>
       <dt><code>:+</code></dt>
       <dd><code>'+';</code></dd>
-      
+
       <dt><code>:foo-Bar</code></dt>
       <dd><code>'foo-bar';</code></dd>
     </dl>
-    
+
     <h2 id="reserved-symbols">Reserved symbols</h2>
-    
+
     <p>The following symbols are reserved in Parenscript, and should not
       be used as variable names.</p>
-    
+
     <code>
       ! ~ ++ -- * / % + - &lt;&lt; &gt;&gt; &gt;&gt;&gt; &lt; &gt;
       &lt;= &gt;= == != === !== & ^ | && || *= /= %= += -= &lt;&lt;=
@@ -371,28 +371,28 @@
     to provide a Common Lisp-like interface to the type system.</p>
 
     <h2 id="section-literals">Literals</h2>
-    
+
     <h3 id="ssection-numbers">Numbers</h3>
-    
+
     <p>Parenscript prints all integer literals as integers, and floats
     and rationals as floats, in base 10.</p>
 
     <dl>
       <dt><code>1</code></dt>
       <dd><code>1;</code></dd>
-      
+
       <dt><code>123.123</code></dt>
       <dd><code>123.123;</code></dd>
-    
+
       <dt><code>3/4</code></dt>
       <dd><code>0.75;</code></dd>
-    
+
       <dt><code>#x10</code></dt>
       <dd><code>16;</code></dd>
     </dl>
 
     <h3 id="ssection-strings-chars">Strings and characters</h3>
-    
+
     <p>Lisp strings are converted to JavaScript strings.</p>
 
     <dl>
@@ -436,7 +436,7 @@
 
     <p><a href="http://weitz.de/cl-interpol/">CL-INTERPOL</a> is
       convenient for writing regular expressions:</p>
-    
+
     <dl>
       <dt><code>(regex #?r"/([^\s]+)foobar/i")</code></dt>
       <dd><code>/([^\s]+)foobar/i;</code></dd>
@@ -583,7 +583,7 @@
       <dt><code>(list (foo) (bar) 3)</code></dt>
       <dd><code>[foo(), bar(), 3];</code></dd>
 
-      <dt><code>     
+      <dt><code>
           <pre>(array (array 2 3)
   (array "foo" "bar"))</pre>
         </code>
@@ -597,7 +597,7 @@
     <dl>
       <dt><code>(make-array)</code></dt>
       <dd><code>new Array();</code></dd>
-    
+
       <dt><code>(make-array 1 2 3)</code></dt>
       <dd><code>new Array(1, 2, 3);</code></dd>
 
@@ -626,10 +626,10 @@
 
       <dt>&lt;single-operator&gt;</dt>
       <dd>one of <code>INCF, DECF, ++, --, NOT, !</code></dd>
-      
+
       <dt>argument</dt> <dd>an expression</dd>
     </dl>
-        
+
     <p>Operator forms are similar to function call forms, but have an
       operator as function name.</p>
 
@@ -640,7 +640,7 @@
     <dl>
       <dt><code>(* 1 2)</code></dt>
       <dd><code>1 * 2;</code></dd>
-      
+
       <dt><code>(= 1 2)</code></dt>
       <dd><code>1 === 2;</code></dd>
     </dl>
@@ -674,7 +674,7 @@
       <li>(<code id="log">LOG</code> number &optional base)</li>
       <li>(<code id="sqrt">SQRT</code> number)</li>
       <li>(<code id="random">RANDOM</code> &optional limit)</li>
-      
+
       <li><code id="pi">PI</code></li>
     </ul>
 
@@ -699,7 +699,7 @@
 
     <p>The translation of <code>PROGN</code> depends on whether it is
     found in a statement or expression context:</p>
-    
+
     <dl>
       <dt><code>(progn (blorg i) (blafoo i))</code></dt>
       <dd><code>
@@ -746,10 +746,10 @@ blafoo(i);</pre>
     returning multiple values can be called by regular JavaScript code
     and <code>MULTIPLE-VALUE-BIND</code> works with regular JavaScript
     functions.</p>
-    
+
     <p><code>APPLY</code> is a macro that expands into a call to the
     JavaScript <code>apply</code> method.</p>
-    
+
     <h2 id="section-control-transfer">Control transfer and exceptions</h2>
     <ul>
       <li>(<code id="return">RETURN</code> {value}?)</li>
@@ -866,7 +866,7 @@ blafoo(i);</pre>
       <dt><code>
 <pre>(switch (aref blorg i)
   (1 (alert "If I get here"))
-  (2 (alert "I also get here") 
+  (2 (alert "I also get here")
      break)
   (default (alert "I always get here")))</pre>
         </code>
@@ -878,7 +878,7 @@ case 1:
 case 2:
     alert('I also get here');
     break;
-default: 
+default:
     alert('I always get here');
 };</pre>
         </code>
@@ -1017,7 +1017,7 @@ __setf_color(_js1, _js2);</pre>
 
 (defmacro left (el)
   `(@ ,el offset-left))
-  
+
 (setf (left some-div) (+ 123 "px"))
 (left some-div)</pre>
         </code>
@@ -1097,7 +1097,7 @@ someDiv.offsetLeft;</pre>
 
     <p>The representation of Parenscript macro functions is the same
       as that of Common Lisp, and in fact Parenscript can use already
-      defined macros this way. 
+      defined macros this way.
 
     <p><code>DEFMACRO+PS</code> defines two macros with the same name
       and expansion, one in Parenscript and one in
@@ -1126,7 +1126,7 @@ someDiv.offsetLeft;</pre>
       or defined in Lisp with <code>DEFINE-PS-SYMBOL-MACRO</code>. For
       example, the Parenscript
       <code>WITH-SLOTS</code> is implemented using symbol macros:</p>
-    
+
     <pre><code>
 (defpsmacro with-slots (slots object &rest body)
   `(symbol-macrolet ,(mapcar #'(lambda (slot)
@@ -1140,7 +1140,7 @@ someDiv.offsetLeft;</pre>
       <li>(<code id="ps-gensym">PS-GENSYM</code> {string})</li>
       <li>(<code id="with-ps-gensyms">WITH-PS-GENSYMS</code> symbols &body body)</li>
       <li>(<code id="ps-once-only">PS-ONCE-ONLY</code> (&rest vars) &body body)</li>
-      
+
       <li><code id="*ps-gensym-counter*">*PS-GENSYM-COUNTER*</code></li>
     </ul>
 
@@ -1155,12 +1155,12 @@ someDiv.offsetLeft;</pre>
     (for example, this could happen if you concatenate JS code from PS
     compilers running in two different Lisp images, where the values
     of <code>*PS-GENSYM-COUNTER*</code> overlap).
-    
+
     <h2 id="section-namespace">The Parenscript namespace system</h2>
     <ul>
       <li>(setf (<code id="ps-package-prefix">PS-PACKAGE-PREFIX</code> package-designator) string)</li>
     </ul>
-    
+
     <p>Although JavaScript does not offer namespacing or a package system,
       Parenscript does provide a namespace mechanism for generated
       JavaScript by integrating with the Common Lisp package system. Since
@@ -1313,7 +1313,7 @@ someDiv.offsetLeft;</pre>
                 "Edit me"))))</pre>
           </code>
       </dt>
-      
+
       <dd><code>
 <pre>var disabled = null;
    var authorized = true;

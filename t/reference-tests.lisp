@@ -217,13 +217,13 @@ blafoo(i);")
 
 (test-ps-js function-definition-1
   (defun a-function (a b)
-  (return (+ a b)))
+    (+ a b))
   "function aFunction(a, b) {
     return a + b;
 };")
 
 (test-ps-js function-definition-2
-  (lambda (a b) (return (+ a b)))
+  (lambda (a b) (+ a b))
   "function (a, b) {
     return a + b;
 };")

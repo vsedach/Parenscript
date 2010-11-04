@@ -35,12 +35,12 @@
     (asin (n) `((@ *math asin) ,n))
     (acos (n) `((@ *math acos) ,n))
     (atan (y &optional x) (if x `((@ *math atan2) ,y ,x) `((@ *math atan) ,y)))
-    (sinh (n) `((lambda (x) (return (/ (- (exp x) (exp (- x))) 2))) ,n))
-    (cosh (n) `((lambda (x) (return (/ (+ (exp x) (exp (- x))) 2))) ,n))
-    (tanh (n) `((lambda (x) (return (/ (- (exp x) (exp (- x))) (+ (exp x) (exp (- x)))))) ,n))
-    (asinh (n) `((lambda (x) (return (log (+ x (sqrt (1+ (* x x))))))) ,n))
-    (acosh (n) `((lambda (x) (return (* 2 (log (+ (sqrt (/ (1+ x) 2)) (sqrt (/ (1- x) 2))))))) ,n))
-    (atanh (n) `((lambda (x) (return (/ (- (log (+ 1 x)) (log (- 1 x))) 2))) ,n))
+    (sinh (n) `((lambda (x) (/ (- (exp x) (exp (- x))) 2)) ,n))
+    (cosh (n) `((lambda (x) (/ (+ (exp x) (exp (- x))) 2)) ,n))
+    (tanh (n) `((lambda (x) (/ (- (exp x) (exp (- x))) (+ (exp x) (exp (- x))))) ,n))
+    (asinh (n) `((lambda (x) (log (+ x (sqrt (1+ (* x x)))))) ,n))
+    (acosh (n) `((lambda (x) (* 2 (log (+ (sqrt (/ (1+ x) 2)) (sqrt (/ (1- x) 2)))))) ,n))
+    (atanh (n) `((lambda (x) (/ (- (log (+ 1 x)) (log (- 1 x))) 2)) ,n))
     (1+ (n) `(+ ,n 1))
     (1- (n) `(- ,n 1))
     (abs (n) `((@ *math abs) ,n))
@@ -80,6 +80,8 @@
   `(not (undefined ,x)))
 
 ;;; Data structures
+
+(define-ps-symbol-macro {} (create))
 
 (defpsmacro [] (&rest args)
   `(array ,@(mapcar (lambda (arg)
@@ -146,23 +148,30 @@
              ,val1))
         main)))
 
-(defpsmacro multiple-value-bind (vars expr &body body)
-  (expressionize expr
-    (lambda (expr)
-      (with-ps-gensyms (mv prev-mv)
-        `(let ((,prev-mv (@ arguments :callee :mv)))
-           (try
-            (progn
-              (setf (@ arguments :callee :mv) t)
-              (let ((,(car vars) ,expr)
-                    (,mv (if (objectp (@ arguments :callee :mv))
-                             (@ arguments :callee :mv)
-                             (make-array ,(1- (length vars))))))
-                (destructuring-bind ,(cdr vars) ,mv
-                  ,@body)))
-            (:finally (if (undefined ,prev-mv)
-                          (delete (@ arguments :callee :mv))
-                          (setf (@ arguments :callee :mv) ,prev-mv)))))))))
+(defpsmacro multiple-value-bind (vars form &body body)
+  (let* ((form (ps-macroexpand form))
+         (progn-form (if (and (consp form) (member (car form) '(with label let flet labels macrolet symbol-macrolet)))
+                         (car form)
+                         'progn)))
+    (pop form)
+    (with-ps-gensyms (mv prev-mv)
+      `(let (,prev-mv)
+         (,progn-form
+          ,@(unless (eq 'progn progn-form) (list (pop form)))
+          ,@(butlast form)
+          (setf ,prev-mv (@ arguments :callee :mv))
+          (try
+           (progn
+             (setf (@ arguments :callee :mv) t)
+             (let ((,(car vars) ,(car (last form)))
+                   (,mv (if (objectp (@ arguments :callee :mv))
+                            (@ arguments :callee :mv)
+                            (make-array ,(1- (length vars))))))
+               (destructuring-bind ,(cdr vars) ,mv
+                 ,@body)))
+           (:finally (if (undefined ,prev-mv)
+                         (delete (@ arguments :callee :mv))
+                         (setf (@ arguments :callee :mv) ,prev-mv)))))))))
 
 ;;; conditionals
 
@@ -182,12 +191,10 @@
                               clauses))))
 
 (defpsmacro when (test &rest body)
-  `(if ,test
-       (progn ,@body)))
+  `(if ,test (progn ,@body)))
 
 (defpsmacro unless (test &rest body)
-  `(when (not ,test)
-     ,@body))
+  `(when (not ,test) ,@body))
 
 ;;; function definition
 
@@ -219,10 +226,8 @@ lambda-list::=
   [&rest var]
   [&key {var | ({var | (keyword-name var)} [init-form [supplied-p-parameter]])}* [&allow-other-keys]]
   [&aux {var | (var [init-form])}*])"
-  (multiple-value-bind (effective-args effective-body)
-      (parse-extended-function lambda-list body)
-    `(%js-lambda ,effective-args
-                 ,@effective-body)))
+  (multiple-value-bind (effective-args effective-body) (parse-extended-function lambda-list body)
+    `(%js-lambda ,effective-args ,@effective-body)))
 
 ;;; defining setf expanders
 
@@ -279,8 +284,7 @@ lambda-list::=
   (assert (evenp (length args)) ()
           "~s does not have an even number of arguments." `(setf ,args))
   `(progn ,@(loop for (place value) on args by #'cddr collect
-                 (aif (and (listp place)
-                           (gethash (car place) *ps-setf-expanders*))
+                 (aif (and (listp place) (gethash (car place) *ps-setf-expanders*))
                       (funcall it (cdr place) value)
                       `(ps-assign ,place ,value)))))
 
@@ -357,7 +361,7 @@ lambda-list::=
       `((lambda ()
           (for ,(do-make-for-vars/init decls) ((not ,termination)) ,(do-make-for-steps decls)
                ,@body)
-          (return ,result)))
+          ,result))
       `(for ,(do-make-for-vars/init decls) ((not ,termination)) ,(do-make-for-steps decls)
             ,@body)))
 
@@ -367,7 +371,7 @@ lambda-list::=
           (for () ((not ,termination)) ()
                ,@body
                ,(do-make-iter-psteps decls))
-          (return ,result))
+          ,result)
         ,@(do-make-init-vals decls))
       `(let ,(do-make-let-bindings decls)
          (for () ((not ,termination)) ()
@@ -460,8 +464,8 @@ lambda-list::=
 
 ;;; Control structures
 
-(defpsmacro return (&optional form)
-  (expressionize form (lambda (x) `(return-exp ,x))))
+(defpsmacro return (&optional result)
+  `(return-from nil ,result))
 
 (defpsmacro ignore-errors (&body body)
   `(try (progn ,@body) (:catch (e))))
@@ -489,7 +493,7 @@ lambda-list::=
   ;; this must be used as a top-level form, otherwise the resulting
   ;; behavior will be undefined.
   (declare (ignore documentation))
-  (pushnew name *ps-special-variables*)
+  (pushnew name *special-variables*)
   `(var ,name ,@(when value-provided? (list value))))
 
 (defpsmacro let* (bindings &body body)

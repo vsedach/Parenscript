@@ -16,7 +16,7 @@
                          (:file "compiler")
                          (:file "printer")
                          (:file "compilation-interface")
-                         (:file "special-forms")
+                         (:file "special-operators")
                          (:file "macros")
                          (:file "deprecated-interface")
                          (:file "js-dom-symbol-exports")

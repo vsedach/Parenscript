@@ -27,8 +27,7 @@ to a JavaScript string at macro-expansion time."
 (defun ps* (&rest body)
   "Compiles BODY to a JavaScript string.
 Body is evaluated."
-  (let ((*psw-stream* (or *parenscript-stream*
-                          (make-string-output-stream))))
+  (let ((*psw-stream* (or *parenscript-stream* (make-string-output-stream))))
     (parenscript-print (compile-statement `(progn ,@body)) t)
     (unless *parenscript-stream*
       (get-output-stream-string *psw-stream*))))
@@ -36,12 +35,12 @@ Body is evaluated."
 (defmacro ps-doc (&body body)
   "Expands Parenscript forms in a clean environment."
   (let ((*ps-gensym-counter* 0)
-        (*ps-special-variables* nil))
+        (*special-variables* nil))
      (macroexpand-1 `(ps ,@body))))
 
 (defun ps-doc* (&rest body)
   (let ((*ps-gensym-counter* 0)
-        (*ps-special-variables* nil))
+        (*special-variables* nil))
     (apply #'ps* body)))
 
 (defvar *js-inline-string-delimiter* #\"
@@ -58,7 +57,7 @@ Body is evaluated."
 (defvar *ps-read-function* #'read)
 
 (defun ps-compile-stream (stream)
-  (let ((*ps-compilation-level* :toplevel)
+  (let ((*compilation-level* :toplevel)
 	(eof '#:eof))
     (ps* (cons 'progn
                (loop for form = (funcall *ps-read-function* stream nil eof)

@@ -12,7 +12,7 @@
 
 (test-ps-js lib-function1
   (defun ps-test.my-library::library-function (x y)
-    (return (+ x y)))
+    (+ x y))
   "function my_library_libraryFunction(x, y) {
         return x + y;
      };")

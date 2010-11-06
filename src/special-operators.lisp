@@ -234,7 +234,7 @@
                   (return-from expressionize `(js:return ,it))
                   `(if ,(second form)
                        (return-from ,tag ,(third form))
-                       ,@(when (fourth form) `((%function-return ,(fourth form)))))))
+                       ,@(when (fourth form) `((return-from ,tag ,(fourth form)))))))
              (otherwise
               (if (gethash (car form) *special-statement-operators*)
                   form ;; by now only special forms that return nil should be left, so this is ok

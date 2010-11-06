@@ -1816,3 +1816,20 @@ foo = 3;")
 ;;   (var x (progn (foo) (bar)))
 ;;   "foo();
 ;; var x = bar();")
+
+(test-ps-js implicit-return-loop
+  (lambda ()
+    (if baz 7
+        (progn
+          (loop :repeat 100 :do (bar))
+          42)))
+  "function () {
+   if (baz) {
+       return 7;
+   } else {
+       for (var _js2 = 0; _js2 < 100; _js2 += 1) {
+           bar();
+       };
+       return 42;
+   };
+};")

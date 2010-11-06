@@ -60,7 +60,7 @@ foo.my_library_foo;")
   (setf (ps-package-prefix '#:ps-test.pststpkg) "prefix_")
   (is (string= "prefix_foo;" (normalize-js-code (ps* 'ps-test.pststpkg::foo)))))
 
-(common-lisp:in-package #:ps-test.pststpkg)
+(cl:in-package #:ps-test.pststpkg)
 
 (ps-test::test-ps-js namespace-and-special-forms
   (let ((foo (create bar 1 not-a-keyword something)))
@@ -74,3 +74,27 @@ return !prefix_foo && prefix_foo.prefix_bar + prefix_someOtherVar;")
 "function interfaceFunction(prefix_baz) {
     return prefix_baz + gpp;
 };")
+
+(cl:in-package #:parenscript-test)
+
+(test compile-stream-in-package
+  (is (string=
+       "function __FOO___ygvo(a, __FOO___c, my_library_d) {
+    return a * mjcgvo3(__FOO___c, a) * my_library_libraryFunction(my_library_d, __FOO___c);
+};
+function interfaceFunction(prefix_baz) {
+    return prefix_baz + gpp;
+};
+"
+       (with-input-from-string (s "
+(defun ps-test.obfuscate-and-prefix::xfun (a ps-test.obfuscate-and-prefix::b ps-test.my-library::d)
+    (* a
+       (ps-test.obfuscate-me::libfun2 ps-test.obfuscate-and-prefix::b a)
+       (ps-test.my-library::library-function ps-test.my-library::d ps-test.obfuscate-and-prefix::b)))
+
+(in-package #:ps-test.pststpkg)
+
+(defun ps-test:interface-function (baz)
+    (+ baz ps-test.obfuscate-me::foo))
+")
+         (ps-compile-stream s)))))

@@ -502,3 +502,11 @@ lambda-list::=
          (let* ,(cdr bindings)
            ,@body))
       `(progn ,@body)))
+
+(defpsmacro in-package (package-designator)
+  `(eval-when (:compile-toplevel)
+     (in-package ,package-designator)))
+
+(defpsmacro use-package (package-designator &optional package)
+  `(eval-when (:compile-toplevel)
+     (use-package ,package-designator ,@(when package (list package)))))

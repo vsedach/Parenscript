@@ -1624,6 +1624,23 @@ bar(1);")
    (macro-null-toplevel)")
          (ps-compile-stream s)))))
 
+(test compile-stream1
+  (is (string=
+       "var testSymbolMacro1_1 = function () {
+    return 2;
+};
+foo(1);
+testSymbolMacro1_1();
+bar(1);
+"
+       (with-input-from-string (s "
+(define-symbol-macro test-symbol-macro1 1)
+(flet ((test-symbol-macro1 () 2))
+      (foo test-symbol-macro1)
+      (test-symbol-macro1))
+(bar test-symbol-macro1)")
+         (ps::with-blank-compilation-environment (ps-compile-stream s))))))
+
 (test-ps-js equality-nary1
   (let ((x 10) (y 10) (z 10))
     (= x y z))

@@ -34,6 +34,8 @@
    #:*ps-gensym-counter*
 
    ;; naming and namespaces
+   #:in-package
+   #:use-package
    #:ps-package-prefix
    #:obfuscate-package
    #:unobfuscate-package

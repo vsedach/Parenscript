@@ -48,6 +48,14 @@ x,y,z expression progn. It is then the responsibility of the
 enclosing special form to introduce the variable bindings in its
 lexical block.")
 
+(defvar in-loop-scope? nil
+  "Used for seeing when we're in loops, so that we can introduce
+  proper scoping for lambdas closing over loop-bound
+  variables (otherwise they all share the same binding).")
+
+(defvar *loop-scope-lexicals* ())
+(defvar *loop-scope-lexicals-captured* ())
+
 (defvar *special-variables* ())
 
 (defun special-variable? (sym)
@@ -57,20 +65,21 @@ lexical block.")
 (defun make-macro-dictionary ()
   (make-hash-table :test 'eq))
 
-(defvar *ps-macro-toplevel* (make-macro-dictionary)
+(defvar *macro-toplevel* (make-macro-dictionary)
   "Toplevel macro environment dictionary.")
 
-(defvar *ps-macro-env* (list *ps-macro-toplevel*)
+(defvar *macro-env* (list *macro-toplevel*)
   "Current macro environment.")
 
-(defvar *ps-symbol-macro-toplevel* (make-macro-dictionary))
+(defvar *symbol-macro-toplevel* (make-macro-dictionary))
 
-(defvar *ps-symbol-macro-env* (list *ps-symbol-macro-toplevel*))
+(defvar *symbol-macro-env* (list *symbol-macro-toplevel*))
 
-(defvar *ps-local-function-names* ()) ;; contains a subset of
-(defvar *ps-enclosing-lexicals* ())
+(defvar *local-function-names* ())
+;; is a subset of
+(defvar *enclosing-lexicals* ())
 
-(defvar *ps-setf-expanders* (make-macro-dictionary)
+(defvar *setf-expanders* (make-macro-dictionary)
   "Setf expander dictionary. Key is the symbol of the access
 function of the place, value is an expansion function that takes the
 arguments of the access functions as a first value and the form to be
@@ -89,10 +98,10 @@ stored as the second value.")
          ,@body))))
 
 (defmacro defpsmacro (name args &body body)
-  `(setf (gethash ',name *ps-macro-toplevel*) ,(make-ps-macro-function args body)))
+  `(setf (gethash ',name *macro-toplevel*) ,(make-ps-macro-function args body)))
 
 (defmacro define-ps-symbol-macro (symbol expansion)
-  `(setf (gethash ',symbol *ps-symbol-macro-toplevel*) (lambda (form) (declare (ignore form)) ',expansion)))
+  `(setf (gethash ',symbol *symbol-macro-toplevel*) (lambda (form) (declare (ignore form)) ',expansion)))
 
 (defun import-macros-from-lisp (&rest names)
   "Import the named Lisp macros into the Parenscript macro
@@ -113,8 +122,8 @@ CL environment)."
           (defpsmacro ,name ,args ,@body)))
 
 (defun ps-macroexpand-1 (form)
-  (aif (or (and (symbolp form) (lookup-macro-def form *ps-symbol-macro-env*))
-           (and (consp form) (lookup-macro-def (car form) *ps-macro-env*)))
+  (aif (or (and (symbolp form) (lookup-macro-def form *symbol-macro-env*))
+           (and (consp form) (lookup-macro-def (car form) *macro-env*)))
        (values (ps-macroexpand (funcall it form)) t)
        form))
 

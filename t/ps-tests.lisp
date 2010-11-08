@@ -1841,3 +1841,51 @@ foo = 3;")
        return 42;
    };
 };")
+
+;; closures in loops need a new binding per loop iteration (idea borrowed from Scheme2JS)
+(test-ps-js loop-closures
+ (dotimes (i 10) (lambda () (+ i 1)))
+ "for (var i = 0; i < 10; i += 1) {
+    with ({ i : i }) {
+        function () {
+            return i + 1;
+        };
+    };
+};")
+
+(test-ps-js loop-closures-let
+ (dotimes (i 10) (let ((x (+ i 1))) (lambda () (+ i x))))
+ "for (var i = 0; i < 10; i += 1) {
+    with ({ x : null, i : i }) {
+        var x = i + 1;
+        function () {
+            return i + x;
+        };
+    };
+};")
+
+(test-ps-js loop-closures-flet
+  (dotimes (i 10) (flet ((foo (x) (+ i x))) (lambda () (foo i))))
+ "for (var i = 0; i < 10; i += 1) {
+    with ({ foo : null, i : i }) {
+        var foo = function (x) {
+            return i + x;
+        };
+        function () {
+            return foo(i);
+        };
+    };
+};")
+
+(test-ps-js while-closures-let
+  (while (foo)
+    (let ((x (bar)))
+      (lambda () (+ 1 x))))
+  "while (foo()) {
+    with ({ x : null }) {
+        var x = bar();
+        function () {
+            return 1 + x;
+        };
+    };
+};")

@@ -254,11 +254,17 @@
 (defun compile-function-definition (args body)
   (with-declaration-effects body
     (let* ((*enclosing-lexical-block-declarations* ())
-           (*ps-enclosing-lexicals* (append args *ps-enclosing-lexicals*))
-           (body (compile-statement `(return-from %function-body (progn ,@body))))
-           (var-decls (compile-statement
-                       `(progn ,@(mapcar (lambda (var) `(var ,var))
-                                         (remove-duplicates *enclosing-lexical-block-declarations*))))))
+           (*enclosing-lexicals*                   (append args *enclosing-lexicals*))
+           (body                                   (let ((in-loop-scope?                 nil)
+                                                         (*loop-scope-lexicals*          ())
+                                                         (*loop-scope-lexicals-captured* ()))
+                                                     (compile-statement `(return-from %function-body (progn ,@body)))))
+           (var-decls                              (compile-statement
+                                                    `(progn ,@(mapcar (lambda (var) `(var ,var))
+                                                                      (remove-duplicates *enclosing-lexical-block-declarations*))))))
+      (when in-loop-scope? ;; this is probably broken when it comes to let-renaming
+        (setf *loop-scope-lexicals-captured* (append (intersection (flatten body) *loop-scope-lexicals*)
+                                                     *loop-scope-lexicals-captured*)))
       `(js:block ,@(cdr var-decls) ,@(cdr body)))))
 
 (define-expression-operator %js-lambda (args &rest body)
@@ -267,8 +273,7 @@
 (define-statement-operator %js-defun (name args &rest body)
   (let ((docstring (and (cdr body) (stringp (car body)) (car body))))
     `(js:defun ,name ,args ,docstring
-               ,(compile-function-definition args
-                                             (if docstring (cdr body) body)))))
+               ,(compile-function-definition args (if docstring (cdr body) body)))))
 
 (defun parse-key-spec (key-spec)
   "parses an &key parameter.  Returns 5 values:
@@ -296,12 +301,6 @@ Syntax of key spec:
          (init-form (if (listp spec) (second spec)))
          (supplied-p-var (if (listp spec) (third spec))))
     (values var init-form supplied-p-var)))
-
-(defun parse-aux-spec (spec)
-  "Returns two values: variable and init-form"
-  ;; [&aux {var | (var [init-form])}*])
-  (values (if (symbolp spec) spec (first spec))
-          (when (listp spec) (second spec))))
 
 (defun parse-extended-function (lambda-list body)
   ;; The lambda list is transformed as follows:
@@ -375,40 +374,38 @@ Syntax of key spec:
       (values effective-args effective-body))))
 
 (defun maybe-rename-local-function (fun-name)
-  (aif (getf *ps-local-function-names* fun-name)
+  (aif (getf *local-function-names* fun-name)
        it
        fun-name))
 
 (defun collect-function-names (fn-defs)
   (loop for (fn-name) in fn-defs
-     collect fn-name
-     collect (if (or (member fn-name *ps-enclosing-lexicals*)
-                     (lookup-macro-def fn-name *ps-symbol-macro-env*))
-                 (ps-gensym fn-name)
-                 fn-name)))
+        collect fn-name
+        collect (if (or (member fn-name *enclosing-lexicals*) (lookup-macro-def fn-name *symbol-macro-env*))
+                    (ps-gensym fn-name)
+                    fn-name)))
 
 (define-expression-operator flet (fn-defs &rest body)
-  (let* ((fn-renames (collect-function-names fn-defs))
+  (let* ((fn-renames                 (collect-function-names fn-defs))
          ;; the function definitions need to be compiled with previous lexical bindings
-         (fn-defs (loop for (fn-name . def) in fn-defs collect
-                       (ps-compile `(var ,(getf fn-renames fn-name) (lambda ,@def)))))
+         (fn-defs                    (loop for (fn-name . def) in fn-defs collect
+                                           (ps-compile `(var ,(getf fn-renames fn-name) (lambda ,@def)))))
          ;; the flet body needs to be compiled with the extended lexical environment
-         (*ps-enclosing-lexicals* (append fn-renames *ps-enclosing-lexicals*))
-         (*ps-local-function-names* (append fn-renames *ps-local-function-names*)))
+         (*enclosing-lexicals*       (append fn-renames *enclosing-lexicals*))
+         (*loop-scope-lexicals*      (when in-loop-scope? (append fn-renames *loop-scope-lexicals*)))
+         (*local-function-names*  (append fn-renames *local-function-names*)))
     `(,(if compile-expression? 'js:|,| 'js:block)
        ,@fn-defs
        ,@(compile-progn body))))
 
 (define-expression-operator labels (fn-defs &rest body)
-  (let* ((fn-renames (collect-function-names fn-defs))
-         (*ps-local-function-names*
-          (append fn-renames *ps-local-function-names*))
-         (*ps-enclosing-lexicals*
-          (append fn-renames *ps-enclosing-lexicals*)))
+  (let* ((fn-renames                 (collect-function-names fn-defs))
+         (*local-function-names*  (append fn-renames *local-function-names*))
+         (*enclosing-lexicals*       (append fn-renames *enclosing-lexicals*))
+         (*loop-scope-lexicals*      (when in-loop-scope? (append fn-renames *loop-scope-lexicals*))))
     (ps-compile
      `(progn ,@(loop for (fn-name . def) in fn-defs collect
-                    `(var ,(getf *ps-local-function-names* fn-name)
-                          (lambda ,@def)))
+                    `(var ,(getf *local-function-names* fn-name) (lambda ,@def)))
              ,@body))))
 
 (define-expression-operator function (fn-name)
@@ -423,7 +420,7 @@ Syntax of key spec:
      ,@body))
 
 (define-expression-operator macrolet (macros &body body)
-  (with-local-macro-environment (local-macro-dict *ps-macro-env*)
+  (with-local-macro-environment (local-macro-dict *macro-env*)
     (dolist (macro macros)
       (destructuring-bind (name arglist &body body)
           macro
@@ -432,18 +429,13 @@ Syntax of key spec:
     (ps-compile `(progn ,@body))))
 
 (define-expression-operator symbol-macrolet (symbol-macros &body body)
-  (with-local-macro-environment (local-macro-dict *ps-symbol-macro-env*)
+  (with-local-macro-environment (local-macro-dict *symbol-macro-env*)
     (let (local-var-bindings)
       (dolist (macro symbol-macros)
-        (destructuring-bind (name expansion)
-            macro
-          (setf (gethash name local-macro-dict) (lambda (x)
-                                                  (declare (ignore x))
-                                                  expansion))
+        (destructuring-bind (name expansion) macro
+          (setf (gethash name local-macro-dict) (lambda (x) (declare (ignore x)) expansion))
           (push name local-var-bindings)))
-      (let ((*ps-enclosing-lexicals*
-             (append local-var-bindings
-                     *ps-enclosing-lexicals*)))
+      (let ((*enclosing-lexicals* (append local-var-bindings *enclosing-lexicals*)))
         (ps-compile `(progn ,@body))))))
 
 (define-expression-operator defmacro (name args &body body)
@@ -522,40 +514,35 @@ Syntax of key spec:
 
 (define-expression-operator let (bindings &body body)
   (with-declaration-effects body
-    (let* ((lexical-bindings-introduced-here ())
-           (normalized-bindings
-            (mapcar (lambda (x)
-                      (if (symbolp x)
-                          (list x nil)
-                          (list (car x) (ps-macroexpand (cadr x)))))
-                    bindings))
-           (free-variables-in-binding-value-expressions
-            (mapcan (lambda (x) (flatten (cadr x)))
-                    normalized-bindings)))
+    (let* ((lexical-bindings-introduced-here             ())
+           (normalized-bindings                          (mapcar (lambda (x)
+                                                                   (if (symbolp x)
+                                                                       (list x nil)
+                                                                       (list (car x) (ps-macroexpand (cadr x)))))
+                                                                 bindings))
+           (free-variables-in-binding-value-expressions  (mapcan (lambda (x) (flatten (cadr x)))
+                                                                 normalized-bindings)))
       (flet ((maybe-rename-lexical-var (x)
-               (if (or (member x *ps-enclosing-lexicals*)
-                       (lookup-macro-def x *ps-symbol-macro-env*)
+               (if (or (member x *enclosing-lexicals*)
+                       (lookup-macro-def x *symbol-macro-env*)
                        (member x free-variables-in-binding-value-expressions))
                    (ps-gensym x)
                    (progn (push x lexical-bindings-introduced-here) nil)))
              (rename (x) (first x))
              (var (x) (second x))
              (val (x) (third x)))
-        (let* ((lexical-bindings
-                (loop for x in normalized-bindings
-                      unless (special-variable? (car x))
-                      collect (cons (maybe-rename-lexical-var (car x)) x)))
-               (dynamic-bindings
-                (loop for x in normalized-bindings
-                      when (special-variable? (car x))
-                      collect (cons (ps-gensym (format nil "~A_~A" (car x) 'tmp-stack)) x)))
-               (renamed-body `(symbol-macrolet ,(loop for x in lexical-bindings
-                                                   when (rename x) collect
-                                                   `(,(var x) ,(rename x)))
-                                ,@body))
-               (*ps-enclosing-lexicals*
-                (append lexical-bindings-introduced-here
-                        *ps-enclosing-lexicals*)))
+        (let* ((lexical-bindings      (loop for x in normalized-bindings
+                                            unless (special-variable? (car x))
+                                            collect (cons (maybe-rename-lexical-var (car x)) x)))
+               (dynamic-bindings      (loop for x in normalized-bindings
+                                            when (special-variable? (car x))
+                                            collect (cons (ps-gensym (format nil "~A_~A" (car x) 'tmp-stack)) x)))
+               (renamed-body          `(symbol-macrolet ,(loop for x in lexical-bindings
+                                                               when (rename x) collect
+                                                               `(,(var x) ,(rename x)))
+                                          ,@body))
+               (*enclosing-lexicals*  (append lexical-bindings-introduced-here *enclosing-lexicals*))
+               (*loop-scope-lexicals* (when in-loop-scope? (append lexical-bindings-introduced-here *loop-scope-lexicals*))))
           (ps-compile
            `(progn
               ,@(mapcar (lambda (x) `(var ,(or (rename x) (var x)) ,(val x)))
@@ -582,20 +569,36 @@ Syntax of key spec:
                   (compile-expression (if (atom x) nil (second x)))))
           init-forms))
 
+(defun compile-loop-body (loop-vars body)
+  (let* ((in-loop-scope? t)
+         (*loop-scope-lexicals* loop-vars)
+         (*loop-scope-lexicals-captured* ())
+         (*ps-gensym-counter* *ps-gensym-counter*)
+         (compiled-body (compile-statement `(progn ,@body))))
+    (aif (remove-duplicates *loop-scope-lexicals-captured*)
+         `(js:block
+              (js:with ,(compile-expression
+                         `(create ,@(loop for x in it
+                                          collect x
+                                          collect (when (member x loop-vars) x))))
+                ,compiled-body))
+         compiled-body)))
+
 (define-statement-operator for (init-forms cond-forms step-forms &body body)
-  `(js:for ,(make-for-vars/inits init-forms)
-     ,(mapcar #'compile-expression cond-forms)
-     ,(mapcar #'compile-expression step-forms)
-     ,(compile-statement `(progn ,@body))))
+  (let ((init-forms (make-for-vars/inits init-forms)))
+   `(js:for ,init-forms
+            ,(mapcar #'compile-expression cond-forms)
+            ,(mapcar #'compile-expression step-forms)
+            ,(compile-loop-body (mapcar #'car init-forms) body))))
 
 (define-statement-operator for-in ((var object) &rest body)
   `(js:for-in ,(compile-expression var)
               ,(compile-expression object)
-              ,(compile-statement `(progn ,@body))))
+              ,(compile-loop-body (list var) body)))
 
 (define-statement-operator while (test &rest body)
   `(js:while ,(compile-expression test)
-     ,(compile-statement `(progn ,@body))))
+     ,(compile-loop-body () body)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; misc

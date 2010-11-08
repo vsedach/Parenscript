@@ -238,7 +238,7 @@ lambda-list::=
          (intern (concatenate 'string *defun-setf-name-prefix*
                               (symbol-name (second setf-name)))
                  (symbol-package (second setf-name)))))
-    (setf (gethash (second setf-name) *ps-setf-expanders*)
+    (setf (gethash (second setf-name) *setf-expanders*)
           (compile
            nil
            (lambda (access-args store-form)
@@ -247,7 +247,7 @@ lambda-list::=
 
 ;;; slightly broken WRT lambda lists
 (defpsmacro defsetf-long (access-fn lambda-list (store-var) form)
-  (setf (gethash access-fn *ps-setf-expanders*)
+  (setf (gethash access-fn *setf-expanders*)
         (compile
          nil
          (let ((var-bindings (ordered-set-difference lambda-list
@@ -270,7 +270,7 @@ lambda-list::=
 
 (defpsmacro defsetf-short (access-fn update-fn &optional docstring)
   (declare (ignore docstring))
-  (setf (gethash access-fn *ps-setf-expanders*)
+  (setf (gethash access-fn *setf-expanders*)
         (lambda (access-fn-args store-form)
           `(,update-fn ,@access-fn-args ,store-form)))
   nil)
@@ -284,7 +284,7 @@ lambda-list::=
   (assert (evenp (length args)) ()
           "~s does not have an even number of arguments." `(setf ,args))
   `(progn ,@(loop for (place value) on args by #'cddr collect
-                 (aif (and (listp place) (gethash (car place) *ps-setf-expanders*))
+                 (aif (and (listp place) (gethash (car place) *setf-expanders*))
                       (funcall it (cdr place) value)
                       `(ps-assign ,place ,value)))))
 

@@ -205,12 +205,9 @@ setBaz(_js2, _js3, _js1);")
 __setf_someThing('foo', 1, 2);")
 
 (test-ps-js defun-optional1
-  (defun test-opt (&optional x) ;; if no optional is provided, no need to assign
+  (defun test-opt (&optional x)
     (if x "yes" "no"))
 "function testOpt(x) {
-    if (x === undefined) {
-        x = null;
-    };
     return x ? 'yes' : 'no';
 };")
 
@@ -218,9 +215,6 @@ __setf_someThing('foo', 1, 2);")
   (defun foo (x &optional y)
     (+ x y))
   "function foo(x, y) {
-    if (y === undefined) {
-        y = null;
-    };
     return x + y;
 };")
 
@@ -1455,9 +1449,6 @@ x.offsetLeft;")
   (defun (setf foo) (new-value b &optional c)
     (setf (aref b (or c 0)) new-value))
   "function __setf_foo(newValue, b, c) {
-    if (c === undefined) {
-        c = null;
-    };
     return b[c || 0] = newValue;
 };")
 

@@ -329,9 +329,11 @@ Syntax of key spec:
                         (if suppl
                             `(progn
                                (var ,suppl (not (eql ,name undefined)))
-                               (when (not ,suppl) (setf ,name ,value)))
-                            `(when (eql ,name undefined)
-                               (setf ,name ,value)))))
+                               ,@(when value
+                                   `((when (not ,suppl) (setf ,name ,value)))))
+                            (when value
+                              `(when (eql ,name undefined)
+                                 (setf ,name ,value))))))
                     optionals))
            (key-forms
             (when keys?

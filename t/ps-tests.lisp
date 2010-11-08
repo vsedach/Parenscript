@@ -848,10 +848,10 @@ bar(foo(1));")
   (signals error (let ((x 5)) (declare (ignore x)) (ps* '(lisp x)))))
 
 (test ps*-lisp-expands-in-dynamic-environment
-  (is (string= "1 + 2;" (let ((*print-level* 2)) (ps* '(+ 1 (lisp *print-level*)))))))
+  (is (string= "1 + 2;" (let ((foo 2)) (declare (special foo)) (ps* '(+ 1 (lisp (locally (declare (special foo)) foo))))))))
 
 (test ps-lisp-dynamic-environment
-  (is (string= "1 + 2;" (let ((*print-level* 2)) (ps (+ 1 (lisp *print-level*)))))))
+  (is (string= "1 + 2;" (let ((foo 2)) (declare (special foo)) (ps (+ 1 (lisp foo)))))))
 
 (test-ps-js nested-if-expressions1
   (return (if (if x y z) a b))

@@ -21,10 +21,11 @@ vice-versa.")
                           (make-string-output-stream)))
         (%psw-accumulator ()))
     (declare (special %psw-accumulator))
-    (if (and (listp form) (eq 'js:block (car form))) ; ignore top-level block
-        (loop for (statement . remaining) on (cdr form) do
-             (ps-print statement) (psw #\;) (when remaining (psw #\Newline)))
-        (ps-print form))
+    (with-standard-io-syntax
+      (if (and (listp form) (eq 'js:block (car form))) ; ignore top-level block
+          (loop for (statement . remaining) on (cdr form) do
+               (ps-print statement) (psw #\;) (when remaining (psw #\Newline)))
+          (ps-print form)))
     (unless immediate?
       (reverse (cons (get-output-stream-string *psw-stream*) %psw-accumulator)))))
 

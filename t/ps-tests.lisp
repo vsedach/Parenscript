@@ -541,7 +541,9 @@ __setf_someThing('foo', 1, 2);")
                                                 (setf (,macroname x) 123)))))))
                (normalize-js-code
 "function test1() {
-    return data[x] ? (data[x] = 123) : null;
+    if (data[x]) {
+        return data[x] = 123;
+    };
 };"))))
 
 (test macro-environment2
@@ -588,11 +590,14 @@ __setf_someThing('foo', 1, 2);")
 
 (test-ps-js let-decl-in-expression
   (defun f (x)
-    (if x 1 (let* ((foo x))
-              foo)))
+    (if x 1 (let* ((foo x)) foo)))
 "function f(x) {
-    var foo;
-    return x ? 1 : (foo = x, foo);
+    if (x) {
+        return 1;
+    } else {
+        var foo = x;
+        return foo;
+    };
 };")
 
 (test-ps-js special-var1
@@ -786,7 +791,11 @@ bar(foo1(1));")
                 (foo 3))))
 "(function () {
     var foo = function (x) {
-        return 0 === x ? 0 : x + foo(x - 1);
+        if (0 === x) {
+            return 0;
+        } else {
+            return x + foo(x - 1);
+        };
     };
     return foo(3);
 })();")
@@ -1504,7 +1513,9 @@ __setf_foo(5, x, 1, 2, 3, 4);")
             if (!(a == null || b == null)) {
                 var val = baz(a, b);
                 if (val != null) {
-                    return blah(val) ? (!blee() ? true : null) : null;
+                    if (blah(val)) {
+                        return !blee() ? true : null;
+                    };
                 };
             };
         };
@@ -1835,7 +1846,7 @@ foo = 3;")
    if (baz) {
        return 7;
    } else {
-       for (var _js2 = 0; _js2 < 100; _js2 += 1) {
+       for (var _js1 = 0; _js1 < 100; _js1 += 1) {
            bar();
        };
        return 42;
@@ -1887,5 +1898,19 @@ foo = 3;")
         function () {
             return 1 + x;
         };
+    };
+};")
+
+(test-ps-js dotted-list-form
+  (defun foo (a)
+    (when a
+      (destructuring-bind (b . c)
+          bar
+        (list b c))))
+  "function foo(a) {
+    if (a) {
+        var b = bar[0];
+        var c = bar.length > 1 ? bar.slice(1) : [];
+        return [b, c];
     };
 };")

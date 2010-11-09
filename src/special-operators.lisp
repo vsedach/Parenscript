@@ -177,10 +177,10 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; function
 
-(defun nesting-depth (form) ;; some heuristics
-  (if (atom form)
-      0
-      (1+ (apply #'max (mapcar #'nesting-depth form)))))
+(defun nesting-depth (form)
+  (if (consp form)
+      (max (1+ (nesting-depth (car form))) (nesting-depth (cdr form)))
+      0))
 
 (define-statement-operator return-from (tag &optional form)
   (let ((form (ps-macroexpand form)))
@@ -230,7 +230,7 @@
                        :format-control "Trying to RETURN a RETURN without a block tag specified. Perhaps you're still returning values from functions by hand? Parenscript now implements implicit return, update your code! Things like (lambda () (return x)) are not valid Common Lisp and may not be supported in future versions of Parenscript."))
                form)
              (if
-              (aif (and (< (nesting-depth form) 5) (handler-case (compile-expression form) (compile-expression-error () nil)))
+              (aif (and (<= (nesting-depth form) 3) (handler-case (compile-expression form) (compile-expression-error () nil)))
                   (return-from expressionize `(js:return ,it))
                   `(if ,(second form)
                        (return-from ,tag ,(third form))

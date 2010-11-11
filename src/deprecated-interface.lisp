@@ -100,3 +100,8 @@ is output to the OUTPUT-STREAM stream."
 (defun concat-string (&rest things)
   (warn-deprecated 'concat-string 'stringify)
   (apply #'stringify things))
+
+(define-statement-operator with (expression &rest body)
+  (warn-deprecated 'with '|LET or WITH-SLOTS|)
+  `(js:with ,(compile-expression expression)
+     ,(compile-statement `(progn ,@body))))

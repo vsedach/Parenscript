@@ -603,10 +603,6 @@ Syntax of key spec:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; misc
 
-(define-statement-operator with (expression &rest body) ;; this should be deprecated
-  `(js:with ,(compile-expression expression)
-     ,(compile-statement `(progn ,@body))))
-
 (define-statement-operator try (form &rest clauses)
   (let ((catch (cdr (assoc :catch clauses)))
         (finally (cdr (assoc :finally clauses))))

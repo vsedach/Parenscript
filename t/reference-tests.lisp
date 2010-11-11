@@ -493,13 +493,6 @@ for (var i in obj) {
     default: alert('I always get here');
 };")
 
-(test-ps-js the-with-statement-1
-  (with (create foo "foo" i "i")
-  (alert (+ "i is now intermediary scoped: " i)))
-  "with ({ foo : 'foo', i : 'i' }) {
-    alert('i is now intermediary scoped: ' + i);
-};")
-
 (test-ps-js the-try-statement-1
   (try (throw "i")
  (:catch (error)

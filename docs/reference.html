@@ -894,7 +894,6 @@ default:
       <li>(<code id="let*">LET*</code> ({var | (var value)}*) body)</li>
       <li>(<code id="defvar">DEFVAR</code> var {value}?)</li>
       <li>(<code id="var">VAR</code> var {value}?)</li>
-      <li>(<code id="with">WITH</code> object body)</li>
     </ul>
 
     <dl>
@@ -914,9 +913,6 @@ default:
     <p>Top-level <code>LET</code> and <code>LET*</code> forms will
       create new global variables, or overwrite the values of already
       existing global variables with the same name.</p>
-
-    <p>The JavaScript <code>with</code> statement can be generated
-    using <code>WITH</code>.</p>
 
     <p>Beware that lexical scoping rules in JavaScript differ from
       Lisp, and may even be implemented incorrectly in certain browser

@@ -69,6 +69,7 @@
    #:labeled-for
    #:do-set-timeout
    #:concat-string
+   #:with
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Language
@@ -169,9 +170,6 @@
    #:dotimes
    #:dolist
    #:loop
-
-   ;; with
-   #:with
 
    ;; case
    #:switch

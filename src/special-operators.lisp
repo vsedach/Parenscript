@@ -128,8 +128,21 @@
 (define-statement-operator continue (&optional label)
   `(js:continue ,label))
 
+(defun wrap-block-for-dynamic-return (tag body)
+  (if (member tag *tags-that-return-throws-to*)
+      `(js:block
+           (js:try ,body
+                   :catch (err ,(compile-statement `(progn (if (and err (eql ',tag (getprop err :ps-block-tag)))
+                                                               ;; FIXME make this a multiple-value return
+                                                               (getprop err :ps-return-value)
+                                                               (throw err)))))
+                   :finally nil))
+      body))
+
 (define-statement-operator block (name &rest body)
-  `(js:label ,(or name 'nilBlock) ,(compile-statement `(progn ,@body))))
+  (let* ((name (or name 'nilBlock))
+         (*lexical-extent-return-tags* (cons name *lexical-extent-return-tags*)))
+    `(js:label ,name ,(wrap-block-for-dynamic-return name (compile-statement `(progn ,@body))))))
 
 (defun nesting-depth (form)
   (if (consp form)
@@ -137,73 +150,83 @@
       0))
 
 (define-statement-operator return-from (tag &optional result)
-  (if (and in-loop-scope? (not tag))
-      (progn
-        (when result
-          (warn "Trying to (RETURN ~A) from inside a loop with an implicit nil block (DO, DOLIST, DOTIMES, etc.). Parenscript doesn't support returning values this way from inside a loop yet!" result))
-        '(js:break))
+  (if (not tag)
+      (if in-loop-scope?
+          (progn
+            (when result
+              (warn "Trying to (RETURN ~A) from inside a loop with an implicit nil block (DO, DOLIST, DOTIMES, etc.). Parenscript doesn't support returning values this way from inside a loop yet!" result))
+            '(js:break))
+          (ps-compile `(return-from nilBlock ,result)))
       (let ((form (ps-macroexpand result)))
-        (if (listp form)
-            (block expressionize
-              (ps-compile
-               (case (car form)
-                 (progn
-                   `(progn ,@(butlast (cdr form)) (return-from ,tag ,(car (last (cdr form))))))
-                 (switch
-                     `(switch ,(second form)
-                        ,@(loop for (cvalue . cbody) in (cddr form)
-                             for remaining on (cddr form) collect
-                               (let ((last-n (cond ((or (eq 'default cvalue) (not (cdr remaining)))
-                                                    1)
-                                                   ((eq 'break (car (last cbody)))
-                                                    2))))
-                                 (if last-n
-                                     (let ((result-form (car (last cbody last-n))))
-                                       `(,cvalue
-                                         ,@(butlast cbody last-n)
-                                         (return-from ,tag ,result-form)
-                                         ,@(when (and (= last-n 2) (member 'if (flatten result-form))) '(break))))
-                                     (cons cvalue cbody))))))
-                 (try
-                  `(try (return-from ,tag ,(second form))
-                        ,@(let ((catch (cdr (assoc :catch (cdr form))))
-                                (finally (assoc :finally (cdr form))))
-                               (list (when catch
-                                       `(:catch ,(car catch)
-                                          ,@(butlast (cdr catch))
-                                          (return-from ,tag ,(car (last (cdr catch))))))
-                                     finally))))
-                 (cond
-                   `(cond ,@(loop for clause in (cdr form) collect
-                                 `(,@(butlast clause)
-                                     (return-from ,tag ,(car (last clause)))))))
-                 ((with label let flet labels macrolet symbol-macrolet) ;; implicit progn forms
-                  `(,(first form) ,(second form)
-                     ,@(butlast (cddr form))
-                     (return-from ,tag ,(car (last (cddr form))))))
-                 ((continue break throw) ;; non-local exit
-                  form)
-                 (return-from ;; this will go away someday
-                  (unless tag
-                    (warn 'simple-style-warning
-                          :format-control "Trying to RETURN a RETURN without a block tag specified. Perhaps you're still returning values from functions by hand? Parenscript now implements implicit return, update your code! Things like (lambda () (return x)) are not valid Common Lisp and may not be supported in future versions of Parenscript."))
-                   form)
-                 (if
-                  (aif (and (<= (nesting-depth form) 3) (handler-case (compile-expression form) (compile-expression-error () nil)))
-                       (return-from expressionize `(js:return ,it))
-                       `(if ,(second form)
-                            (return-from ,tag ,(third form))
-                            ,@(when (fourth form) `((return-from ,tag ,(fourth form)))))))
-                 (otherwise
-                  (if (gethash (car form) *special-statement-operators*)
-                      form ;; by now only special forms that return nil should be left, so this is ok for implicit return
-                      (return-from expressionize
-                        (progn (unless (or (eql '%function-body tag) (eql *function-block-name* tag))
-                                 (warn "Returning from unknown block ~A" tag))
-                               `(js:return ,(compile-expression form)))))))))
-            (progn (unless (or (eql '%function-body tag) (eql *function-block-name* tag))
-                     (warn "Returning from unknown block ~A" tag))
-                   `(js:return ,(compile-expression form)))))))
+        (flet ((return-exp (value) ;; this stuff needs to be fixed to handle multiple-value returns, too
+                 (let ((value (compile-expression value)))
+                  (cond ((or (eql '%function-body tag) (eql *function-block-name* tag))
+                         `(js:return ,value))
+                        ((member tag *lexical-extent-return-tags*)
+                         (when result
+                           (warn "Trying to (RETURN-FROM ~A ~A) a value from a block. Parenscript doesn't support returning values this way from blocks yet!" tag result))
+                         `(js:break ,tag))
+                        ((member tag *dynamic-extent-return-tags*)
+                         (push tag *tags-that-return-throws-to*)
+                         (ps-compile `(throw (create :ps-block-tag ',tag :ps-return-value ,value))))
+                        (t (warn "Returning from unknown block ~A" tag)
+                           `(js:return ,value)))))) ;; for backwards-compatibility
+          (if (listp form)
+              (block expressionize
+                (ps-compile
+                 (case (car form)
+                   (progn
+                     `(progn ,@(butlast (cdr form)) (return-from ,tag ,(car (last (cdr form))))))
+                   (switch
+                       `(switch ,(second form)
+                          ,@(loop for (cvalue . cbody) in (cddr form)
+                               for remaining on (cddr form) collect
+                                 (let ((last-n (cond ((or (eq 'default cvalue) (not (cdr remaining)))
+                                                      1)
+                                                     ((eq 'break (car (last cbody)))
+                                                      2))))
+                                   (if last-n
+                                       (let ((result-form (car (last cbody last-n))))
+                                         `(,cvalue
+                                           ,@(butlast cbody last-n)
+                                           (return-from ,tag ,result-form)
+                                           ,@(when (and (= last-n 2) (member 'if (flatten result-form))) '(break))))
+                                       (cons cvalue cbody))))))
+                   (try
+                    `(try (return-from ,tag ,(second form))
+                          ,@(let ((catch (cdr (assoc :catch (cdr form))))
+                                  (finally (assoc :finally (cdr form))))
+                                 (list (when catch
+                                         `(:catch ,(car catch)
+                                            ,@(butlast (cdr catch))
+                                            (return-from ,tag ,(car (last (cdr catch))))))
+                                       finally))))
+                   (cond
+                     `(cond ,@(loop for clause in (cdr form) collect
+                                   `(,@(butlast clause)
+                                       (return-from ,tag ,(car (last clause)))))))
+                   ((with label let flet labels macrolet symbol-macrolet) ;; implicit progn forms
+                    `(,(first form) ,(second form)
+                       ,@(butlast (cddr form))
+                       (return-from ,tag ,(car (last (cddr form))))))
+                   ((continue break throw) ;; non-local exit
+                    form)
+                   (return-from ;; this will go away someday
+                    (unless tag
+                      (warn 'simple-style-warning
+                            :format-control "Trying to RETURN a RETURN without a block tag specified. Perhaps you're still returning values from functions by hand? Parenscript now implements implicit return, update your code! Things like (lambda () (return x)) are not valid Common Lisp and may not be supported in future versions of Parenscript."))
+                     form)
+                   (if
+                    (aif (and (<= (nesting-depth form) 3) (handler-case (compile-expression form) (compile-expression-error () nil)))
+                         (return-from expressionize `(js:return ,it))
+                         `(if ,(second form)
+                              (return-from ,tag ,(third form))
+                              ,@(when (fourth form) `((return-from ,tag ,(fourth form)))))))
+                   (otherwise
+                    (if (gethash (car form) *special-statement-operators*)
+                        form ;; by now only special forms that return nil should be left, so this is ok for implicit return
+                        (return-from expressionize (return-exp form)))))))
+              (return-exp form))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; conditionals
@@ -278,14 +301,22 @@
       `(js:block ,@(cdr var-decls) ,@(cdr body)))))
 
 (define-expression-operator %js-lambda (args &rest body)
-  (let ((*function-block-name* nil))
+  (let ((*function-block-name* nil)
+        (*dynamic-extent-return-tags* (append (when *function-block-name* (list *function-block-name*))
+                                              *lexical-extent-return-tags*
+                                              *dynamic-extent-return-tags*))
+        (*lexical-extent-return-tags* ()))
    `(js:lambda ,args ,(compile-function-definition args body))))
 
 (define-statement-operator %js-defun (name args &rest body)
   (let ((docstring (and (cdr body) (stringp (car body)) (car body)))
-        (*function-block-name* name))
+        (*enclosing-lexicals* (cons name *enclosing-lexicals*))
+        (*function-block-name* name)
+        (*lexical-extent-return-tags* ())
+        (*dynamic-extent-return-tags* ())
+        (*tags-that-return-throws-to* ()))
     `(js:defun ,name ,args ,docstring
-               ,(compile-function-definition args (if docstring (cdr body) body)))))
+               ,(wrap-block-for-dynamic-return name (compile-function-definition args (if docstring (cdr body) body))))))
 
 (defun parse-key-spec (key-spec)
   "parses an &key parameter.  Returns 5 values:

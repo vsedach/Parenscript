@@ -286,9 +286,11 @@ _js2.style.left = _js1;")
     (left some-div))
   "someDiv.offsetLeft;")
 
-(test-ps-js single-argument-statements-1
-  (return 1)
-  "return 1;")
+(test-ps-js nil-block-return-1
+  (block nil (return))
+  "nilblock: {
+    break nilblock;
+};")
 
 (test-ps-js single-argument-statements-2
   (throw "foobar")
@@ -309,14 +311,17 @@ _js2.style.left = _js1;")
 };")
 
 (test-ps-js conditional-statements-1
-  (if ((@ blorg is-correct))
-    (progn (carry-on) (return i))
-    (alert "blorg is not correct!"))
-  "if (blorg.isCorrect()) {
-    carryOn();
-    return i;
-} else {
-    alert('blorg is not correct!');
+  (defun foo ()
+    (if ((@ blorg is-correct))
+        (progn (carry-on) (return-from foo i))
+        (alert "blorg is not correct!")))
+"function foo() {
+    if (blorg.isCorrect()) {
+        carryOn();
+        return i;
+    } else {
+        return alert('blorg is not correct!');
+    };
 };")
 
 (test-ps-js conditional-statements-2
@@ -324,12 +329,15 @@ _js2.style.left = _js1;")
   "i + (blorg.addOne() ? 1 : 2);")
 
 (test-ps-js conditional-statements-3
-  (when ((@ blorg is-correct))
-  (carry-on)
-  (return i))
-  "if (blorg.isCorrect()) {
-    carryOn();
-    return i;
+  (defun foo ()
+    (when ((@ blorg is-correct))
+      (carry-on)
+      (return-from foo i)))
+  "function foo() {
+    if (blorg.isCorrect()) {
+        carryOn();
+        return i;
+    };
 };")
 
 (test-ps-js conditional-statements-4

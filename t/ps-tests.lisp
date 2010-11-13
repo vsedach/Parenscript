@@ -240,8 +240,10 @@ __setf_someThing('foo', 1, 2);")
 };")
 
 (test-ps-js return-nothing
-  (return)
-  "return null;")
+  (defun foo ()  (return-from foo))
+  "function foo() {
+    return null;
+};")
 
 (test-ps-js set-timeout
   (set-timeout (lambda () (alert "foo")) 10)
@@ -455,12 +457,16 @@ __setf_someThing('foo', 1, 2);")
 };")
 
 (test-ps-js if-exp-without-else-return
-  (return (if x 1))
-  "return x ? 1 : null;")
+  (defun foo () (return-from foo (if x 1)))
+  "function foo() {
+    return x ? 1 : null;
+};")
 
 (test-ps-js progn-expression-single-statement
-  (return (progn (* x y)))
-  "return x * y;")
+  (defun foo () (return-from foo (progn (* x y))))
+  "function foo() {
+    return x * y;
+};")
 
 (test-ps-js cond-expression1
   (defun foo ()
@@ -651,9 +657,12 @@ try {
   "blahequals;")
 
 (test-ps-js setf-operator-priority
-  (return (or (getprop cache id)
-              (setf (getprop cache id) ((@ document get-element-by-id) id))))
-  "return cache[id] || (cache[id] = document.getElementById(id));")
+  (defun foo ()
+    (or (getprop cache id)
+        (setf (getprop cache id) ((@ document get-element-by-id) id))))
+  "function foo() {
+    return cache[id] || (cache[id] = document.getElementById(id));
+};")
 
 (test-ps-js aref-operator-priority
   (aref (if (and x (> (length x) 0))
@@ -863,12 +872,18 @@ bar(foo(1));")
   (is (string= "1 + 2;" (let ((foo 2)) (declare (special foo)) (ps (+ 1 (lisp foo)))))))
 
 (test-ps-js nested-if-expressions1
-  (return (if (if x y z) a b))
-  "return (x ? y : z) ? a : b;")
+  (defun foo ()
+    (return-from foo (if (if x y z) a b)))
+  "function foo() {
+    return (x ? y : z) ? a : b;
+};")
 
 (test-ps-js nested-if-expressions2
-  (return (if x y (if z a b)))
-"return x ? y : (z ? a : b);")
+  (defun foo ()
+    (if x y (if z a b)))
+"function foo() {
+    return x ? y : (z ? a : b);
+};")
 
 (test-ps-js let1
   (let (x)
@@ -1050,8 +1065,8 @@ x + x;")
 
 (test-ps-js symbol-macro-conditional2
   (symbol-macrolet ((x y))
-    (return (if x x x)))
-  "return y ? y : y;")
+    (1+ (if x x x)))
+  "(y ? y : y) + 1;")
 
 (test-ps-js flet-apply
   (flet ((foo () 'bar))
@@ -1218,14 +1233,18 @@ x1 - x1;
 }, foo(1)) + 1;")
 
 (test-ps-js return-case-break-elimination
-  (return (case 1
-            (0 1)
-            (otherwise 2)))
-  "switch (1) {
-case 0:
-    return 1;
-default:
-    return 2;
+  (defun foo ()
+    (return-from foo
+      (case 1
+        (0 1)
+        (otherwise 2))))
+  "function foo() {
+    switch (1) {
+    case 0:
+        return 1;
+    default:
+        return 2;
+    };
 };")
 
 (test-ps-js aplusplus
@@ -1237,42 +1256,52 @@ default:
  "astarstar;")
 
 (test-ps-js switch-return-fallthrough
-  (return
-    (switch x
-            (1 (foo) break)
-            (2 (bar))
-            (default 4)))
-  "switch (x) {
-case 1:
-    return foo();
-case 2:
-    bar();
-default:
-    return 4;
+  (defun foo ()
+    (return-from foo
+      (switch x
+        (1 (foo) break)
+        (2 (bar))
+        (default 4))))
+  "function foo() {
+    switch (x) {
+    case 1:
+        return foo();
+    case 2:
+        bar();
+    default:
+        return 4;
+    };
 };")
 
 (test-ps-js return-last-case
-  (return (case x
-            (a 'eh)
-            (b 'bee)))
-  "switch (x) {
-case a:
-    return 'eh';
-case b:
-    return 'bee';
+  (defun foo ()
+    (return-from foo
+      (case x
+       (a 'eh)
+       (b 'bee))))
+  "function foo() {
+    switch (x) {
+    case a:
+        return 'eh';
+    case b:
+        return 'bee';
+    };
 };")
 
 (test-ps-js return-macrolet
-  (return
-    (macrolet ((x () 1))
-      (case (x)
-        (a 'eh)
-        (b 'bee))))
-  "switch (1) {
-case a:
-    return 'eh';
-case b:
-    return 'bee';
+  (defun foo ()
+    (return-from foo
+      (macrolet ((x () 1))
+        (case (x)
+          (a 'eh)
+          (b 'bee)))))
+  "function foo() {
+    switch (1) {
+    case a:
+        return 'eh';
+    case b:
+        return 'bee';
+    };
 };")
 
 (test-ps-js mv-bind1
@@ -1355,29 +1384,37 @@ if (undefined !== arguments['callee']['caller']['mv']) {
 val1_1;")
 
 (test-ps-js values-return
-  (return (values x y))
-  "var val1_1 = x;
-var valrest2 = [y];
-if (undefined !== arguments['callee']['caller']['mv']) {
-    arguments['callee']['caller']['mv'] = valrest2;
-};
-return val1_1;")
+  (defun foo ()
+    (return-from foo (values x y)))
+  "function foo() {
+    var val1_1 = x;
+    var valrest2 = [y];
+    if (undefined !== arguments['callee']['caller']['mv']) {
+        arguments['callee']['caller']['mv'] = valrest2;
+    };
+    return val1_1;
+};")
 
 (test-ps-js return-macrolet
-  (return
-    (symbol-macrolet ((x 2))
-      (loop do (+ x x))))
-  "for (; true; ) {
-    2 + 2;
-};
-return null;")
+  (defun foo ()
+    (return-from foo
+      (symbol-macrolet ((x 2))
+        (loop do (+ x x)))))
+  "function foo() {
+    for (; true; ) {
+        2 + 2;
+    };
+    return null;
+};")
 
 (test-ps-js return-cond
-  (return
-    (cond ((foo? x) (loop for y in x do (foo y)))
-          ((bar? x) x)
-          (t 3)))
-  "if (foowhat(x)) {
+  (defun foo ()
+    (return-from foo
+      (cond ((foo? x) (loop for y in x do (foo y)))
+            ((bar? x) x)
+            (t 3))))
+  "function foo() {
+if (foowhat(x)) {
     var _js2 = x.length;
     var _js1 = 0;
     if (_js1 < _js2) {
@@ -1396,6 +1433,7 @@ return null;")
     return x;
 } else {
     return 3;
+};
 };")
 
 (test-ps-js switch-loop
@@ -1441,17 +1479,21 @@ x.offsetLeft;")
 };")
 
 (test-ps-js try-catch-return
-  (return (try (foo)
-               (:catch (e)
-                 (bar))
-               (:finally
-                (cleanup))))
-  "try {
+  (defun foo ()
+    (return-from foo
+      (try (foo)
+           (:catch (e)
+             (bar))
+           (:finally
+            (cleanup)))))
+  "function foo() {
+try {
     return foo();
 } catch (e) {
     return bar();
 } finally {
     cleanup();
+};
 };")
 
 (test-ps-js defun-setf-optional
@@ -1475,8 +1517,10 @@ x.offsetLeft;")
 __setf_foo(5, x, 1, 2, 3, 4);")
 
 (test-ps-js return-null
-  (return nil)
-  "return null;")
+  (defun foo () (return-from foo nil))
+  "function foo() {
+    return null;
+};")
 
 (test-ps-js implicit-return-null
   (lambda ()
@@ -1524,37 +1568,43 @@ __setf_foo(5, x, 1, 2, 3, 4);")
 
 ;; this test needs to be rewritten when named blocks are implemented!!!!
 (test-ps-js return-when-returns-broken-return
-  (lambda ()
-    (return (when x 1))
+  (defun foo ()
+    (return-from foo (when x 1))
     (+ 2 3))
-  "function () {
+  "function foo() {
     return x ? 1 : null;
     return 2 + 3;
 };")
 
 (test-ps-js return-case-conditional
-  (return
-    (case foo
-      (123 (when (bar) t))
-      (345 (blah))))
-  "switch (foo) {
+  (defun foo ()
+    (return-from foo
+     (case foo
+       (123 (when (bar) t))
+       (345 (blah)))))
+  "function foo() {
+switch (foo) {
 case 123:
     return bar() ? true : null;
 case 345:
     return blah();
+};
 };")
 
 (test-ps-js return-try-conditional
-  (return
-    (try (when x 1)
-         (:catch (x) 2)
-         (:finally (bar))))
-  "try {
+  (defun foo ()
+    (return-from foo
+     (try (when x 1)
+          (:catch (x) 2)
+          (:finally (bar)))))
+  "function foo() {
+try {
     return x ? 1 : null;
 } catch (x) {
     return 2;
 } finally {
     bar();
+};
 };")
 
 (test-ps-js function-declare-special
@@ -1757,8 +1807,11 @@ x();")
   "x = null;")
 
 (test-ps-js no-clause-progn-return
-  (return (progn))
-  "return null;")
+  (defun foo ()
+    (return-from foo (progn)))
+  "function foo() {
+return null;
+};")
 
 (test-ps-js empty-cond-clause
   (setf x (cond ((foo))))
@@ -1771,9 +1824,12 @@ x();")
   "x = foo() ? 123 : (bar() ? null : 456);")
 
 (test-ps-js let-no-body
-  (return (let ((foo bar))))
-  "var foo = bar;
-return null;")
+  (defun foo ()
+    (return-from foo (let ((foo bar)))))
+  "function foo() {
+var foo1 = bar;
+return null;
+};")
 
 (test-ps-js dont-hoist-lexical-dupes
   (lambda ()
@@ -1805,7 +1861,7 @@ var x = 1;")
 (test-ps-js case-return-break-broken-return
   (defun foo ()
     (case x
-      ("bar" (if y (return t) nil))
+      ("bar" (if y (return-from foo t) nil))
       ("baz" nil)))
   "function foo() {
     switch (x) {
@@ -1822,7 +1878,7 @@ var x = 1;")
 (test-ps-js case-return-break1-broken-return
   (defun foo ()
     (case x
-      ("bar" (if y (return t)))
+      ("bar" (if y (return-from foo t)))
       ("baz" nil)))
   "function foo() {
     switch (x) {

@@ -63,10 +63,13 @@ foo.my_library_foo;")
 (cl:in-package #:ps-test.pststpkg)
 
 (ps-test::test-ps-js namespace-and-special-forms
-  (let ((foo (create bar 1 not-a-keyword something)))
-    (return (and (not foo) (+ (getprop foo 'bar) some-other-var))))
-"var prefix_foo = { prefix_bar : 1, prefix_notAKeyword : prefix_something };
-return !prefix_foo && prefix_foo.prefix_bar + prefix_someOtherVar;")
+  (defun foo ()
+    (let ((foo (create bar 1 not-a-keyword something)))
+      (return-from foo (and (not foo) (+ (getprop foo 'bar) some-other-var)))))
+"function prefix_foo() {
+var prefix_foo1 = { prefix_bar : 1, prefix_notAKeyword : prefix_something };
+return !prefix_foo1 && prefix_foo1.prefix_bar + prefix_someOtherVar;
+};")
 
 (ps-test::test-ps-js exported-interface
   (defun ps-test:interface-function (baz)

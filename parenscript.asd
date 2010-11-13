@@ -10,6 +10,7 @@
    (:module :src
             :serial t
             :components ((:file "package")
+                         (:file "js-ir-package")
                          (:file "utils")
                          (:file "namespace")
                          (:file "parse-lambda-list")

@@ -70,6 +70,7 @@
    #:do-set-timeout
    #:concat-string
    #:with
+   #:label
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Language
@@ -161,7 +162,6 @@
    #:defvar
 
    ;; iteration
-   #:label
    #:for
    #:for-in
    #:while

@@ -105,3 +105,7 @@ is output to the OUTPUT-STREAM stream."
   (warn-deprecated 'with '|LET or WITH-SLOTS|)
   `(js:with ,(compile-expression expression)
      ,(compile-statement `(progn ,@body))))
+
+(defpsmacro label (&rest args)
+  (warn-deprecated 'label 'block)
+  `(block ,@args))

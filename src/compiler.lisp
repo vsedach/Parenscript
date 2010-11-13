@@ -36,7 +36,7 @@
        (symbolp (car form))
        (or (gethash (car form) *special-expression-operators*) (gethash (car form) *special-statement-operators*))))
 
-;;; scoping
+;;; scoping and lexical environment
 
 (defvar *enclosing-lexical-block-declarations* ()
   "This special variable is expected to be bound to a fresh list by
@@ -55,6 +55,8 @@ lexical block.")
 
 (defvar *loop-scope-lexicals* ())
 (defvar *loop-scope-lexicals-captured* ())
+
+(defvar *function-block-name* nil)
 
 (defvar *special-variables* ())
 

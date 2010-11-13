@@ -1667,11 +1667,22 @@ a === b;")
   (getprop foo ':break)
   "foo['break'];")
 
-(test-ps-js label1
-  (label scope
+(test-ps-js defun-block-return-from
+  (defun foo (x)
+    (baz 4)
+    (return-from foo x)
+    (bar 5))
+  "function foo(x) {
+    baz(4);
+    return x;
+    return bar(5);
+}; ")
+
+(test-ps-js block-return-from
+  (block scope
     (foo)
     (when (bar)
-      (break scope))
+      (return-from scope))
     (blee))
   "scope: {
     foo();
@@ -1913,4 +1924,17 @@ foo = 3;")
         var c = bar.length > 1 ? bar.slice(1) : [];
         return [b, c];
     };
+};")
+
+(test-ps-js return-from-loop
+  (dolist (x '(2 1 3))
+    (when (= x 1)
+      (return))
+    (chain console (log x)))
+  "for (var x = null, _js_arrvar2 = [2, 1, 3], _js_idx1 = 0; _js_idx1 < _js_arrvar2.length; _js_idx1 += 1) {
+    x = _js_arrvar2[_js_idx1];
+    if (x === 1) {
+        break;
+    };
+    console.log(x);
 };")

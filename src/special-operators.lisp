@@ -141,7 +141,8 @@
 
 (define-statement-operator block (name &rest body)
   (let* ((name (or name 'nilBlock))
-         (*lexical-extent-return-tags* (cons name *lexical-extent-return-tags*)))
+         (*lexical-extent-return-tags* (cons name *lexical-extent-return-tags*))
+         (*tags-that-return-throws-to* ()))
     `(js:label ,name ,(wrap-block-for-dynamic-return name (compile-statement `(progn ,@body))))))
 
 (defun nesting-depth (form)

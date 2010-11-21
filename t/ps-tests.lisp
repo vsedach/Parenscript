@@ -1994,3 +1994,54 @@ foo = 3;")
     };
     console.log(x);
 };")
+
+(test-ps-js explicit-nil-block
+  (block nil (return) (+ 1 2))
+  "nilblock: {
+    break nilblock;
+    1 + 2;
+};")
+
+(test-ps-js dynamic-extent-function-return
+  (defun foo ()  ((lambda () (return-from foo))))
+  "function foo() {
+    try {
+        return (function () {
+            throw { 'ps-block-tag' : 'foo', 'ps-return-value' : null };
+        })();
+    } catch (err) {
+        if (err && 'foo' === err['ps-block-tag']) {
+            err['ps-return-value'];
+        } else {
+            throw err;
+        };
+    };
+};")
+
+(test-ps-js block-dynamic-return
+  (block nil ((lambda () (return))) (+ 1 2))
+  "nilblock: {
+    try {
+        (function () {
+            throw { 'ps-block-tag' : 'nilblock', 'ps-return-value' : null };
+        })();
+        1 + 2;
+    } catch (err) {
+        if (err && 'nilblock' === err['ps-block-tag']) {
+            err['ps-return-value'];
+        } else {
+            throw err;
+        };
+    };
+};")
+
+(test-ps-js iteration-lambda-capture-no-need
+  (dolist (x y) (lambda (x) (1+ x))) ;; there's really no need to create a 'with' scope in this case
+  "for (var x = null, _js_idx1 = 0; _js_idx1 < y.length; _js_idx1 += 1) {
+    with ({ x : x }) {
+        x = y[_js_idx1];
+        function (x) {
+            return x + 1;
+        };
+    };
+};")

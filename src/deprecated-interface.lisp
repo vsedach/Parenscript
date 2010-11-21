@@ -109,3 +109,5 @@ is output to the OUTPUT-STREAM stream."
 (defpsmacro label (&rest args)
   (warn-deprecated 'label 'block)
   `(block ,@args))
+
+(setf %compiling-reserved-forms-p% nil)

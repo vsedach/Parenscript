@@ -26,6 +26,7 @@
    #:defpsmacro
    #:defmacro+ps
    #:import-macros-from-lisp
+   #:*ps-defined-operators*
 
    ;; gensym
    #:ps-gensym

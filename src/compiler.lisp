@@ -1,5 +1,17 @@
 (in-package #:parenscript)
 
+(defparameter %compiling-reserved-forms-p% t
+  "Used to issue warnings when replacing PS special operators or macros.")
+
+(defvar *ps-defined-operators* ()
+  "Special operators and macros defined by Parenscript. Replace at your own risk!")
+
+(defun defined-operator-override-check (name &rest body)
+  (when (and (not %compiling-reserved-forms-p%) (member name *ps-defined-operators*))
+    (warn "Redefining Parenscript operator/macro ~A" name))
+  `(progn ,(when %compiling-reserved-forms-p% `(pushnew ',name *ps-defined-operators*))
+          ,@body))
+
 (defvar *reserved-symbol-names*
   (list "break" "case" "catch" "continue" "default" "delete" "do" "else"
         "finally" "for" "function" "if" "in" "instanceof" "new" "return"
@@ -20,10 +32,11 @@
 
 ;; need to split special op definition into two parts - statement and expression
 (defmacro %define-special-operator (type name lambda-list &body body)
-  `(setf (gethash ',name ,type)
-         (lambda (&rest whole)
-           (destructuring-bind ,lambda-list whole
-             ,@body))))
+  (defined-operator-override-check name
+      `(setf (gethash ',name ,type)
+             (lambda (&rest whole)
+               (destructuring-bind ,lambda-list whole
+                 ,@body)))))
 
 (defmacro define-expression-operator (name lambda-list &body body)
   `(%define-special-operator *special-expression-operators* ,name ,lambda-list ,@body))
@@ -103,10 +116,12 @@ stored as the second value.")
          ,@body))))
 
 (defmacro defpsmacro (name args &body body)
-  `(setf (gethash ',name *macro-toplevel*) ,(make-ps-macro-function args body)))
+  (defined-operator-override-check name
+      `(setf (gethash ',name *macro-toplevel*) ,(make-ps-macro-function args body))))
 
 (defmacro define-ps-symbol-macro (symbol expansion)
-  `(setf (gethash ',symbol *symbol-macro-toplevel*) (lambda (form) (declare (ignore form)) ',expansion)))
+  (defined-operator-override-check symbol
+      `(setf (gethash ',symbol *symbol-macro-toplevel*) (lambda (form) (declare (ignore form)) ',expansion))))
 
 (defun import-macros-from-lisp (&rest names)
   "Import the named Lisp macros into the Parenscript macro

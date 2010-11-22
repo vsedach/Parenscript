@@ -103,7 +103,7 @@ is output to the OUTPUT-STREAM stream."
 
 (define-statement-operator with (expression &rest body)
   (warn-deprecated 'with '|LET or WITH-SLOTS|)
-  `(js:with ,(compile-expression expression)
+  `(ps-js:with ,(compile-expression expression)
      ,(compile-statement `(progn ,@body))))
 
 (defpsmacro label (&rest args)

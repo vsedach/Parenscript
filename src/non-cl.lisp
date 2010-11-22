@@ -4,31 +4,37 @@
 ;;; standard but exported by Parenscript, and their Common Lisp
 ;;; equivalent definitions
 
+(defmacro define-trivial-special-ops (&rest mappings)
+  `(progn ,@(loop for (form-name js-primitive) on mappings by #'cddr collect
+                 `(define-expression-operator ,form-name (&rest args)
+                    (cons ',js-primitive (mapcar #'compile-expression args))))))
+
 (define-trivial-special-ops
-  array      js:array
-  instanceof js:instanceof
-  typeof     js:typeof
-  new        js:new
-  delete     js:delete
-  in         js:in ;; maybe rename to slot-boundp?
-  break      js:break
+  array      ps-js:array
+  instanceof ps-js:instanceof
+  typeof     ps-js:typeof
+  new        ps-js:new
+  delete     ps-js:delete
+  in         ps-js:in ;; maybe rename to slot-boundp?
+  break      ps-js:break
   )
 
-(defun array (&rest initial-contents)
-  (make-array (length initial-contents) :initial-contents initial-contents))
+;; Common Lisp Hyperspec, 11.1.2.1.2
+;; (defun array (&rest initial-contents)
+;;   (make-array (length initial-contents) :initial-contents initial-contents))
 
 (define-statement-operator continue (&optional label)
-  `(js:continue ,label))
+  `(ps-js:continue ,label))
 
 (define-statement-operator switch (test-expr &rest clauses)
-  `(js:switch ,(compile-expression test-expr)
+  `(ps-js:switch ,(compile-expression test-expr)
      ,@(loop for (val . body) in clauses collect
             (cons (if (eq val 'default)
-                      'js:default
+                      'ps-js:default
                       (compile-expression val))
                   (mapcan (lambda (x)
                             (let ((exp (compile-statement x)))
-                              (if (and (listp exp) (eq 'js:block (car exp)))
+                              (if (and (listp exp) (eq 'ps-js:block (car exp)))
                                   (cdr exp)
                                   (list exp))))
                           body)))))
@@ -37,7 +43,7 @@
 ;;; objects
 
 (define-expression-operator create (&rest arrows)
-  `(js:object
+  `(ps-js:object
     ,@(loop for (key val-expr) on arrows by #'cddr collecting
            (progn
              (assert (or (stringp key) (numberp key) (symbolp key))
@@ -54,9 +60,9 @@
              (eq 'quote (car expanded-slot)))
         (aif (or (reserved-symbol? (second expanded-slot))
                  (and (keywordp (second expanded-slot)) (second expanded-slot)))
-             `(js:aref ,obj ,it)
-             `(js:getprop ,obj ,(second expanded-slot)))
-        `(js:aref ,obj ,(compile-expression slot)))))
+             `(ps-js:aref ,obj ,it)
+             `(ps-js:getprop ,obj ,(second expanded-slot)))
+        `(ps-js:aref ,obj ,(compile-expression slot)))))
 
 (defpsmacro getprop (obj &rest slots)
   (if (null (rest slots))
@@ -89,7 +95,7 @@
   (when value? (compile-expression `(setf ,name ,value))))
 
 (define-statement-operator var (name &optional (value (values) value?) docstr)
-  `(js:var ,(ps-macroexpand name) ,@(when value? (list (compile-expression value) docstr))))
+  `(ps-js:var ,(ps-macroexpand name) ,@(when value? (list (compile-expression value) docstr))))
 
 (defmacro var (name &optional value docstr)
   `(defparameter ,name ,@(when value (list value)) ,@(when docstr (list docstr))))
@@ -98,18 +104,18 @@
 
 (define-statement-operator for (init-forms cond-forms step-forms &body body)
   (let ((init-forms (make-for-vars/inits init-forms)))
-   `(js:for ,init-forms
+   `(ps-js:for ,init-forms
             ,(mapcar #'compile-expression cond-forms)
             ,(mapcar #'compile-expression step-forms)
             ,(compile-loop-body (mapcar #'car init-forms) body))))
 
 (define-statement-operator for-in ((var object) &rest body)
-  `(js:for-in ,(compile-expression var)
+  `(ps-js:for-in ,(compile-expression var)
               ,(compile-expression object)
               ,(compile-loop-body (list var) body)))
 
 (define-statement-operator while (test &rest body)
-  `(js:while ,(compile-expression test)
+  `(ps-js:while ,(compile-expression test)
      ,(compile-loop-body () body)))
 
 (defmacro while (test &body body)
@@ -122,18 +128,18 @@
         (finally (cdr (assoc :finally clauses))))
     (assert (not (cdar catch)) () "Sorry, currently only simple catch forms are supported.")
     (assert (or catch finally) () "Try form should have either a catch or a finally clause or both.")
-    `(js:try ,(compile-statement `(progn ,form))
+    `(ps-js:try ,(compile-statement `(progn ,form))
              :catch ,(when catch (list (caar catch) (compile-statement `(progn ,@(cdr catch)))))
              :finally ,(when finally (compile-statement `(progn ,@finally))))))
 
 (define-expression-operator regex (regex)
-  `(js:regex ,(string regex)))
+  `(ps-js:regex ,(string regex)))
 
 (define-expression-operator lisp (lisp-form)
   ;; (ps (foo (lisp bar))) is like (ps* `(foo ,bar))
   ;; When called from inside of ps*, lisp-form has access to the
   ;; dynamic environment only, analogous to eval.
-  `(js:escape
+  `(ps-js:escape
     (with-output-to-string (*psw-stream*)
       (let ((compile-expression? ,compile-expression?))
         (parenscript-print (ps-compile ,lisp-form) t)))))
@@ -166,8 +172,8 @@
   "Like concatenate but prints all of its arguments."
   (format nil "~{~A~}" things))
 
-(define-ps-symbol-macro f js:f)
+(define-ps-symbol-macro f ps-js:f)
 (defvar f nil)
 
-(define-ps-symbol-macro false js:f)
+(define-ps-symbol-macro false ps-js:f)
 (defvar false nil)

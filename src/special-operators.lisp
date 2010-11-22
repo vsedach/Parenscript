@@ -3,35 +3,30 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; arithmetic and logic
 
-(defmacro define-trivial-special-ops (&rest mappings)
-  `(progn ,@(loop for (form-name js-primitive) on mappings by #'cddr collect
-                 `(define-expression-operator ,form-name (&rest args)
-                    (cons ',js-primitive (mapcar #'compile-expression args))))))
-
 (define-trivial-special-ops
-  +          js:+
-  -          js:-
-  *          js:*
-  /          js:/
-  rem        js:%
-  and        js:&&
-  or         js:\|\|
+  +          ps-js:+
+  -          ps-js:-
+  *          ps-js:*
+  /          ps-js:/
+  rem        ps-js:%
+  and        ps-js:&&
+  or         ps-js:\|\|
 
-  logand     js:&
-  logior     js:\|
-  logxor     js:^
-  lognot     js:~
+  logand     ps-js:&
+  logior     ps-js:\|
+  logxor     ps-js:^
+  lognot     ps-js:~
   ;; todo: ash for shifts
 
-  throw      js:throw
-  aref       js:aref
+  throw      ps-js:throw
+  aref       ps-js:aref
 
-  funcall    js:funcall
+  funcall    ps-js:funcall
   )
 
 (define-expression-operator - (&rest args)
   (let ((args (mapcar #'compile-expression args)))
-    (cons (if (cdr args) 'js:- 'js:negate) args)))
+    (cons (if (cdr args) 'ps-js:- 'ps-js:negate) args)))
 
 (defun fix-nary-comparison (operator objects)
   (let* ((tmp-var-forms (butlast (cdr objects)))
@@ -55,43 +50,43 @@
                               (cons ',js-primitive
                                     (mapcar #'compile-expression objects))))))))
   (define-nary-comparison-forms
-    <     js:<
-    >     js:>
-    <=    js:<=
-    >=    js:>=
-    eql   js:===
-    equal js:==))
+    <     ps-js:<
+    >     ps-js:>
+    <=    ps-js:<=
+    >=    ps-js:>=
+    eql   ps-js:===
+    equal ps-js:==))
 
 (define-expression-operator /= (a b)
   ;; for n>2, /= is finding duplicates in an array of numbers (ie -
   ;; nontrivial runtime algorithm), so we restrict it to binary in PS
-  `(js:!== ,(compile-expression a) ,(compile-expression b)))
+  `(ps-js:!== ,(compile-expression a) ,(compile-expression b)))
 
 (define-expression-operator incf (x &optional (delta 1))
   (let ((delta (ps-macroexpand delta)))
     (if (eql delta 1)
-        `(js:++ ,(compile-expression x))
-        `(js:+= ,(compile-expression x) ,(compile-expression delta)))))
+        `(ps-js:++ ,(compile-expression x))
+        `(ps-js:+= ,(compile-expression x) ,(compile-expression delta)))))
 
 (define-expression-operator decf (x &optional (delta 1))
   (let ((delta (ps-macroexpand delta)))
     (if (eql delta 1)
-        `(js:-- ,(compile-expression x))
-        `(js:-= ,(compile-expression x) ,(compile-expression delta)))))
+        `(ps-js:-- ,(compile-expression x))
+        `(ps-js:-= ,(compile-expression x) ,(compile-expression delta)))))
 
 (let ((inverses (mapcan (lambda (x)
                           (list x (reverse x)))
-                        '((js:=== js:!==)
-                          (js:== js:!=)
-                          (js:< js:>=)
-                          (js:> js:<=)))))
+                        '((ps-js:=== ps-js:!==)
+                          (ps-js:== ps-js:!=)
+                          (ps-js:< ps-js:>=)
+                          (ps-js:> ps-js:<=)))))
   (define-expression-operator not (x)
     (let ((form (compile-expression x)))
-      (acond ((and (listp form) (eq (car form) 'js:!))
+      (acond ((and (listp form) (eq (car form) 'ps-js:!))
               (second form))
              ((and (listp form) (cadr (assoc (car form) inverses)))
               `(,it ,@(cdr form)))
-             (t `(js:! ,form))))))
+             (t `(ps-js:! ,form))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; blocks and control flow
@@ -99,7 +94,7 @@
 (defun compile-progn (body)
   (labels ((flatten-blocks (body)
              (when body
-               (if (and (listp (car body)) (eq 'js:block (caar body)))
+               (if (and (listp (car body)) (eq 'ps-js:block (caar body)))
                    (append (cdr (car body)) (flatten-blocks (cdr body)))
                    (cons (car body) (flatten-blocks (cdr body)))))))
     (let ((block (flatten-blocks (remove nil (mapcar #'ps-compile body)))))
@@ -110,16 +105,16 @@
 
 (define-expression-operator progn (&rest body)
   (if (cdr body)
-      `(js:|,| ,@(compile-progn body))
+      `(ps-js:|,| ,@(compile-progn body))
       (compile-expression (car body))))
 
 (define-statement-operator progn (&rest body)
-  `(js:block ,@(compile-progn body)))
+  `(ps-js:block ,@(compile-progn body)))
 
 (defun wrap-block-for-dynamic-return (tag body)
   (if (member tag *tags-that-return-throws-to*)
-      `(js:block
-           (js:try ,body
+      `(ps-js:block
+           (ps-js:try ,body
                    :catch (err ,(compile-statement `(progn (if (and err (eql ',tag (getprop err :ps-block-tag)))
                                                                ;; FIXME make this a multiple-value return
                                                                (getprop err :ps-return-value)
@@ -131,7 +126,7 @@
   (let* ((name (or name 'nilBlock))
          (*lexical-extent-return-tags* (cons name *lexical-extent-return-tags*))
          (*tags-that-return-throws-to* ()))
-    `(js:label ,name ,(wrap-block-for-dynamic-return name (compile-statement `(progn ,@body))))))
+    `(ps-js:label ,name ,(wrap-block-for-dynamic-return name (compile-statement `(progn ,@body))))))
 
 (defun nesting-depth (form)
   (if (consp form)
@@ -144,22 +139,22 @@
           (progn
             (when result
               (warn "Trying to (RETURN ~A) from inside a loop with an implicit nil block (DO, DOLIST, DOTIMES, etc.). Parenscript doesn't support returning values this way from inside a loop yet!" result))
-            '(js:break))
+            '(ps-js:break))
           (ps-compile `(return-from nilBlock ,result)))
       (let ((form (ps-macroexpand result)))
         (flet ((return-exp (value) ;; this stuff needs to be fixed to handle multiple-value returns, too
                  (let ((value (compile-expression value)))
                   (cond ((or (eql '%function-body tag) (eql *function-block-name* tag))
-                         `(js:return ,value))
+                         `(ps-js:return ,value))
                         ((member tag *lexical-extent-return-tags*)
                          (when result
                            (warn "Trying to (RETURN-FROM ~A ~A) a value from a block. Parenscript doesn't support returning values this way from blocks yet!" tag result))
-                         `(js:break ,tag))
+                         `(ps-js:break ,tag))
                         ((member tag *dynamic-extent-return-tags*)
                          (push tag *tags-that-return-throws-to*)
                          (ps-compile `(throw (create :ps-block-tag ',tag :ps-return-value ,value))))
                         (t (warn "Returning from unknown block ~A" tag)
-                           `(js:return ,value)))))) ;; for backwards-compatibility
+                           `(ps-js:return ,value)))))) ;; for backwards-compatibility
           (if (listp form)
               (block expressionize
                 (ps-compile
@@ -207,7 +202,7 @@
                      form)
                    (if
                     (aif (and (<= (nesting-depth form) 3) (handler-case (compile-expression form) (compile-expression-error () nil)))
-                         (return-from expressionize `(js:return ,it))
+                         (return-from expressionize `(ps-js:return ,it))
                          `(if ,(second form)
                               (return-from ,tag ,(third form))
                               ,@(when (fourth form) `((return-from ,tag ,(fourth form)))))))
@@ -221,10 +216,10 @@
 ;;; conditionals
 
 (define-expression-operator if (test then &optional else)
-   `(js:? ,(compile-expression test) ,(compile-expression then) ,(compile-expression else)))
+   `(ps-js:? ,(compile-expression test) ,(compile-expression then) ,(compile-expression else)))
 
 (define-statement-operator if (test then &optional else)
-  `(js:if ,(compile-expression test)
+  `(ps-js:if ,(compile-expression test)
           ,(compile-statement `(progn ,then))
           ,@(when else `(:else ,(compile-statement `(progn ,else))))))
 
@@ -239,7 +234,7 @@
                 (cond ,@(cdr clauses))))))))
 
 (define-statement-operator cond (&rest clauses)
-  `(js:if ,(compile-expression (caar clauses))
+  `(ps-js:if ,(compile-expression (caar clauses))
           ,(compile-statement `(progn ,@(cdar clauses)))
           ,@(loop for (test . body) in (cdr clauses) appending
                  (if (eq t test)
@@ -274,7 +269,7 @@
       (when in-loop-scope? ;; this is probably broken when it comes to let-renaming
         (setf *loop-scope-lexicals-captured* (append (intersection (flatten body) *loop-scope-lexicals*)
                                                      *loop-scope-lexicals-captured*)))
-      `(js:block ,@(cdr var-decls) ,@(cdr body)))))
+      `(ps-js:block ,@(cdr var-decls) ,@(cdr body)))))
 
 (define-expression-operator %js-lambda (args &rest body)
   (let ((*function-block-name* nil)
@@ -282,7 +277,7 @@
                                               *lexical-extent-return-tags*
                                               *dynamic-extent-return-tags*))
         (*lexical-extent-return-tags* ()))
-   `(js:lambda ,args ,(compile-function-definition args body))))
+   `(ps-js:lambda ,args ,(compile-function-definition args body))))
 
 (define-statement-operator %js-defun (name args &rest body)
   (let ((docstring (and (cdr body) (stringp (car body)) (car body)))
@@ -291,7 +286,7 @@
         (*lexical-extent-return-tags* ())
         (*dynamic-extent-return-tags* ())
         (*tags-that-return-throws-to* ()))
-    `(js:defun ,name ,args ,docstring
+    `(ps-js:defun ,name ,args ,docstring
                ,(wrap-block-for-dynamic-return name (compile-function-definition args (if docstring (cdr body) body))))))
 
 (defun parse-key-spec (key-spec)
@@ -410,16 +405,16 @@ Syntax of key spec:
          (fn-defs                    (loop for (fn-name . (args . body)) in fn-defs collect
                                           (progn (when compile-expression?
                                                    (push (getf fn-renames fn-name) *enclosing-lexical-block-declarations*))
-                                                 `(,(if compile-expression? 'js:= 'js:var)
+                                                 `(,(if compile-expression? 'ps-js:= 'ps-js:var)
                                                     ,(getf fn-renames fn-name)
-                                                    (js:lambda ,args
+                                                    (ps-js:lambda ,args
                                                       ,(let ((*function-block-name* fn-name))
                                                          (compile-function-definition args body)))))))
          ;; the flet body needs to be compiled with the extended lexical environment
          (*enclosing-lexicals*       (append fn-renames *enclosing-lexicals*))
          (*loop-scope-lexicals*      (when in-loop-scope? (append fn-renames *loop-scope-lexicals*)))
          (*local-function-names*     (append fn-renames *local-function-names*)))
-    `(,(if compile-expression? 'js:|,| 'js:block)
+    `(,(if compile-expression? 'ps-js:|,| 'ps-js:block)
        ,@fn-defs
        ,@(compile-progn body))))
 
@@ -428,13 +423,13 @@ Syntax of key spec:
          (*local-function-names*     (append fn-renames *local-function-names*))
          (*enclosing-lexicals*       (append fn-renames *enclosing-lexicals*))
          (*loop-scope-lexicals*      (when in-loop-scope? (append fn-renames *loop-scope-lexicals*))))
-    `(,(if compile-expression? 'js:|,| 'js:block)
+    `(,(if compile-expression? 'ps-js:|,| 'ps-js:block)
        ,@(loop for (fn-name . (args . body)) in fn-defs collect
                     (progn (when compile-expression?
                              (push (getf *local-function-names* fn-name) *enclosing-lexical-block-declarations*))
-                           `(,(if compile-expression? 'js:= 'js:var)
+                           `(,(if compile-expression? 'ps-js:= 'ps-js:var)
                               ,(getf *local-function-names* fn-name)
-                              (js:lambda ,args
+                              (ps-js:lambda ,args
                                 ,(let ((*function-block-name* fn-name))
                                    (compile-function-definition args body))))))
        ,@(compile-progn body))))
@@ -481,18 +476,18 @@ Syntax of key spec:
 ;;; assignment and binding
 
 (defun assignment-op (op)
-  (getf '(js:+   js:+=
-          js:~   js:~=
-          js:&   js:&=
-          js:\|  js:\|=
-          js:-   js:-=
-          js:*   js:*=
-          js:%   js:%=
-          js:>>  js:>>=
-          js:^   js:^=
-          js:<<  js:<<=
-          js:>>> js:>>>=
-          js:/   js:/=)
+  (getf '(ps-js:+   ps-js:+=
+          ps-js:~   ps-js:~=
+          ps-js:&   ps-js:&=
+          ps-js:\|  ps-js:\|=
+          ps-js:-   ps-js:-=
+          ps-js:*   ps-js:*=
+          ps-js:%   ps-js:%=
+          ps-js:>>  ps-js:>>=
+          ps-js:^   ps-js:^=
+          ps-js:<<  ps-js:<<=
+          ps-js:>>> ps-js:>>>=
+          ps-js:/   ps-js:/=)
         op))
 
 (define-expression-operator ps-assign (lhs rhs)
@@ -508,7 +503,7 @@ Syntax of key spec:
                (list it lhs (if (fourth rhs)
                                 (cons (first rhs) (cddr rhs))
                                 (third rhs)))
-               (list 'js:= lhs rhs))))))
+               (list 'ps-js:= lhs rhs))))))
 
 (define-expression-operator let (bindings &body body)
   (with-declaration-effects body
@@ -574,8 +569,8 @@ Syntax of key spec:
          (*ps-gensym-counter* *ps-gensym-counter*)
          (compiled-body (compile-statement `(progn ,@body))))
     (aif (remove-duplicates *loop-scope-lexicals-captured*)
-         `(js:block
-              (js:with ,(compile-expression
+         `(ps-js:block
+              (ps-js:with ,(compile-expression
                          `(create ,@(loop for x in it
                                           collect x
                                           collect (when (member x loop-vars) x))))

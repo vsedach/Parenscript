@@ -197,7 +197,7 @@ form, FORM, returns the new value for *compilation-level*."
                (let ((*compilation-level* (adjust-compilation-level form *compilation-level*)))
                  (if (special-form? form)
                      (compile-special-form form)
-                     `(js:funcall ,(if (symbolp (car form))
+                     `(ps-js:funcall ,(if (symbolp (car form))
                                        (maybe-rename-local-function (car form))
                                        (compile-expression (car form)))
                                   ,@(mapcar #'compile-expression (cdr form)))))))))

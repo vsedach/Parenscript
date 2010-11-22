@@ -4,6 +4,7 @@
 ;; without any warranty.
 
 (in-package #:ps-test)
+(named-readtables:in-readtable :parenscript)
 
 (in-suite output-tests)
 
@@ -120,29 +121,29 @@
   "/foobar/i;")
 
 (test-ps-js literal-symbols-1
-  T
+  t
   "true;")
 
 (test-ps-js literal-symbols-2
-  FALSE
+  false
   "false;")
 
 (test-ps-js literal-symbols-3
-  F
+  f
   "false;")
 
 (test-ps-js literal-symbols-4
-  (lambda () NIL)
+  (lambda () nil)
   "function () {
     return null;
 };")
 
 (test-ps-js literal-symbols-5
-  UNDEFINED
+  undefined
   "undefined;")
 
 (test-ps-js literal-symbols-6
-  THIS
+  this
   "this;")
 
 (test-ps-js variables-1
@@ -174,7 +175,7 @@
   "foo[i](1, 2);")
 
 (test-ps-js function-calls-and-method-calls-5
-  ((getprop (aref foobar 1) 'blorg) NIL T)
+  ((getprop (aref foobar 1) 'blorg) nil t)
   "foobar[1].blorg(null, true);")
 
 (test-ps-js operator-expressions-1
@@ -1102,7 +1103,7 @@ __setf_someThing('foo', 1, 2);")
 (test-ps-js ampersand-whole-1
   (macrolet ((foo (&whole foo bar baz)
                (declare (ignore bar baz))
-               (format nil "~a" foo)))
+                (with-standard-io-syntax (format nil "~a" foo))))
     (foo 1 2))
   "'(FOO 1 2)';")
 
@@ -1851,9 +1852,9 @@ x1 - x1;
         (doesnt))
     (alert a)
     (alert b))
-  "var prevmv2 = null;
+  "var prevMv2 = null;
 returnsMv();
-prevmv2 = arguments['callee']['mv'];
+prevMv2 = arguments['callee']['mv'];
 try {
     arguments['callee']['mv'] = true;
     var a = doesnt();
@@ -1862,10 +1863,10 @@ try {
     alert(a);
     alert(b);
 } finally {
-    if (undefined === prevmv2) {
+    if (undefined === prevMv2) {
         delete arguments['callee']['mv'];
     } else {
-        arguments['callee']['mv'] = prevmv2;
+        arguments['callee']['mv'] = prevMv2;
     };
 };")
 
@@ -1876,10 +1877,10 @@ try {
         (doesnt b))
     (alert a)
     (alert b))
-  "var prevmv2 = null;
+  "var prevMv2 = null;
 var a = 1;
 returnsMv(a);
-prevmv2 = arguments['callee']['mv'];
+prevMv2 = arguments['callee']['mv'];
 try {
     arguments['callee']['mv'] = true;
     var a3 = doesnt(b);
@@ -1888,10 +1889,10 @@ try {
     alert(a3);
     alert(b);
 } finally {
-    if (undefined === prevmv2) {
+    if (undefined === prevMv2) {
         delete arguments['callee']['mv'];
     } else {
-        arguments['callee']['mv'] = prevmv2;
+        arguments['callee']['mv'] = prevMv2;
     };
 };")
 
@@ -2585,3 +2586,7 @@ foo = 3;")
         };
     };
 };")
+
+(test-ps-js case-invert1
+  (encodeURIComponent fooBar)
+  "encodeURIComponent(fooBar);")

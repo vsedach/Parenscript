@@ -187,12 +187,11 @@ lambda-list::=
 
 ;;; defining setf expanders
 
-(defvar *defun-setf-name-prefix* "__setf_")
+(defvar *defun-setf-name-prefix* '__setf_)
 
 (defpsmacro defun-setf (setf-name lambda-list &body body)
   (let ((mangled-function-name
-         (intern (concatenate 'string *defun-setf-name-prefix*
-                              (symbol-name (second setf-name)))
+         (intern (concatenate 'string (string *defun-setf-name-prefix*) (string (second setf-name)))
                  (symbol-package (second setf-name)))))
     (setf (gethash (second setf-name) *setf-expanders*)
           (compile
@@ -340,10 +339,10 @@ lambda-list::=
      ,@body))
 
 (defpsmacro dolist ((var array &optional (result nil result?)) &body body)
-  (let* ((idx (ps-gensym "_js_idx"))
+  (let* ((idx (ps-gensym "_JS_IDX"))
          (introduce-array-var? (not (symbolp array)))
          (arrvar (if introduce-array-var?
-                     (ps-gensym "_js_arrvar")
+                     (ps-gensym "_JS_ARRVAR")
                      array)))
     `(do* (,var
            ,@(when introduce-array-var?

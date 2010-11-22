@@ -8,15 +8,13 @@
                              (lambda (symbol)
                                (or #1=(gethash symbol symbol-table)
                                    (setf #1# (ps-gensym "G")))))))
-  (setf (gethash (find-package package-designator) *obfuscated-packages*)
-        symbol-map))
+  (setf (gethash (find-package package-designator) *obfuscated-packages*) symbol-map))
 
 (defun unobfuscate-package (package-designator)
   (remhash (find-package package-designator) *obfuscated-packages*))
 
 (defun maybe-obfuscate-symbol (symbol)
-  (if (aand (symbol-package symbol)
-            (eq :external (nth-value 1 (find-symbol (symbol-name symbol) it))))
+  (if (aand (symbol-package symbol) (eq :external (nth-value 1 (find-symbol (symbol-name symbol) it))))
       symbol
       (aif (gethash (symbol-package symbol) *obfuscated-packages*)
            (funcall it symbol)

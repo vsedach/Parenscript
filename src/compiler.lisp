@@ -23,7 +23,7 @@
         "volatile" "{}" "true" "false" "null" "undefined"))
 
 (defun reserved-symbol? (symbol)
-  (find (string-downcase (symbol-name symbol)) *reserved-symbol-names* :test #'string=))
+  (find (string-downcase (string symbol)) *reserved-symbol-names* :test #'string=))
 
 ;;; special forms
 
@@ -213,11 +213,13 @@ form, FORM, returns the new value for *compilation-level*."
 
 (defvar *ps-gensym-counter* 0)
 
-(defun ps-gensym (&optional (prefix "_js"))
-  (let ((prefix (if (stringp prefix) prefix (symbol-to-js-string prefix nil))))
-    (make-symbol (format nil "~A~:[~;_~]~A" prefix
-                         (digit-char-p (char prefix (1- (length prefix))))
-                         (incf *ps-gensym-counter*)))))
+(defun ps-gensym (&optional (prefix-or-counter "_JS"))
+  (assert (or (stringp prefix-or-counter) (integerp prefix-or-counter)))
+  (let ((prefix (if (stringp prefix-or-counter) prefix-or-counter "_JS"))
+        (counter (if (integerp prefix-or-counter) prefix-or-counter (incf *ps-gensym-counter*))))
+   (make-symbol (format nil "~A~:[~;_~]~A" prefix
+                        (digit-char-p (char prefix (1- (length prefix))))
+                        counter))))
 
 (defmacro with-ps-gensyms (symbols &body body)
   "Each element of SYMBOLS is either a symbol or a list of (symbol
@@ -228,8 +230,8 @@ gensym-prefix-string)."
                             symbol
                             (list symbol))
                       (if prefix
-                          `(,symbol (ps-gensym ,prefix))
-                          `(,symbol (ps-gensym ,(symbol-to-js-string symbol))))))
+                          `(,symbol (ps-gensym ,(string prefix)))
+                          `(,symbol (ps-gensym ,(string symbol))))))
                   symbols)
      ,@body))
 

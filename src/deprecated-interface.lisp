@@ -46,7 +46,7 @@
   (warn-deprecated 'with-unique-js-names 'with-ps-gensyms)
   `(with-ps-gensyms ,@args))
 
-(defun-js gen-js-name ps-gensym (&optional (prefix "_js_"))
+(defun-js gen-js-name ps-gensym (&optional (prefix "_JS_"))
   (ps-gensym prefix))
 
 (defmacro js (&rest args)

@@ -2,8 +2,15 @@
 
 (pushnew :parenscript *features*)
 
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (named-readtables:defreadtable :parenscript
+    (:merge :standard)
+    (:case :invert)))
+
+(named-readtables:in-readtable :parenscript)
+
 (defpackage #:parenscript
-  (:use #:cl #:anaphora)
+  (:use #:cl #:anaphora #:named-readtables)
   (:nicknames #:ps)
   (:export
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

@@ -1,4 +1,5 @@
-(in-package #:cl)
+(in-package #:parenscript)
+(in-readtable :parenscript)
 
 ;; These are convenience packages that export JS and browser DOM
 ;; symbols. If you :use the packages in a package FOO and then

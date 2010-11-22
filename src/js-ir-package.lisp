@@ -1,4 +1,5 @@
-(in-package #:cl)
+(in-package #:parenscript)
+(in-readtable :parenscript)
 
 (defpackage #:ps-js
   (:shadowing-import-from #:cl

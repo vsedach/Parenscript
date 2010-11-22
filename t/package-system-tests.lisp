@@ -67,8 +67,8 @@ foo.my_library_foo;")
     (let ((foo (create bar 1 not-a-keyword something)))
       (return-from foo (and (not foo) (+ (getprop foo 'bar) some-other-var)))))
 "function prefix_foo() {
-var prefix_foo1 = { prefix_bar : 1, prefix_notAKeyword : prefix_something };
-return !prefix_foo1 && prefix_foo1.prefix_bar + prefix_someOtherVar;
+var foo1 = { prefix_bar : 1, prefix_notAKeyword : prefix_something };
+return !foo1 && foo1.prefix_bar + prefix_someOtherVar;
 };")
 
 (ps-test::test-ps-js exported-interface

@@ -31,7 +31,7 @@
 (defun fix-nary-comparison (operator objects)
   (let* ((tmp-var-forms (butlast (cdr objects)))
          (tmp-vars (loop repeat (length tmp-var-forms)
-                         collect (ps-gensym "_cmp")))
+                         collect (ps-gensym "_CMP")))
          (all-comparisons (append (list (car objects))
                                   tmp-vars
                                   (last objects))))
@@ -396,7 +396,7 @@ Syntax of key spec:
   (loop for (fn-name) in fn-defs
         collect fn-name
         collect (if (or (member fn-name *enclosing-lexicals*) (lookup-macro-def fn-name *symbol-macro-env*))
-                    (ps-gensym fn-name)
+                    (ps-gensym (string fn-name))
                     fn-name)))
 
 (define-expression-operator flet (fn-defs &rest body)
@@ -519,7 +519,7 @@ Syntax of key spec:
                (if (or (member x *enclosing-lexicals*)
                        (lookup-macro-def x *symbol-macro-env*)
                        (member x free-variables-in-binding-value-expressions))
-                   (ps-gensym x)
+                   (ps-gensym (string x))
                    (progn (push x lexical-bindings-introduced-here) nil)))
              (rename (x) (first x))
              (var (x) (second x))

@@ -1,4 +1,4 @@
-(in-package #:parenscript-test)
+(in-package #:ps-test)
 
 (in-suite package-system-tests)
 
@@ -78,7 +78,7 @@ return !prefix_foo1 && prefix_foo1.prefix_bar + prefix_someOtherVar;
     return prefix_baz + gpp;
 };")
 
-(cl:in-package #:parenscript-test)
+(cl:in-package #:ps-test)
 
 (test compile-stream-in-package
   (is (string=

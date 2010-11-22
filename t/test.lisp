@@ -1,12 +1,12 @@
-(in-package #:parenscript-test)
+(in-package #:ps-test)
 
 (defun normalize-whitespace (str)
   (substitute #\Space #\Newline (substitute #\Space #\Tab str)))
-    
+
 (defun same-space-between-statements (code)
   (let ((cl-ppcre:*use-bmh-matchers* nil))
     (cl-ppcre:regex-replace-all "\\s*;\\s*" code "; ")))
-    
+
 (defun remove-duplicate-spaces (str)
   (labels ((spacep (char) (and char (char= char #\Space)))
            (rds (list)
@@ -14,15 +14,15 @@
                    ((and (spacep (first list)) (spacep (second list))) (rds (cons #\Space (cddr list))))
                    (t (cons (car list) (rds (cdr list)))))))
     (coerce (rds (coerce str 'list)) 'string)))
-  
+
 (defun trim-spaces (str)
   (string-trim '(#\Space) str))
-  
+
 (defun remove-spaces-near-brackets (str)
   (let ((cl-ppcre:*use-bmh-matchers* nil))
     (reduce (lambda (str rex-pair) (cl-ppcre:regex-replace-all (first rex-pair) str (second rex-pair)))
             (cons str '(("\\[ " "[") (" \\]" "]") ("\\( " "(") (" \\)" ")"))))))
-  
+
 (defun normalize-js-code (str)
   (remove-spaces-near-brackets
    (trim-spaces
@@ -36,14 +36,11 @@
                                            (ps-doc* ',parenscript)))
                       (normalize-js-code ,javascript)))))
 
-(def-suite ps-tests)
-(def-suite ref-tests)
+(def-suite output-tests)
 (def-suite package-system-tests)
 
 (defun run-tests()
-  (format t "Running reference tests:~&")
-  (run! 'ref-tests)
-  (format t "Running other tests:~&")
-  (run! 'ps-tests)
-  (format t "Running Package System tests:~&")
+  (format t "Running output tests:~&")
+  (run! 'output-tests)
+  (format t "Running package system tests:~&")
   (run! 'package-system-tests))

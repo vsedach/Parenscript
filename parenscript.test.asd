@@ -5,7 +5,6 @@
                         :serial t
                         :components ((:file "test-package")
                                      (:file "test")
-                                     (:file "reference-tests")
-                                     (:file "ps-tests")
+                                     (:file "output-tests")
                                      (:file "package-system-tests"))))
   :depends-on (:parenscript :fiveam))

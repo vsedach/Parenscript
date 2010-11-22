@@ -17,6 +17,7 @@
                          (:file "compiler")
                          (:file "printer")
                          (:file "compilation-interface")
+                         (:file "non-cl")
                          (:file "special-operators")
                          (:file "macros")
                          (:file "deprecated-interface")

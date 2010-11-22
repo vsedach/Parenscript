@@ -1,0 +1,173 @@
+(in-package #:parenscript)
+
+;;; PS operators and macros that aren't present in the Common Lisp
+;;; standard but exported by Parenscript, and their Common Lisp
+;;; equivalent definitions
+
+(define-trivial-special-ops
+  array      js:array
+  instanceof js:instanceof
+  typeof     js:typeof
+  new        js:new
+  delete     js:delete
+  in         js:in ;; maybe rename to slot-boundp?
+  break      js:break
+  )
+
+(defun array (&rest initial-contents)
+  (make-array (length initial-contents) :initial-contents initial-contents))
+
+(define-statement-operator continue (&optional label)
+  `(js:continue ,label))
+
+(define-statement-operator switch (test-expr &rest clauses)
+  `(js:switch ,(compile-expression test-expr)
+     ,@(loop for (val . body) in clauses collect
+            (cons (if (eq val 'default)
+                      'js:default
+                      (compile-expression val))
+                  (mapcan (lambda (x)
+                            (let ((exp (compile-statement x)))
+                              (if (and (listp exp) (eq 'js:block (car exp)))
+                                  (cdr exp)
+                                  (list exp))))
+                          body)))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; objects
+
+(define-expression-operator create (&rest arrows)
+  `(js:object
+    ,@(loop for (key val-expr) on arrows by #'cddr collecting
+           (progn
+             (assert (or (stringp key) (numberp key) (symbolp key))
+                     ()
+                     "Slot key ~s is not one of symbol, string or number."
+                     key)
+             (cons (aif (and (symbolp key) (reserved-symbol? key)) it key)
+                   (compile-expression val-expr))))))
+
+(define-expression-operator %js-getprop (obj slot)
+  (let ((expanded-slot (ps-macroexpand slot))
+        (obj (compile-expression obj)))
+    (if (and (listp expanded-slot)
+             (eq 'quote (car expanded-slot)))
+        (aif (or (reserved-symbol? (second expanded-slot))
+                 (and (keywordp (second expanded-slot)) (second expanded-slot)))
+             `(js:aref ,obj ,it)
+             `(js:getprop ,obj ,(second expanded-slot)))
+        `(js:aref ,obj ,(compile-expression slot)))))
+
+(defpsmacro getprop (obj &rest slots)
+  (if (null (rest slots))
+      `(%js-getprop ,obj ,(first slots))
+      `(getprop (getprop ,obj ,(first slots)) ,@(rest slots))))
+
+(defpsmacro @ (obj &rest props)
+  "Handy getprop/aref composition macro."
+  (if props
+      `(@ (getprop ,obj ,(if (symbolp (car props))
+                             `',(car props)
+                             (car props)))
+          ,@(cdr props))
+      obj))
+
+(defpsmacro chain (&rest method-calls)
+  (labels ((do-chain (method-calls)
+             (if (cdr method-calls)
+                 (if (listp (car method-calls))
+                     `((@ ,(do-chain (cdr method-calls)) ,(caar method-calls)) ,@(cdar method-calls))
+                     `(@ ,(do-chain (cdr method-calls)) ,(car method-calls)))
+                 (car method-calls))))
+    (do-chain (reverse method-calls))))
+
+;;; var
+
+(define-expression-operator var (name &optional (value (values) value?) docstr)
+  (declare (ignore docstr))
+  (push name *enclosing-lexical-block-declarations*)
+  (when value? (compile-expression `(setf ,name ,value))))
+
+(define-statement-operator var (name &optional (value (values) value?) docstr)
+  `(js:var ,(ps-macroexpand name) ,@(when value? (list (compile-expression value) docstr))))
+
+(defmacro var (name &optional value docstr)
+  `(defparameter ,name ,@(when value (list value)) ,@(when docstr (list docstr))))
+
+;;; iteration
+
+(define-statement-operator for (init-forms cond-forms step-forms &body body)
+  (let ((init-forms (make-for-vars/inits init-forms)))
+   `(js:for ,init-forms
+            ,(mapcar #'compile-expression cond-forms)
+            ,(mapcar #'compile-expression step-forms)
+            ,(compile-loop-body (mapcar #'car init-forms) body))))
+
+(define-statement-operator for-in ((var object) &rest body)
+  `(js:for-in ,(compile-expression var)
+              ,(compile-expression object)
+              ,(compile-loop-body (list var) body)))
+
+(define-statement-operator while (test &rest body)
+  `(js:while ,(compile-expression test)
+     ,(compile-loop-body () body)))
+
+(defmacro while (test &body body)
+  `(loop while ,test do (progn ,@body)))
+
+;;; misc
+
+(define-statement-operator try (form &rest clauses)
+  (let ((catch (cdr (assoc :catch clauses)))
+        (finally (cdr (assoc :finally clauses))))
+    (assert (not (cdar catch)) () "Sorry, currently only simple catch forms are supported.")
+    (assert (or catch finally) () "Try form should have either a catch or a finally clause or both.")
+    `(js:try ,(compile-statement `(progn ,form))
+             :catch ,(when catch (list (caar catch) (compile-statement `(progn ,@(cdr catch)))))
+             :finally ,(when finally (compile-statement `(progn ,@finally))))))
+
+(define-expression-operator regex (regex)
+  `(js:regex ,(string regex)))
+
+(define-expression-operator lisp (lisp-form)
+  ;; (ps (foo (lisp bar))) is like (ps* `(foo ,bar))
+  ;; When called from inside of ps*, lisp-form has access to the
+  ;; dynamic environment only, analogous to eval.
+  `(js:escape
+    (with-output-to-string (*psw-stream*)
+      (let ((compile-expression? ,compile-expression?))
+        (parenscript-print (ps-compile ,lisp-form) t)))))
+
+(defun lisp (x) x)
+
+(defpsmacro undefined (x)
+  `(eql undefined ,x))
+
+(defpsmacro defined (x)
+  `(not (undefined ,x)))
+
+(defpsmacro objectp (x)
+  `(string= (typeof ,x) "object"))
+
+(define-ps-symbol-macro {} (create))
+
+(defpsmacro [] (&rest args)
+  `(array ,@(mapcar (lambda (arg)
+                      (if (and (consp arg) (not (equal '[] (car arg))))
+                          (cons '[] arg)
+                          arg))
+                    args)))
+
+(defpsmacro stringify (&rest things)
+  (if (and (= (length things) 1) (stringp (car things)))
+      (car things)
+      `((@ (list ,@things) :join) "")))
+(defun stringify (&rest things)
+  "Like concatenate but prints all of its arguments."
+  (format nil "~{~A~}" things))
+
+(define-ps-symbol-macro f js:f)
+(defvar f nil)
+
+(define-ps-symbol-macro false js:f)
+(defvar false nil)

@@ -1,8 +1,5 @@
 (in-package #:parenscript)
 
-(define-ps-symbol-macro f js:f)
-(define-ps-symbol-macro false js:f)
-
 (macrolet ((define-trivial-mappings (&rest mappings)
              `(progn
                 ,@(loop for (macro-name ps-op) on mappings by #'cddr collect
@@ -70,25 +67,7 @@
 (defpsmacro functionp (x)
   `(string= (typeof ,x) "function"))
 
-(defpsmacro objectp (x)
-  `(string= (typeof ,x) "object"))
-
-(defpsmacro undefined (x)
-  `(eql undefined ,x))
-
-(defpsmacro defined (x)
-  `(not (undefined ,x)))
-
 ;;; Data structures
-
-(define-ps-symbol-macro {} (create))
-
-(defpsmacro [] (&rest args)
-  `(array ,@(mapcar (lambda (arg)
-                      (if (and (consp arg) (not (equal '[] (car arg))))
-                          (cons '[] arg)
-                          arg))
-                    args)))
 
 (defpsmacro make-array (&rest initial-values)
   `(new (*array ,@initial-values)))
@@ -97,29 +76,6 @@
   `(getprop ,a 'length))
 
 ;;; Getters
-
-(defpsmacro getprop (obj &rest slots)
-  (if (null (rest slots))
-      `(%js-getprop ,obj ,(first slots))
-      `(getprop (getprop ,obj ,(first slots)) ,@(rest slots))))
-
-(defpsmacro @ (obj &rest props)
-  "Handy getprop/aref composition macro."
-  (if props
-      `(@ (getprop ,obj ,(if (symbolp (car props))
-                             `',(car props)
-                             (car props)))
-          ,@(cdr props))
-      obj))
-
-(defpsmacro chain (&rest method-calls)
-  (labels ((do-chain (method-calls)
-             (if (cdr method-calls)
-                 (if (listp (car method-calls))
-                     `((@ ,(do-chain (cdr method-calls)) ,(caar method-calls)) ,@(cdar method-calls))
-                     `(@ ,(do-chain (cdr method-calls)) ,(car method-calls)))
-                 (car method-calls))))
-    (do-chain (reverse method-calls))))
 
 (defpsmacro with-slots (slots object &rest body)
   (flet ((slot-var (slot)
@@ -403,15 +359,6 @@ lambda-list::=
 (defpsmacro concatenate (result-type &rest sequences)
   (assert (equal result-type ''string) () "Right now Parenscript 'concatenate' only support strings.")
   (cons '+ sequences))
-
-(defun stringify (&rest things)
-  "Like concatenate but prints all of its arguments."
-  (format nil "~{~A~}" things))
-
-(defpsmacro stringify (&rest things)
-  (if (and (= (length things) 1) (stringp (car things)))
-      (car things)
-      `((@ (list ,@things) :join) "")))
 
 (defpsmacro append (arr1 &rest arrs)
   (if arrs

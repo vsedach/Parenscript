@@ -172,8 +172,6 @@
   "Like concatenate but prints all of its arguments."
   (format nil "~{~A~}" things))
 
-(define-ps-symbol-macro f ps-js:f)
-(defvar f nil)
-
+(define-ps-symbol-macro f ps-js:f) ;; probably not a good idea to define 'f' to be a special variable
 (define-ps-symbol-macro false ps-js:f)
 (defvar false nil)

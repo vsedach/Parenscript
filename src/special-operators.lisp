@@ -16,7 +16,9 @@
   logior     ps-js:\|
   logxor     ps-js:^
   lognot     ps-js:~
-  ;; todo: ash for shifts
+  ;; << and >> are not exported, but for use by ash macro
+  <<         ps-js:<<
+  >>         ps-js:>>
 
   throw      ps-js:throw
   aref       ps-js:aref

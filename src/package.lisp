@@ -114,6 +114,7 @@
    #:logior
    #:logxor
    #:lognot
+   #:ash
 
    #:*
    #:/

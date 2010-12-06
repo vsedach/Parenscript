@@ -54,6 +54,20 @@
                                  `(floor (* ,upto (random)))
                                  '(funcall (@ *math random)))))
 
+(defpsmacro ash (integer count)
+  (let ((count (ps-macroexpand count)))
+    (cond ((and (numberp count) (> count 0)) `(<< ,integer ,count))
+          ((numberp count) `(>> ,integer ,(- count)))
+          ((complex-js-expr? count)
+           (let ((count-var (ps-gensym)))
+             `(let ((,count-var ,count))
+                (if (> ,count-var 0)
+                    (<< ,integer ,count-var)
+                    (>> ,integer (- ,count-var))))))
+          (t `(if (> ,count 0)
+                  (<< ,integer ,count)
+                  (>> ,integer (- ,count)))))))
+
 (define-ps-symbol-macro pi (getprop *math '*pi*))
 
 ;;; Types

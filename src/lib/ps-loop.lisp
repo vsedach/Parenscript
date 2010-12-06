@@ -2,8 +2,7 @@
 
 (defun complex-js-expr? (expr)
   (if (symbolp expr)
-      (or (find #\. (symbol-name expr))
-          (not (eq (ps-macroexpand expr) expr)))
+      (consp (ps-macroexpand expr))
       (consp expr)))
 
 (eval-when (:compile-toplevel :load-toplevel :execute)

@@ -2590,3 +2590,7 @@ foo = 3;")
 (test-ps-js case-invert1
   (encodeURIComponent fooBar)
   "encodeURIComponent(fooBar);")
+
+(test-ps-js simple-ash
+  (+ (ash 4 1) (ash 4 -1))
+  "(4 << 1) + (4 >> 1);")

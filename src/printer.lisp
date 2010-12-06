@@ -180,7 +180,7 @@ vice-versa.")
 (defprinter ps-js:post-- (x)
   (ps-print x)"--")
 
-(defprinter (ps-js:+ ps-js:- ps-js:* ps-js:/ ps-js:% ps-js:&& ps-js:\|\| ps-js:& ps-js:\| ps-js:-= ps-js:+= ps-js:*= ps-js:/= ps-js:%= ps-js:^ ps-js:&= ps-js:^= ps-js:\|= ps-js:= ps-js:== ps-js:=== ps-js:!== ps-js:in ps-js:!= ps-js:> ps-js:>= ps-js:< ps-js:<=)
+(defprinter (ps-js:+ ps-js:- ps-js:* ps-js:/ ps-js:% ps-js:&& ps-js:\|\| ps-js:& ps-js:\| ps-js:-= ps-js:+= ps-js:*= ps-js:/= ps-js:%= ps-js:^ ps-js:<< ps-js:>> ps-js:&= ps-js:^= ps-js:\|= ps-js:= ps-js:== ps-js:=== ps-js:!== ps-js:in ps-js:!= ps-js:> ps-js:>= ps-js:< ps-js:<=)
     (&rest args)
   (loop for (arg . remaining) on args do
        (print-op-argument op arg)

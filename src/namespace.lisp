@@ -1,4 +1,5 @@
 (in-package #:parenscript)
+(in-readtable :parenscript)
 
 (defvar *obfuscated-packages* (make-hash-table))
 

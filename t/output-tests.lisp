@@ -292,8 +292,8 @@ _js2.style.left = _js1;")
 
 (test-ps-js nil-block-return-1
   (block nil (return))
-  "nilblock: {
-    break nilblock;
+  "nilBlock: {
+    break nilBlock;
 };")
 
 (test-ps-js single-argument-statements-2
@@ -2538,8 +2538,8 @@ foo = 3;")
 
 (test-ps-js explicit-nil-block
   (block nil (return) (+ 1 2))
-  "nilblock: {
-    break nilblock;
+  "nilBlock: {
+    break nilBlock;
     1 + 2;
 };")
 
@@ -2561,14 +2561,14 @@ foo = 3;")
 
 (test-ps-js block-dynamic-return
   (block nil ((lambda () (return))) (+ 1 2))
-  "nilblock: {
+  "nilBlock: {
     try {
         (function () {
-            throw { 'ps-block-tag' : 'nilblock', 'ps-return-value' : null };
+            throw { 'ps-block-tag' : 'nilBlock', 'ps-return-value' : null };
         })();
         1 + 2;
     } catch (err) {
-        if (err && 'nilblock' === err['ps-block-tag']) {
+        if (err && 'nilBlock' === err['ps-block-tag']) {
             err['ps-return-value'];
         } else {
             throw err;
@@ -2594,3 +2594,14 @@ foo = 3;")
 (test-ps-js simple-ash
   (+ (ash 4 1) (ash 4 -1))
   "(4 << 1) + (4 >> 1);")
+
+(test-ps-js progn-nil-expression
+  (bar (progn (foo) nil))
+  "bar((foo(), null));")
+
+(test-ps-js other-progn-nil-exp
+  (defun blah ()
+    (or (foo) (progn (bar) nil)))
+  "function blah() {
+    return foo() || (bar(), null);
+};")

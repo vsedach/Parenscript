@@ -1,4 +1,5 @@
 (in-package #:parenscript)
+(in-readtable :parenscript)
 
 (defparameter %compiling-reserved-forms-p% t
   "Used to issue warnings when replacing PS special operators or macros.")

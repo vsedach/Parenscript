@@ -1,4 +1,5 @@
 (in-package #:parenscript)
+(in-readtable :parenscript)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; arithmetic and logic
@@ -16,9 +17,6 @@
   logior     ps-js:\|
   logxor     ps-js:^
   lognot     ps-js:~
-  ;; << and >> are not exported, but for use by ash macro
-  <<         ps-js:<<
-  >>         ps-js:>>
 
   throw      ps-js:throw
   aref       ps-js:aref
@@ -93,17 +91,19 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; blocks and control flow
 
+(defun flatten-blocks (body)
+  (when body
+    (if (and (listp (car body)) (eq 'ps-js:block (caar body)))
+        (append (cdr (car body)) (flatten-blocks (cdr body)))
+        (cons (car body) (flatten-blocks (cdr body))))))
+
 (defun compile-progn (body)
-  (labels ((flatten-blocks (body)
-             (when body
-               (if (and (listp (car body)) (eq 'ps-js:block (caar body)))
-                   (append (cdr (car body)) (flatten-blocks (cdr body)))
-                   (cons (car body) (flatten-blocks (cdr body)))))))
-    (let ((block (flatten-blocks (remove nil (mapcar #'ps-compile body)))))
-      (append (remove-if #'constantp (butlast block))
-              (unless (and (eq *compilation-level* :toplevel)
-                           (not (car (last block))))
-                (last block))))))
+  (let ((block (flatten-blocks (mapcar #'ps-compile body))))
+    (append (remove-if #'constantp (butlast block))
+            (unless (and (or (eq *compilation-level* :toplevel)
+                             (not compile-expression?))
+                         (not (car (last block))))
+              (last block)))))
 
 (define-expression-operator progn (&rest body)
   (if (cdr body)

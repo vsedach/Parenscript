@@ -1,4 +1,5 @@
 (in-package #:parenscript)
+(in-readtable :parenscript)
 
 (macrolet ((define-trivial-mappings (&rest mappings)
              `(progn

@@ -1,4 +1,5 @@
 (in-package #:parenscript)
+(in-readtable :parenscript)
 
 ;;; PS operators and macros that aren't present in the Common Lisp
 ;;; standard but exported by Parenscript, and their Common Lisp
@@ -17,6 +18,8 @@
   delete     ps-js:delete
   in         ps-js:in ;; maybe rename to slot-boundp?
   break      ps-js:break
+  <<         ps-js:<<
+  >>         ps-js:>>
   )
 
 ;; Common Lisp Hyperspec, 11.1.2.1.2

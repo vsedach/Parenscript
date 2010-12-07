@@ -1,4 +1,5 @@
 (in-package #:parenscript)
+(in-readtable :parenscript)
 
 (define-condition simple-style-warning (simple-condition style-warning)
   ())

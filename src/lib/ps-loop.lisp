@@ -165,10 +165,10 @@
       (error "PS-LOOP encountered illegal ~a: ~a was already declared, and there can only be one kind of default accumulation per loop." kind (default-accum-kind state)))
     (unless (default-accum-var state)
       (setf (default-accum-var state)
-            (ps-gensym (loop-case kind
-                             (:minimize 'min)
-                             (:maximize 'max)
-                             (t kind))))
+            (ps-gensym (string (loop-case kind
+                                     (:minimize 'min)
+                                     (:maximize 'max)
+                                     (t kind)))))
       (setf (default-accum-kind state) kind))
     (setf var (default-accum-var state)))
   (let ((initial (loop-case kind

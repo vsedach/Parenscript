@@ -146,15 +146,15 @@
       (let ((form (ps-macroexpand result)))
         (flet ((return-exp (value) ;; this stuff needs to be fixed to handle multiple-value returns, too
                  (let ((value (compile-expression value)))
-                  (cond ((or (eql '%function-body tag) (eql *function-block-name* tag))
-                         `(ps-js:return ,value))
-                        ((member tag *lexical-extent-return-tags*)
+                  (cond ((member tag *lexical-extent-return-tags*)
                          (when result
                            (warn "Trying to (RETURN-FROM ~A ~A) a value from a block. Parenscript doesn't support returning values this way from blocks yet!" tag result))
                          `(ps-js:break ,tag))
                         ((member tag *dynamic-extent-return-tags*)
                          (push tag *tags-that-return-throws-to*)
                          (ps-compile `(throw (create :ps-block-tag ',tag :ps-return-value ,value))))
+                        ((or (eql '%function-body tag) (member tag *function-block-names*))
+                         `(ps-js:return ,value))
                         (t (warn "Returning from unknown block ~A" tag)
                            `(ps-js:return ,value)))))) ;; for backwards-compatibility
           (if (listp form)
@@ -257,6 +257,14 @@
           (*special-variables* (append local-specials *special-variables*)))
      ,@body))
 
+(defun collapse-function-return-blocks (body)
+  (append (butlast body)
+          (let ((last (ps-macroexpand (car (last body)))))
+            (if (and (listp last) (eq 'block (car last)))
+                (progn (push (or (second last) 'nilBlock) *function-block-names*)
+                       (cddr last))
+                (list last)))))
+
 (defun compile-function-definition (args body)
   (with-declaration-effects body
     (let* ((*enclosing-lexical-block-declarations* ())
@@ -264,7 +272,8 @@
            (body                                   (let ((in-loop-scope?                 nil)
                                                          (*loop-scope-lexicals*          ())
                                                          (*loop-scope-lexicals-captured* ()))
-                                                     (compile-statement `(return-from %function-body (progn ,@body)))))
+                                                     (compile-statement `(return-from %function-body
+                                                                           (progn ,@(collapse-function-return-blocks body))))))
            (var-decls                              (compile-statement
                                                     `(progn ,@(mapcar (lambda (var) `(var ,var))
                                                                       (remove-duplicates *enclosing-lexical-block-declarations*))))))
@@ -274,8 +283,8 @@
       `(ps-js:block ,@(cdr var-decls) ,@(cdr body)))))
 
 (define-expression-operator %js-lambda (args &rest body)
-  (let ((*function-block-name* nil)
-        (*dynamic-extent-return-tags* (append (when *function-block-name* (list *function-block-name*))
+  (let ((*function-block-names* nil)
+        (*dynamic-extent-return-tags* (append *function-block-names*
                                               *lexical-extent-return-tags*
                                               *dynamic-extent-return-tags*))
         (*lexical-extent-return-tags* ()))
@@ -284,12 +293,12 @@
 (define-statement-operator %js-defun (name args &rest body)
   (let ((docstring (and (cdr body) (stringp (car body)) (car body)))
         (*enclosing-lexicals* (cons name *enclosing-lexicals*))
-        (*function-block-name* name)
+        (*function-block-names* (list name))
         (*lexical-extent-return-tags* ())
         (*dynamic-extent-return-tags* ())
         (*tags-that-return-throws-to* ()))
     `(ps-js:defun ,name ,args ,docstring
-               ,(wrap-block-for-dynamic-return name (compile-function-definition args (if docstring (cdr body) body))))))
+                  ,(wrap-block-for-dynamic-return name (compile-function-definition args (if docstring (cdr body) body))))))
 
 (defun parse-key-spec (key-spec)
   "parses an &key parameter.  Returns 5 values:
@@ -410,7 +419,7 @@ Syntax of key spec:
                                                  `(,(if compile-expression? 'ps-js:= 'ps-js:var)
                                                     ,(getf fn-renames fn-name)
                                                     (ps-js:lambda ,args
-                                                      ,(let ((*function-block-name* fn-name))
+                                                      ,(let ((*function-block-names* (list fn-name)))
                                                          (compile-function-definition args body)))))))
          ;; the flet body needs to be compiled with the extended lexical environment
          (*enclosing-lexicals*       (append fn-renames *enclosing-lexicals*))
@@ -432,7 +441,7 @@ Syntax of key spec:
                            `(,(if compile-expression? 'ps-js:= 'ps-js:var)
                               ,(getf *local-function-names* fn-name)
                               (ps-js:lambda ,args
-                                ,(let ((*function-block-name* fn-name))
+                                ,(let ((*function-block-names* (list fn-name)))
                                    (compile-function-definition args body))))))
        ,@(compile-progn body))))
 

@@ -2605,3 +2605,35 @@ foo = 3;")
   "function blah() {
     return foo() || (bar(), null);
 };")
+
+(test-ps-js lambda-nil-return
+  (lambda (x)
+    (block nil
+      (when x
+        (return 1))
+      2))
+  "function (x) {
+    if (x) {
+        return 1;
+    };
+    return 2;
+};")
+
+(test-ps-js lambda-nil-return-implicit-nested
+  (lambda (x)
+    (block nil
+      (if x
+        (return 1)
+        (dotimes (i 4)
+          (return 1)))
+      2))
+  "function (x) {
+    if (x) {
+        return 1;
+    } else {
+        for (var i = 0; i < 4; i += 1) {
+            break;
+        };
+    };
+    return 2;
+};")

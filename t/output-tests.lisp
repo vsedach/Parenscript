@@ -894,7 +894,6 @@ __setf_someThing('foo', 1, 2);")
 (test-ps-js defun-keyword1
   (defun zoo (foo bar &key baz) (+ foo bar baz))
   "function zoo(foo, bar) {
-    var baz = null;
     var _js2 = arguments.length;
     for (var n1 = 2; n1 < _js2; n1 += 2) {
         switch (arguments[n1]) {
@@ -902,13 +901,13 @@ __setf_someThing('foo', 1, 2);")
             baz = arguments[n1 + 1];
         };
     };
+    var baz;
     return foo + bar + baz;
 };")
 
 (test-ps-js defun-keyword2
   (defun zoo (&key baz) (* baz baz))
   "function zoo() {
-    var baz = null;
     var _js2 = arguments.length;
     for (var n1 = 0; n1 < _js2; n1 += 2) {
         switch (arguments[n1]) {
@@ -916,14 +915,13 @@ __setf_someThing('foo', 1, 2);")
             baz = arguments[n1 + 1];
         };
     };
+    var baz;
     return baz * baz;
 };")
 
 (test-ps-js defun-keyword3
   (defun zoo (&key baz (bar 4)) (* baz bar))
   "function zoo() {
-    var baz = null;
-    var bar = 4;
     var _js2 = arguments.length;
     for (var n1 = 0; n1 < _js2; n1 += 2) {
         switch (arguments[n1]) {
@@ -934,6 +932,8 @@ __setf_someThing('foo', 1, 2);")
             bar = arguments[n1 + 1];
         };
     };
+    var baz;
+    var bar = bar ? bar : 4;
     return baz * bar;
 };")
 
@@ -941,7 +941,6 @@ __setf_someThing('foo', 1, 2);")
   (defun hello-world (&key ((:my-name-key my-name) 1))
     my-name)
   "function helloWorld() {
-    var myName = 1;
     var _js2 = arguments.length;
     for (var n1 = 0; n1 < _js2; n1 += 2) {
         switch (arguments[n1]) {
@@ -949,6 +948,7 @@ __setf_someThing('foo', 1, 2);")
             myName = arguments[n1 + 1];
         };
     };
+    var myName = myName ? myName : 1;
     return myName;
 };")
 
@@ -956,8 +956,6 @@ __setf_someThing('foo', 1, 2);")
   (lambda (&key (foo 1 supplied?))
     foo)
 "function () {
-    var suppliedwhat = null;
-    var foo = 1;
     var _js2 = arguments.length;
     for (var n1 = 0; n1 < _js2; n1 += 2) {
         switch (arguments[n1]) {
@@ -966,6 +964,8 @@ __setf_someThing('foo', 1, 2);")
             suppliedwhat = true;
         };
     };
+    var suppliedwhat;
+    var foo = foo ? foo : 1;
     return foo;
 };")
 

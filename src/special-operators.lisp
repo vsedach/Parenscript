@@ -364,23 +364,22 @@ Syntax of key spec:
            (key-forms
             (when keys?
               (with-ps-gensyms (n)
-                (let ((decls ())
-                      (assigns ()))
+                (let (defaults assigns)
                   (mapc
                    (lambda (k)
                      (multiple-value-bind (var init-form keyword-str suppl)
                          (parse-key-spec k)
-                       (push `(var ,var ,init-form) decls)
-                       (when suppl (push `(var ,suppl nil) decls))
+                       (push `(var ,var ,@(when init-form `((if ,var ,var ,init-form)))) defaults)
+                       (when suppl (push `(var ,suppl) defaults))
                        (push `(,keyword-str
                                (setf ,var (aref arguments (1+ ,n))
                                      ,@(when suppl `(,suppl t))))
                              assigns)))
                    (reverse keys))
-                  `(,@decls
-                    (loop for ,n from ,(length requireds)
-                       below (length arguments) by 2 do
-                         (case (aref arguments ,n) ,@assigns)))))))
+                  `((loop for ,n from ,(length requireds) below (length arguments) by 2 do
+                         (case (aref arguments ,n)
+                           ,@assigns))
+                    ,@defaults)))))
            (rest-form
             (when rest?
               (with-ps-gensyms (i)

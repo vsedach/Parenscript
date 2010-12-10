@@ -2637,3 +2637,15 @@ foo = 3;")
     };
     return 2;
 };")
+
+(test-ps-js throw-is-a-statement
+  (defun blah ()
+    (let ((result (foo)))
+      (unless (null result)
+        (throw result))))
+  "function blah() {
+    var result = foo();
+    if (result != null) {
+        throw result;
+    };
+};")

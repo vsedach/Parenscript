@@ -18,7 +18,6 @@
   logxor     ps-js:^
   lognot     ps-js:~
 
-  throw      ps-js:throw
   aref       ps-js:aref
 
   funcall    ps-js:funcall
@@ -213,6 +212,9 @@
                         form ;; by now only special forms that return nil should be left, so this is ok for implicit return
                         (return-from expressionize (return-exp form)))))))
               (return-exp form))))))
+
+(define-statement-operator throw (&rest args)
+  `(ps-js:throw ,@(mapcar #'compile-expression args)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; conditionals

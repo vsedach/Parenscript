@@ -129,10 +129,11 @@
          (*tags-that-return-throws-to* ()))
     `(ps-js:label ,name ,(wrap-block-for-dynamic-return name (compile-statement `(progn ,@body))))))
 
-(defun nesting-depth (form)
-  (if (consp form)
-      (max (1+ (nesting-depth (car form))) (nesting-depth (cdr form)))
-      0))
+(defun try-expressionize-if? (form)
+  (< (count #\Newline (with-output-to-string (*psw-stream*)
+                        (let ((*ps-print-pretty* t))
+                          (parenscript-print (compile-statement form) t))))
+     (if (= (length form) 4) 5 4)))
 
 (define-statement-operator return-from (tag &optional result)
   (if (not tag)
@@ -202,7 +203,9 @@
                             :format-control "Trying to RETURN a RETURN without a block tag specified. Perhaps you're still returning values from functions by hand? Parenscript now implements implicit return, update your code! Things like (lambda () (return x)) are not valid Common Lisp and may not be supported in future versions of Parenscript."))
                      form)
                    (if
-                    (aif (and (<= (nesting-depth form) 3) (handler-case (compile-expression form) (compile-expression-error () nil)))
+                    (aif (and (try-expressionize-if? form)
+                              (handler-case (compile-expression form)
+                                (compile-expression-error () nil)))
                          (return-from expressionize `(ps-js:return ,it))
                          `(if ,(second form)
                               (return-from ,tag ,(third form))

@@ -1088,9 +1088,7 @@ __setf_someThing('foo', 1, 2);")
                                                 (setf (,macroname x) 123)))))))
                (normalize-js-code
 "function test1() {
-    if (data[x]) {
-        return data[x] = 123;
-    };
+    return data[x] ? (data[x] = 123) : null;
 };"))))
 
 (test macro-environment2
@@ -1341,11 +1339,7 @@ bar(foo1(1));")
                 (foo 3))))
 "(function () {
     var foo = function (x) {
-        if (0 === x) {
-            return 0;
-        } else {
-            return x + foo(x - 1);
-        };
+        return 0 === x ? 0 : x + foo(x - 1);
     };
     return foo(3);
 })();")
@@ -1423,7 +1417,11 @@ bar(foo(1));")
   (defun foo ()
     (if x y (if z a b)))
 "function foo() {
-    return x ? y : (z ? a : b);
+    if (x) {
+        return y;
+    } else {
+        return z ? a : b;
+    };
 };")
 
 (test-ps-js let1
@@ -2454,7 +2452,7 @@ foo = 3;")
    if (baz) {
        return 7;
    } else {
-       for (var _js1 = 0; _js1 < 100; _js1 += 1) {
+       for (var _js2 = 0; _js2 < 100; _js2 += 1) {
            bar();
        };
        return 42;
@@ -2647,5 +2645,19 @@ foo = 3;")
     var result = foo();
     if (result != null) {
         throw result;
+    };
+};")
+
+(test-ps-js expressify1
+  (defun blah ()
+    (when (some-condition)
+      (foo)
+      (bar)
+      (baz)))
+  "function blah() {
+    if (someCondition()) {
+        foo();
+        bar();
+        return baz();
     };
 };")

@@ -7,7 +7,7 @@ following transformation heuristics case conversion. For example,
 paren-script becomes parenScript, *some-global* becomes SOMEGLOBAL."
     (or (gethash identifier cache)
         (setf (gethash identifier cache)
-              (cond ((some (lambda (c) (find c "-*+!?#@%/=:<>")) identifier)
+              (cond ((some (lambda (c) (find c "-*+!?#@%/=:<>^")) identifier)
                      (let ((lowercase t)
                            (all-uppercase nil))
                        (when (and (not (string= identifier "[]")) ;; HACK
@@ -26,10 +26,10 @@ paren-script becomes parenScript, *some-global* becomes SOMEGLOBAL."
                          (loop for c across identifier
                             do (acond ((eql c #\-)
                                        (setf lowercase (not lowercase)))
-                                      ((position c "!?#@%+*/=:<>")
+                                      ((position c "!?#@%+*/=:<>^")
                                        (write-sequence (aref #("bang" "what" "hash" "at" "percent"
                                                                "plus" "star" "slash" "equals" "colon"
-                                                               "lessthan" "greaterthan")
+                                                               "lessthan" "greaterthan" "caret")
                                                              it)
                                                        acc))
                                       (t (write-char (cond ((and lowercase (not all-uppercase)) (char-downcase c))

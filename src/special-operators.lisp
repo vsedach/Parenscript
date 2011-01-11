@@ -372,7 +372,7 @@ Syntax of key spec:
                    (lambda (k)
                      (multiple-value-bind (var init-form keyword-str suppl)
                          (parse-key-spec k)
-                       (push `(var ,var ,@(when init-form `((if ,var ,var ,init-form)))) defaults)
+                       (push `(var ,var ,@(when init-form `((if (undefined ,var) ,init-form ,var)))) defaults)
                        (when suppl (push `(var ,suppl) defaults))
                        (push `(,keyword-str
                                (setf ,var (aref arguments (1+ ,n))

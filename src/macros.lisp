@@ -428,8 +428,10 @@ lambda-list::=
 (defpsmacro return (&optional result)
   `(return-from nil ,result))
 
-(defpsmacro ignore-errors (&body body)
-  `(try (progn ,@body) (:catch (e))))
+(defpsmacro ignore-errors (&body forms)
+  (with-ps-gensyms (e)
+    `(try (progn ,@forms)
+          (:catch (,e) nil))))
 
 (defpsmacro prog1 (first &rest others)
   (with-ps-gensyms (val)

@@ -2125,6 +2125,7 @@ __setf_foo(5, x, 1, 2, 3, 4);")
 switch (foo) {
 case 123:
     return bar() ? true : null;
+    break;
 case 345:
     return blah();
 };
@@ -2659,5 +2660,22 @@ foo = 3;")
         foo();
         bar();
         return baz();
+    };
+};")
+
+(test-ps-js case-when-return
+  (defun blah (a)
+    (case a
+      ("a" (when (foo) (return-from blah 111)))
+      ("b" t)))
+  "function blah(a) {
+    switch (a) {
+    case 'a':
+        if (foo()) {
+            return 111;
+        };
+        break;
+    case 'b':
+        return true;
     };
 };")

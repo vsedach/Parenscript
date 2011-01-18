@@ -172,7 +172,7 @@
                                                      ((eq 'break (car (last cbody)))
                                                       2))))
                                    (if last-n
-                                       (let ((result-form (car (last cbody last-n))))
+                                       (let ((result-form (ps-macroexpand (car (last cbody last-n)))))
                                          `(,cvalue
                                            ,@(butlast cbody last-n)
                                            (return-from ,tag ,result-form)

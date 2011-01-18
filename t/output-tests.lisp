@@ -933,7 +933,7 @@ __setf_someThing('foo', 1, 2);")
         };
     };
     var baz;
-    var bar = bar ? bar : 4;
+    var bar = undefined === bar ? 4 : bar;
     return baz * bar;
 };")
 
@@ -948,7 +948,7 @@ __setf_someThing('foo', 1, 2);")
             myName = arguments[n1 + 1];
         };
     };
-    var myName = myName ? myName : 1;
+    var myName = undefined === myName ? 1 : myName;
     return myName;
 };")
 
@@ -965,7 +965,7 @@ __setf_someThing('foo', 1, 2);")
         };
     };
     var suppliedwhat;
-    var foo = foo ? foo : 1;
+    var foo = undefined === foo ? 1 : foo;
     return foo;
 };")
 

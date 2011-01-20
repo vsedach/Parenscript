@@ -178,27 +178,10 @@ lambda-list::=
   [&key {var | ({var | (keyword-name var)} [init-form [supplied-p-parameter]])}* [&allow-other-keys]]
   [&aux {var | (var [init-form])}*])"
   (if (symbolp name)
-      `(defun-function ,name ,lambda-list ,@body)
+      `(defun% ,name ,lambda-list ,@body)
       (progn (assert (and (listp name) (= (length name) 2) (eq 'setf (car name))) ()
                      "(defun ~s ~s ...) needs to have a symbol or (setf symbol) for a name." name lambda-list)
              `(defun-setf ,name ,lambda-list ,@body))))
-
-(defpsmacro defun-function (name lambda-list &body body)
-  (multiple-value-bind (effective-args effective-body)
-      (parse-extended-function lambda-list body)
-    `(%js-defun ,name ,effective-args
-                ,@effective-body)))
-
-(defpsmacro lambda (lambda-list &body body)
-  "An extended defun macro that allows cool things like keyword arguments.
-lambda-list::=
- (var*
-  [&optional {var | (var [init-form [supplied-p-parameter]])}*]
-  [&rest var]
-  [&key {var | ({var | (keyword-name var)} [init-form [supplied-p-parameter]])}* [&allow-other-keys]]
-  [&aux {var | (var [init-form])}*])"
-  (multiple-value-bind (effective-args effective-body) (parse-extended-function lambda-list body)
-    `(%js-lambda ,effective-args ,@effective-body)))
 
 ;;; defining setf expanders
 

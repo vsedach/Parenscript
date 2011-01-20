@@ -213,19 +213,19 @@ vice-versa.")
   (decf *indent-level*) (newline-and-indent)
   "}")
 
-(defprinter ps-js:lambda (args body)
-  (print-fun-def nil args body))
+(defprinter ps-js:lambda (args &rest body)
+  (print-fun-def nil args `(ps-js:block ,@body)))
 
 (defprinter ps-js:defun (name args docstring body)
   (when docstring (print-comment docstring))
   (print-fun-def name args body))
 
-(defun print-fun-def (name args body-block)
+(defun print-fun-def (name args body)
   (format *psw-stream* "function ~:[~;~A~](" name (symbol-to-js-string name))
   (loop for (arg . remaining) on args do
         (psw (symbol-to-js-string arg)) (when remaining (psw ", ")))
   (psw ") ")
-  (ps-print body-block))
+  (ps-print body))
 
 (defprinter ps-js:object (&rest slot-defs)
   "{ "(loop for ((slot-name . slot-value) . remaining) on slot-defs do

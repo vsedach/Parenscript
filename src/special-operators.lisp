@@ -115,11 +115,11 @@
 (defun wrap-block-for-dynamic-return (tag body)
   (if (member tag *tags-that-return-throws-to*)
       `(ps-js:block
-           (ps-js:try ,body
-                   :catch (err ,(compile-statement `(progn (if (and err (eql ',tag (getprop err :ps-block-tag)))
-                                                               ;; FIXME make this a multiple-value return
-                                                               (getprop err :ps-return-value)
-                                                               (throw err)))))
+         (ps-js:try ,body
+                    :catch (err ,(compile-statement `(progn (if (and err (eql ',tag (getprop err :ps-block-tag)))
+                                                                ;; FIXME make this a multiple-value return
+                                                                (getprop err :ps-return-value)
+                                                                (throw err)))))
                    :finally nil))
       body))
 
@@ -285,25 +285,29 @@
       (when in-loop-scope? ;; this is probably broken when it comes to let-renaming
         (setf *loop-scope-lexicals-captured* (append (intersection (flatten body) *loop-scope-lexicals*)
                                                      *loop-scope-lexicals-captured*)))
-      `(ps-js:block ,@(cdr var-decls) ,@(cdr body)))))
+      (append (cdr var-decls) (cdr body)))))
 
-(define-expression-operator %js-lambda (args &rest body)
-  (let ((*function-block-names* nil)
-        (*dynamic-extent-return-tags* (append *function-block-names*
-                                              *lexical-extent-return-tags*
-                                              *dynamic-extent-return-tags*))
-        (*lexical-extent-return-tags* ()))
-   `(ps-js:lambda ,args ,(compile-function-definition args body))))
+(define-expression-operator lambda (lambda-list &rest body)
+  (multiple-value-bind (effective-args effective-body) (parse-extended-function lambda-list body)
+    `(ps-js:lambda ,effective-args
+       ,@(let ((*function-block-names* nil)
+               (*dynamic-extent-return-tags* (append *function-block-names*
+                                                     *lexical-extent-return-tags*
+                                                     *dynamic-extent-return-tags*))
+               (*lexical-extent-return-tags* ()))
+           (compile-function-definition effective-args effective-body)))))
 
-(define-statement-operator %js-defun (name args &rest body)
-  (let ((docstring (and (cdr body) (stringp (car body)) (car body)))
-        (*enclosing-lexicals* (cons name *enclosing-lexicals*))
-        (*function-block-names* (list name))
-        (*lexical-extent-return-tags* ())
-        (*dynamic-extent-return-tags* ())
-        (*tags-that-return-throws-to* ()))
-    `(ps-js:defun ,name ,args ,docstring
-                  ,(wrap-block-for-dynamic-return name (compile-function-definition args (if docstring (cdr body) body))))))
+(define-statement-operator defun% (name lambda-list &rest body)
+  (multiple-value-bind (effective-args body) (parse-extended-function lambda-list body)
+    (let ((docstring (and (cdr body) (stringp (car body)) (car body))))
+      `(ps-js:defun ,name ,effective-args ,docstring
+         ,(let ((*enclosing-lexicals* (cons name *enclosing-lexicals*))
+                (*function-block-names* (list name))
+                (*lexical-extent-return-tags* ())
+                (*dynamic-extent-return-tags* ())
+                (*tags-that-return-throws-to* ()))
+            (wrap-block-for-dynamic-return name
+              (cons 'ps-js:block (compile-function-definition effective-args (if docstring (cdr body) body)))))))))
 
 (defun parse-key-spec (key-spec)
   "parses an &key parameter.  Returns 5 values:
@@ -420,11 +424,10 @@ Syntax of key spec:
          (fn-defs                    (loop for (fn-name . (args . body)) in fn-defs collect
                                           (progn (when compile-expression?
                                                    (push (getf fn-renames fn-name) *enclosing-lexical-block-declarations*))
-                                                 `(,(if compile-expression? 'ps-js:= 'ps-js:var)
-                                                    ,(getf fn-renames fn-name)
-                                                    (ps-js:lambda ,args
-                                                      ,(let ((*function-block-names* (list fn-name)))
-                                                         (compile-function-definition args body)))))))
+                                                 (list (if compile-expression? 'ps-js:= 'ps-js:var)
+                                                       (getf fn-renames fn-name)
+                                                       (let ((*function-block-names* (list fn-name)))
+                                                         (compile-expression `(lambda ,args ,@body)))))))
          ;; the flet body needs to be compiled with the extended lexical environment
          (*enclosing-lexicals*       (append fn-renames *enclosing-lexicals*))
          (*loop-scope-lexicals*      (when in-loop-scope? (append fn-renames *loop-scope-lexicals*)))
@@ -442,11 +445,10 @@ Syntax of key spec:
        ,@(loop for (fn-name . (args . body)) in fn-defs collect
                     (progn (when compile-expression?
                              (push (getf *local-function-names* fn-name) *enclosing-lexical-block-declarations*))
-                           `(,(if compile-expression? 'ps-js:= 'ps-js:var)
-                              ,(getf *local-function-names* fn-name)
-                              (ps-js:lambda ,args
-                                ,(let ((*function-block-names* (list fn-name)))
-                                   (compile-function-definition args body))))))
+                           (list (if compile-expression? 'ps-js:= 'ps-js:var)
+                                 (getf *local-function-names* fn-name)
+                                 (let ((*function-block-names* (list fn-name)))
+                                   (compile-expression `(lambda ,args ,@body))))))
        ,@(compile-progn body))))
 
 (define-expression-operator function (fn-name)

@@ -70,7 +70,7 @@
 
 (test-ps-js array-literals-3
   (array (array 2 3)
-       (array "foobar" "bratzel bub"))
+         (array "foobar" "bratzel bub"))
   "[ [ 2, 3 ], [ 'foobar', 'bratzel bub' ] ];")
 
 (test-ps-js array-literals-4
@@ -83,8 +83,8 @@
 
 (test-ps-js array-literals-6
   (make-array
- (make-array 2 3)
- (make-array "foobar" "bratzel bub"))
+   (make-array 2 3)
+   (make-array "foobar" "bratzel bub"))
   "new Array(new Array(2, 3), new Array('foobar', 'bratzel bub'));")
 
 (test-ps-js object-literals-1
@@ -93,8 +93,8 @@
 
 (test-ps-js object-literals-2
   (create foo "hihi"
-        blorg (array 1 2 3)
-        another-object (create :schtrunz 1))
+          blorg (array 1 2 3)
+          another-object (create :schtrunz 1))
   "{ foo : 'hihi',
   blorg : [ 1, 2, 3 ],
   anotherObject : { 'schtrunz' : 1 } };")
@@ -109,7 +109,7 @@
 
 (test-ps-js object-literals-5
   (with-slots (a b c) this
-  (+ a b c))
+    (+ a b c))
   "this.a + this.b + this.c;")
 
 (test-ps-js regular-expression-literals-1
@@ -1368,6 +1368,18 @@ var bar = function (y) {
 };
 bar(foo(1));")
 
+(test-ps-js labels-lambda-list
+  (labels ((foo (x &optional (y 0))
+             (+ x y)))
+    (foo 1))
+  "var foo = function (x, y) {
+    if (y === undefined) {
+        y = 0;
+    };
+    return x + y;
+};
+foo(1);")
+
 (test-ps-js for-loop-var-init-exp
   ((lambda (x)
      (do* ((y (if x 0 1) (1+ y))
@@ -1771,6 +1783,23 @@ x1 - x1;
     return x + 1;
 }, foo(1)) + 1;")
 
+(test-ps-js flet-lambda-list
+  (labels ((foo (x &key (y 0))
+             (+ x y)))
+    (foo 1 :y 2))
+  "var foo = function (x) {
+    var _js2 = arguments.length;
+    for (var n1 = 1; n1 < _js2; n1 += 2) {
+        switch (arguments[n1]) {
+        case 'y':
+            y = arguments[n1 + 1];
+        };
+    };
+    var y = undefined === y ? 0 : y;
+    return x + y;
+};
+foo(1, 'y', 2);")
+
 (test-ps-js return-case-break-elimination
   (defun foo ()
     (return-from foo
@@ -1886,6 +1915,25 @@ try {
     var b = mv1[0];
     alert(a3);
     alert(b);
+} finally {
+    if (undefined === prevMv2) {
+        delete arguments['callee']['mv'];
+    } else {
+        arguments['callee']['mv'] = prevMv2;
+    };
+};")
+
+(test-ps-js multiple-value-bind-simple
+  (multiple-value-bind (a b) (blah)
+    (+ a b))
+  "var prevMv2 = null;
+prevMv2 = arguments['callee']['mv'];
+try {
+    arguments['callee']['mv'] = true;
+    var a = blah();
+    var mv1 = typeof arguments['callee']['mv'] === 'object' ? arguments['callee']['mv'] : new Array(1);
+    var b = mv1[0];
+    a + b;
 } finally {
     if (undefined === prevMv2) {
         delete arguments['callee']['mv'];

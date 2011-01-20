@@ -9,7 +9,9 @@
 
 (defun defined-operator-override-check (name &rest body)
   (when (and (not %compiling-reserved-forms-p%) (member name *ps-defined-operators*))
-    (warn "Redefining Parenscript operator/macro ~A" name))
+    (warn 'simple-style-warning
+          :format-control "Redefining Parenscript operator/macro ~A"
+          :format-arguments (list name)))
   `(progn ,(when %compiling-reserved-forms-p% `(pushnew ',name *ps-defined-operators*))
           ,@body))
 

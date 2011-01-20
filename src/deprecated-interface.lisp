@@ -1,7 +1,7 @@
 (in-package #:parenscript)
 (in-readtable :parenscript)
 
-(define-condition simple-style-warning (simple-condition style-warning)
+(define-condition simple-style-warning (style-warning simple-warning)
   ())
 
 (defun warn-deprecated (old-name &optional new-name)

@@ -72,7 +72,7 @@ lexical block.")
 (defvar *loop-scope-lexicals*)
 (defvar *loop-scope-lexicals-captured*)
 
-(defvar *function-block-names* nil)
+(defvar *function-block-names* ())
 (defvar *lexical-extent-return-tags* ())
 (defvar *dynamic-extent-return-tags* ())
 (defvar *tags-that-return-throws-to*)

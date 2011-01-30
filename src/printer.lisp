@@ -213,12 +213,12 @@ vice-versa.")
   (decf *indent-level*) (newline-and-indent)
   "}")
 
-(defprinter ps-js:lambda (args &rest body)
-  (print-fun-def nil args `(ps-js:block ,@body)))
+(defprinter ps-js:lambda (args body-block)
+  (print-fun-def nil args body-block))
 
-(defprinter ps-js:defun (name args docstring body)
+(defprinter ps-js:defun (name args docstring body-block)
   (when docstring (print-comment docstring))
-  (print-fun-def name args body))
+  (print-fun-def name args body-block))
 
 (defun print-fun-def (name args body)
   (format *psw-stream* "function ~:[~;~A~](" name (symbol-to-js-string name))

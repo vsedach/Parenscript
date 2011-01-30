@@ -2727,3 +2727,33 @@ foo = 3;")
         return true;
     };
 };")
+
+(test-ps-js flet-return-from
+  (defun abc ()
+    (flet ((foo ()
+             (return-from foo 123)))
+      (foo)))
+  "function abc() {
+    var foo = function () {
+        return 123;
+    };
+    return foo();
+};")
+
+(test-ps-js flet-return-from1
+  (flet ((foo ()
+           (return-from foo 123)))
+    (foo))
+  "var foo = function () {
+        return 123;
+    };
+    foo();")
+
+(test-ps-js lambda-docstring-declarations
+  (lambda (x)
+    "This is a docstring"
+    (declare (ignore x))
+    2)
+  "function (x) {
+    return 2;
+};")

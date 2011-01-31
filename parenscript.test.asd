@@ -7,4 +7,4 @@
                                      (:file "test")
                                      (:file "output-tests")
                                      (:file "package-system-tests"))))
-  :depends-on (:parenscript :fiveam))
+  :depends-on (:parenscript :eos))

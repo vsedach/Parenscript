@@ -2757,3 +2757,13 @@ foo = 3;")
   "function (x) {
     return 2;
 };")
+
+(test-ps-js setf-let-exp
+  (setf foo (let ((x (+ 1 2)))
+              (if x 123 456)))
+  "foo = (x = 1 + 2, x ? 123 : 456);")
+
+(test-ps-js create-let-exp
+  (create :abc (let ((x (+ 1 2)))
+                 (if x 123 456)))
+  "{ 'abc' : (x = 1 + 2, x ? 123 : 456) };")

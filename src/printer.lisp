@@ -229,7 +229,9 @@ vice-versa.")
 
 (defprinter ps-js:object (&rest slot-defs)
   "{ "(loop for ((slot-name . slot-value) . remaining) on slot-defs do
-           (ps-print slot-name) (psw " : ") (ps-print slot-value)
+           (ps-print slot-name) (psw " : ") (if (and (consp slot-value) (eq 'ps-js:|,| (car slot-value)))
+                                                (parenthesize-print slot-value)
+                                                (ps-print slot-value))
            (when remaining (psw ", ")))" }")
 
 (defprinter ps-js:getprop (obj slot)

@@ -33,7 +33,8 @@
    #:defpsmacro
    #:defmacro+ps
    #:import-macros-from-lisp
-   #:*ps-defined-operators*
+   #:*defined-operators*
+   #:*version*
 
    ;; gensym
    #:ps-gensym

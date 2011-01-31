@@ -95,6 +95,8 @@
       <li><code id="*ps-print-pretty*">*PS-PRINT-PRETTY*</code></li>
       <li><code id="*indent-num-spaces*">*INDENT-NUM-SPACES*</code></li>
       <li><code id="*ps-read-function*">*PS-READ-FUNCTION*</code></li>
+      <li><code id="*version*">*VERSION*</code></li>
+      <li><code id="*defined-operators*">*DEFINED-OPERATORS*</code></li>
     </ul>
 
     <dl>
@@ -181,6 +183,15 @@
       translation rules). It is helpful for writing libraries or other
       pieces of code that will interface with Parenscript-generated
       JavaScript.</p>
+
+    <p>Newer versions of Parenscript may implement Common Lisp special
+    forms, functions or macros that were left unimplemented by earlier
+    versions. This can cause problems if your code provides
+    implementations for those forms itself. To help deal with
+    this, <code>*DEFINED-OPERATORS*</code> provides a list of special
+    forms, macros, and symbol macros defined by Parenscript
+    itself. <code>*VERSION*</code> is bound to the current release
+    version number of Parenscript.</p>
 
     <h2 id="section-statements-expressions">Statements, expressions, and return</h2>
 

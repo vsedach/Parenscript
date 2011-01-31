@@ -1,18 +1,20 @@
 (in-package #:parenscript)
 (in-readtable :parenscript)
 
+(defvar *version* 2.3 "Parenscript compiler version.")
+
 (defparameter %compiling-reserved-forms-p% t
   "Used to issue warnings when replacing PS special operators or macros.")
 
-(defvar *ps-defined-operators* ()
+(defvar *defined-operators* ()
   "Special operators and macros defined by Parenscript. Replace at your own risk!")
 
 (defun defined-operator-override-check (name &rest body)
-  (when (and (not %compiling-reserved-forms-p%) (member name *ps-defined-operators*))
+  (when (and (not %compiling-reserved-forms-p%) (member name *defined-operators*))
     (warn 'simple-style-warning
           :format-control "Redefining Parenscript operator/macro ~A"
           :format-arguments (list name)))
-  `(progn ,(when %compiling-reserved-forms-p% `(pushnew ',name *ps-defined-operators*))
+  `(progn ,(when %compiling-reserved-forms-p% `(pushnew ',name *defined-operators*))
           ,@body))
 
 (defvar *reserved-symbol-names*

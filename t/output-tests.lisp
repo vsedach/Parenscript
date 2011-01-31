@@ -2767,3 +2767,10 @@ foo = 3;")
   (create :abc (let ((x (+ 1 2)))
                  (if x 123 456)))
   "{ 'abc' : (x = 1 + 2, x ? 123 : 456) };")
+
+(test-ps-js eql-eql-eql-precedence
+  (unless (equal (= 3 3) (= 3 4))
+          (chain console (log 1)))
+  "if ((3 === 3) != (3 === 4)) {
+    console.log(1);
+};")

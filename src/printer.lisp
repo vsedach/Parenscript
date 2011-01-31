@@ -122,8 +122,10 @@ vice-versa.")
 (defmethod ps-print ((number number))
   (format *psw-stream* (if (integerp number) "~S" "~F") number))
 
+(defvar %equality-ops '(ps-js:== ps-js:!= ps-js:=== ps-js:!==))
+
 (let ((precedence-table (make-hash-table :test 'eq)))
-  (loop for level in '((ps-js:getprop ps-js:aref ps-js:new ps-js:funcall)
+  (loop for level in `((ps-js:getprop ps-js:aref ps-js:new ps-js:funcall)
                        (ps-js:lambda) ;; you won't find this in JS books
                        (ps-js:++ ps-js:-- ps-js:post++ ps-js:post--)
                        (ps-js:! ps-js:~ ps-js:negate ps-js:typeof ps-js:delete)
@@ -132,7 +134,7 @@ vice-versa.")
                        (ps-js:+)
                        (ps-js:<< ps-js:>> ps-js:>>>)
                        (ps-js:< ps-js:> ps-js:<= ps-js:>= ps-js:instanceof ps-js:in)
-                       (ps-js:== ps-js:!= ps-js:=== ps-js:!==)
+                       ,%equality-ops
                        (ps-js:&)
                        (ps-js:^)
                        (ps-js:\|)
@@ -181,11 +183,18 @@ vice-versa.")
 (defprinter ps-js:post-- (x)
   (ps-print x)"--")
 
-(defprinter (ps-js:+ ps-js:- ps-js:* ps-js:/ ps-js:% ps-js:&& ps-js:\|\| ps-js:& ps-js:\| ps-js:-= ps-js:+= ps-js:*= ps-js:/= ps-js:%= ps-js:^ ps-js:<< ps-js:>> ps-js:&= ps-js:^= ps-js:\|= ps-js:= ps-js:== ps-js:=== ps-js:!== ps-js:in ps-js:!= ps-js:> ps-js:>= ps-js:< ps-js:<=)
+(defprinter (ps-js:+ ps-js:- ps-js:* ps-js:/ ps-js:% ps-js:&& ps-js:\|\| ps-js:& ps-js:\| ps-js:-= ps-js:+= ps-js:*= ps-js:/= ps-js:%= ps-js:^ ps-js:<< ps-js:>> ps-js:&= ps-js:^= ps-js:\|= ps-js:= ps-js:in ps-js:> ps-js:>= ps-js:< ps-js:<=)
     (&rest args)
   (loop for (arg . remaining) on args do
        (print-op-argument op arg)
        (when remaining (format *psw-stream* " ~(~A~) " op))))
+
+(defprinter (ps-js:== ps-js:!= ps-js:=== ps-js:!==) (x y)
+  (flet ((parenthesize-equality (form)
+           (if (and (consp form) (member (car form) %equality-ops))
+               (parenthesize-print form)
+               (print-op-argument op form))))
+    (parenthesize-equality x) (format *psw-stream* " ~A " op) (parenthesize-equality y)))
 
 (defprinter ps-js:aref (array &rest indices)
   (print-op-argument 'ps-js:aref array)

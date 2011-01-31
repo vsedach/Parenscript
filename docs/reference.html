@@ -29,9 +29,15 @@
 
     <ol>
       <li><a href="#section-ps-compiler">The Parenscript compiler</a></li>
-      <li><a href="#section-statements-expressions">Statements, expressions, and return</a></li>
       <li><a href="#section-symbolconv">Symbol conversion</a></li>
+      <li><a href="#section-namespace">The Parenscript namespace system</a>
+        <ul>
+          <li><a href="#section-obfuscation">Identifier obfuscation</a></li>
+          <li><a href="#section-minification">Minification</a></li>
+        </ul>
+      </li>
       <li><a href="#reserved-symbols">Reserved symbols</a></li>
+      <li><a href="#section-statements-expressions">Statements, expressions, and return</a></li>
       <li><a href="#section-types">Types and type predicates</a></li>
       <li><a href="#section-literals">Literals</a>
         <ul>
@@ -57,11 +63,6 @@
           <li><a href="#ssection-defining-macros">Defining macros</a></li>
           <li><a href="#ssection-symbol-macros">Symbol macros</a></li>
           <li><a href="#ssection-gensym">Gensym</a></li>
-        </ul>
-      </li>
-      <li><a href="#section-namespace">The Parenscript namespace system</a>
-        <ul>
-          <li><a href="#section-obfuscation">Identifier obfuscation</a></li>
         </ul>
       </li>
       <li><a href="#section-utilities">Utilities</a>
@@ -92,8 +93,6 @@
       <li><code id="*parenscript-stream*">*PARENSCRIPT-STREAM*</code></li>
       <li><code id="*js-string-delimiter*">*JS-STRING-DELIMITER*</code></li>
       <li><code id="*js-inline-string-delimiter*">*JS-INLINE-STRING-DELIMITER*</code></li>
-      <li><code id="*ps-print-pretty*">*PS-PRINT-PRETTY*</code></li>
-      <li><code id="*indent-num-spaces*">*INDENT-NUM-SPACES*</code></li>
       <li><code id="*ps-read-function*">*PS-READ-FUNCTION*</code></li>
       <li><code id="*version*">*VERSION*</code></li>
       <li><code id="*defined-operators*">*DEFINED-OPERATORS*</code></li>
@@ -146,12 +145,6 @@
       default), and can be used to provide completely customizable
       syntax for Parenscript files.</p>
 
-    <p><code>*PS-PRINT-PRETTY*</code>
-      and <code>*INDENT-NUM-SPACES*</code> control whether the resulting
-      JavaScript code is pretty-printed, and if so, how many spaces go
-      into each indent level, respectively. By default the code is
-      pretty-printed with 4 spaces per indent level.</p>
-
     <p>Parenscript can also call out to arbitrary Common Lisp code at
       <i>output time</i> (that is, every time an expression containing
       a call to the Parenscript compiler is evaluated, compared
@@ -192,6 +185,180 @@
     forms, macros, and symbol macros defined by Parenscript
     itself. <code>*VERSION*</code> is bound to the current release
     version number of Parenscript.</p>
+
+    <h2 id="section-symbolconv">Symbol conversion</h2>
+
+    <p>Lisp symbols (except for keywords) are converted to JavaScript
+      symbols by following a few simple rules. Special
+      characters <code>!, ?, #, @, %, /, *</code> and <code>+</code>
+      get replaced by their written-out equivalents "bang", "what",
+      "hash", "at", "percent", "slash", "start" and "plus"
+      respectively. The <code>$</code> character is untouched.</p>
+
+    <dl>
+      <dt><code>!?#@%</code></dt>
+      <dd><code>bangwhathashatpercent;</code></dd>
+    </dl>
+
+    <p>The <code>-</code> is an indication that the following
+      character should be converted to uppercase.</p>
+
+    <dl>
+      <dt><code>bla-foo-bar</code></dt>
+      <dd><code>blaFooBar;</code></dd>
+    </dl>
+
+    <p>JavaScript identifiers that begin with an uppercase letter can
+      be obtained with a leading <code>-</code> or <code>*</code>.</p>
+
+    <dl>
+      <dt><code>*array</code></dt>
+      <dd><code>Array;</code></dd>
+    </dl>
+
+    <p>A symbol starting and ending with <code>+</code>
+      or <code>*</code> is converted to all uppercase, to signify that
+      this is a constant or a global variable.</p>
+
+    <dl>
+      <dt><code>*global-array*</code></dt>
+      <dd><code>GLOBALARRAY;</code></dd>
+    </dl>
+
+    <p>Keywords are not translated to JavaScript identifiers, but are
+      printed in lower case without any character substitution as
+      strings. This is done because strings are the closest equivalent
+      to Common Lisp keywords (being self-evaluating objects in
+      JavaScript), and to permit keywords to be used for identifying
+      various symbols (for example, as tokens in a parser).</p>
+
+    <dl>
+      <dt><code>:+</code></dt>
+      <dd><code>'+';</code></dd>
+
+      <dt><code>:foo-Bar</code></dt>
+      <dd><code>'foo-bar';</code></dd>
+    </dl>
+
+    <h2 id="section-namespace">The Parenscript namespace system</h2>
+    <ul>
+      <li>(<code id="in-package">in-package</code> package-designator)</li>
+      <li>(<code id="use-package">use-package</code> package-designator)</li>
+      <li>(setf (<code id="ps-package-prefix">PS-PACKAGE-PREFIX</code> package-designator) string)</li>
+    </ul>
+
+    <p>Although JavaScript does not offer namespacing or a package system,
+      Parenscript does provide a namespace mechanism for generated
+      JavaScript by integrating with the Common Lisp package system. Since
+      Parenscript code is normally read in by the Lisp reader, all symbols
+      (except for uninterned ones, ie - those specified with
+      the <code>#:</code> reader macro) have a Lisp package. By default, no
+      packages are prefixed. You can specify that symbols in a particular
+      package receive a prefix when translated to JavaScript with the
+      <code>PS-PACKAGE-PREFIX</code> place.</p>
+
+    <code>
+<pre>(defpackage "PS-REF.MY-LIBRARY"
+  (:use "PARENSCRIPT"))
+(setf (ps-package-prefix "PS-REF.MY-LIBRARY") "my_library_")</pre>
+    </code>
+
+    <dl>
+      <dt><code>
+<pre>(defun ps-ref.my-library::library-function (x y)
+  (return (+ x y)))</pre>
+          </code>
+      </dt>
+      <dd><code>
+<pre>function my_library_libraryFunction(x, y) {
+    return x + y;
+};</pre>
+          </code>
+      </dd>
+    </dl>
+
+    <p>Parenscript provides <code>IN-PACKAGE</code>
+    and <code>USE-PACKAGE</code> special forms, primarily useful
+    with <a href="#ps-compile-file"><code>PS-COMPILE-FILE</code></a>
+    and <a href="#ps-compile-stream"><code>PS-COMPILE-STREAM</code></a>.</p>
+
+    <h3 id="section-obfuscation">Identifier obfuscation</h3>
+    <ul>
+      <li>(<code id="obfuscate-package">OBFUSCATE-PACKAGE</code> package-designator &optional symbol-map)</li>
+      <li>(<code id="unobfuscate-package">UNOBFUSCATE-PACKAGE</code> package-designator)</li>
+    </ul>
+
+    <p>Similar to the namespace mechanism, Parenscript provides a
+      facility to generate obfuscated identifiers in specified CL
+      packages. The function <code>OBFUSCATE-PACKAGE</code> may
+      optionally be passed a closure that maps symbols to their
+      obfuscated counterparts. By default, the mapping is done
+      using <code><a href="#ps-gensym">PS-GENSYM</a></code>.</p>
+
+    <code>
+<pre>(defpackage "PS-REF.OBFUSCATE-ME")
+(obfuscate-package "PS-REF.OBFUSCATE-ME"
+  (let ((code-pt-counter #x8CF6)
+        (symbol-map (make-hash-table)))
+    (lambda (symbol)
+      (or (gethash symbol symbol-map)
+          (setf (gethash symbol symbol-map)
+                (make-symbol (string (code-char (incf code-pt-counter)))))))))</pre>
+    </code>
+
+    <dl>
+      <dt><code>
+<pre>(defun ps-ref.obfuscate-me::a-function (a b ps-ref.obfuscate-me::foo)
+  (+ a (ps-ref.my-library::library-function b ps-ref.obfuscate-me::foo)))</pre>
+          </code>
+      </dt>
+      <dd><code>
+<pre>function 賷(a, b, 賸) {
+    return a + libraryFunction(b, 賸);
+};</pre>
+          </code>
+      </dd>
+    </dl>
+
+    <p>The obfuscation and namespace facilities can be used on packages
+      at the same time.</p>
+
+    <h3 id="section-minification">Minification</h3>
+    <ul>
+      <li><code id="*ps-print-pretty*">*PS-PRINT-PRETTY*</code></li>
+      <li><code id="*indent-num-spaces*">*INDENT-NUM-SPACES*</code></li>
+    </ul>
+
+    <p><code>*PS-PRINT-PRETTY*</code>
+      and <code>*INDENT-NUM-SPACES*</code> control whether the resulting
+      JavaScript code is pretty-printed, and if so, how many spaces go
+      into each indent level, respectively. By default the code is
+      pretty-printed with 4 spaces per indent level.</p>
+
+    <p>Setting <code>*PS-PRINT-PRETTY*</code> to nil and turning
+    on <a href="#section-obfuscation">obfuscation</a> will minify the
+    generated JavaScript code.</p>
+
+    <h2 id="reserved-symbols">Reserved symbols</h2>
+
+    <p>The following symbols are reserved in Parenscript, and should not
+      be used as variable names.</p>
+
+    <code>
+      ! ~ ++ -- * / % + - &lt;&lt; &gt;&gt; &gt;&gt;&gt; &lt; &gt;
+      &lt;= &gt;= == != === !== & ^ | && || *= /= %= += -= &lt;&lt;=
+      &gt;&gt;= &gt;&gt;&gt;= &= ^= |= 1- 1+ @ ABSTRACT AND AREF ARRAY
+      BOOLEAN BREAK BYTE CASE CATCH CHAR CLASS COMMA CONST CONTINUE
+      CREATE DEBUGGER DECF DEFAULT DEFUN DEFVAR DELETE DO DO* DOEACH
+      DOLIST DOTIMES DOUBLE ELSE ENUM EQL EXPORT EXTENDS F FALSE FINAL
+      FINALLY FLOAT FLOOR FOR FOR-IN FUNCTION GOTO IF IMPLEMENTS
+      IMPORT IN INCF INSTANCEOF INT INTERFACE JS LABELED-FOR LAMBDA
+      LET LET* LISP LIST LONG MAKE-ARRAY NATIVE NEW NIL NOT OR PACKAGE
+      PRIVATE PROGN PROTECTED PUBLIC RANDOM REGEX RETURN SETF SHORT
+      GETPROP STATIC SUPER SWITCH SYMBOL-MACROLET SYNCHRONIZED T THIS
+      THROW THROWS TRANSIENT TRY TYPEOF UNDEFINED UNLESS VAR VOID
+      VOLATILE WHEN WHILE WITH WITH-SLOTS
+    </code>
 
     <h2 id="section-statements-expressions">Statements, expressions, and return</h2>
 
@@ -283,81 +450,6 @@
         </code>
       </dd>
     </dl>
-
-    <h2 id="section-symbolconv">Symbol conversion</h2>
-
-    <p>Lisp symbols (except for keywords) are converted to JavaScript
-      symbols by following a few simple rules. Special
-      characters <code>!, ?, #, @, %, /, *</code> and <code>+</code>
-      get replaced by their written-out equivalents "bang", "what",
-      "hash", "at", "percent", "slash", "start" and "plus"
-      respectively. The <code>$</code> character is untouched.</p>
-
-    <dl>
-      <dt><code>!?#@%</code></dt>
-      <dd><code>bangwhathashatpercent;</code></dd>
-    </dl>
-
-    <p>The <code>-</code> is an indication that the following
-      character should be converted to uppercase.</p>
-
-    <dl>
-      <dt><code>bla-foo-bar</code></dt>
-      <dd><code>blaFooBar;</code></dd>
-    </dl>
-
-    <p>JavaScript identifiers that begin with an uppercase letter can
-      be obtained with a leading <code>-</code> or <code>*</code>.</p>
-
-    <dl>
-      <dt><code>*array</code></dt>
-      <dd><code>Array;</code></dd>
-    </dl>
-
-    <p>A symbol starting and ending with <code>+</code>
-      or <code>*</code> is converted to all uppercase, to signify that
-      this is a constant or a global variable.</p>
-
-    <dl>
-      <dt><code>*global-array*</code></dt>
-      <dd><code>GLOBALARRAY;</code></dd>
-    </dl>
-
-    <p>Keywords are not translated to JavaScript identifiers, but are
-      printed in lower case without any character substitution as
-      strings. This is done because strings are the closest equivalent
-      to Common Lisp keywords (being self-evaluating objects in
-      JavaScript), and to permit keywords to be used for identifying
-      various symbols (for example, as tokens in a parser).</p>
-
-    <dl>
-      <dt><code>:+</code></dt>
-      <dd><code>'+';</code></dd>
-
-      <dt><code>:foo-Bar</code></dt>
-      <dd><code>'foo-bar';</code></dd>
-    </dl>
-
-    <h2 id="reserved-symbols">Reserved symbols</h2>
-
-    <p>The following symbols are reserved in Parenscript, and should not
-      be used as variable names.</p>
-
-    <code>
-      ! ~ ++ -- * / % + - &lt;&lt; &gt;&gt; &gt;&gt;&gt; &lt; &gt;
-      &lt;= &gt;= == != === !== & ^ | && || *= /= %= += -= &lt;&lt;=
-      &gt;&gt;= &gt;&gt;&gt;= &= ^= |= 1- 1+ @ ABSTRACT AND AREF ARRAY
-      BOOLEAN BREAK BYTE CASE CATCH CHAR CLASS COMMA CONST CONTINUE
-      CREATE DEBUGGER DECF DEFAULT DEFUN DEFVAR DELETE DO DO* DOEACH
-      DOLIST DOTIMES DOUBLE ELSE ENUM EQL EXPORT EXTENDS F FALSE FINAL
-      FINALLY FLOAT FLOOR FOR FOR-IN FUNCTION GOTO IF IMPLEMENTS
-      IMPORT IN INCF INSTANCEOF INT INTERFACE JS LABELED-FOR LAMBDA
-      LET LET* LISP LIST LONG MAKE-ARRAY NATIVE NEW NIL NOT OR PACKAGE
-      PRIVATE PROGN PROTECTED PUBLIC RANDOM REGEX RETURN SETF SHORT
-      GETPROP STATIC SUPER SWITCH SYMBOL-MACROLET SYNCHRONIZED T THIS
-      THROW THROWS TRANSIENT TRY TYPEOF UNDEFINED UNLESS VAR VOID
-      VOLATILE WHEN WHILE WITH WITH-SLOTS
-    </code>
 
     <h2 id="section-types">Types and type predicates</h2>
     <ul>
@@ -1163,82 +1255,6 @@ someDiv.offsetLeft;</pre>
     compilers running in two different Lisp images, where the values
     of <code>*PS-GENSYM-COUNTER*</code> overlap).
 
-    <h2 id="section-namespace">The Parenscript namespace system</h2>
-    <ul>
-      <li>(setf (<code id="ps-package-prefix">PS-PACKAGE-PREFIX</code> package-designator) string)</li>
-    </ul>
-
-    <p>Although JavaScript does not offer namespacing or a package system,
-      Parenscript does provide a namespace mechanism for generated
-      JavaScript by integrating with the Common Lisp package system. Since
-      Parenscript code is normally read in by the Lisp reader, all symbols
-      (except for uninterned ones, ie - those specified with
-      the <code>#:</code> reader macro) have a Lisp package. By default, no
-      packages are prefixed. You can specify that symbols in a particular
-      package receive a prefix when translated to JavaScript with the
-      <code>PS-PACKAGE-PREFIX</code> place.</p>
-
-    <code>
-<pre>(defpackage "PS-REF.MY-LIBRARY"
-  (:use "PARENSCRIPT"))
-(setf (ps-package-prefix "PS-REF.MY-LIBRARY") "my_library_")</pre>
-    </code>
-
-    <dl>
-      <dt><code>
-<pre>(defun ps-ref.my-library::library-function (x y)
-  (return (+ x y)))</pre>
-          </code>
-      </dt>
-      <dd><code>
-<pre>function my_library_libraryFunction(x, y) {
-    return x + y;
-};</pre>
-          </code>
-      </dd>
-    </dl>
-
-    <h3 id="section-obfuscation">Identifier obfuscation</h3>
-    <ul>
-      <li>(<code id="obfuscate-package">OBFUSCATE-PACKAGE</code> package-designator &optional symbol-map)</li>
-      <li>(<code id="unobfuscate-package">UNOBFUSCATE-PACKAGE</code> package-designator)</li>
-    </ul>
-
-    <p>Similar to the namespace mechanism, Parenscript provides a
-      facility to generate obfuscated identifiers in specified CL
-      packages. The function <code>OBFUSCATE-PACKAGE</code> may
-      optionally be passed a closure that maps symbols to their
-      obfuscated counterparts. By default, the mapping is done
-      using <code><a href="#ps-gensym">PS-GENSYM</a></code>.</p>
-
-    <code>
-<pre>(defpackage "PS-REF.OBFUSCATE-ME")
-(obfuscate-package "PS-REF.OBFUSCATE-ME"
-  (let ((code-pt-counter #x8CF6)
-        (symbol-map (make-hash-table)))
-    (lambda (symbol)
-      (or (gethash symbol symbol-map)
-          (setf (gethash symbol symbol-map)
-                (make-symbol (string (code-char (incf code-pt-counter)))))))))</pre>
-    </code>
-
-    <dl>
-      <dt><code>
-<pre>(defun ps-ref.obfuscate-me::a-function (a b ps-ref.obfuscate-me::foo)
-  (+ a (ps-ref.my-library::library-function b ps-ref.obfuscate-me::foo)))</pre>
-          </code>
-      </dt>
-      <dd><code>
-<pre>function 賷(a, b, 賸) {
-    return a + libraryFunction(b, 賸);
-};</pre>
-          </code>
-      </dd>
-    </dl>
-
-    <p>The obfuscation and namespace facilities can be used on packages
-      at the same time.</p>
-
     <h2 id="section-utilities">Utilities</h2>
 
     <h3 id="ssection-dom">DOM</h3>
@@ -1370,6 +1386,6 @@ someDiv.offsetLeft;</pre>
       that the extension does not work
       in <code>slime-repl-mode</code>, which is intentional.</p>
 
-    <p style="font-size:xxx-small"><i>Last modified: 2010-08-13</i></p>
+    <p style="font-size:xxx-small"><i>Last modified: 2011-01-30</i></p>
   </body>
 </html>

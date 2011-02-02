@@ -36,6 +36,14 @@
   *global-array*
   "GLOBALARRAY;")
 
+(test-ps-js symbol-conversion-5
+  encodeURIComponent
+  "encodeURIComponent;")
+
+(test-ps-js symbol-conversion-6
+  URI
+  "URI;")
+
 (test-ps-js number-literals-1
   1
   "1;")
@@ -356,13 +364,12 @@ _js2.style.left = _js1;")
   "var A = [ 1, 2, 3 ];")
 
 (test-ps-js variable-declaration-2
-  (progn
-  (defvar *a* 4)
-  (let ((x 1)
-        (*a* 2))
-    (let* ((y (+ x 1))
-           (x (+ x y)))
-      (+ *a* x y))))
+  (progn (defvar *a* 4)
+         (let ((x 1)
+               (*a* 2))
+           (let* ((y (+ x 1))
+                  (x (+ x y)))
+             (+ *a* x y))))
   "var A = 4;
 var x = 1;
 var A_TMPSTACK1;

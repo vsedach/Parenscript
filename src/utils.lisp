@@ -36,8 +36,9 @@ paren-script becomes parenScript, *some-global* becomes SOMEGLOBAL."
                                                            (t (char-upcase c)))
                                                      acc)
                                          (setf lowercase t)))))))
-                    ((some #'lower-case-p identifier) identifier)
-                    (t (string-downcase identifier)))))))
+                    ((every #'upper-case-p (remove-if-not #'alpha-char-p identifier)) (string-downcase identifier))
+                    ((every #'lower-case-p (remove-if-not #'alpha-char-p identifier)) (string-upcase identifier))
+                    (t identifier))))))
 
 (defun ordered-set-difference (list1 list2 &key (test #'eql)) ; because the CL set-difference may not preserve order
   (reduce (lambda (list el) (remove el list :test test))

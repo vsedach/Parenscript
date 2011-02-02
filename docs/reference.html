@@ -188,8 +188,19 @@
 
     <h2 id="section-symbolconv">Symbol conversion</h2>
 
-    <p>Lisp symbols (except for keywords) are converted to JavaScript
-      symbols by following a few simple rules. Special
+    <p>Parenscript supports output for both case-sensitive and
+    case-insensitive symbols. By default the Lisp reader upcases all
+    symbols. By setting readtable-case
+    to <a href="http://www.lispworks.com/documentation/lw50/CLHS/Body/23_ab.htm">:invert</a>
+    (you can use
+    the <a href="http://common-lisp.net/project/named-readtables/">named-readtables</a>
+    library to make this more convenient) symbol case is preserved,
+    and Parenscript will output mixed-case symbols
+    (like <code>encodeURIComponent</code>) correctly.</p>
+
+    <p>Lisp symbols (other than keywords) that are all uppercase or
+      contain special characters are converted to JavaScript
+      identifiers by following a few simple rules. Special
       characters <code>!, ?, #, @, %, /, *</code> and <code>+</code>
       get replaced by their written-out equivalents "bang", "what",
       "hash", "at", "percent", "slash", "start" and "plus"
@@ -322,6 +333,23 @@
 
     <p>The obfuscation and namespace facilities can be used on packages
       at the same time.</p>
+
+    <p>Since Parenscript doesn't know anything about the DOM or other
+    JavaScript libraries, library function and property names might be
+    inadvertently obfuscated. To help prevent that, Parenscript comes
+    with
+    the <code>ps-dom1-symbols</code>, <code>ps-dom2-symbols</code>, <code>ps-window-wd-symbols</code>, <code>ps-dom-nonstandard-symbols</code>
+    and <code>ps-dhtml-symbols</code> symbol packages that define
+    various DOM property and function identifiers as exported symbols
+    (in both case-sensitive and insensitive variants), which you can
+    import into your packages to help prevent symbols
+    like <code>pageXOffset</code> from being
+    obfuscated. The <code>ps-dhtml-symbols</code> package contains the
+    broadest range of symbols and is most generally useful.</p>
+
+    <p>If you use obfuscation and external JavaScript libraries, you
+    can use the same technique to define your own packages with
+    symbols that will not be obfuscated.</p>
 
     <h3 id="section-minification">Minification</h3>
     <ul>
@@ -1386,6 +1414,6 @@ someDiv.offsetLeft;</pre>
       that the extension does not work
       in <code>slime-repl-mode</code>, which is intentional.</p>
 
-    <p style="font-size:xxx-small"><i>Last modified: 2011-01-30</i></p>
+    <p style="font-size:xxx-small"><i>Last modified: 2011-02-02</i></p>
   </body>
 </html>

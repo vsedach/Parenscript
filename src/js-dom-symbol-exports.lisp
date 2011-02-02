@@ -10,14 +10,23 @@
 ;; PS-WINDOW-WD-SYMBOLS (which includes DOM level 2 and the w3c Window
 ;; working draft), and possibly the PS-DOM-NONSTANDARD-SYMBOLS.
 
+(defun re-export-symbols (from-package to-package)
+  (do-external-symbols (symbol from-package)
+    (multiple-value-bind (cl-symbol type) (find-symbol (symbol-name symbol) '#:cl)
+      (when (eq type :external)
+        (shadowing-import cl-symbol from-package)))
+    (shadowing-import symbol to-package)
+    (export (list symbol) to-package)))
+
 (defpackage #:ps-js-symbols
+  (:documentation "JavaScript standard function and property names.")
   (:export
-   #:to-fixed
-   #:encode-u-r-i-component
+   #:to-fixed                      #:toFixed
+   #:encode-u-r-i-component        #:encodeURIComponent
    #:size
-   #:*array
-   #:*date
-   #:get-time
+   #:*array                        #:Array
+   #:*date                         #:Date
+   #:get-time                      #:getTime
    #:arguments
    #:join
    #:prototype
@@ -25,50 +34,52 @@
    #:call
    ))
 
+(re-export-symbols '#:ps-js-symbols '#:parenscript)
+
 (defpackage #:ps-dom1-symbols
-  (:use #:cl) ;; ensure we don't have naming collisions w/symbols defined in CL
+  (:documentation "DOM Level 1 symbols.")
   (:export
    ;;; Core
    ;; DOMImplementation
    ; methods
-   #:has-feature
+   #:has-feature                   #:hasFeature
 
    ;; document interface
    ; attributes
    #:doctype
    #:implementation
-   #:document-element
+   #:document-element              #:documentElement
    ; methods
-   #:create-element
-   #:create-document-fragment
-   #:create-text-node
-   #:create-comment
-   #:create-C-D-A-T-A-Section
-   #:create-processing-instruction
-   #:create-attribute
-   #:create-entity-reference
-   #:get-elements-by-tag-name
+   #:create-element                #:createElement
+   #:create-document-fragment      #:createDocumentElement
+   #:create-text-node              #:createTextNode
+   #:create-comment                #:createComment
+   #:create-c-d-a-t-a-section      #:createCDATASection
+   #:create-processing-instruction #:createProcessingInstruction
+   #:create-attribute              #:createAttribute
+   #:create-entity-reference       #:createEntityReference
+   #:get-elements-by-tag-name      #:getElementsByTagName
 
    ;; node interface
    ; attributes
-   #:node-name
-   #:node-value
-   #:node-type
-   #:parent-node
-   #:child-nodes
-   #:first-child
-   #:last-child
-   #:previous-sibling
-   #:next-sibling
+   #:node-name                     #:nodeName
+   #:node-value                    #:nodeValue
+   #:node-type                     #:nodeType
+   #:parent-node                   #:parentNode
+   #:child-nodes                   #:childNodes
+   #:first-child                   #:firstChild
+   #:last-child                    #:lastChild
+   #:previous-sibling              #:previousSibling
+   #:next-sibling                  #:nextSibling
    #:attributes
-   #:owner-document
+   #:owner-document                #:ownerDocument
    ; methods
-   #:insert-before
-   #:replace-child
-   #:remove-child
-   #:append-child
-   #:has-child-nodes
-   #:clone-node
+   #:insert-before                 #:insertBefore
+   #:replace-child                 #:replaceChild
+   #:remove-child                  #:removeChild
+   #:append-child                  #:appendChild
+   #:has-child-nodes               #:hasChildNodes
+   #:clone-node                    #:cloneNode
 
    ;; nodelist interface
    ; methods
@@ -78,9 +89,9 @@
 
    ;; namednodemap
    ; methods
-   #:get-named-item
-   #:set-named-item
-   #:remove-named-item
+   #:get-named-item                #:getNamedItem
+   #:set-named-item                #:setNamedItem
+   #:remove-named-item             #:removeNamedItem
    #:item
    ; attributes
    #:length
@@ -90,11 +101,11 @@
    #:data
    #:length
    ; methods
-   #:substring-data
-   #:append-data
-   #:insert-data
-   #:delete-data
-   #:replace-data
+   #:substring-data                #:substringData
+   #:append-data                   #:appendData
+   #:insert-data                   #:insertData
+   #:delete-data                   #:deleteData
+   #:replace-data                  #:replaceData
 
    ;; attr
    ; attributes
@@ -104,20 +115,20 @@
 
    ;; element
    ; attributes
-   #:tag-name
+   #:tag-name                      #:tagName
    ; methods
-   #:get-attribute
-   #:set-attribute
-   #:remove-attribute
-   #:get-attribute-node
-   #:set-attribute-node
-   #:remove-attribute-node
-   #:get-elements-by-tag-name
+   #:get-attribute                 #:getAttribute
+   #:set-attribute                 #:setAttribute
+   #:remove-attribute              #:removeAttribute
+   #:get-attribute-node            #:getAttributeNode
+   #:set-attribute-node            #:setAttributeNode
+   #:remove-attribute-node         #:removeAttributeNode
+   #:get-elements-by-tag-name      #:getElementsByTagName
    #:normalize
 
    ;; text
    ; methods
-   #:split-text
+   #:split-text                    #:splitText
 
    ;;; Level 1 extended interfaces (XML)
    ;; DocumentType
@@ -128,14 +139,14 @@
 
    ;; notation
    ; attributes
-   #:public-id
-   #:system-id
+   #:public-id                     #:publicId
+   #:system-id                     #:systemId
 
    ;; entity
    ; attrs
-   #:public-id
-   #:system-id
-   #:notation-name
+   #:public-id                     #:publicId
+   #:system-id                     #:systemId
+   #:notation-name                 #:notationName
 
    ;; processing instruction
    ; attrs
@@ -148,7 +159,7 @@
    #:length
    ; methods
    #:item
-   #:named-item
+   #:named-item                    #:namedItem
 
    ;; document
    #:document
@@ -156,7 +167,7 @@
    #:title
    #:referrer
    #:domain
-   #:*URL*
+   #:*url*                         #:URL
    #:body
    #:images
    #:applets
@@ -169,8 +180,8 @@
    #:close
    #:write
    #:writeln
-   #:get-element-by-id
-   #:get-elements-by-name
+   #:get-element-by-id             #:getElementById
+   #:get-elements-by-name          #:getElementsByName
 
    ;; generic HTML element
    ; attributes
@@ -178,7 +189,7 @@
    #:title
    #:lang
    #:dir
-   #:class-name
+   #:class-name                    #:className
 
    ;; HTML document root
    ; attributes
@@ -207,7 +218,7 @@
    ;; meta
    ; attrs
    #:content
-   #:http-equiv
+   #:http-equiv                    #:httpEquiv
    #:name
    #:scheme
 
@@ -229,19 +240,19 @@
 
    ;; body
    ; attrs
-   #:a-link
+   #:a-link                        #:aLink
    #:background
-   #:bg-color
+   #:bg-color                      #:bgColor
    #:link
    #:text
-   #:v-link
+   #:v-link                        #:vLink
 
    ;; form
    ; attrs
    #:elements
    #:length
    #:name
-   #:accept-charset
+   #:accept-charset                #:acceptCharset
    #:action
    #:enctype
    #:method
@@ -253,7 +264,7 @@
    ;; select
    ; attrs
    #:type
-   #:selected-index
+   #:selected-index                #:selectedIndex
    #:value
    #:length
    #:form
@@ -262,7 +273,7 @@
    #:multiple
    #:name
    #:size
-   #:tab-index
+   #:tab-index                     #:tabIndex
    ; methods
    #:add
    #:remove
@@ -277,7 +288,7 @@
    ;; option
    ; attrs
    #:form
-   #:default-selected
+   #:default-selected              #:defaultSelected
    #:text
    #:index
    #:disabled
@@ -287,23 +298,23 @@
 
    ;; input
    ; attrs
-   #:default-value
-   #:default-checked
+   #:default-value                 #:defaultValue
+   #:default-checked               #:defaultChecked
    #:form
    #:accept
-   #:access-key
+   #:access-key                    #:accessKey
    #:align
    #:alt
    #:checked
    #:disabled
-   #:max-length
+   #:max-length                    #:maxLength
    #:name
-   #:read-only
+   #:read-only                     #:readOnly
    #:size
    #:src
-   #:tab-index
+   #:tab-index                     #:tabIndex
    #:type
-   #:use-map
+   #:use-map                       #:useMap
    #:value
    ; methods
    #:blur
@@ -313,15 +324,15 @@
 
    ;; textarea
    ; attrs
-   #:default-value
+   #:default-value                 #:defaultValue
    #:form
-   #:access-key
+   #:access-key                    #:accessKey
    #:cols
    #:disabled
    #:name
-   #:read-only
+   #:read-only                     #:readOnly
    #:rows
-   #:tab-index
+   #:tab-index                     #:tabIndex
    #:type
    #:value
    ; methods
@@ -332,18 +343,18 @@
    ;; button
    ; attrs
    #:form
-   #:access-key
+   #:access-key                    #:accessKey
    #:disabled
    #:name
-   #:tab-index
+   #:tab-index                     #:tabIndex
    #:type
    #:value
 
    ;; label
    ; attrs
    #:form
-   #:access-key
-   #:html-for
+   #:access-key                    #:accessKey
+   #:html-for                      #:htmlFor
 
    ;; fieldset
    ; attrs
@@ -352,7 +363,7 @@
    ;; legend
    ; attrs
    #:form
-   #:access-key
+   #:access-key                    #:accessKey
    #:align
 
    ;; ul
@@ -400,18 +411,18 @@
    ;; hr
    ; attrs
    #:align
-   #:no-shade
+   #:no-shade                      #:noShade
    #:size
    #:width
 
    ;; ins and del
    ; attrs
    #:cite
-   #:date-time
+   #:date-time                     #:dateTime
 
    ;; a
    ; attrs
-   #:access-key
+   #:access-key                    #:accessKey
    #:charset
    #:coords
    #:href
@@ -420,7 +431,7 @@
    #:rel
    #:rev
    #:shape
-   #:tab-index
+   #:tab-index                     #:tabIndex
    #:target
    #:type
    ; methods
@@ -429,17 +440,17 @@
 
    ;; img
    ; attrs
-   #:low-src
+   #:low-src                       #:lowSrc
    #:name
    #:align
    #:alt
    #:border
    #:height
    #:hspace
-   #:is-map
-   #:long-desc
+   #:is-map                        #:isMap
+   #:long-desc                     #:longDesc
    #:src
-   #:use-map
+   #:use-map                       #:useMap
    #:vspace
    #:width
 
@@ -450,17 +461,17 @@
    #:align
    #:archive
    #:border
-   #:code-base
-   #:code-type
+   #:code-base                     #:codeBase
+   #:code-type                     #:codeType
    #:data
    #:declare
    #:height
    #:hspace
    #:name
    #:standby
-   #:tab-index
+   #:tab-index                     #:tabIndex
    #:type
-   #:use-map
+   #:use-map                       #:useMap
    #:vspace
    #:width
 
@@ -469,7 +480,7 @@
    #:name
    #:type
    #:value
-   #:value-type
+   #:value-type                    #:valueType
 
    ;; applet
    ; attrs
@@ -477,7 +488,7 @@
    #:alt
    #:archive
    #:code
-   #:code-base
+   #:code-base                     #:codeBase
    #:height
    #:hspace
    #:name
@@ -492,19 +503,19 @@
 
    ;; area
    ; attrs
-   #:access-key
+   #:access-key                    #:accessKey
    #:alt
    #:coords
    #:href
-   #:no-href
+   #:no-href                       #:noHref
    #:shape
-   #:tab-index
+   #:tab-index                     #:tabIndex
    #:target
 
    ;; script
    ; attrs
    #:text
-   #:html-for
+   #:html-for                      #:htmlFor
    #:event
    #:charset
    #:defer
@@ -514,28 +525,28 @@
    ;; table
    ; attrs
    #:caption
-   #:t-head
-   #:t-foot
+   #:t-head                        #:tHead
+   #:t-foot                        #:tFoot
    #:rows
-   #:t-bodies
+   #:t-bodies                      #:tBodies
    #:align
-   #:bg-color
+   #:bg-color                      #:bgColor
    #:border
-   #:cell-padding
-   #:cell-spacing
+   #:cell-padding                  #:cellPadding
+   #:cell-spacing                  #:cellSpacing
    #:frame
    #:rules
    #:summary
    #:width
    ; methods
-   #:create-t-head
-   #:delete-t-head
-   #:create-t-foot
-   #:delete-t-foot
-   #:create-caption
-   #:delete-caption
-   #:insert-row
-   #:delete-row
+   #:create-t-head                 #:createTHead
+   #:delete-t-head                 #:deleteTHead
+   #:create-t-foot                 #:createTFoot
+   #:delete-t-foot                 #:deleteTFoot
+   #:create-caption                #:createCaption
+   #:delete-caption                #:deleteCaption
+   #:insert-row                    #:insertRow
+   #:delete-row                    #:deleteRow
 
    ;; caption
    ; attrs
@@ -545,52 +556,52 @@
    ; attrs
    #:align
    #:ch
-   #:ch-off
+   #:ch-off                        #:chOff
    #:span
-   #:v-align
+   #:v-align                       #:vAlign
    #:width
 
    ;; thead, tfoot, tbody
    ; attrs
    #:align
    #:ch
-   #:ch-off
-   #:v-align
+   #:ch-off                        #:chOff
+   #:v-align                       #:vAlign
    #:rows
    ; methods
-   #:insert-row
-   #:delete-row
+   #:insert-row                    #:insertRow
+   #:delete-row                    #:deleteRow
 
    ;; tr
    ; attrs
-   #:row-index
-   #:section-row-index
+   #:row-index                     #:rowIndex
+   #:section-row-index             #:sectionRowIndex
    #:cells
    #:align
-   #:bg-color
+   #:bg-color                      #:bgColor
    #:ch
-   #:ch-off
-   #:v-align
+   #:ch-off                        #:chOff
+   #:v-align                       #:vAlign
    ; methods
-   #:insert-cell
-   #:delete-cell
+   #:insert-cell                   #:insertCell
+   #:delete-cell                   #:deleteCell
 
    ;; th and td
    ; attrs
-   #:cell-index
+   #:cell-index                    #:cellIndex
    #:abbr
    #:align
    #:axis
-   #:bg-color
+   #:bg-color                      #:bgColor
    #:ch
-   #:ch-off
-   #:col-span
+   #:ch-off                        #:chOff
+   #:col-span                      #:colSpan
    #:headers
    #:height
-   #:no-wrap
-   #:row-span
+   #:no-wrap                       #:noWrap
+   #:row-span                      #:rowSpan
    #:scope
-   #:v-align
+   #:v-align                       #:vAlign
    #:width
 
    ;; frameset
@@ -600,80 +611,81 @@
 
    ;; frame
    ; attrs
-   #:frame-border
-   #:long-desc
-   #:margin-height
-   #:margin-width
+   #:frame-border                  #:frameBorder
+   #:long-desc                     #:longDesc
+   #:margin-height                 #:marginHeight
+   #:margin-width                  #:marginWidth
    #:name
-   #:no-resize
+   #:no-resize                     #:noResize
    #:scrolling
    #:src
 
    ;; iframe
    ; attrs
    #:align
-   #:frame-border
+   #:frame-border                  #:frameBorder
    #:height
-   #:long-desc
-   #:margin-height
-   #:margin-width
+   #:long-desc                     #:longDesc
+   #:margin-height                 #:marginHeight
+   #:margin-width                  #:marginWidth
    #:name
    #:scrolling
    #:src
-   #:width))
+   #:width
+   ))
 
 (defpackage #:ps-dom2-symbols
-  (:use #:ps-dom1-symbols #:cl)
+  (:documentation "DOM Level 2 symbols. Includes DOM Level 1 symbols.")
   (:export
    ;;; Core
    ;; DOMImplementation
    ; methods
-   #:create-document
-   #:create-document-type
+   #:create-document               #:createDocument
+   #:create-document-type          #:createDocumentType
 
    ;; document interface
    ; methods
-   #:create-attribute-n-s
-   #:create-element-n-s
-   #:get-element-by-id
-   #:get-elements-by-tag-name-n-s
-   #:import-node
+   #:create-attribute-n-s          #:createAttributeNS
+   #:create-element-n-s            #:createElementNS
+   #:get-element-by-id             #:getElementById
+   #:get-elements-by-tag-name-n-s  #:getElementsByTagNameNS
+   #:import-node                   #:importNode
 
    ;; node interface
    ; attributes
-   #:local-name
-   #:namespace-u-r-i
+   #:local-name                    #:localName
+   #:namespace-u-r-i               #:namespaceURI
    #:prefix
    ; methods
-   #:is-supported
+   #:is-supported                  #:isSupported
 
    ;; named node map
    ; methods
-   #:get-named-item-n-s
-   #:remove-named-item-n-s
-   #:set-named-item-n-s
+   #:get-named-item-n-s            #:getNamedItemNS
+   #:remove-named-item-n-s         #:removeNamedItermNS
+   #:set-named-item-n-s            #:setNamedItemNS
 
    ;; element interface
    ; methods
-   #:get-attribute-n-s
-   #:get-attribute-node-n-s
-   #:get-elements-by-tag-name-n-s
-   #:has-attribute-n-s
-   #:remove-attribute-n-s
-   #:set-attribute-n-s
-   #:set-attribute-node-n-s
+   #:get-attribute-n-s             #:getAttributeNS
+   #:get-attribute-node-n-s        #:getAttributeNodeNS
+   #:get-elements-by-tag-name-n-s  #:getElementsByTagNameNS
+   #:has-attribute-n-s             #:hasAttributeNS
+   #:remove-attribute-n-s          #:removeAttributeNS
+   #:set-attribute-n-s             #:setAttributeNS
+   #:set-attribute-node-n-s        #:setAttributeNodeNS
 
    ;;; Level 2 extended interfaces
    ;; document type
    ; attrs
-   #:internal-subset
-   #:public-id
-   #:system-id
+   #:internal-subset               #:internalSubset
+   #:public-id                     #:publicId
+   #:system-id                     #:systemId
 
    ;;; Level 2 HTML
    ;; object, frame, iframe
    ; attr
-   #:content-document
+   #:content-document              #:contentDocument
 
    ;;; Stylesheets
    ;; stylesheet
@@ -681,18 +693,18 @@
    #:disabled
    #:href
    #:media
-   #:owner-node
-   #:parent-style-sheet
+   #:owner-node                    #:ownerNode
+   #:parent-style-sheet            #:parenStyleSheet
    #:title
    #:type
 
    ;; media list
    ; attrs
    #:length
-   #:media-text
+   #:media-text                    #:mediaText
    ; methods
-   #:append-medium
-   #:delete-medium
+   #:append-medium                 #:appendMedium
+   #:delete-medium                 #:deleteMedium
    #:item
 
    ;; linkstyle
@@ -701,42 +713,42 @@
 
    ;; documentstyle
    ; attrs
-   #:style-sheets
+   #:style-sheets                  #:styleSheets
 
    ;;; CSS
    ;; css style sheet
    ; attrs
-   #:css-rules
-   #:owner-rule
+   #:css-rules                     #:cssRules
+   #:owner-rule                    #:ownerRule
    ; methods
-   #:delete-rule
-   #:insert-rule
+   #:delete-rule                   #:deleteRule
+   #:insert-rule                   #:insertRule
 
    ;; css rule
    ; attrs
-   #:css-text
-   #:parent-rule
-   #:parent-style-sheet
+   #:css-text                      #:cssText
+   #:parent-rule                   #:parentRule
+   #:parent-style-sheet            #:parentStyleSheet
    #:type
 
    ;; css style rule
    ; attrs
-   #:selector-text
+   #:selector-text                 #:selectorText
    #:style
 
    ;; css media rule
    ; attrs
-   #:css-rules
+   #:css-rules                     #:cssRules
    #:media
    ; methods
-   #:delete-rule
-   #:insert-rule
+   #:delete-rule                   #:deleteRule
+   #:insert-rule                   #:insertRule
 
    ;; css import rule
    ; attrs
    #:href
    #:media
-   #:style-sheet
+   #:style-sheet                   #:styleSheet
 
    ;; css charset rule
    ; attrs
@@ -744,33 +756,33 @@
 
    ;; css style declaration
    ; attrs
-   #:css-text
+   #:css-text                      #:cssText
    #:length
-   #:parent-rule
+   #:parent-rule                   #:parentRule
    ; methods
-   #:get-property-c-s-s-value
-   #:get-property-priority
-   #:get-property-value
+   #:get-property-c-s-s-value      #:getPropertyCSSValue
+   #:get-property-priority         #:getPropertyPriority
+   #:get-property-value            #:getPropertyValue
    #:item
-   #:remove-property
-   #:set-property
+   #:remove-property               #:removeProperty
+   #:set-property                  #:setProperty
 
    ;; css value
    ; attrs
-   #:css-text
-   #:css-value-type
+   #:css-text                      #:cssText
+   #:css-value-type                #:cssValueType
 
    ;; css primitive value
    ; attrs
-   #:primitive-type
+   #:primitive-type                #:primitiveType
    ; methods
-   #:get-counter-value
-   #:get-float-value
-   #:get-r-g-b-color-value
-   #:get-rect-value
-   #:get-string-value
-   #:set-float-value
-   #:set-string-value
+   #:get-counter-value             #:getCounterValue
+   #:get-float-value               #:getFloatValue
+   #:get-r-g-b-color-value         #:getRGBColorValue
+   #:get-rect-value                #:getRectValue
+   #:get-string-value              #:getStringValue
+   #:set-float-value               #:setFloatValue
+   #:set-string-value              #:setStringValue
 
    ;; rgb color
    ; attrs
@@ -788,212 +800,212 @@
    ;; counter
    ; attrs
    #:identifier
-   #:list-style
+   #:list-style                    #:listStyle
    #:separator
 
    ;; css views
    ; methods
-   #:get-computed-style
+   #:get-computed-style            #:getComputedStyle
 
    ;; document css
    ; methods
-   #:get-override-style
+   #:get-override-style            #:getOverrideStyle
 
    ;; css stylesheets
    ; methods
-   #:create-c-s-s-style-sheet
+   #:create-c-s-s-style-sheet      #:createCSSStyleSheet
 
    ;;; CSS 2.0 extended interface
    ; attributes
    #:azimuth
    #:background
-   #:background-attachment
-   #:background-color
-   #:background-image
-   #:background-position
-   #:background-repeat
+   #:background-attachment         #:backgroundAttachment
+   #:background-color              #:backgroundColor
+   #:background-image              #:backgroundImage
+   #:background-position           #:backgroundPosition
+   #:background-repeat             #:backgroundRepeat
    #:border
-   #:border-bottom
-   #:border-bottom-color
-   #:border-bottom-style
-   #:border-bottom-width
-   #:border-collapse
-   #:border-color
-   #:border-left
-   #:border-left-color
-   #:border-left-style
-   #:border-left-width
-   #:border-right
-   #:border-right-color
-   #:border-right-style
-   #:border-right-width
-   #:border-spacing
-   #:border-style
-   #:border-top
-   #:border-top-color
-   #:border-top-style
-   #:border-top-width
-   #:border-width
+   #:border-bottom                 #:borderBottom
+   #:border-bottom-color           #:borderBottomColor
+   #:border-bottom-style           #:borderBottomStyle
+   #:border-bottom-width           #:borderBottomWidth
+   #:border-collapse               #:borderCollapse
+   #:border-color                  #:borderColor
+   #:border-left                   #:borderLeft
+   #:border-left-color             #:borderLeftColor
+   #:border-left-style             #:borderLeftStyle
+   #:border-left-width             #:borderLeftWidth
+   #:border-right                  #:borderRight
+   #:border-right-color            #:borderRightColor
+   #:border-right-style            #:borderRightStyle
+   #:border-right-width            #:borderRightWidth
+   #:border-spacing                #:borderSpacing
+   #:border-style                  #:borderStyle
+   #:border-top                    #:borderTop
+   #:border-top-color              #:borderTopColor
+   #:border-top-style              #:borderTopStyle
+   #:border-top-width              #:borderTopWidth
+   #:border-width                  #:borderWidth
    #:bottom
-   #:caption-side
+   #:caption-side                  #:captionSide
    #:clear
    #:clip
    #:color
    #:content
-   #:counter-increment
-   #:counter-reset
-   #:css-float
+   #:counter-increment             #:counterIncrement
+   #:counter-reset                 #:counterReset
+   #:css-float                     #:cssFloat
    #:cue
-   #:cue-after
-   #:cue-before
+   #:cue-after                     #:cueAfter
+   #:cue-before                    #:cueBefore
    #:cursor
    #:direction
    #:display
    #:elevation
-   #:empty-cells
+   #:empty-cells                   #:emptyCells
    #:font
-   #:font-family
-   #:font-size
-   #:font-size-adjust
-   #:font-stretch
-   #:font-style
-   #:font-variant
-   #:font-weight
+   #:font-family                   #:fontFamily
+   #:font-size                     #:fontSize
+   #:font-size-adjust              #:fontSizeAdjust
+   #:font-stretch                  #:fontStretch
+   #:font-style                    #:fontStyle
+   #:font-variant                  #:fontVariant
+   #:font-weight                   #:fontWeight
    #:height
    #:left
-   #:letter-spacing
-   #:line-height
-   #:list-style
-   #:list-style-image
-   #:list-style-position
-   #:list-style-type
+   #:letter-spacing                #:letterSpacing
+   #:line-height                   #:lineHeight
+   #:list-style                    #:listStyle
+   #:list-style-image              #:listStyleImage
+   #:list-style-position           #:listStylePosition
+   #:list-style-type               #:listStyleType
    #:margin
-   #:margin-bottom
-   #:margin-left
-   #:margin-right
-   #:margin-top
-   #:marker-offset
+   #:margin-bottom                 #:marginBottom
+   #:margin-left                   #:marginLeft
+   #:margin-right                  #:marginRight
+   #:margin-top                    #:marginTop
+   #:marker-offset                 #:markerOffset
    #:marks
-   #:max-height
-   #:max-width
-   #:min-height
-   #:min-width
+   #:max-height                    #:maxHeight
+   #:max-width                     #:maxWidth
+   #:min-height                    #:minHeight
+   #:min-width                     #:minWidth
    #:orphans
    #:outline
-   #:outline-color
-   #:outline-style
-   #:outline-width
+   #:outline-color                 #:outlineColor
+   #:outline-style                 #:outlineStyle
+   #:outline-width                 #:outlineWidth
    #:overflow
    #:padding
-   #:padding-bottom
-   #:padding-left
-   #:padding-right
-   #:padding-top
+   #:padding-bottom                #:paddingBottom
+   #:padding-left                  #:paddingLeft
+   #:padding-right                 #:paddingRight
+   #:padding-top                   #:paddingTop
    #:page
-   #:page-break-after
-   #:page-break-before
-   #:page-break-inside
+   #:page-break-after              #:pageBreakAfter
+   #:page-break-before             #:pageBreakBefore
+   #:page-break-inside             #:pageBreakInside
    #:pause
-   #:pause-after
-   #:pause-before
+   #:pause-after                   #:pauseAfter
+   #:pause-before                  #:pauseBefore
    #:pitch
-   #:pitch-range
-   #:play-during
+   #:pitch-range                   #:pitchRange
+   #:play-during                   #:playDuring
    ;; #:position in CL
    #:quotes
    #:richness
    #:right
    #:size
    #:speak
-   #:speak-header
-   #:speak-numeral
-   #:speak-punctuation
-   #:speech-rate
+   #:speak-header                  #:speakHeader
+   #:speak-numeral                 #:speakNumeral
+   #:speak-punctuation             #:speakPunctuation
+   #:speech-rate                   #:speechRate
    #:stress
-   #:table-layout
-   #:text-align
-   #:text-decoration
-   #:text-indent
-   #:text-shadow
-   #:text-transform
+   #:table-layout                  #:tableLayout
+   #:text-align                    #:textAlign
+   #:text-decoration               #:textDecoration
+   #:text-indent                   #:textIndent
+   #:text-shadow                   #:textShadow
+   #:text-transform                #:textTransform
    #:top
-   #:unicode-bidi
-   #:vertical-align
+   #:unicode-bidi                  #:unicodeBidi
+   #:vertical-align                #:verticalAlign
    #:visibility
-   #:voice-family
+   #:voice-family                  #:voiceFamily
    #:volume
-   #:white-space
+   #:white-space                   #:whiteSpace
    #:widows
    #:width
-   #:word-spacing
-   #:z-index
+   #:word-spacing                  #:wordSpacing
+   #:z-index                       #:zIndex
 
    ;;; Events
    ;; event target interface
    ; methods
-   #:add-event-listener
-   #:dispatch-event
-   #:remove-event-listener
+   #:add-event-listener            #:addEventListener
+   #:dispatch-event                #:dispatchEvent
+   #:remove-event-listener         #:removeEventListener
 
    ;; event listener interface
    ; methods
-   #:handle-event
+   #:handle-event                  #:handleEvent
 
    ;; Event
    ; attributes
    #:bubbles
    #:cancelable
-   #:current-target
-   #:event-phase
+   #:current-target                #:currentTarget
+   #:event-phase                   #:eventPhase
    #:target
-   #:time-stamp
+   #:time-stamp                    #:timeStamp
    #:type
    ; methods
-   #:init-event
-   #:prevent-default
-   #:stop-propagation
+   #:init-event                    #:initEvent
+   #:prevent-default               #:preventDefault
+   #:stop-propagation              #:stopPropagation
 
    ;; document event interface
    ; methods
-   #:create-event
+   #:create-event                  #:createEvent
 
    ;; UIEvent
    ; attributes
    #:detail
    #:view
    ; methods
-   #:init-u-i-event
+   #:init-u-i-event                #:initUIEvent
 
    ;; MouseEvent
    ; attributes
-   #:alt-key
+   #:alt-key                       #:altKey
    #:button
-   #:client-x
-   #:client-y
-   #:ctrl-key
-   #:meta-key
-   #:related-target
-   #:screen-x
-   #:screen-y
-   #:shift-key
+   #:client-x                      #:clientX
+   #:client-y                      #:clientY
+   #:ctrl-key                      #:ctrlKey
+   #:meta-key                      #:metaKey
+   #:related-target                #:relatedTarget
+   #:screen-x                      #:screenX
+   #:screen-y                      #:screenY
+   #:shift-key                     #:shiftKey
    ; methods
-   #:init-mouse-event
+   #:init-mouse-event              #:initMouseEvent
 
    ;; mutation event interface
    ; attributes
-   #:attr-change
-   #:attr-name
-   #:new-value
-   #:prev-value
-   #:related-node
+   #:attr-change                   #:attrChange
+   #:attr-name                     #:attrName
+   #:new-value                     #:newValue
+   #:prev-value                    #:prevValue
+   #:related-node                  #:relatedNode
    ; methods
-   #:init-mutation-event
-   )
-  )
+   #:init-mutation-event           #:initMutationEvent
+   ))
+
+(re-export-symbols '#:ps-dom1-symbols '#:ps-dom2-symbols)
 
 (defpackage #:ps-window-wd-symbols
-  ;;; The window object (w3c working draft)
-  (:use #:ps-dom2-symbols #:cl)
+  (:documentation "Funtions and properties of the W3C Working Draft Window object. Includes DOM level 2 symbols.")
   (:export
    ; attributes
    #:window
@@ -1019,38 +1031,51 @@
    #:parent
    #:top
    #:name
-   #:frame-element
+   #:frame-element                 #:frameElement
 
    ;; timers
    ; methods
-   #:set-timeout
-   #:set-interval
-   #:clear-timeout
-   #:clear-interval
-   )
-  )
+   #:set-timeout                   #:setTimeout
+   #:set-interval                  #:setInterval
+   #:clear-timeout                 #:clearTimeout
+   #:clear-interval                #:clearInterval
+   ))
+
+(re-export-symbols '#:ps-dom2-symbols '#:ps-window-wd-symbols)
 
 (defpackage #:ps-dom-nonstandard-symbols
-   ;;; Non-standard (incl. DOM level 0) but useful
+  (:documentation "Non-W3C-standard (incl. DOM level 0) but widely implemented functions and properties.")
   (:export
-   #:inner-h-t-m-l
+   #:inner-h-t-m-l                 #:innerHTML
    #:onload
 
-   #:offset-left
-   #:offset-top
-   #:offset-height
-   #:offset-width
+   #:offset-left                   #:offsetLeft
+   #:offset-top                    #:offsetTop
+   #:offset-height                 #:offsetHeight
+   #:offset-width                  #:offsetWidth
 
-   #:offset-parent
+   #:offset-parent                 #:offsetParent
 
-   #:scroll-left
-   #:scroll-top
-   #:scroll-width
-   #:scroll-height
+   #:scroll-left                   #:scrollLeft
+   #:scroll-top                    #:scrollTop
+   #:scroll-width                  #:scrollWidth
+   #:scroll-height                 #:scrollHeight
 
-   #:page-x-offset
-   #:page-y-offset
+   #:page-x-offset                 #:pageXOffset
+   #:page-y-offset                 #:pageYOffset
 
-   #:client-height
-   #:client-width
+   #:client-height                 #:clientHeight
+   #:client-width                  #:clientWidth
    ))
+
+(defpackage #:ps-dhtml-symbols
+  (:documentation "Meta-package containing function/property symbols
+  of typical HTML4/DHTML browsers. Includes DOM Levels 0 to 2, Window
+  working draft, and de-facto standard symbols.
+
+This is probably the package you want to :USE if you're doing
+obfuscation in Parenscript and want to target the pre-HTML5 generation
+of browsers."))
+
+(re-export-symbols '#:ps-window-wd-symbols '#:ps-dhtml-symbols)
+(re-export-symbols '#:ps-dom-nonstandard-symbols '#:ps-dhtml-symbols)

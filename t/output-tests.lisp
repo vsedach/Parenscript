@@ -2781,3 +2781,28 @@ foo = 3;")
   "if ((3 === 3) != (3 === 4)) {
     console.log(1);
 };")
+
+(test-ps-js case-cond-breaks
+  (defun blah (x)
+    (case x
+      (123 (cond ((foo1) (when (foo2)
+                           (when (foo3)
+                             (return-from blah nil))
+                           t))))
+      (456 (foo7))))
+  "function blah(x) {
+    switch (x) {
+    case 123:
+        if (foo1()) {
+            if (foo2()) {
+                if (foo3()) {
+                    return null;
+                };
+                return true;
+            };
+        };
+        break;
+    case 456:
+        return foo7();
+    };
+};")

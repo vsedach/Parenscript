@@ -176,7 +176,10 @@
                                          `(,cvalue
                                            ,@(butlast cbody last-n)
                                            (return-from ,tag ,result-form)
-                                           ,@(when (and (= last-n 2) (member 'if (flatten result-form))) '(break))))
+                                           ,@(when (and (= last-n 2)
+                                                        (find-if (lambda (x) (or (eq x 'if) (eq x 'cond)))
+                                                                 (flatten result-form)))
+                                              '(break))))
                                        (cons cvalue cbody))))))
                    (try
                     `(try (return-from ,tag ,(second form))
@@ -189,8 +192,7 @@
                                        finally))))
                    (cond
                      `(cond ,@(loop for clause in (cdr form) collect
-                                   `(,@(butlast clause)
-                                       (return-from ,tag ,(car (last clause)))))))
+                                   `(,@(butlast clause) (return-from ,tag ,(car (last clause)))))))
                    ((with label let flet labels macrolet symbol-macrolet) ;; implicit progn forms
                     `(,(first form) ,(second form)
                        ,@(butlast (cddr form))
@@ -227,8 +229,8 @@
 
 (define-statement-operator if (test then &optional else)
   `(ps-js:if ,(compile-expression test)
-          ,(compile-statement `(progn ,then))
-          ,@(when else `(:else ,(compile-statement `(progn ,else))))))
+     ,(compile-statement `(progn ,then))
+     ,@(when else `(:else ,(compile-statement `(progn ,else))))))
 
 (define-expression-operator cond (&rest clauses)
   (compile-expression
@@ -242,12 +244,12 @@
 
 (define-statement-operator cond (&rest clauses)
   `(ps-js:if ,(compile-expression (caar clauses))
-          ,(compile-statement `(progn ,@(cdar clauses)))
-          ,@(loop for (test . body) in (cdr clauses) appending
-                 (if (eq t test)
-                     `(:else ,(compile-statement `(progn ,@body)))
-                     `(:else-if ,(compile-expression test)
-                                ,(compile-statement `(progn ,@body)))))))
+     ,(compile-statement `(progn ,@(cdar clauses)))
+     ,@(loop for (test . body) in (cdr clauses) appending
+            (if (eq t test)
+                `(:else ,(compile-statement `(progn ,@body)))
+                `(:else-if ,(compile-expression test)
+                           ,(compile-statement `(progn ,@body)))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; macros

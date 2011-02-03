@@ -10,6 +10,7 @@
    (:module :src
             :serial t
             :components ((:file "package")
+                         (:file "js-dom-symbol-exports") ;; has to be loaded here, ps-js-symbols externals are re-exported from #:parenscript package
                          (:file "js-ir-package")
                          (:file "utils")
                          (:file "namespace")
@@ -22,7 +23,6 @@
                          (:file "function-definition")
                          (:file "macros")
                          (:file "deprecated-interface")
-                         (:file "js-dom-symbol-exports")
                          (:module :lib
                                   :components ((:file "ps-html")
                                                (:file "ps-loop")

@@ -56,8 +56,9 @@ foo.my_library_foo;")
 (defpackage #:ps-test.pststpkg
   (:use #:parenscript))
 
+(setf (ps-package-prefix '#:ps-test.pststpkg) "prefix_")
+
 (test namespace1 ()
-  (setf (ps-package-prefix '#:ps-test.pststpkg) "prefix_")
   (is (string= "prefix_foo;" (normalize-js-code (ps* 'ps-test.pststpkg::foo)))))
 
 (cl:in-package #:ps-test.pststpkg)

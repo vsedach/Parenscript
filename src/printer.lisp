@@ -120,7 +120,7 @@ vice-versa.")
     (psw *js-string-delimiter*)))
 
 (defmethod ps-print ((number number))
-  (format *psw-stream* (if (integerp number) "~S" "~F") number))
+  (format *psw-stream* (if (integerp number) "~D" "~F") number))
 
 (defvar %equality-ops '(ps-js:== ps-js:!= ps-js:=== ps-js:!==))
 

@@ -2527,7 +2527,9 @@ foo = 3;")
 };")
 
 (test-ps-js loop-closures-let
- (dotimes (i 10) (let ((x (+ i 1))) (lambda () (+ i x))))
+ (dotimes (i 10)
+   (let ((x (+ i 1)))
+     (lambda () (+ i x))))
  "for (var i = 0; i < 10; i += 1) {
     with ({ x : null, i : i }) {
         var x = i + 1;
@@ -2805,4 +2807,39 @@ foo = 3;")
     case 456:
         return foo7();
     };
+};")
+
+(test-ps-js let-let-funcall-lambda
+  (let ((x 5))
+    (let ((x 7))
+      (funcall (lambda (x) (+ x 9)) x)))
+  "var x = 5;
+var x1 = 7;
+(function (x) {
+    return x + 9;
+})(x1);")
+
+(test-ps-js let-let-lambda
+  (let ((x 5))
+    (let ((x 7))
+      (lambda (x) (+ x 9))))
+  "var x = 5;
+var x1 = 7;
+function (x) {
+    return x + 9;
+};")
+
+(test-ps-js let-lambda
+  (let ((x 5))
+    (lambda (x) (+ x 9)))
+  "var x = 5;
+function (x) {
+    return x + 9;
+};")
+
+(test-ps-js symbol-macrolet-no-shadow-lambda
+  (symbol-macrolet ((x y))
+    (lambda (x) (+ x x)))
+  "function (x) {
+    return x + x;
 };")

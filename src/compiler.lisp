@@ -147,7 +147,8 @@ CL environment)."
           (defpsmacro ,name ,args ,@body)))
 
 (defun ps-macroexpand-1 (form)
-  (aif (or (and (symbolp form) (lookup-macro-def form *symbol-macro-env*))
+  (aif (or (and (symbolp form) (or (and (member form *enclosing-lexicals*) (lookup-macro-def form *symbol-macro-env*))
+                                   (gethash form *symbol-macro-toplevel*))) ;; hack
            (and (consp form) (lookup-macro-def (car form) *macro-env*)))
        (values (ps-macroexpand (funcall it form)) t)
        form))

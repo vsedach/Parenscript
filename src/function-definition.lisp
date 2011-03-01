@@ -113,7 +113,7 @@ Syntax of key spec:
 (defun compile-function-body (args body)
   (with-declaration-effects (body body)
     (let* ((*enclosing-lexical-block-declarations* ())
-           (*enclosing-lexicals*                   (append args *enclosing-lexicals*))
+           (*enclosing-lexicals*                   (set-difference *enclosing-lexicals* args))
            (body                                   (let ((in-loop-scope?                 nil)
                                                          (*loop-scope-lexicals*          ())
                                                          (*loop-scope-lexicals-captured* ()))

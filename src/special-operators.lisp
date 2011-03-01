@@ -397,7 +397,8 @@
          (*loop-scope-lexicals-captured* ())
          (*ps-gensym-counter* *ps-gensym-counter*)
          (compiled-body (compile-statement `(progn ,@body))))
-    (aif (remove-duplicates *loop-scope-lexicals-captured*)
+    ;; the sort is there to make order for output-tests consistent across implementations
+    (aif (sort (remove-duplicates *loop-scope-lexicals-captured*) #'string< :key #'symbol-name)
          `(ps-js:block
               (ps-js:with ,(compile-expression
                          `(create ,@(loop for x in it

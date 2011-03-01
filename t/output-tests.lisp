@@ -2531,7 +2531,7 @@ foo = 3;")
    (let ((x (+ i 1)))
      (lambda () (+ i x))))
  "for (var i = 0; i < 10; i += 1) {
-    with ({ x : null, i : i }) {
+    with ({ i : i, x : null }) {
         var x = i + 1;
         function () {
             return i + x;

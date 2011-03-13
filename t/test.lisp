@@ -36,11 +36,23 @@
                                            (ps-doc* ',parenscript)))
                       (normalize-js-code ,javascript)))))
 
+(defmacro test-js-eval (testname parenscript result)
+  (let ((js-result (gensym)))
+   `(test ,testname ()
+      (cl-js:with-js-env ()
+        (let ((,js-result (cl-js:run-js (ps-doc* ',parenscript))))
+          (is (funcall (if (typep ,js-result 'structure-object) #'equalp #'equal)
+                       ,js-result
+                       ,result)))))))
+
 (def-suite output-tests)
 (def-suite package-system-tests)
+(def-suite eval-tests)
 
 (defun run-tests()
   (format t "Running output tests:~&")
   (run! 'output-tests)
   (format t "Running package system tests:~&")
-  (run! 'package-system-tests))
+  (run! 'package-system-tests)
+  (format t "Running CL-JavaScript eval tests:~&")
+  (run! 'eval-tests))

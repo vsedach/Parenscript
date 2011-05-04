@@ -11,9 +11,9 @@
             (dolist (element (aref arrs 0))
               ((@ result-array push) (fun element)))
             (dotimes (i (length (aref arrs 0)))
-              (let ((args-array (mapcar (lambda (a) (return (aref a i))) arrs)))
+              (let ((args-array (mapcar (lambda (a) (aref a i)) arrs)))
                 ((@ result-array push) ((@ fun apply) fun args-array)))))
-        (return result-array)))
+        result-array))
 
     (defun map-into (fn arr)
       "Call FN on each element in ARR, replace element with the return value."
@@ -21,7 +21,7 @@
         (dolist (el arr)
           (setf (aref arr idx) (fn el))
           (setf idx (1+ idx))))
-      (return arr))
+      arr)
 
     (defun map (fn arr)
       "Call FN on each element in ARR and return the returned values in a new array."
@@ -31,14 +31,14 @@
         (dolist (el arr)
           (setf (aref result idx) (fn el))
           (setf idx (1+ idx)))
-        (return result)))
+        result))
 
     (defun member (item arr)
       "Check if ITEM is a member of ARR."
       (dolist (el arr)
         (if (= el item)
-            (return true)))
-      (return false))
+            (return-from member true)))
+      false)
 
     (defun set-difference (arr arr-to-sub)
       "Return a new array with only those elements in ARR that are not in ARR-TO-SUB."
@@ -48,14 +48,14 @@
           (unless (member el arr-to-sub)
             (setf (aref result idx) el)
             (setf idx (1+ idx))))
-        (return result)))
+        result))
 
     (defun reduce (func list &optional init) ;; the use of init here is actually a bit broken wrt null
       (let* ((acc))
         (do* ((i (if init -1 0) (1+ i))
               (acc (if init init (elt list 0)) (func acc (elt list i))))
              ((>= i (1- (length list)))))
-        (return acc)))
+        acc))
 
     (defun nconc (arr &rest arrs)
     (when (and arr (> (length arr) 0))

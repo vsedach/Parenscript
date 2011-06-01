@@ -37,7 +37,7 @@
       (lambda (&rest _)
         (interactive "P")
         (slime-eval-custom-expand expander
-                                  (first (slime-sexp-at-point-for-macroexpansion))
+                                  (slime-sexp-at-point)
                                   (slime-current-package)
                                   buffer-name
                                   buffer-mode

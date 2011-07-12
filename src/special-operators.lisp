@@ -8,7 +8,6 @@
   +          ps-js:+
   -          ps-js:-
   *          ps-js:*
-  /          ps-js:/
   rem        ps-js:%
   and        ps-js:&&
   or         ps-js:\|\|
@@ -22,6 +21,11 @@
 
   funcall    ps-js:funcall
   )
+
+(define-expression-operator / (&rest args)
+  (if (cdr args)
+      `(ps-js:/ ,@args)
+      `(ps-js:/ 1 ,@args)))
 
 (define-expression-operator - (&rest args)
   (let ((args (mapcar #'compile-expression args)))

@@ -2842,3 +2842,7 @@ function (x) {
   "function (x) {
     return x + x;
 };")
+
+(test-ps-js divide-one-arg-reciprocal
+  (/ 2)
+  "1 / 2;")

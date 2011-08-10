@@ -2846,3 +2846,7 @@ function (x) {
 (test-ps-js divide-one-arg-reciprocal
   (/ 2)
   "1 / 2;")
+
+(test-ps-js division-not-associative
+  (/ a (* b c))
+  "a / (b * c);")

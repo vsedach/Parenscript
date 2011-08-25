@@ -101,7 +101,7 @@
   `(ps-js:var ,(ps-macroexpand name) ,@(when value? (list (compile-expression value) docstr))))
 
 (defmacro var (name &optional value docstr)
-  `(defparameter ,name ,@(when value (list value)) ,@(when docstr (list docstr))))
+  `(defparameter ,name ,value ,@(when docstr (list docstr))))
 
 ;;; iteration
 

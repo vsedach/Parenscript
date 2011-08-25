@@ -1298,6 +1298,10 @@ try {
                       (:span :class "ticker-symbol-popup")))
   "['<SPAN CLASS=\"ticker-symbol\" TICKER-SYMBOL=\"', symbol, '\"><A HREF=\"http://foo.com\">', symbol, '</A><SPAN CLASS=\"ticker-symbol-popup\"></SPAN></SPAN>']['join']('');")
 
+(test-ps-js who-html2
+  (who-ps-html (:p "t0" (:span "t1")))
+  "'<P>t0<SPAN>t1</SPAN></P>';")
+
 (test-ps-js flet1
   ((lambda () (flet ((foo (x)
                        (1+ x)))

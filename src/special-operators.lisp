@@ -23,9 +23,7 @@
   )
 
 (define-expression-operator / (&rest args)
-  (if (cdr args)
-      `(ps-js:/ ,@args)
-      `(ps-js:/ 1 ,@args)))
+  `(ps-js:/ ,@(unless (cdr args) (list 1)) ,@(mapcar #'compile-expression args)))
 
 (define-expression-operator - (&rest args)
   (let ((args (mapcar #'compile-expression args)))

@@ -2854,3 +2854,11 @@ function (x) {
 (test-ps-js division-not-associative
   (/ a (* b c))
   "a / (b * c);")
+
+(test-ps-js divide-expressions
+  (/ (foo) (bar))
+  "foo() / bar();")
+
+(test-ps-js divide-expressions1
+  (floor (1- x) y)
+  "Math.floor((x - 1) / y);")

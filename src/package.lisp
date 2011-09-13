@@ -3,9 +3,10 @@
 (pushnew :parenscript *features*)
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
-  (named-readtables:defreadtable :parenscript
-    (:merge :standard)
-    (:case :invert)))
+  (unless (named-readtables:find-readtable :parenscript)
+    (named-readtables:defreadtable :parenscript
+      (:merge :standard)
+      (:case :invert))))
 
 (named-readtables:in-readtable :parenscript)
 

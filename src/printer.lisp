@@ -44,6 +44,7 @@ vice-versa.")
                        (cons (get-output-stream-string *psw-stream*)
                              %psw-accumulator))))))))
 
+(defgeneric ps-print (form))
 (defgeneric ps-print% (js-primitive args))
 
 (defmacro defprinter (js-primitive args &body body)

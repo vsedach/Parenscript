@@ -77,6 +77,7 @@ lexical block.")
 (defvar *local-function-names* ())
 ;; is a subset of
 (defvar *enclosing-lexicals* ())
+(defvar *enclosing-function-arguments* ())
 (defvar *function-block-names* ())
 (defvar *lexical-extent-return-tags* ())
 (defvar *dynamic-extent-return-tags* ())

@@ -2862,3 +2862,14 @@ function (x) {
 (test-ps-js divide-expressions1
   (floor (1- x) y)
   "Math.floor((x - 1) / y);")
+
+(test-ps-js lexical-funargs-shadow1
+  (lambda (x)
+    (let ((x 1))
+      (foo x))
+    (incf x))
+  "function (x) {
+    var x1 = 1;
+    foo(x1);
+    return ++x;
+};")

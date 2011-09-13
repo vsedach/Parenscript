@@ -348,6 +348,7 @@
                                                                  normalized-bindings)))
       (flet ((maybe-rename-lexical-var (x)
                (if (or (member x *enclosing-lexicals*)
+                       (member x *enclosing-function-arguments*)
                        (lookup-macro-def x *symbol-macro-env*)
                        (member x free-variables-in-binding-value-expressions))
                    (ps-gensym (string x))

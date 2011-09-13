@@ -31,3 +31,9 @@
   (array)
   (js-array (make-array 0 :adjustable t)))
 
+(test-js-eval funargs-let1
+  ((lambda (x)
+     (let ((x 10))
+       (incf x))
+     (incf x)) 0)
+  1)

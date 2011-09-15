@@ -120,7 +120,7 @@
          (ps-js:try ,body
                     :catch (err ,(compile-statement `(progn (if (and err (eql ',tag (getprop err :ps-block-tag)))
                                                                 ;; FIXME make this a multiple-value return
-                                                                (getprop err :ps-return-value)
+                                                                (return (getprop err :ps-return-value))
                                                                 (throw err)))))
                    :finally nil))
       body))

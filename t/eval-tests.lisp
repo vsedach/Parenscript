@@ -37,3 +37,7 @@
        (incf x))
      (incf x)) 0)
   1)
+
+(test-js-eval block-dynamic-return
+  (block nil ((lambda () (return))) (+ 1 2))
+  :null)

@@ -2881,3 +2881,14 @@ function (x) {
 (test-ps-js rem-divide
   (/ x (rem y z))
   "x / (y % z);")
+
+(test-ps-js case-break-return
+  (lambda () (case x (:foo) (:bar 1)))
+  "function () {
+    switch (x) {
+    case 'foo':
+        return null;
+    case 'bar':
+        return 1;
+    };
+};")

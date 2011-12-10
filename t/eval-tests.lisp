@@ -57,3 +57,7 @@
 (test-js-eval rem-multiply
   (* 5 (rem 4 3))
   5)
+
+(test-js-eval case-return-break-null
+  ((lambda (x) (case x (1) (2 3))) 1)
+  :null)

@@ -180,7 +180,7 @@
                                        (let ((result-form (ps-macroexpand (car (last cbody last-n)))))
                                          `(,cvalue
                                            ,@(butlast cbody last-n)
-                                           (return-from ,tag ,result-form)
+                                           (return-from ,tag ,(if (eq result-form 'break) nil result-form))
                                            ,@(when (and (= last-n 2)
                                                         (find-if (lambda (x) (or (eq x 'if) (eq x 'cond)))
                                                                  (flatten result-form)))

@@ -41,3 +41,19 @@
 (test-js-eval block-dynamic-return
   (block nil ((lambda () (return))) (+ 1 2))
   :null)
+
+(test-js-eval times-rem
+  (* 12 (rem 10 3))
+  12)
+
+(test-js-eval divide-rem
+  (rem 10 (/ 12 4))
+  1)
+
+(test-js-eval rem-divide
+  (/ 9 (rem 11 4))
+  3)
+
+(test-js-eval rem-multiply
+  (* 5 (rem 4 3))
+  5)

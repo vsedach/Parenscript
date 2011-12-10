@@ -195,7 +195,7 @@
 
 (test-ps-js operator-expressions-3
   (* 1 (+ 2 3 4) 4 (/ 6 7))
-  "1 * (2 + 3 + 4) * 4 * 6 / 7;")
+  "1 * (2 + 3 + 4) * 4 * (6 / 7);")
 
 (test-ps-js operator-expressions-4
   (incf i)
@@ -415,7 +415,7 @@ for (; i <= 10; ) {
       (s 0 (+ s i (1- i))))
      ((> i 10))
   ((@ document write) (+ "i: " i " s: " s "<br/>")))
-  "for (var i = 0, s = 0; i <= 10; i += 1, s = s + i + i - 1) {
+  "for (var i = 0, s = 0; i <= 10; i += 1, s = s + i + (i - 1)) {
     document.write('i: ' + i + ' s: ' + s + '<br/>');
 };")
 
@@ -1419,8 +1419,8 @@ foo(1);")
 (test ps-lisp-expands-in-lexical-environment
   (is (string= "5;" (let ((x 5)) (ps (lisp x))))))
 
-(test ps*-lisp-expands-in-null-lexical-environment
-  (signals error (let ((x 5)) (declare (ignore x)) (ps* '(lisp x)))))
+(test ps*-lisp-expands-in-null-lexical-environment ;; ccl only does a warning
+  (signals unbound-variable (let ((x 5)) (declare (ignore x)) (ps* '(lisp x)))))
 
 (test ps*-lisp-expands-in-dynamic-environment
   (is (string= "1 + 2;" (let ((foo 2)) (declare (special foo)) (ps* '(+ 1 (lisp (locally (declare (special foo)) foo))))))))
@@ -1695,7 +1695,7 @@ x1(x);")
       (let ((b (a (- a 4))))
         (+ a b))))
   "var a = 1 + 5;
-var b = a - 4 + 5;
+var b = (a - 4) + 5;
 a + b;")
 
 (test-ps-js let-subtract-add
@@ -2371,7 +2371,7 @@ x();")
 
 (test-ps-js non-associative
   (+ (/ 1 (/ 2 3)) (- 1 (- 2 3)))
-  "1 / (2 / 3) + 1 - (2 - 3);")
+  "1 / (2 / 3) + (1 - (2 - 3));")
 
 (test-ps-js lambda-apply
   (lambda (x)
@@ -2873,3 +2873,11 @@ function (x) {
     foo(x1);
     return ++x;
 };")
+
+(test-ps-js times-rem
+  (* x (rem y z))
+  "x * (y % z);")
+
+(test-ps-js rem-divide
+  (/ x (rem y z))
+  "x / (y % z);")

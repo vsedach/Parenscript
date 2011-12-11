@@ -96,15 +96,15 @@
 
 (test-ps-js object-literals-1
   (create foo "bar" :blorg 1)
-  "{ foo : 'bar', 'blorg' : 1 };")
+  "({ foo : 'bar', 'blorg' : 1 });")
 
 (test-ps-js object-literals-2
   (create foo "hihi"
           blorg (array 1 2 3)
           another-object (create :schtrunz 1))
-  "{ foo : 'hihi',
+  "({ foo : 'hihi',
   blorg : [ 1, 2, 3 ],
-  anotherObject : { 'schtrunz' : 1 } };")
+  anotherObject : { 'schtrunz' : 1 } });")
 
 (test-ps-js object-literals-3
   (getprop an-object 'foo)
@@ -826,11 +826,11 @@ __setf_someThing('foo', 1, 2);")
 
 (test-ps-js obj-literal-numbers
   (create 1 "foo")
-  "{ 1 : 'foo' };")
+  "({ 1 : 'foo' });")
 
 (test-ps-js obj-literal-strings
   (create "foo" 2)
-  "{ 'foo' : 2 };")
+  "({ 'foo' : 2 });")
 
 (test-ps-js getprop-string
   (getprop foo "bar")
@@ -850,11 +850,11 @@ __setf_someThing('foo', 1, 2);")
 
 (test-ps-js create-blank
   (create)
-  "{ };")
+  "({ });")
 
 (test-ps-js blank-object-literal
   {}
-  "{ };")
+  "({ });")
 
 (test-ps-js array-literal1
   []
@@ -1613,7 +1613,7 @@ x + x;")
 (test-ps-js symbol-macro-obj
   (symbol-macrolet ((x y))
     (create x 1))
-  "{ x : 1 };")
+  "({ x : 1 });")
 
 (test-ps-js symbol-macro-conditional1
   (symbol-macrolet ((x y))
@@ -1714,7 +1714,7 @@ x1 - x1;
 
 (test-ps-js create-reserved-word
   (create :default 1)
-  "{ 'default' : 1 };")
+  "({ 'default' : 1 });")
 
 (test-ps-js getprop-reserved-word
   (getprop foo :default)
@@ -2778,7 +2778,7 @@ foo = 3;")
 (test-ps-js create-let-exp
   (create :abc (let ((x (+ 1 2)))
                  (if x 123 456)))
-  "{ 'abc' : (x = 1 + 2, x ? 123 : 456) };")
+  "({ 'abc' : (x = 1 + 2, x ? 123 : 456) });")
 
 (test-ps-js eql-eql-eql-precedence
   (unless (equal (= 3 3) (= 3 4))

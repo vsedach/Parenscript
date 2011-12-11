@@ -24,7 +24,7 @@
 (test-ps-js uniform-symbol-handling1
   (progn (create ps-test.my-library::foo 1)
          (getprop foo 'ps-test.my-library::foo))
-  "{ my_library_foo : 1 };
+  "({ my_library_foo : 1 });
 foo.my_library_foo;")
 
 (let ((map (make-hash-table)))

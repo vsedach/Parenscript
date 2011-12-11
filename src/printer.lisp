@@ -14,13 +14,16 @@ vice-versa.")
 
 (defvar *psw-stream*)
 
+(defvar %printer-toplevel?)
+
 (defun parenscript-print (form immediate?)
   (declare (special immediate?))
   (let ((*indent-level* 0)
         (*psw-stream* (if immediate?
                           *psw-stream*
                           (make-string-output-stream)))
-        (%psw-accumulator ()))
+        (%psw-accumulator ())
+        (%printer-toplevel? t))
     (declare (special %psw-accumulator))
     (with-standard-io-syntax
       (if (and (listp form) (eq 'ps-js:block (car form))) ; ignore top-level block
@@ -46,6 +49,9 @@ vice-versa.")
 
 (defgeneric ps-print (form))
 (defgeneric ps-print% (js-primitive args))
+
+(defmethod ps-print :after (form)
+  (setf %printer-toplevel? nil))
 
 (defmacro defprinter (js-primitive args &body body)
   (if (listp js-primitive)
@@ -160,6 +166,7 @@ vice-versa.")
   (psw #\() (ps-print ps-form) (psw #\)))
 
 (defun print-op-argument (op argument)
+  (setf %printer-toplevel? nil)
   (let ((arg-op (when (listp argument) (car argument))))
     (if (or (< (precedence op) (precedence arg-op))
             (and (= (precedence op) (precedence arg-op))
@@ -239,11 +246,17 @@ vice-versa.")
   (ps-print body))
 
 (defprinter ps-js:object (&rest slot-defs)
-  "{ "(loop for ((slot-name . slot-value) . remaining) on slot-defs do
-           (ps-print slot-name) (psw " : ") (if (and (consp slot-value) (eq 'ps-js:|,| (car slot-value)))
-                                                (parenthesize-print slot-value)
-                                                (ps-print slot-value))
-           (when remaining (psw ", ")))" }")
+  (let ((toplevel? %printer-toplevel?))
+    (when toplevel? (psw "("))
+    (psw "{ ")
+    (loop for ((slot-name . slot-value) . remaining) on slot-defs do
+         (ps-print slot-name) (psw " : ")
+         (if (and (consp slot-value) (eq 'ps-js:|,| (car slot-value)))
+             (parenthesize-print slot-value)
+             (ps-print slot-value))
+         (when remaining (psw ", ")))
+    (psw " }")
+    (when toplevel? (psw ")"))))
 
 (defprinter ps-js:getprop (obj slot)
   (print-op-argument op obj)"."(psw (symbol-to-js-string slot)))

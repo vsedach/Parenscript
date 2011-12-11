@@ -162,8 +162,13 @@ vice-versa.")
   (member op '(ps-js:+ ps-js:* ps-js:& ps-js:&& ps-js:\| ps-js:\|\|
                ps-js:funcall ps-js:aref ps-js:getprop))) ;; these aren't really associative, but RPN
 
-(defun parenthesize-print (ps-form)
-  (psw #\() (ps-print ps-form) (psw #\)))
+(defun parenthesize-print (x)
+  (psw #\() (if (functionp x) (funcall x) (ps-print x)) (psw #\)))
+
+(defun parenthesize-at-toplevel (x)
+  (if %printer-toplevel?
+      (parenthesize-print x)
+      (funcall x)))
 
 (defun print-op-argument (op argument)
   (setf %printer-toplevel? nil)
@@ -232,7 +237,8 @@ vice-versa.")
   "}")
 
 (defprinter ps-js:lambda (args body-block)
-  (print-fun-def nil args body-block))
+  (parenthesize-at-toplevel
+   (lambda () (print-fun-def nil args body-block))))
 
 (defprinter ps-js:defun (name args docstring body-block)
   (when docstring (print-comment docstring))
@@ -246,17 +252,16 @@ vice-versa.")
   (ps-print body))
 
 (defprinter ps-js:object (&rest slot-defs)
-  (let ((toplevel? %printer-toplevel?))
-    (when toplevel? (psw "("))
-    (psw "{ ")
-    (loop for ((slot-name . slot-value) . remaining) on slot-defs do
-         (ps-print slot-name) (psw " : ")
-         (if (and (consp slot-value) (eq 'ps-js:|,| (car slot-value)))
-             (parenthesize-print slot-value)
-             (ps-print slot-value))
-         (when remaining (psw ", ")))
-    (psw " }")
-    (when toplevel? (psw ")"))))
+  (parenthesize-at-toplevel
+   (lambda ()
+     (psw "{ ")
+     (loop for ((slot-name . slot-value) . remaining) on slot-defs do
+          (ps-print slot-name) (psw " : ")
+          (if (and (consp slot-value) (eq 'ps-js:|,| (car slot-value)))
+              (parenthesize-print slot-value)
+              (ps-print slot-value))
+          (when remaining (psw ", ")))
+     (psw " }"))))
 
 (defprinter ps-js:getprop (obj slot)
   (print-op-argument op obj)"."(psw (symbol-to-js-string slot)))

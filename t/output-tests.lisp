@@ -141,9 +141,9 @@
 
 (test-ps-js literal-symbols-4
   (lambda () nil)
-  "function () {
+  "(function () {
     return null;
-};")
+});")
 
 (test-ps-js literal-symbols-5
   undefined
@@ -233,11 +233,11 @@ blafoo(i);")
     return a + b;
 };")
 
-(test-ps-js function-definition-2
+(test-ps-js lambda-definition-2
   (lambda (a b) (+ a b))
-  "function (a, b) {
+  "(function (a, b) {
     return a + b;
-};")
+});")
 
 (test-ps-js assignment-1
   (setf a 1)
@@ -775,16 +775,16 @@ __setf_someThing('foo', 1, 2);")
     return x;
 };")
 
-(test-ps-js defun-optional4
+(test-ps-js arglist-optional4
   (lambda (&optional (x 0 supplied?))
     x)
-  "function (x) {
+  "(function (x) {
     var suppliedwhat = x !== undefined;
     if (!suppliedwhat) {
         x = 0;
     };
     return x;
-};")
+});")
 
 (test-ps-js return-nothing
   (defun foo ()  (return-from foo))
@@ -958,10 +958,10 @@ __setf_someThing('foo', 1, 2);")
     return myName;
 };")
 
-(test-ps-js defun-keyword-supplied
+(test-ps-js arglist-keyword-supplied
   (lambda (&key (foo 1 supplied?))
     foo)
-"function () {
+"(function () {
     var _js2 = arguments.length;
     for (var n1 = 0; n1 < _js2; n1 += 2) {
         switch (arguments[n1]) {
@@ -973,7 +973,7 @@ __setf_someThing('foo', 1, 2);")
     var suppliedwhat;
     var foo = undefined === foo ? 1 : foo;
     return foo;
-};")
+});")
 
 (test-ps-js keyword-funcall1
   (func :baz 1)
@@ -1506,10 +1506,10 @@ x1 + y;")
   (lambda ()
     (let (x)
       (+ x x)))
-  "function () {
+  "(function () {
     var x = null;
     return x + x;
-};")
+});")
 
 (test-ps-js let*1
   (let* ((x 1))
@@ -1600,10 +1600,10 @@ x + x;")
   (lambda (x)
     (let ((x (+ 1 x)))
       x))
-  "function (x) {
+  "(function (x) {
     var x1 = 1 + x;
     return x1;
-};")
+});")
 
 (test-ps-js symbol-macro-array
   (symbol-macrolet ((x 1))
@@ -1769,10 +1769,10 @@ x1 - x1;
 
 (test-ps-js nary-comparison1
   (lambda () (< 1 2 3))
-  "function () {
+  "(function () {
     var _cmp1;
     return (_cmp1 = 2, 1 < _cmp1 && _cmp1 < 3);
-};")
+});")
 
 (test-ps-js chain-getprop1
   (chain ($ "foo") (bar x z) frob (baz 5))
@@ -1954,9 +1954,9 @@ try {
 
 (test-ps-js values0
   (lambda () (values))
-  "function () {
+  "(function () {
     return null;
-};")
+});")
 
 (test-ps-js values1
   (values x)
@@ -2068,12 +2068,12 @@ x.offsetLeft;")
 
 (test-ps-js for-return
   (lambda () (dolist (arg args) (foo arg)))
-  "function () {
+  "(function () {
     for (var arg = null, _js_idx1 = 0; _js_idx1 < args.length; _js_idx1 += 1) {
         arg = args[_js_idx1];
         foo(arg);
     };
-};")
+});")
 
 (test-ps-js try-catch-return
   (defun foo ()
@@ -2122,16 +2122,16 @@ __setf_foo(5, x, 1, 2, 3, 4);")
 (test-ps-js implicit-return-null
   (lambda ()
     )
-  "function () {
+  "(function () {
     return null;
-};")
+});")
 
 (test-ps-js implicit-return-null
   (lambda ()
     nil)
-  "function () {
+  "(function () {
     return null;
-};")
+});")
 
 (test-ps-js return-conditional-nested
   (defun blep (ss x y)
@@ -2210,7 +2210,7 @@ try {
     (declare (special *foo*))
     (let ((*foo* 1))
       (1+ *foo*)))
-  "function () {
+  "(function () {
     var FOO_TMPSTACK1;
     try {
         FOO_TMPSTACK1 = FOO;
@@ -2219,7 +2219,7 @@ try {
     } finally {
         FOO = FOO_TMPSTACK1;
     };
-};")
+});")
 
 (test-ps-js declare-special-let
   (let ((*foo* 123))
@@ -2376,11 +2376,11 @@ x();")
 (test-ps-js lambda-apply
   (lambda (x)
     (apply (lambda (y) (bar (1+ y))) x))
-  "function (x) {
+  "(function (x) {
     return (function (y) {
         return bar(y + 1);
     }).apply(this, x);
-};")
+});")
 
 (test-ps-js operator-expressions-nested-let
   (let ((x (let ((y 1))
@@ -2433,10 +2433,10 @@ return null;
   (lambda ()
     (list (let ((foo 12)) (* foo 2))
           (let ((foo 13)) (* foo 3))))
-  "function () {
+  "(function () {
     var foo;
     return [(foo = 12, foo * 2), (foo = 13, foo * 3)];
-};")
+});")
 
 (test-ps-js defun-comment1
   (defun foo (x)
@@ -2507,7 +2507,7 @@ foo = 3;")
         (progn
           (loop :repeat 100 :do (bar))
           42)))
-  "function () {
+  "(function () {
    if (baz) {
        return 7;
    } else {
@@ -2516,7 +2516,7 @@ foo = 3;")
        };
        return 42;
    };
-};")
+});")
 
 ;; closures in loops need a new binding per loop iteration (idea borrowed from Scheme2JS)
 (test-ps-js loop-closures
@@ -2671,12 +2671,12 @@ foo = 3;")
       (when x
         (return 1))
       2))
-  "function (x) {
+  "(function (x) {
     if (x) {
         return 1;
     };
     return 2;
-};")
+});")
 
 (test-ps-js lambda-nil-return-implicit-nested
   (lambda (x)
@@ -2686,7 +2686,7 @@ foo = 3;")
         (dotimes (i 4)
           (return 1)))
       2))
-  "function (x) {
+  "(function (x) {
     if (x) {
         return 1;
     } else {
@@ -2695,7 +2695,7 @@ foo = 3;")
         };
     };
     return 2;
-};")
+});")
 
 (test-ps-js throw-is-a-statement
   (defun blah ()
@@ -2766,9 +2766,9 @@ foo = 3;")
     "This is a docstring"
     (declare (ignore x))
     2)
-  "function (x) {
+  "(function (x) {
     return 2;
-};")
+});")
 
 (test-ps-js setf-let-exp
   (setf foo (let ((x (+ 1 2)))
@@ -2843,9 +2843,9 @@ function (x) {
 (test-ps-js symbol-macrolet-no-shadow-lambda
   (symbol-macrolet ((x y))
     (lambda (x) (+ x x)))
-  "function (x) {
+  "(function (x) {
     return x + x;
-};")
+});")
 
 (test-ps-js divide-one-arg-reciprocal
   (/ 2)
@@ -2868,11 +2868,11 @@ function (x) {
     (let ((x 1))
       (foo x))
     (incf x))
-  "function (x) {
+  "(function (x) {
     var x1 = 1;
     foo(x1);
     return ++x;
-};")
+});")
 
 (test-ps-js times-rem
   (* x (rem y z))
@@ -2884,11 +2884,11 @@ function (x) {
 
 (test-ps-js case-break-return
   (lambda () (case x (:foo) (:bar 1)))
-  "function () {
+  "(function () {
     switch (x) {
     case 'foo':
         return null;
     case 'bar':
         return 1;
     };
-};")
+});")

@@ -2611,14 +2611,14 @@ foo = 3;")
         })();
     } catch (err) {
         if (err && 'foo' === err['ps-block-tag']) {
-            err['ps-return-value'];
+            return err['ps-return-value'];
         } else {
             throw err;
         };
     };
 };")
 
-(test-ps-js block-dynamic-return
+(test-ps-js block-dynamic-return ;; FIXME!!
   (block nil ((lambda () (return))) (+ 1 2))
   "nilBlock: {
     try {

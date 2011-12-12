@@ -333,5 +333,5 @@
                     ,@(finally loop))
                   ,(aif (default-accum-var loop) it nil))))
     (if (default-accum-var loop)
-        `((lambda () ,full))
+        `((lambda () ,full)) ;; this needs to be generalized
         full)))

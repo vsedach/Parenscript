@@ -29,7 +29,7 @@
 
 (test-js-eval empty-array
   (array)
-  (js-array (make-array 0 :adjustable t)))
+  (jsarray '()))
 
 (test-js-eval funargs-let1
   ((lambda (x)
@@ -101,7 +101,13 @@
          (one-plus (if false 1 (loop for i from 0 to 10 sum i))))
   56)
 
-;;; broken
+(test-js-eval case-return-break1-broken-return
+  (progn (defun foo (x y)
+           (case x
+             ("bar" (if y (return-from foo 1)))
+             ("baz" 2)))
+         (list (foo "bar" t) (foo "bar" nil) (foo "baz" nil)))
+  (jsarray '(1 :undefined 2)))
 
 (test-js-eval funcall-loop-doing
   ((lambda (x) x)
@@ -112,18 +118,18 @@
   ((lambda () (1+ (block nil (return 4) (+ 1 2)))))
   5)
 
-(test-js-eval block-dynamic-return
-  (block nil (return 4) (+ 1 2))
-  4)
-
-(test-js-eval block-lambda-dynamic-return
-  (block nil ((lambda () (return 4))) (+ 1 2))
-  4)
-
 (test-js-eval block-dynamic-setf
   (progn (defvar foo (block nil (return 4) (+ 1 2)))
          foo)
   4)
+
+(test-js-eval block-dynamic-return1
+  (progn (defvar foo ((lambda ()
+                        (block nil
+                          ((lambda () (return 6)))
+                          (+ 1 2)))))
+         foo)
+  6)
 
 (test-js-eval block-lambda-dynamic-setf
   (progn (defvar foo (block nil ((lambda () (return 4))) (+ 1 2)))
@@ -133,3 +139,29 @@
 (test-js-eval block-lambda-dynamic-lambda
   ((lambda () (block nil ((lambda () (return 4))) (+ 1 2))))
   4)
+
+(test-js-eval return-from-flet
+  (progn (defun foo ()
+           (flet ((bar () (return-from foo 42)))
+             (bar)))
+         (foo))
+  42)
+
+(test-js-eval plus-block
+  (1+ (block nil (return 4) (+ 1 2)))
+  5)
+
+;;; broken
+
+(test-js-eval block-dynamic-return
+  (block nil (return 4) (+ 1 2))
+  4)
+
+(test-js-eval block-lambda-dynamic-return
+  (block nil ((lambda () (return 4))) (+ 1 2))
+  4)
+
+(test-js-eval dolist-return
+  (dolist (x '(5 2 3))
+    (return (1+ x)))
+  6)

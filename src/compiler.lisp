@@ -27,6 +27,9 @@
         "public" "short" "static" "super" "synchronized" "throws" "transient"
         "volatile" "{}" "true" "false" "null" "undefined"))
 
+(defvar *lambda-wrappable-statements* ;; break, return, continue not included
+  '(throw switch for for-in while try block))
+
 (defun reserved-symbol? (symbol)
   (find (string-downcase (string symbol)) *reserved-symbol-names* :test #'string=))
 
@@ -44,15 +47,18 @@
                  ,@body)))))
 
 (defmacro define-expression-operator (name lambda-list &body body)
-  `(%define-special-operator *special-expression-operators* ,name ,lambda-list ,@body))
+  `(%define-special-operator *special-expression-operators*
+       ,name ,lambda-list ,@body))
 
 (defmacro define-statement-operator (name lambda-list &body body)
-  `(%define-special-operator *special-statement-operators* ,name ,lambda-list ,@body))
+  `(%define-special-operator *special-statement-operators*
+       ,name ,lambda-list ,@body))
 
 (defun special-form? (form)
   (and (consp form)
        (symbolp (car form))
-       (or (gethash (car form) *special-expression-operators*) (gethash (car form) *special-statement-operators*))))
+       (or (gethash (car form) *special-expression-operators*)
+           (gethash (car form) *special-statement-operators*))))
 
 ;;; scoping and lexical environment
 
@@ -79,9 +85,8 @@ lexical block.")
 (defvar *enclosing-lexicals* ())
 (defvar *enclosing-function-arguments* ())
 (defvar *function-block-names* ())
-(defvar *lexical-extent-return-tags* ())
-(defvar *dynamic-extent-return-tags* ())
-(defvar *tags-that-return-throws-to*)
+(defvar *dynamic-return-tags* ())
+(defvar *current-block-tag* nil)
 
 (defvar *special-variables* ())
 
@@ -203,12 +208,16 @@ form, FORM, returns the new value for *compilation-level*."
              (format stream "The Parenscript form ~A cannot be compiled into an expression." (error-form condition)))))
 
 (defun compile-special-form (form)
-  (apply (if compile-expression?
-             (or (gethash (car form) *special-expression-operators*)
-                 (error 'compile-expression-error :form form))
-             (or (gethash (car form) *special-statement-operators*)
-                 (gethash (car form) *special-expression-operators*)))
-         (cdr form)))
+  (let* ((op (car form))
+         (statement-impl (gethash op *special-statement-operators*))
+         (expression-impl (gethash op *special-expression-operators*)))
+    (cond ((not compile-expression?)
+           (apply (or statement-impl expression-impl) (cdr form)))
+          (expression-impl
+           (apply expression-impl (cdr form)))
+          ((member op *lambda-wrappable-statements*)
+           (compile-expression `((lambda () ,form))))
+          (t (error 'compile-expression-error :form form)))))
 
 (defun ps-compile (form)
   (typecase form

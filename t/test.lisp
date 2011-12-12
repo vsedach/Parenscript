@@ -45,6 +45,10 @@
                        ,js-result
                        ,result)))))))
 
+(defun jsarray (contents)
+  (cl-js:js-array
+   (make-array (length contents) :initial-contents contents :adjustable t)))
+
 (def-suite output-tests)
 (def-suite package-system-tests)
 (def-suite eval-tests)

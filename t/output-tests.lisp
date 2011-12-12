@@ -2340,6 +2340,42 @@ a === b;")
     blee();
 };")
 
+(test-ps-js block-return-from1
+  (lambda ()
+    (block scope
+     (foo)
+     (when (bar)
+       (return-from scope))
+     (blee))
+    (+ 1 2))
+  "(function () {
+    scope: {
+        foo();
+        if (bar()) {
+            break scope;
+        };
+        blee();
+    };
+    return 1 + 2;
+});")
+
+(test-ps-js block-return-from2
+  (lambda ()
+    (bar 5)
+    (block scope
+     (foo)
+     (when (bar)
+       (return-from scope 6))
+     (blee)))
+  "(function () {
+    bar(5);
+    foo();
+    if (bar()) {
+        return 6;
+    };
+    return blee();
+});")
+
 (test-ps-js let-funcall
   (let ((x foo))
     (funcall x)
@@ -2603,11 +2639,11 @@ foo = 3;")
 };")
 
 (test-ps-js dynamic-extent-function-return
-  (defun foo ()  ((lambda () (return-from foo))))
+  (defun foo () ((lambda () (return-from foo 6))))
   "function foo() {
     try {
         return (function () {
-            throw { 'ps-block-tag' : 'foo', 'ps-return-value' : null };
+            throw { 'ps-block-tag' : 'foo', 'ps-return-value' : 6 };
         })();
     } catch (err) {
         if (err && 'foo' === err['ps-block-tag']) {
@@ -2618,22 +2654,41 @@ foo = 3;")
     };
 };")
 
-(test-ps-js block-dynamic-return ;; FIXME!!
-  (block nil ((lambda () (return))) (+ 1 2))
-  "nilBlock: {
+(test-ps-js block-dynamic-return
+  (var foo ((lambda ()
+              (block nil
+                ((lambda () (return 6)))
+                (+ 1 2)))))
+  "var foo = (function () {
     try {
         (function () {
-            throw { 'ps-block-tag' : 'nilBlock', 'ps-return-value' : null };
+            throw { 'ps-block-tag' : 'nilBlock', 'ps-return-value' : 6 };
         })();
-        1 + 2;
+        return 1 + 2;
     } catch (err) {
         if (err && 'nilBlock' === err['ps-block-tag']) {
-            err['ps-return-value'];
+            return err['ps-return-value'];
         } else {
             throw err;
         };
     };
-};")
+})();")
+
+(test-ps-js block-dynamic-return1
+  (var foo ((lambda ()
+              (block nil
+                ((lambda () (return 6)))
+                (+ 1 2))
+              (foobar 1 2))))
+  "var foo = (function () {
+    nilBlock: {
+        (function () {
+            break nilBlock;
+        })();
+        1 + 2;
+    };
+    return foobar(1, 2);
+})();")
 
 (test-ps-js iteration-lambda-capture-no-need
   (dolist (x y) (lambda (x) (1+ x))) ;; there's really no need to create a 'with' scope in this case
@@ -2892,3 +2947,29 @@ function (x) {
         return 1;
     };
 });")
+
+(test-ps-js trivial-expression-switch
+  (foobar (case x (1 2)))
+  "foobar((function () {
+    switch (x) {
+    case 1:
+        return 2;
+    };
+})());")
+
+(test-ps-js trivial-expression-while
+  (foobar (while (< 0 x) (decf x)))
+  "foobar((function () {
+    while (0 < x) {
+        --x;
+    };
+})());")
+
+(test-ps-js funcall-block-expression-loop-lambda
+  (foobar (loop for i from 0 to 10 do (1+ i)))
+  "foobar((function () {
+    for (var i = 0; i <= 10; i += 1) {
+        i + 1;
+    };
+    return null;
+})());")

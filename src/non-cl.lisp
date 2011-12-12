@@ -29,6 +29,7 @@
 (define-statement-operator continue (&optional label)
   `(ps-js:continue ,label))
 
+;; todo: write CL equivalent
 (define-statement-operator switch (test-expr &rest clauses)
   `(ps-js:switch ,(compile-expression test-expr)
      ,@(loop for (val . body) in clauses collect
@@ -108,9 +109,9 @@
 (define-statement-operator for (init-forms cond-forms step-forms &body body)
   (let ((init-forms (make-for-vars/inits init-forms)))
    `(ps-js:for ,init-forms
-            ,(mapcar #'compile-expression cond-forms)
-            ,(mapcar #'compile-expression step-forms)
-            ,(compile-loop-body (mapcar #'car init-forms) body))))
+               ,(mapcar #'compile-expression cond-forms)
+               ,(mapcar #'compile-expression step-forms)
+               ,(compile-loop-body (mapcar #'car init-forms) body))))
 
 (define-statement-operator for-in ((var object) &rest body)
   `(ps-js:for-in ,(compile-expression var)

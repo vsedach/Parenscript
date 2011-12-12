@@ -113,32 +113,42 @@ Syntax of key spec:
 (defun compile-function-body (args body)
   (with-declaration-effects (body body)
     (let* ((*enclosing-lexical-block-declarations* ())
-           (*enclosing-function-arguments*         (append args *enclosing-function-arguments*))
-           (*enclosing-lexicals*                   (set-difference *enclosing-lexicals* args))
-           (body                                   (let ((in-loop-scope?                 nil)
-                                                         (*loop-scope-lexicals*          ())
-                                                         (*loop-scope-lexicals-captured* ()))
-                                                     (compile-statement `(return-from %function-body
-                                                                           (progn ,@(collapse-function-return-blocks body))))))
-           (var-decls                              (compile-statement
-                                                    `(progn ,@(mapcar (lambda (var) `(var ,var))
-                                                                      (remove-duplicates *enclosing-lexical-block-declarations*))))))
+           (*enclosing-function-arguments*
+            (append args *enclosing-function-arguments*))
+           (*enclosing-lexicals*
+            (set-difference *enclosing-lexicals* args))
+           (collapsed-body (collapse-function-return-blocks body))
+           (*dynamic-return-tags* (append (mapcar (lambda (x) (cons x nil))
+                                                  *function-block-names*)
+                                          *dynamic-return-tags*))
+           (body
+            (let ((in-loop-scope?                 nil)
+                  (*loop-scope-lexicals*          ())
+                  (*loop-scope-lexicals-captured* ()))
+              (compile-statement
+               `(return-from %function (progn ,@collapsed-body)))))
+           (var-decls
+            (compile-statement
+             `(progn
+                ,@(mapcar
+                   (lambda (var)
+                     `(var ,var))
+                   (remove-duplicates *enclosing-lexical-block-declarations*))))))
       (when in-loop-scope? ;; this is probably broken when it comes to let-renaming
-        (setf *loop-scope-lexicals-captured* (append (intersection (flatten body) *loop-scope-lexicals*)
-                                                     *loop-scope-lexicals-captured*)))
-      `(ps-js:block ,@(cdr var-decls) ,@(cdr body)))))
+        (setf *loop-scope-lexicals-captured*
+              (append (intersection (flatten body) *loop-scope-lexicals*)
+                      *loop-scope-lexicals-captured*)))
+      `(ps-js:block ,@(cdr var-decls)
+         ,@(cdr (wrap-for-dynamic-return *function-block-names* body))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; lambda
 
 (define-expression-operator lambda (lambda-list &rest body)
-  (multiple-value-bind (effective-args effective-body) (parse-extended-function lambda-list body)
+  (multiple-value-bind (effective-args effective-body)
+      (parse-extended-function lambda-list body)
     `(ps-js:lambda ,effective-args
-       ,(let ((*function-block-names* nil)
-              (*dynamic-extent-return-tags* (append *function-block-names*
-                                                    *lexical-extent-return-tags*
-                                                    *dynamic-extent-return-tags*))
-              (*lexical-extent-return-tags* ()))
+       ,(let ((*function-block-names* ()))
           (compile-function-body effective-args effective-body)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -146,15 +156,11 @@ Syntax of key spec:
 
 (defun compile-named-function-body (name lambda-list body)
   (let ((*enclosing-lexicals* (cons name *enclosing-lexicals*))
-        (*function-block-names* (list name))
-        (*lexical-extent-return-tags* ())
-        (*dynamic-extent-return-tags* ())
-        (*tags-that-return-throws-to* ()))
+        (*function-block-names* (list name)))
     (multiple-value-bind (effective-args effective-body docstring)
         (parse-extended-function lambda-list body)
       (values effective-args
-              (wrap-block-for-dynamic-return name
-                (compile-function-body effective-args effective-body))
+              (compile-function-body effective-args effective-body)
               docstring))))
 
 (define-statement-operator defun% (name lambda-list &rest body)
@@ -168,38 +174,46 @@ Syntax of key spec:
 (defun collect-function-names (fn-defs)
   (loop for (fn-name) in fn-defs
         collect fn-name
-        collect (if (or (member fn-name *enclosing-lexicals*) (lookup-macro-def fn-name *symbol-macro-env*))
+        collect (if (or (member fn-name *enclosing-lexicals*)
+                        (lookup-macro-def fn-name *symbol-macro-env*))
                     (ps-gensym (string fn-name))
                     fn-name)))
 
 (define-expression-operator flet (fn-defs &rest body)
-  (let* ((fn-renames                 (collect-function-names fn-defs))
+  (let* ((fn-renames (collect-function-names fn-defs))
          ;; the function definitions need to be compiled with previous lexical bindings
-         (fn-defs                    (loop for (fn-name . (args . body)) in fn-defs collect
-                                          (progn (when compile-expression?
-                                                   (push (getf fn-renames fn-name) *enclosing-lexical-block-declarations*))
-                                                 (list (if compile-expression? 'ps-js:= 'ps-js:var)
-                                                       (getf fn-renames fn-name)
-                                                       (multiple-value-bind (args1 body-block)
-                                                           (compile-named-function-body fn-name args body)
-                                                         `(ps-js:lambda ,args1 ,body-block))))))
+         (fn-defs
+          (loop for (fn-name . (args . body)) in fn-defs collect
+               (progn (when compile-expression?
+                        (push (getf fn-renames fn-name)
+                              *enclosing-lexical-block-declarations*))
+                      (list (if compile-expression? 'ps-js:= 'ps-js:var)
+                            (getf fn-renames fn-name)
+                            (multiple-value-bind (args1 body-block)
+                                (compile-named-function-body fn-name args body)
+                              `(ps-js:lambda ,args1 ,body-block))))))
          ;; the flet body needs to be compiled with the extended lexical environment
-         (*enclosing-lexicals*       (append fn-renames *enclosing-lexicals*))
-         (*loop-scope-lexicals*      (when in-loop-scope? (append fn-renames *loop-scope-lexicals*)))
-         (*local-function-names*     (append fn-renames *local-function-names*)))
+         (*enclosing-lexicals*
+          (append fn-renames *enclosing-lexicals*))
+         (*loop-scope-lexicals*
+          (when in-loop-scope? (append fn-renames *loop-scope-lexicals*)))
+         (*local-function-names*
+          (append fn-renames *local-function-names*)))
     `(,(if compile-expression? 'ps-js:|,| 'ps-js:block)
        ,@fn-defs
        ,@(compile-progn body))))
 
 (define-expression-operator labels (fn-defs &rest body)
-  (let* ((fn-renames                 (collect-function-names fn-defs))
-         (*local-function-names*     (append fn-renames *local-function-names*))
-         (*enclosing-lexicals*       (append fn-renames *enclosing-lexicals*))
-         (*loop-scope-lexicals*      (when in-loop-scope? (append fn-renames *loop-scope-lexicals*))))
+  (let* ((fn-renames              (collect-function-names fn-defs))
+         (*local-function-names*  (append fn-renames *local-function-names*))
+         (*enclosing-lexicals*    (append fn-renames *enclosing-lexicals*))
+         (*loop-scope-lexicals*   (when in-loop-scope?
+                                    (append fn-renames *loop-scope-lexicals*))))
     `(,(if compile-expression? 'ps-js:|,| 'ps-js:block)
        ,@(loop for (fn-name . (args . body)) in fn-defs collect
                     (progn (when compile-expression?
-                             (push (getf *local-function-names* fn-name) *enclosing-lexical-block-declarations*))
+                             (push (getf *local-function-names* fn-name)
+                                   *enclosing-lexical-block-declarations*))
                            (list (if compile-expression? 'ps-js:= 'ps-js:var)
                                  (getf *local-function-names* fn-name)
                                  (let ((*function-block-names* (list fn-name)))

@@ -51,6 +51,7 @@ vice-versa.")
 (defgeneric ps-print% (js-primitive args))
 
 (defmethod ps-print :after (form)
+  (declare (ignore form))
   (setf %printer-toplevel? nil))
 
 (defmacro defprinter (js-primitive args &body body)

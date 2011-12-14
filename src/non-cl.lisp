@@ -151,7 +151,7 @@
 (defun lisp (x) x)
 
 (defpsmacro undefined (x)
-  `(eql undefined ,x))
+  `(eql "undefined" (typeof ,x)))
 
 (defpsmacro defined (x)
   `(not (undefined ,x)))

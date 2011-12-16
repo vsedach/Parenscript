@@ -163,6 +163,53 @@
                (funcall (aref foo 1))))
   '(2 3))
 
+(test-js-eval labels-return
+  ((lambda ()
+     (labels ((bar (x)
+                (when (evenp x)
+                  (return-from bar "even"))
+                1))
+       (bar 9))))
+  1)
+
+(test-js-eval labels-return1
+  (progn (defun foo ()
+           (labels ((bar (x)
+                      (when (evenp x)
+                        (return-from foo "even"))
+                      1))
+             (bar 8)
+             2))
+         (foo))
+  "even")
+
+(test-js-eval labels-return2
+  (progn (defun foo ()
+           (labels ((bar (x)
+                      (flet ((foo (y)
+                               (when (evenp (+ x y))
+                                 (return-from bar "even"))))
+                        (foo 4)
+                        5)
+                      1))
+             (bar 8)))
+         (foo))
+  "even")
+
+(test-js-eval labels-return3
+  (progn (defun foo ()
+           (labels ((bar (x)
+                      (flet ((baz (y)
+                               (when (evenp (+ x y))
+                                 (return-from foo "even"))))
+                        (baz 4)
+                        5)
+                      1))
+             (bar 8)
+             2))
+         (foo))
+  "even")
+
 ;;; broken
 
 (test-js-eval block-dynamic-return

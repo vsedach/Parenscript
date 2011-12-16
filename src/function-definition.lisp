@@ -180,6 +180,11 @@ Syntax of key spec:
                     (ps-gensym (string fn-name))
                     fn-name)))
 
+(defun compile-named-local-function (name args body)
+  (multiple-value-bind (args1 body-block)
+      (compile-named-function-body name args body)
+    `(ps-js:lambda ,args1 ,body-block)))
+
 (define-expression-operator flet (fn-defs &rest body)
   (let* ((fn-renames (collect-function-names fn-defs))
          ;; the function definitions need to be compiled with previous lexical bindings
@@ -190,9 +195,7 @@ Syntax of key spec:
                               *vars-needing-to-be-declared*))
                       (list (if compile-expression? 'ps-js:= 'ps-js:var)
                             (getf fn-renames fn-name)
-                            (multiple-value-bind (args1 body-block)
-                                (compile-named-function-body fn-name args body)
-                              `(ps-js:lambda ,args1 ,body-block))))))
+                            (compile-named-local-function fn-name args body)))))
          ;; the flet body needs to be compiled with the extended lexical environment
          (*enclosing-lexicals*
           (append fn-renames *enclosing-lexicals*))
@@ -217,8 +220,7 @@ Syntax of key spec:
                                    *vars-needing-to-be-declared*))
                            (list (if compile-expression? 'ps-js:= 'ps-js:var)
                                  (getf *local-function-names* fn-name)
-                                 (let ((*function-block-names* (list fn-name)))
-                                   (compile-expression `(lambda ,args ,@body))))))
+                                 (compile-named-local-function fn-name args body))))
        ,@(compile-progn body))))
 
 (define-expression-operator function (fn-name) ;; one of the things responsible for function namespace

@@ -362,54 +362,69 @@ Parenscript doesn't support returning values this way from inside a loop yet!"
            (*special-variables* (append (cdr (find 'special ,declarations :key #'car)) *special-variables*)))
       ,@body)))
 
+(defun maybe-rename-lexical-var (x symbols-in-bindings)
+  (when (or (member x *enclosing-lexicals*)
+            (member x *enclosing-function-arguments*)
+            (lookup-macro-def x *symbol-macro-env*)
+            (member x symbols-in-bindings))
+    (ps-gensym (symbol-name x))))
+
 (define-expression-operator let (bindings &body body)
   (with-declaration-effects (body body)
-    (let* ((lexical-bindings-introduced-here             ())
-           (normalized-bindings                          (mapcar (lambda (x)
-                                                                   (if (symbolp x)
-                                                                       (list x nil)
-                                                                       (list (car x) (ps-macroexpand (cadr x)))))
-                                                                 bindings))
-           (free-variables-in-binding-value-expressions  (mapcan (lambda (x) (flatten (cadr x)))
-                                                                 normalized-bindings)))
-      (flet ((maybe-rename-lexical-var (x)
-               (if (or (member x *enclosing-lexicals*)
-                       (member x *enclosing-function-arguments*)
-                       (lookup-macro-def x *symbol-macro-env*)
-                       (member x free-variables-in-binding-value-expressions))
-                   (ps-gensym (string x))
-                   (progn (push x lexical-bindings-introduced-here) nil)))
-             (rename (x) (first x))
-             (var (x) (second x))
-             (val (x) (third x)))
-        (let* ((lexical-bindings      (loop for x in normalized-bindings
-                                            unless (special-variable? (car x))
-                                            collect (cons (maybe-rename-lexical-var (car x)) x)))
-               (dynamic-bindings      (loop for x in normalized-bindings
-                                            when (special-variable? (car x))
-                                            collect (cons (ps-gensym (format nil "~A_~A" (car x) 'tmp-stack)) x)))
-               (renamed-body          `(symbol-macrolet ,(loop for x in lexical-bindings
-                                                               when (rename x) collect
-                                                               `(,(var x) ,(rename x)))
-                                          ,@body))
-               (*enclosing-lexicals*  (append lexical-bindings-introduced-here *enclosing-lexicals*))
-               (*loop-scope-lexicals* (when in-loop-scope? (append lexical-bindings-introduced-here *loop-scope-lexicals*))))
-          (ps-compile
-           `(progn
-              ,@(mapcar (lambda (x) `(var ,(or (rename x) (var x)) ,(val x)))
-                        lexical-bindings)
-              ,(if dynamic-bindings
-                   `(progn ,@(mapcar (lambda (x) `(var ,(rename x)))
-                                     dynamic-bindings)
-                           (try (progn
-                                  (setf ,@(loop for x in dynamic-bindings append
-                                               `(,(rename x) ,(var x)
-                                                  ,(var x) ,(val x))))
-                                  ,renamed-body)
-                                (:finally
-                                 (setf ,@(mapcan (lambda (x) `(,(var x) ,(rename x)))
-                                                 dynamic-bindings)))))
-                   renamed-body))))))))
+    (flet ((rename (x) (first x))
+           (var (x) (second x))
+           (val (x) (third x)))
+      (let* ((new-lexicals ())
+             (normalized-bindings
+              (mapcar (lambda (x)
+                        (if (symbolp x)
+                            (list x nil)
+                            (list (car x) (ps-macroexpand (cadr x)))))
+                      bindings))
+             (symbols-in-bindings
+              (mapcan (lambda (x) (flatten (cadr x)))
+                      normalized-bindings))
+             (lexical-bindings
+              (loop for x in normalized-bindings
+                    unless (special-variable? (car x)) collect
+                    (cons (aif (maybe-rename-lexical-var (car x)
+                                                         symbols-in-bindings)
+                               it
+                               (progn
+                                 (push (car x) new-lexicals)
+                                 nil))
+                          x)))
+             (dynamic-bindings
+              (loop for x in normalized-bindings
+                    when (special-variable? (car x)) collect
+                    (cons (ps-gensym (format nil "~A_~A" (car x) 'tmp-stack))
+                          x)))
+             (renamed-body
+              `(symbol-macrolet ,(loop for x in lexical-bindings
+                                       when (rename x) collect
+                                       `(,(var x) ,(rename x)))
+                 ,@body))
+             (*enclosing-lexicals*
+              (append new-lexicals *enclosing-lexicals*))
+             (*loop-scope-lexicals*
+              (when in-loop-scope?
+                (append new-lexicals *loop-scope-lexicals*))))
+        (ps-compile
+         `(progn
+            ,@(mapcar (lambda (x) `(var ,(or (rename x) (var x)) ,(val x)))
+                      lexical-bindings)
+            ,(if dynamic-bindings
+                 `(progn ,@(mapcar (lambda (x) `(var ,(rename x)))
+                                   dynamic-bindings)
+                         (try (progn
+                                (setf ,@(loop for x in dynamic-bindings append
+                                             `(,(rename x) ,(var x)
+                                                ,(var x) ,(val x))))
+                                ,renamed-body)
+                              (:finally
+                               (setf ,@(mapcan (lambda (x) `(,(var x) ,(rename x)))
+                                               dynamic-bindings)))))
+                 renamed-body)))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; iteration

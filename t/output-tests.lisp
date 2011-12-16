@@ -1044,9 +1044,9 @@ __setf_someThing('foo', 1, 2);")
           ((< 1 2 3 4 5) x)
           (t "foo")))
   "function foo() {
-    var _cmp3;
-    var _cmp2;
     var _cmp1;
+    var _cmp2;
+    var _cmp3;
     if (1 < 2) {
         bar('foo');
         return 4 * 5;
@@ -1432,7 +1432,11 @@ foo(1);")
   (defun foo ()
     (return-from foo (if (if x y z) a b)))
   "function foo() {
-    return (x ? y : z) ? a : b;
+    if (x ? y : z) {
+        return a;
+    } else {
+        return b;
+    };
 };")
 
 (test-ps-js nested-if-expressions2
@@ -1537,9 +1541,9 @@ x1 + y;")
 
 (test-ps-js let*4
   (let ((x 3))
-        (let* ((y (+ x 2))
-               (x 1))
-          (+ x y)))
+    (let* ((y (+ x 2))
+           (x 1))
+      (+ x y)))
   "var x = 3;
 var y = x + 2;
 var x1 = 1;
@@ -2465,13 +2469,14 @@ var foo1 = bar;
 return null;
 };")
 
-(test-ps-js dont-hoist-lexical-dupes
+(test-ps-js rename-lexical-dupes
   (lambda ()
     (list (let ((foo 12)) (* foo 2))
           (let ((foo 13)) (* foo 3))))
   "(function () {
     var foo;
-    return [(foo = 12, foo * 2), (foo = 13, foo * 3)];
+    var foo1;
+    return [(foo = 12, foo * 2), (foo1 = 13, foo1 * 3)];
 });")
 
 (test-ps-js defun-comment1
@@ -2973,3 +2978,67 @@ function (x) {
     };
     return null;
 })());")
+
+(test-ps-js let-closures-rename
+  (lambda ()
+    (let ((x 1)) (lambda () (1+ x)))
+    (let ((x 2)) (lambda () (1+ x))))
+  "(function () {
+    var x = 1;
+    function () {
+        return x + 1;
+    };
+    var x1 = 2;
+    return function () {
+        return x1 + 1;
+    };
+});")
+
+(test-ps-js let-closures-rename1
+  (lambda ()
+    (let ((x 1))
+      (let ((y 2))
+        (lambda () (+ x y))))
+    (let ((x 2))
+      (let ((y 3))
+        (lambda () (+ x y)))))
+  "(function () {
+    var x = 1;
+    var y = 2;
+    function () {
+        return x + y;
+    };
+    var x1 = 2;
+    var y2 = 3;
+    return function () {
+        return x1 + y2;
+    };
+});")
+
+(test-ps-js let-closures-rename2
+  (defun make-closures ()
+    (list
+     (let ((x 1)) (lambda () (1+ x)))
+     (let ((x 2)) (lambda () (1+ x)))))
+  "function makeClosures() {
+    var x;
+    var x1;
+    return [(x = 1, function () {
+        return x + 1;
+    }), (x1 = 2, function () {
+        return x1 + 1;
+    })];
+
+};")
+
+(test-ps-js conditional-not-used-up
+  (lambda (bar)
+    (when bar
+      (let ((x 1))
+        (1+ x))))
+  "(function (bar) {
+    if (bar) {
+        var x = 1;
+        return x + 1;
+    };
+});")

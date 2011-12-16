@@ -112,7 +112,8 @@ Syntax of key spec:
 
 (defun compile-function-body (args body)
   (with-declaration-effects (body body)
-    (let* ((*enclosing-lexical-block-declarations* ())
+    (let* ((*vars-needing-to-be-declared* ())
+           (*used-up-names* ())
            (*enclosing-function-arguments*
             (append args *enclosing-function-arguments*))
            (*enclosing-lexicals*
@@ -133,12 +134,12 @@ Syntax of key spec:
                 ,@(mapcar
                    (lambda (var)
                      `(var ,var))
-                   (remove-duplicates *enclosing-lexical-block-declarations*))))))
+                   (remove-duplicates *vars-needing-to-be-declared*))))))
       (when in-loop-scope? ;; this is probably broken when it comes to let-renaming
         (setf *loop-scope-lexicals-captured*
               (append (intersection (flatten body) *loop-scope-lexicals*)
                       *loop-scope-lexicals-captured*)))
-      `(ps-js:block ,@(cdr var-decls)
+      `(ps-js:block ,@(reverse (cdr var-decls))
          ,@(cdr (wrap-for-dynamic-return *function-block-names* body))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -186,7 +187,7 @@ Syntax of key spec:
           (loop for (fn-name . (args . body)) in fn-defs collect
                (progn (when compile-expression?
                         (push (getf fn-renames fn-name)
-                              *enclosing-lexical-block-declarations*))
+                              *vars-needing-to-be-declared*))
                       (list (if compile-expression? 'ps-js:= 'ps-js:var)
                             (getf fn-renames fn-name)
                             (multiple-value-bind (args1 body-block)
@@ -213,7 +214,7 @@ Syntax of key spec:
        ,@(loop for (fn-name . (args . body)) in fn-defs collect
                     (progn (when compile-expression?
                              (push (getf *local-function-names* fn-name)
-                                   *enclosing-lexical-block-declarations*))
+                                   *vars-needing-to-be-declared*))
                            (list (if compile-expression? 'ps-js:= 'ps-js:var)
                                  (getf *local-function-names* fn-name)
                                  (let ((*function-block-names* (list fn-name)))

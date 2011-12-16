@@ -143,12 +143,6 @@
                   ,(wrap-for-dynamic-return
                     (list name) compiled-body))))
 
-(defun try-expressionize-if? (form)
-  (< (count #\Newline (with-output-to-string (*psw-stream*)
-                        (let ((*ps-print-pretty* t))
-                          (parenscript-print (compile-statement form) t))))
-     (if (= (length form) 4) 5 4)))
-
 (defun return-exp (tag value) ;; fixme to handle multiple values
   (let ((value (compile-expression value)))
     (acond ((or (eql '%function tag) (member tag *function-block-names*))
@@ -161,6 +155,18 @@
                                         :ps-return-value ,value))))
            (t (warn "Returning from unknown block ~A" tag)
               `(ps-js:return ,value))))) ;; for backwards-compatibility
+
+(defun try-expressionizing-if? (exp &optional (score 0))
+  (cond ((< 1 score) nil)
+        ((listp exp)
+         (loop for x in (cdr exp) always
+              (try-expressionizing-if?
+               (ps-macroexpand x)
+               (+ score (case (car exp)
+                          ((if cond let) 1)
+                          ((progn) (1- (length (cdr exp))))
+                          (otherwise 0))))))
+        (t t)))
 
 (defun expressionize-result (tag form)
   (ps-compile
@@ -217,11 +223,13 @@
 Parenscript now implements implicit return, update your code! Things like (lambda () (return x)) are not valid Common Lisp and may not be supported in future versions of Parenscript."))
        form)
      (if
-      (aif (and (try-expressionize-if? form)
-                (handler-case
-                    (let ((*lambda-wrappable-statements* ()))
-                      (compile-expression form))
-                  (compile-expression-error () nil)))
+      (aif (and (try-expressionizing-if? form)
+                (let ((used-up-names *used-up-names*)
+                      (*lambda-wrappable-statements* ()))
+                  (handler-case (compile-expression form)
+                    (compile-expression-error ()
+                      (setf *used-up-names* used-up-names)
+                      nil))))
            (return-from expressionize-result `(ps-js:return ,it))
            `(if ,(second form)
                 (return-from ,tag ,(third form))
@@ -253,7 +261,9 @@ Parenscript doesn't support returning values this way from inside a loop yet!"
 ;;; conditionals
 
 (define-expression-operator if (test then &optional else)
-   `(ps-js:? ,(compile-expression test) ,(compile-expression then) ,(compile-expression else)))
+   `(ps-js:? ,(compile-expression test)
+             ,(compile-expression then)
+             ,(compile-expression else)))
 
 (define-statement-operator if (test then &optional else)
   `(ps-js:if ,(compile-expression test)
@@ -365,6 +375,8 @@ Parenscript doesn't support returning values this way from inside a loop yet!"
 (defun maybe-rename-lexical-var (x symbols-in-bindings)
   (when (or (member x *enclosing-lexicals*)
             (member x *enclosing-function-arguments*)
+            (when (boundp '*used-up-names*)
+              (member x *used-up-names*))
             (lookup-macro-def x *symbol-macro-env*)
             (member x symbols-in-bindings))
     (ps-gensym (symbol-name x))))
@@ -392,6 +404,8 @@ Parenscript doesn't support returning values this way from inside a loop yet!"
                                it
                                (progn
                                  (push (car x) new-lexicals)
+                                 (when (boundp '*used-up-names*)
+                                   (push (car x) *used-up-names*))
                                  nil))
                           x)))
              (dynamic-bindings

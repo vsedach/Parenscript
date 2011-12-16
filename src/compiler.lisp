@@ -62,15 +62,19 @@
 
 ;;; scoping and lexical environment
 
-(defvar *enclosing-lexical-block-declarations* ()
+(defvar *vars-needing-to-be-declared* ()
   "This special variable is expected to be bound to a fresh list by
 special forms that introduce a new JavaScript lexical block (currently
 function definitions and lambdas). Enclosed special forms are expected
 to push variable declarations onto the list when the variables
-declaration cannot be made by the enclosed form for example, a
-x,y,z expression progn. It is then the responsibility of the
-enclosing special form to introduce the variable bindings in its
-lexical block.")
+declaration cannot be made by the enclosed form (for example, a x,y,z
+expression progn). It is then the responsibility of the enclosing
+special form to introduce the variable declarations in its lexical
+block.")
+
+(defvar *used-up-names*)
+(setf (documentation '*used-up-names* 'variable)
+      "Names that have been already used for lexical bindings in the current function scope.")
 
 (defvar in-loop-scope? nil
   "Used for seeing when we're in loops, so that we can introduce
@@ -171,8 +175,10 @@ CL environment)."
           (defpsmacro ,name ,args ,@body)))
 
 (defun ps-macroexpand-1 (form)
-  (aif (or (and (symbolp form) (or (and (member form *enclosing-lexicals*) (lookup-macro-def form *symbol-macro-env*))
-                                   (gethash form *symbol-macro-toplevel*))) ;; hack
+  (aif (or (and (symbolp form)
+                (or (and (member form *enclosing-lexicals*)
+                         (lookup-macro-def form *symbol-macro-env*))
+                    (gethash form *symbol-macro-toplevel*))) ;; hack
            (and (consp form) (lookup-macro-def (car form) *macro-env*)))
        (values (ps-macroexpand (funcall it form)) t)
        form))

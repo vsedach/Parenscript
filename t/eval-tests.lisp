@@ -29,7 +29,7 @@
 
 (test-js-eval empty-array
   (array)
-  (jsarray '()))
+  '())
 
 (test-js-eval funargs-let1
   ((lambda (x)
@@ -107,7 +107,7 @@
              ("bar" (if y (return-from foo 1)))
              ("baz" 2)))
          (list (foo "bar" t) (foo "bar" nil) (foo "baz" nil)))
-  (jsarray '(1 :undefined 2)))
+  '(1 :undefined 2))
 
 (test-js-eval funcall-loop-doing
   ((lambda (x) x)
@@ -150,6 +150,18 @@
 (test-js-eval plus-block
   (1+ (block nil (return 4) (+ 1 2)))
   5)
+
+(test-js-eval let-closures-rename
+  (progn (defun make-closures ()
+           (list
+            (let ((x 1)) (lambda () (1+ x)))
+            (let ((x 2)) (lambda () (1+ x)))))
+
+         (defvar foo (make-closures))
+
+         (list (funcall (aref foo 0))
+               (funcall (aref foo 1))))
+  '(2 3))
 
 ;;; broken
 

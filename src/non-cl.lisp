@@ -95,11 +95,12 @@
 
 (define-expression-operator var (name &optional (value (values) value?) docstr)
   (declare (ignore docstr))
-  (push name *enclosing-lexical-block-declarations*)
+  (push name *vars-needing-to-be-declared*)
   (when value? (compile-expression `(setf ,name ,value))))
 
 (define-statement-operator var (name &optional (value (values) value?) docstr)
-  `(ps-js:var ,(ps-macroexpand name) ,@(when value? (list (compile-expression value) docstr))))
+  `(ps-js:var ,(ps-macroexpand name)
+              ,@(when value? (list (compile-expression value) docstr))))
 
 (defmacro var (name &optional value docstr)
   `(defparameter ,name ,value ,@(when docstr (list docstr))))

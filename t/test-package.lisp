@@ -6,4 +6,4 @@
   (:export #:run-tests #:interface-function #:test-js-eval #:jsarray))
 
 (defpackage #:ps-eval-tests
-  (:use #:cl #:eos #:ps-test #:cl-js))
+  (:use #:cl #:eos #:parenscript #:ps-test))

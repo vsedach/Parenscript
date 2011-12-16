@@ -210,6 +210,46 @@
          (foo))
   "even")
 
+(test-js-eval toplevel-local-scope
+  (progn (defvar foo (create "fn" (let ((x 5)) (lambda () x))))
+         (funcall (getprop foo "fn")))
+  5)
+
+(test-js-eval special-var2
+  (progn (defvar *foo*)
+         (let* ((*baz* 3)
+                (*foo* 2))
+           (* *foo* 2 *baz*)))
+  12)
+
+(test-js-eval special-var3
+  (progn (defvar *foo* 1)
+         (+ *foo* (let* ((*baz* 3)
+                         (*foo* 2))
+                    (* *foo* 2 *baz*))))
+  13)
+
+(test-js-eval let3
+  (let ((x 3)
+        (y 2))
+    (+ x x))
+  6)
+
+(test-js-eval equality-nary1
+  (let ((x 10) (y 10) (z 10))
+    (= x y z))
+  t)
+
+;; cl-js is broken?
+;; (cl-js:run-js "var x = 10; x === 10;") => T
+;; (cl-js:run-js "(function () { var x = 10; return x === 10; })();") => nil
+;; (cl-js:run-js "(function () { return 10 === 10; })();") => nil
+;; (cl-js:run-js "(function () { return 10; })();") => 10
+
+(test-js-eval operator-expressions-array-nested-let
+  (list (let ((y 1)) y) 2)
+  '(1 2))
+
 ;;; broken
 
 (test-js-eval block-dynamic-return

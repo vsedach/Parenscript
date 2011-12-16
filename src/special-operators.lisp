@@ -422,23 +422,30 @@ Parenscript doesn't support returning values this way from inside a loop yet!"
               (append new-lexicals *enclosing-lexicals*))
              (*loop-scope-lexicals*
               (when in-loop-scope?
-                (append new-lexicals *loop-scope-lexicals*))))
-        (ps-compile
-         `(progn
-            ,@(mapcar (lambda (x) `(var ,(or (rename x) (var x)) ,(val x)))
-                      lexical-bindings)
-            ,(if dynamic-bindings
-                 `(progn ,@(mapcar (lambda (x) `(var ,(rename x)))
+                (append new-lexicals *loop-scope-lexicals*)))
+             (let-body
+              `(progn
+                 ,@(mapcar (lambda (x)
+                             `(var ,(or (rename x) (var x)) ,(val x)))
+                           lexical-bindings)
+                 ,(if dynamic-bindings
+                      `(progn
+                         ,@(mapcar (lambda (x) `(var ,(rename x)))
                                    dynamic-bindings)
-                         (try (progn
-                                (setf ,@(loop for x in dynamic-bindings append
-                                             `(,(rename x) ,(var x)
-                                                ,(var x) ,(val x))))
-                                ,renamed-body)
-                              (:finally
-                               (setf ,@(mapcan (lambda (x) `(,(var x) ,(rename x)))
-                                               dynamic-bindings)))))
-                 renamed-body)))))))
+                         (try
+                          (progn
+                            (setf ,@(loop for x in dynamic-bindings append
+                                         `(,(rename x) ,(var x)
+                                            ,(var x) ,(val x))))
+                            ,renamed-body)
+                          (:finally
+                           (setf ,@(mapcan (lambda (x) `(,(var x) ,(rename x)))
+                                           dynamic-bindings)))))
+                      renamed-body))))
+        (ps-compile (if in-function-scope?
+                        let-body
+                        (prog1 `((lambda () ,let-body))
+                          (setf *vars-needing-to-be-declared* ()))))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; iteration
@@ -451,17 +458,23 @@ Parenscript doesn't support returning values this way from inside a loop yet!"
 
 (defun compile-loop-body (loop-vars body)
   (let* ((in-loop-scope? t)
+         (in-function-scope? t) ;; not really, but we provide lexical
+                                ;; bindings for all free variables
+                                ;; using WITH
          (*loop-scope-lexicals* loop-vars)
          (*loop-scope-lexicals-captured* ())
          (*ps-gensym-counter* *ps-gensym-counter*)
          (compiled-body (compile-statement `(progn ,@body))))
     ;; the sort is there to make order for output-tests consistent across implementations
-    (aif (sort (remove-duplicates *loop-scope-lexicals-captured*) #'string< :key #'symbol-name)
+    (aif (sort (remove-duplicates *loop-scope-lexicals-captured*)
+               #'string< :key #'symbol-name)
          `(ps-js:block
-              (ps-js:with ,(compile-expression
-                         `(create ,@(loop for x in it
-                                          collect x
-                                          collect (when (member x loop-vars) x))))
+              (ps-js:with
+                  ,(compile-expression
+                    `(create
+                      ,@(loop for x in it
+                              collect x
+                              collect (when (member x loop-vars) x))))
                 ,compiled-body))
          compiled-body)))
 

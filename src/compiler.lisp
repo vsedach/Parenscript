@@ -82,17 +82,32 @@ block.")
   variables (otherwise they all share the same binding).")
 
 (defvar *loop-scope-lexicals*)
+(setf (documentation '*loop-scope-lexicals* 'variable)
+      "Lexical variables introduced by a loop.")
 (defvar *loop-scope-lexicals-captured*)
+(setf (documentation '*loop-scope-lexicals-captured* 'variable)
+      "Lexical variables introduced by a loop that are also captured by lambdas inside a loop.")
 
-(defvar *local-function-names* ())
+(defvar in-function-scope? nil
+  "Lets the compiler know when lambda wrapping is necessary.")
+
+(defvar *local-function-names* ()
+  "Functions named by flet and label.")
 ;; is a subset of
-(defvar *enclosing-lexicals* ())
-(defvar *enclosing-function-arguments* ())
-(defvar *function-block-names* ())
-(defvar *dynamic-return-tags* ())
-(defvar *current-block-tag* nil)
+(defvar *enclosing-lexicals* ()
+  "All enclosing lexical variables (includes function names).")
+(defvar *enclosing-function-arguments* ()
+  "Lexical variables bound in all lexically enclosing function argument lists.")
 
-(defvar *special-variables* ())
+(defvar *function-block-names* ()
+  "All block names that this function is responsible for catching.")
+(defvar *dynamic-return-tags* ()
+  "Tags that need to be thrown to to reach.")
+(defvar *current-block-tag* nil
+  "Name of the lexically enclosing block, if any.")
+
+(defvar *special-variables* ()
+  "Special variables declared during any Parenscript run. Re-bind this if you want to clear the list.")
 
 (defun special-variable? (sym)
   (member sym *special-variables*))
@@ -200,11 +215,11 @@ nil indicates we are no longer toplevel-related.")
 (defun adjust-compilation-level (form level)
   "Given the current *compilation-level*, LEVEL, and the fully macroexpanded
 form, FORM, returns the new value for *compilation-level*."
-  (cond ((or (and (consp form) (member (car form) '(progn locally macrolet symbol-macrolet)))
+  (cond ((or (and (consp form)
+                  (member (car form) '(progn locally macrolet symbol-macrolet)))
              (and (symbolp form) (eq :toplevel level)))
          level)
-        ((eq :toplevel level)
-         :inside-toplevel-form)))
+        ((eq :toplevel level) :inside-toplevel-form)))
 
 (defvar compile-expression?)
 
@@ -228,20 +243,22 @@ form, FORM, returns the new value for *compilation-level*."
 (defun ps-compile (form)
   (typecase form
     ((or null number string character) form)
+    (vector (ps-compile `(quote ,(coerce form 'list))))
     ((or symbol list)
      (multiple-value-bind (expansion expanded?) (ps-macroexpand form)
        (if expanded?
            (ps-compile expansion)
            (if (symbolp form)
                form
-               (let ((*compilation-level* (adjust-compilation-level form *compilation-level*)))
+               (let ((*compilation-level*
+                      (adjust-compilation-level form *compilation-level*)))
                  (if (special-form? form)
                      (compile-special-form form)
-                     `(ps-js:funcall ,(if (symbolp (car form))
-                                       (maybe-rename-local-function (car form))
-                                       (compile-expression (car form)))
-                                  ,@(mapcar #'compile-expression (cdr form)))))))))
-    (vector (ps-compile `(quote ,(coerce form 'list))))))
+                     `(ps-js:funcall
+                       ,(if (symbolp (car form))
+                            (maybe-rename-local-function (car form))
+                            (compile-expression (car form)))
+                       ,@(mapcar #'compile-expression (cdr form)))))))))))
 
 (defun compile-statement (form)
   (let ((compile-expression? nil))

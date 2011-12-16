@@ -112,7 +112,8 @@ Syntax of key spec:
 
 (defun compile-function-body (args body)
   (with-declaration-effects (body body)
-    (let* ((*vars-needing-to-be-declared* ())
+    (let* ((in-function-scope? t)
+           (*vars-needing-to-be-declared* ())
            (*used-up-names* ())
            (*enclosing-function-arguments*
             (append args *enclosing-function-arguments*))

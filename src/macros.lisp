@@ -121,8 +121,12 @@
 
 (defpsmacro multiple-value-bind (vars form &body body)
   (let* ((form (ps-macroexpand form))
-         (progn-form (when (and (consp form) (member (car form) '(with label let flet labels macrolet symbol-macrolet progn)))
-                       (pop form))))
+         (progn-form
+          (when (and (consp form)
+                     (member
+                      (car form)
+                      '(with label let flet labels macrolet symbol-macrolet progn)))
+            (pop form))))
     (with-ps-gensyms (mv prev-mv)
       `(let (,prev-mv)
          (,(or progn-form 'progn)

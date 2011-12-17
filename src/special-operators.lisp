@@ -381,6 +381,10 @@ Parenscript doesn't support returning values this way from inside a loop yet!"
             (member x symbols-in-bindings))
     (ps-gensym (symbol-name x))))
 
+(defun with-lambda-scope (body)
+ (prog1 `((lambda () ,body))
+   (setf *vars-needing-to-be-declared* ())))
+
 (define-expression-operator let (bindings &body body)
   (with-declaration-effects (body body)
     (flet ((rename (x) (first x))
@@ -444,8 +448,7 @@ Parenscript doesn't support returning values this way from inside a loop yet!"
                       renamed-body))))
         (ps-compile (if in-function-scope?
                         let-body
-                        (prog1 `((lambda () ,let-body))
-                          (setf *vars-needing-to-be-declared* ()))))))))
+                        (with-lambda-scope let-body)))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; iteration

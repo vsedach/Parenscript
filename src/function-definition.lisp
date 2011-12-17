@@ -186,43 +186,44 @@ Syntax of key spec:
       (compile-named-function-body name args body)
     `(ps-js:lambda ,args1 ,body-block)))
 
+(defmacro local-functions (special-op &body bindings)
+  `(if in-function-scope?
+       (let* ((fn-renames (collect-function-names fn-defs))
+              ,@bindings)
+         `(,(if compile-expression? 'ps-js:|,| 'ps-js:block)
+            ,@definitions
+            ,@(compile-progn body)))
+       (ps-compile (with-lambda-scope `(,',special-op ,fn-defs ,@body)))))
+
+(defun compile-local-function-body (fn-defs renames)
+  (loop for (fn-name . (args . body)) in fn-defs collect
+       (progn (when compile-expression?
+                (push (getf renames fn-name)
+                      *vars-needing-to-be-declared*))
+              (list (if compile-expression? 'ps-js:= 'ps-js:var)
+                    (getf renames fn-name)
+                    (compile-named-local-function fn-name args body)))))
+
 (define-expression-operator flet (fn-defs &rest body)
-  (let* ((fn-renames (collect-function-names fn-defs))
-         ;; the function definitions need to be compiled with previous lexical bindings
-         (fn-defs
-          (loop for (fn-name . (args . body)) in fn-defs collect
-               (progn (when compile-expression?
-                        (push (getf fn-renames fn-name)
-                              *vars-needing-to-be-declared*))
-                      (list (if compile-expression? 'ps-js:= 'ps-js:var)
-                            (getf fn-renames fn-name)
-                            (compile-named-local-function fn-name args body)))))
-         ;; the flet body needs to be compiled with the extended lexical environment
-         (*enclosing-lexicals*
-          (append fn-renames *enclosing-lexicals*))
-         (*loop-scope-lexicals*
-          (when in-loop-scope? (append fn-renames *loop-scope-lexicals*)))
-         (*local-function-names*
-          (append fn-renames *local-function-names*)))
-    `(,(if compile-expression? 'ps-js:|,| 'ps-js:block)
-       ,@fn-defs
-       ,@(compile-progn body))))
+  (local-functions flet
+   ;; the function definitions need to be compiled with previous
+   ;; lexical bindings
+    (definitions (compile-local-function-body fn-defs fn-renames))
+    ;; the flet body needs to be compiled with the extended
+    ;; lexical environment
+    (*enclosing-lexicals*   (append fn-renames *enclosing-lexicals*))
+    (*loop-scope-lexicals*  (when in-loop-scope?
+                              (append fn-renames *loop-scope-lexicals*)))
+    (*local-function-names* (append fn-renames *local-function-names*))))
 
 (define-expression-operator labels (fn-defs &rest body)
-  (let* ((fn-renames              (collect-function-names fn-defs))
-         (*local-function-names*  (append fn-renames *local-function-names*))
-         (*enclosing-lexicals*    (append fn-renames *enclosing-lexicals*))
-         (*loop-scope-lexicals*   (when in-loop-scope?
-                                    (append fn-renames *loop-scope-lexicals*))))
-    `(,(if compile-expression? 'ps-js:|,| 'ps-js:block)
-       ,@(loop for (fn-name . (args . body)) in fn-defs collect
-                    (progn (when compile-expression?
-                             (push (getf *local-function-names* fn-name)
-                                   *vars-needing-to-be-declared*))
-                           (list (if compile-expression? 'ps-js:= 'ps-js:var)
-                                 (getf *local-function-names* fn-name)
-                                 (compile-named-local-function fn-name args body))))
-       ,@(compile-progn body))))
+  (local-functions labels
+   (*local-function-names* (append fn-renames *local-function-names*))
+   (*enclosing-lexicals*   (append fn-renames *enclosing-lexicals*))
+   (*loop-scope-lexicals*  (when in-loop-scope?
+                             (append fn-renames *loop-scope-lexicals*)))
+   (definitions (compile-local-function-body fn-defs *local-function-names*))))
 
-(define-expression-operator function (fn-name) ;; one of the things responsible for function namespace
+(define-expression-operator function (fn-name)
+  ;; one of the things responsible for function namespace
   (ps-compile (maybe-rename-local-function fn-name)))

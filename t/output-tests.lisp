@@ -1347,20 +1347,23 @@ __setf_someThing('foo', 1, 2);")
   (flet ((foo (x) (1+ x))
          (bar (y) (+ 2 y)))
     (bar (foo 1)))
-"var foo = function (x) {
+"(function () {
+var foo = function (x) {
     return x + 1;
 };
 var bar = function (y) {
     return 2 + y;
 };
-bar(foo(1));")
+return bar(foo(1));
+})();")
 
 (test-ps-js flet3
   (flet ((foo (x) (+ 2 x)))
     (flet ((foo (x) (1+ x))
            (bar (y) (+ 2 (foo y))))
       (bar (foo 1))))
-  "var foo = function (x) {
+  "(function () {
+var foo = function (x) {
     return 2 + x;
 };
 var foo1 = function (x) {
@@ -1369,7 +1372,8 @@ var foo1 = function (x) {
 var bar = function (y) {
     return 2 + foo(y);
 };
-bar(foo1(1));")
+return bar(foo1(1));
+})();")
 
 (test-ps-js labels1
   ((lambda () (labels ((foo (x)
@@ -1388,37 +1392,43 @@ bar(foo1(1));")
   (labels ((foo (x) (1+ (bar x)))
            (bar (y) (+ 2 (foo y))))
     (bar (foo 1)))
-  "var foo = function (x) {
+  "(function () {
+var foo = function (x) {
     return bar(x) + 1;
 };
 var bar = function (y) {
     return 2 + foo(y);
 };
-bar(foo(1));")
+return bar(foo(1));
+})();")
 
 (test-ps-js labels3
   (labels ((foo (x) (1+ x))
            (bar (y) (+ 2 (foo y))))
     (bar (foo 1)))
-  "var foo = function (x) {
+  "(function () {
+var foo = function (x) {
     return x + 1;
 };
 var bar = function (y) {
     return 2 + foo(y);
 };
-bar(foo(1));")
+return bar(foo(1));
+})();")
 
 (test-ps-js labels-lambda-list
   (labels ((foo (x &optional (y 0))
              (+ x y)))
     (foo 1))
-  "var foo = function (x, y) {
+  "(function () {
+var foo = function (x, y) {
     if (y === undefined) {
         y = 0;
     };
     return x + y;
 };
-foo(1);")
+return foo(1);
+})();")
 
 (test-ps-js for-loop-var-init-exp
   ((lambda (x)
@@ -1700,10 +1710,12 @@ return x + x;
 (test-ps-js flet-apply
   (flet ((foo () 'bar))
     (apply (function foo) nil))
-  "var foo = function () {
+  "(function () {
+var foo = function () {
     return 'bar';
 };
-foo.apply(this, null);")
+return foo.apply(this, null);
+})();")
 
 (test-ps-js let-apply
   (let ((foo (lambda () 1)))
@@ -1723,11 +1735,13 @@ return foo1.apply(this, null);
   (flet ((x (x) (1+ x)))
     (let ((x 2))
       (x x)))
-  "var x = function (x) {
+  "(function () {
+var x = function (x) {
     return x + 1;
 };
 var x1 = 2;
-x(x1);")
+return x(x1);
+})();")
 
 (test-ps-js let-flet
   (let ((x 2))
@@ -1745,11 +1759,13 @@ return x1(x);
   (labels ((x (x) (1+ x)))
     (let ((x 2))
       (x x)))
-  "var x = function (x) {
+  "(function () {
+var x = function (x) {
     return x + 1;
 };
 var x1 = 2;
-x(x1);")
+return x(x1);
+})();")
 
 (test-ps-js let-labels
   (let ((x 2))
@@ -1867,15 +1883,19 @@ return ++x1;
 (test-ps-js flet-expression
   (1+ (flet ((foo (x) (1+ x)))
         (foo 1)))
-  "(foo = function (x) {
-    return x + 1;
-}, foo(1)) + 1;")
+  "(function () {
+    var foo = function (x) {
+        return x + 1;
+    };
+    return foo(1);
+})() + 1;")
 
 (test-ps-js flet-lambda-list
-  (labels ((foo (x &key (y 0))
-             (+ x y)))
+  (flet ((foo (x &key (y 0))
+           (+ x y)))
     (foo 1 :y 2))
-  "var foo = function (x) {
+  "(function () {
+var foo = function (x) {
     var _js2 = arguments.length;
     for (var n1 = 1; n1 < _js2; n1 += 2) {
         switch (arguments[n1]) {
@@ -1886,7 +1906,8 @@ return ++x1;
     var y = undefined === y ? 0 : y;
     return x + y;
 };
-foo(1, 'y', 2);")
+return foo(1, 'y', 2);
+})();")
 
 (test-ps-js return-case-break-elimination
   (defun foo ()
@@ -2352,11 +2373,13 @@ return testSymbolMacro1 + 1;
       (foo test-symbol-macro1)
       (test-symbol-macro1))
     (bar test-symbol-macro1))
-  "var testSymbolMacro1_1 = function () {
+  "(function () {
+var testSymbolMacro1_1 = function () {
     return 2;
 };
 foo(1);
-testSymbolMacro1_1();
+return testSymbolMacro1_1();
+})();
 bar(1);")
 
 (test compile-stream-nulls
@@ -2370,11 +2393,13 @@ bar(1);")
 
 (test compile-stream1
   (is (string=
-       "var testSymbolMacro1_1 = function () {
-    return 2;
-};
-foo(1);
-testSymbolMacro1_1();
+       "(function () {
+    var testSymbolMacro1_1 = function () {
+        return 2;
+    };
+    foo(1);
+    return testSymbolMacro1_1();
+})();
 bar(1);
 "
        (with-input-from-string (s "
@@ -2917,10 +2942,12 @@ foo = 3;")
   (flet ((foo ()
            (return-from foo 123)))
     (foo))
-  "var foo = function () {
+  "(function () {
+var foo = function () {
         return 123;
     };
-    foo();")
+    return foo();
+})();")
 
 (test-ps-js lambda-docstring-declarations
   (lambda (x)

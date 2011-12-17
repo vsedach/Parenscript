@@ -965,7 +965,7 @@ __setf_someThing('foo', 1, 2);")
         };
     };
     var baz;
-    var bar = undefined === bar ? 4 : bar;
+    var bar = 'undefined' === typeof bar ? 4 : bar;
     return baz * bar;
 };")
 
@@ -980,7 +980,7 @@ __setf_someThing('foo', 1, 2);")
             myName = arguments[n1 + 1];
         };
     };
-    var myName = undefined === myName ? 1 : myName;
+    var myName = 'undefined' === typeof myName ? 1 : myName;
     return myName;
 };")
 
@@ -997,7 +997,7 @@ __setf_someThing('foo', 1, 2);")
         };
     };
     var suppliedwhat;
-    var foo = undefined === foo ? 1 : foo;
+    var foo = 'undefined' === typeof foo ? 1 : foo;
     return foo;
 });")
 
@@ -1903,7 +1903,7 @@ var foo = function (x) {
             y = arguments[n1 + 1];
         };
     };
-    var y = undefined === y ? 0 : y;
+    var y = 'undefined' === typeof y ? 0 : y;
     return x + y;
 };
 return foo(1, 'y', 2);
@@ -2000,7 +2000,7 @@ try {
     alert(a);
     return alert(b);
 } finally {
-    if (undefined === prevMv2) {
+    if ('undefined' === typeof prevMv2) {
         delete arguments['callee']['mv'];
     } else {
         arguments['callee']['mv'] = prevMv2;
@@ -2028,7 +2028,7 @@ try {
     alert(a3);
     return alert(b);
 } finally {
-    if (undefined === prevMv2) {
+    if ('undefined' === typeof prevMv2) {
         delete arguments['callee']['mv'];
     } else {
         arguments['callee']['mv'] = prevMv2;
@@ -2049,7 +2049,7 @@ try {
     var b = mv1[0];
     return a + b;
 } finally {
-    if (undefined === prevMv2) {
+    if ('undefined' === typeof prevMv2) {
         delete arguments['callee']['mv'];
     } else {
         arguments['callee']['mv'] = prevMv2;
@@ -2072,7 +2072,7 @@ try {
   "(function () {
 var val1_1 = x;
 var valrest2 = [y];
-if (undefined !== arguments['callee']['caller']['mv']) {
+if ('undefined' !== typeof arguments['callee']['caller']['mv']) {
     arguments['callee']['caller']['mv'] = valrest2;
 };
 return val1_1;
@@ -2083,7 +2083,7 @@ return val1_1;
   "(function () {
     var val1_1 = x;
     var valrest2 = [y, z];
-    if (undefined !== arguments['callee']['caller']['mv']) {
+    if ('undefined' !== typeof arguments['callee']['caller']['mv']) {
         arguments['callee']['caller']['mv'] = valrest2;
     };
     return val1_1;
@@ -2095,7 +2095,7 @@ return val1_1;
   "function foo() {
     var val1_1 = x;
     var valrest2 = [y];
-    if (undefined !== arguments['callee']['caller']['mv']) {
+    if ('undefined' !== typeof arguments['callee']['caller']['mv']) {
         arguments['callee']['caller']['mv'] = valrest2;
     };
     return val1_1;

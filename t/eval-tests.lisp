@@ -235,22 +235,24 @@
     (+ x x))
   6)
 
-(test-js-eval equality-nary1
-  (let ((x 10) (y 10) (z 10))
-    (= x y z))
-  t)
-
-;; cl-js is broken?
-;; (cl-js:run-js "var x = 10; x === 10;") => T
-;; (cl-js:run-js "(function () { var x = 10; return x === 10; })();") => nil
-;; (cl-js:run-js "(function () { return 10 === 10; })();") => nil
-;; (cl-js:run-js "(function () { return 10; })();") => 10
-
 (test-js-eval operator-expressions-array-nested-let
   (list (let ((y 1)) y) 2)
   '(1 2))
 
-;;; broken
+(test-js-eval block-return-plus
+  (+ 1 (block foobar (return-from foobar 2) 1))
+  3)
+
+(test-js-eval block-return-plus1
+  (+ 1 (block foobar (+ 4 ((lambda (x) (return-from foobar x)) 2)) 1))
+  3)
+
+(test-js-eval block-let
+  (block foobar
+    (let ((x 1))
+      (return-from foobar x)
+      2))
+  1)
 
 (test-js-eval block-dynamic-return
   (block nil (return 4) (+ 1 2))
@@ -260,7 +262,23 @@
   (block nil ((lambda () (return 4))) (+ 1 2))
   4)
 
+(test-js-eval nil-block-return-1
+  (block nil (return 1) 2)
+  1)
+
+;;; broken
+
 (test-js-eval dolist-return
   (dolist (x '(5 2 3))
     (return (1+ x)))
   6)
+
+(test-js-eval equality-nary1
+  (let ((x 10) (y 10) (z 10))
+    (= x y z))
+  t)
+;; cl-js is broken?
+;; (cl-js:run-js "var x = 10; x === 10;") => T
+;; (cl-js:run-js "(function () { var x = 10; return x === 10; })();") => nil
+;; (cl-js:run-js "(function () { return 10 === 10; })();") => nil
+;; (cl-js:run-js "(function () { return 10; })();") => 10

@@ -135,26 +135,28 @@
       body))
 
 (define-statement-operator block (name &rest body)
-  (let* ((name (or name 'nilBlock))
-         (*dynamic-return-tags* (cons (cons name nil) *dynamic-return-tags*))
-         (*current-block-tag* name)
-         (compiled-body (compile-statement `(progn ,@body))))
-    `(ps-js:label ,name
-                  ,(wrap-for-dynamic-return
-                    (list name) compiled-body))))
+  (if in-function-scope?
+      (let* ((name (or name 'nilBlock))
+             (*dynamic-return-tags* (cons (cons name nil) *dynamic-return-tags*))
+             (*current-block-tag* name)
+             (compiled-body (compile-statement `(progn ,@body))))
+        `(ps-js:label ,name
+                      ,(wrap-for-dynamic-return
+                        (list name) compiled-body)))
+      (ps-compile (with-lambda-scope `(block ,name ,@body)))))
 
 (defun return-exp (tag value) ;; fixme to handle multiple values
-  (let ((value (compile-expression value)))
+  (let ((cvalue (compile-expression value)))
     (acond ((or (eql '%function tag) (member tag *function-block-names*))
-            `(ps-js:return ,value))
+            `(ps-js:return ,cvalue))
            ((eql tag *current-block-tag*)
-            `(ps-js:break ,tag))
+            `(ps-js:block ,cvalue (ps-js:break ,tag)))
            ((assoc tag *dynamic-return-tags*)
             (setf (cdr it) t)
             (ps-compile `(throw (create :ps-block-tag ',tag
                                         :ps-return-value ,value))))
            (t (warn "Returning from unknown block ~A" tag)
-              `(ps-js:return ,value))))) ;; for backwards-compatibility
+              `(ps-js:return ,cvalue))))) ;; for backwards-compatibility
 
 (defun try-expressionizing-if? (exp &optional (score 0))
   (cond ((< 1 score) nil)
@@ -223,20 +225,21 @@
 Parenscript now implements implicit return, update your code! Things like (lambda () (return x)) are not valid Common Lisp and may not be supported in future versions of Parenscript."))
        form)
      (if
-      (aif (and (try-expressionizing-if? form)
-                (let ((used-up-names *used-up-names*)
-                      (*lambda-wrappable-statements* ()))
-                  (handler-case (compile-expression form)
-                    (compile-expression-error ()
-                      (setf *used-up-names* used-up-names)
-                      nil))))
-           (return-from expressionize-result `(ps-js:return ,it))
+      (if (and (try-expressionizing-if? form)
+               (let ((used-up-names *used-up-names*)
+                     (*lambda-wrappable-statements* ()))
+                 (handler-case (compile-expression form)
+                   (compile-expression-error ()
+                     (setf *used-up-names* used-up-names)
+                     nil))))
+           (return-from expressionize-result (return-exp tag form))
            `(if ,(second form)
                 (return-from ,tag ,(third form))
                 ,@(when (fourth form) `((return-from ,tag ,(fourth form)))))))
      (otherwise
       (if (gethash (car form) *special-statement-operators*)
-          form ;; by now only special forms that return nil should be left, so this is ok for implicit return
+          form ;; by now only special forms that return nil should be
+               ;; left, so this is ok for implicit return
           (return-from expressionize-result
             (return-exp tag form)))))))
 

@@ -302,10 +302,11 @@ return _js2.style.left = _js1;
   "someDiv.offsetLeft;")
 
 (test-ps-js nil-block-return-1
-  (block nil (return))
-  "nilBlock: {
-    break nilBlock;
-};")
+  (block nil (return) 1)
+  "(function () {
+    return null;
+    return 1;
+})();")
 
 (test-ps-js single-argument-statements-2
   (throw "foobar")
@@ -2453,12 +2454,66 @@ a === b;")
     (when (bar)
       (return-from scope))
     (blee))
-  "scope: {
+  "(function () {
     foo();
     if (bar()) {
-        break scope;
+        return null;
     };
-    blee();
+    return blee();
+})();")
+
+(test-ps-js block-return-from0
+  (defun baz ()
+    (block scope
+     (foo)
+     (when (bar)
+       (return-from scope))
+     (blee)))
+  "function baz() {
+    foo();
+    if (bar()) {
+        return null;
+    };
+    return blee();
+};")
+
+(test-ps-js block-return-from01
+  (defun baz ()
+    (block scope
+     (foo)
+     (when (bar)
+       (return-from scope))
+     (blee))
+    2)
+  "function baz() {
+    scope: {
+        foo();
+        if (bar()) {
+            break scope;
+        };
+        blee();
+    };
+    return 2;
+};")
+
+(test-ps-js block-return-from02
+  (defun baz ()
+    (block scope
+     (foo)
+     (when (bar)
+       (return-from scope (foobar)))
+     (blee))
+    2)
+  "function baz() {
+    scope: {
+        foo();
+        if (bar()) {
+            foobar();
+            break scope;
+        };
+        blee();
+    };
+    return 2;
 };")
 
 (test-ps-js block-return-from1
@@ -2763,10 +2818,18 @@ foo = 3;")
 };")
 
 (test-ps-js explicit-nil-block
-  (block nil (return) (+ 1 2))
-  "nilBlock: {
-    break nilBlock;
-    1 + 2;
+  (defun bar ()
+    (foo 1)
+    (block nil (return (foo 2)) (+ 1 2))
+    2)
+  "function bar() {
+    foo(1);
+    nilBlock: {
+        foo(2);
+        break nilBlock;
+        1 + 2;
+    };
+    return 2;
 };")
 
 (test-ps-js dynamic-extent-function-return
@@ -2775,6 +2838,22 @@ foo = 3;")
     try {
         return (function () {
             throw { 'ps-block-tag' : 'foo', 'ps-return-value' : 6 };
+        })();
+    } catch (err) {
+        if (err && 'foo' === err['ps-block-tag']) {
+            return err['ps-return-value'];
+        } else {
+            throw err;
+        };
+    };
+};")
+
+(test-ps-js dynamic-extent-function-return-funcall
+  (defun foo () ((lambda () (return-from foo (if baz 6 5)))))
+  "function foo() {
+    try {
+        return (function () {
+            throw { 'ps-block-tag' : 'foo', 'ps-return-value' : baz ? 6 : 5 };
         })();
     } catch (err) {
         if (err && 'foo' === err['ps-block-tag']) {
@@ -3200,3 +3279,14 @@ return function (x) {
         return x;
     };
 })() };")
+
+(test-ps-js block-let
+  (block foobar
+    (let ((x 1))
+      (return-from foobar x)
+      2))
+  "(function () {
+    var x = 1;
+    return x;
+    return 2;
+})();")

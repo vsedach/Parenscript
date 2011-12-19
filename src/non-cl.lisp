@@ -101,8 +101,12 @@
   (when value? (compile-expression `(setf ,name ,value))))
 
 (define-statement-operator var (name &optional (value (values) value?) docstr)
-  `(ps-js:var ,(ps-macroexpand name)
-              ,@(when value? (list (compile-expression value) docstr))))
+  (let ((value (ps-macroexpand value)))
+    (if (and (listp value) (eq 'progn (car value)))
+        (ps-compile `(progn ,@(butlast (cdr value))
+                            (var ,name ,(car (last value)))))
+        `(ps-js:var ,(ps-macroexpand name)
+                    ,@(when value? (list (compile-expression value) docstr))))))
 
 (defmacro var (name &optional value docstr)
   `(defparameter ,name ,value ,@(when docstr (list docstr))))

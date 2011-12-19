@@ -76,6 +76,9 @@ block.")
 (setf (documentation '*used-up-names* 'variable)
       "Names that have been already used for lexical bindings in the current function scope.")
 
+(defvar in-case? nil
+  "Bind to T when compiling CASE branches.")
+
 (defvar in-loop-scope? nil
   "Used for seeing when we're in loops, so that we can introduce
   proper scoping for lambdas closing over loop-bound

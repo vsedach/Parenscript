@@ -145,18 +145,21 @@
                         (list name) compiled-body)))
       (ps-compile (with-lambda-scope `(block ,name ,@body)))))
 
-(defun return-exp (tag value) ;; fixme to handle multiple values
-  (let ((cvalue (compile-expression value)))
+;; fixme to handle multiple values
+(defun return-exp (tag &optional (value nil value?))
+  (let ((cvalue (when value? (list (compile-expression value)))))
     (acond ((or (eql '%function tag) (member tag *function-block-names*))
-            `(ps-js:return ,cvalue))
+            `(ps-js:return ,@cvalue))
            ((eql tag *current-block-tag*)
-            `(ps-js:block ,cvalue (ps-js:break ,tag)))
+            (if value?
+                `(ps-js:block ,@cvalue (ps-js:break ,tag))
+                `(ps-js:break ,tag)))
            ((assoc tag *dynamic-return-tags*)
             (setf (cdr it) t)
             (ps-compile `(throw (create :ps-block-tag ',tag
                                         :ps-return-value ,value))))
            (t (warn "Returning from unknown block ~A" tag)
-              `(ps-js:return ,cvalue))))) ;; for backwards-compatibility
+              `(ps-js:return ,@cvalue))))) ;; for backwards-compatibility
 
 (defun try-expressionizing-if? (exp &optional (score 0))
   (cond ((< 1 score) nil)
@@ -181,24 +184,16 @@
         ,(second form)
         ,@(loop for (cvalue . cbody) in (cddr form)
              for remaining on (cddr form) collect
-               (let ((last-n
-                      (cond ((or (eq 'default cvalue) (not (cdr remaining)))
-                             1)
-                            ((eq 'break (car (last cbody)))
-                             2))))
-                 (if last-n
-                     (let ((result-form
-                            (ps-macroexpand (car (last cbody last-n)))))
-                       `(,cvalue
-                         ,@(butlast cbody last-n)
-                         (return-from ,tag
-                           ,(if (eq result-form 'break) nil result-form))
-                         ,@(when
-                            (and (= last-n 2)
-                                 (find-if (lambda (x) (or (eq x 'if) (eq x 'cond)))
-                                          (flatten result-form)))
-                            '(break))))
-                     (cons cvalue cbody))))))
+               (aif (cond ((or (eq 'default cvalue) (not (cdr remaining)))
+                           1)
+                          ((eq 'break (car (last cbody)))
+                           2))
+                    (let ((result-form (ps-macroexpand (car (last cbody it)))))
+                      `(,cvalue
+                        ,@(butlast cbody it)
+                        (return-from ,tag
+                          ,(if (eq result-form 'break) nil result-form))))
+                    (cons cvalue cbody)))))
      (try
       `(try (return-from ,tag ,(second form))
             ,@(let ((catch (cdr (assoc :catch (cdr form))))
@@ -211,7 +206,8 @@
      (cond
        `(cond
           ,@(loop for clause in (cdr form) collect
-                 `(,@(butlast clause) (return-from ,tag ,(car (last clause)))))))
+                 `(,@(butlast clause) (return-from ,tag ,(car (last clause)))))
+          ,@(when in-case? `((t (return-from ,tag nil))))))
      ((with label let flet labels macrolet symbol-macrolet) ;; implicit progn forms
       `(,(first form) ,(second form)
          ,@(butlast (cddr form))
@@ -235,13 +231,15 @@ Parenscript now implements implicit return, update your code! Things like (lambd
            (return-from expressionize-result (return-exp tag form))
            `(if ,(second form)
                 (return-from ,tag ,(third form))
-                ,@(when (fourth form) `((return-from ,tag ,(fourth form)))))))
+                ,@(when (or in-case? (fourth form))
+                    `((return-from ,tag ,(fourth form)))))))
      (otherwise
-      (if (gethash (car form) *special-statement-operators*)
-          form ;; by now only special forms that return nil should be
-               ;; left, so this is ok for implicit return
-          (return-from expressionize-result
-            (return-exp tag form)))))))
+      (return-from expressionize-result
+        (cond ((not (gethash (car form) *special-statement-operators*))
+               (return-exp tag form))
+              (in-case?
+               `(ps-js:block ,(compile-statement form) ,(return-exp tag)))
+              (t (compile-statement form))))))))
 
 (define-statement-operator return-from (tag &optional result)
   (cond (tag
@@ -270,8 +268,9 @@ Parenscript doesn't support returning values this way from inside a loop yet!"
 
 (define-statement-operator if (test then &optional else)
   `(ps-js:if ,(compile-expression test)
-     ,(compile-statement `(progn ,then))
-     ,@(when else `(:else ,(compile-statement `(progn ,else))))))
+             ,(compile-statement `(progn ,then))
+             ,@(when else
+                     `(:else ,(compile-statement `(progn ,else))))))
 
 (define-expression-operator cond (&rest clauses)
   (compile-expression
@@ -285,12 +284,12 @@ Parenscript doesn't support returning values this way from inside a loop yet!"
 
 (define-statement-operator cond (&rest clauses)
   `(ps-js:if ,(compile-expression (caar clauses))
-     ,(compile-statement `(progn ,@(cdar clauses)))
-     ,@(loop for (test . body) in (cdr clauses) appending
-            (if (eq t test)
-                `(:else ,(compile-statement `(progn ,@body)))
-                `(:else-if ,(compile-expression test)
-                           ,(compile-statement `(progn ,@body)))))))
+             ,(compile-statement `(progn ,@(cdar clauses)))
+             ,@(loop for (test . body) in (cdr clauses) appending
+                    (if (eq t test)
+                        `(:else ,(compile-statement `(progn ,@body)))
+                        `(:else-if ,(compile-expression test)
+                                   ,(compile-statement `(progn ,@body)))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; macros

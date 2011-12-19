@@ -35,9 +35,11 @@
      ,@(loop for (val . body) in clauses collect
             (cons (if (eq val 'default)
                       'ps-js:default
-                      (compile-expression val))
+                      (let ((in-case? t))
+                        (compile-expression val)))
                   (mapcan (lambda (x)
-                            (let ((exp (compile-statement x)))
+                            (let* ((in-case? t)
+                                   (exp (compile-statement x)))
                               (if (and (listp exp) (eq 'ps-js:block (car exp)))
                                   (cdr exp)
                                   (list exp))))
@@ -129,13 +131,19 @@
 ;;; misc
 
 (define-statement-operator try (form &rest clauses)
-  (let ((catch (cdr (assoc :catch clauses)))
+  (let ((catch   (cdr (assoc :catch clauses)))
         (finally (cdr (assoc :finally clauses))))
-    (assert (not (cdar catch)) () "Sorry, currently only simple catch forms are supported.")
-    (assert (or catch finally) () "Try form should have either a catch or a finally clause or both.")
-    `(ps-js:try ,(compile-statement `(progn ,form))
-             :catch ,(when catch (list (caar catch) (compile-statement `(progn ,@(cdr catch)))))
-             :finally ,(when finally (compile-statement `(progn ,@finally))))))
+    (assert (not (cdar catch)) ()
+            "Sorry, currently only simple catch forms are supported.")
+    (assert (or catch finally) ()
+            "Try form should have either a catch or a finally clause or both.")
+    `(ps-js:try
+      ,(compile-statement `(progn ,form))
+      :catch ,(when catch
+                    (list (caar catch)
+                          (compile-statement `(progn ,@(cdr catch)))))
+      :finally ,(when finally
+                      (compile-statement `(progn ,@finally))))))
 
 (define-expression-operator regex (regex)
   `(ps-js:regex ,(string regex)))

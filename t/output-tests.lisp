@@ -391,11 +391,11 @@ try {
 
 (test-ps-js iteration-constructs-1
   (do* ((a) b (c (array "a" "b" "c" "d" "e"))
-      (d 0 (1+ d))
-      (e (aref c d) (aref c d)))
-     ((or (= d (@ c length)) (string= e "x")))
-  (setf a d b e)
-  (funcall (@ document write) (+ "a: " a " b: " b "<br/>")))
+        (d 0 (1+ d))
+        (e (aref c d) (aref c d)))
+       ((or (= d (@ c length)) (string= e "x")))
+    (setf a d b e)
+    (funcall (@ document write) (+ "a: " a " b: " b "<br/>")))
   "for (var a = null, b = null, c = ['a', 'b', 'c', 'd', 'e'], d = 0, e = c[d]; !(d === c.length || e === 'x'); d += 1, e = c[d]) {
     a = d;
     b = e;
@@ -404,9 +404,9 @@ try {
 
 (test-ps-js iteration-constructs-2
   (do ((i 0 (1+ i))
-     (s 0 (+ s i (1+ i))))
-    ((> i 10))
-  (funcall (@ document write) (+ "i: " i " s: " s "<br/>")))
+       (s 0 (+ s i (1+ i))))
+      ((> i 10))
+    (funcall (@ document write) (+ "i: " i " s: " s "<br/>")))
   "(function () {
 var i = 0;
 var s = 0;
@@ -421,9 +421,9 @@ for (; i <= 10; ) {
 
 (test-ps-js iteration-constructs-3
   (do* ((i 0 (1+ i))
-      (s 0 (+ s i (1- i))))
-     ((> i 10))
-  ((@ document write) (+ "i: " i " s: " s "<br/>")))
+        (s 0 (+ s i (1- i))))
+       ((> i 10))
+    ((@ document write) (+ "i: " i " s: " s "<br/>")))
   "for (var i = 0, s = 0; i <= 10; i += 1, s = s + i + (i - 1)) {
     document.write('i: ' + i + ' s: ' + s + '<br/>');
 };")
@@ -2102,7 +2102,7 @@ return val1_1;
     return val1_1;
 };")
 
-(test-ps-js return-macrolet
+(test-ps-js return-macrolet1
   (defun foo ()
     (return-from foo
       (symbol-macrolet ((x 2))
@@ -2111,7 +2111,6 @@ return val1_1;
     for (; true; ) {
         2 + 2;
     };
-    return null;
 };")
 
 (test-ps-js return-cond
@@ -2135,12 +2134,125 @@ if (foowhat(x)) {
             y = x[_js1];
         };
     };
-    return null;
 } else if (barwhat(x)) {
     return x;
 } else {
     return 3;
 };
+};")
+
+(test-ps-js return-case
+  (defun foo ()
+    (return-from foo
+      (case x
+        (1 (loop for y in x do (foo y)))
+        (2 x)
+        ((t) 3))))
+  "function foo() {
+    switch (x) {
+    case 1:
+        var _js2 = x.length;
+        var _js1 = 0;
+        if (_js1 < _js2) {
+            var y = x[_js1];
+            while (true) {
+                foo(y);
+                _js1 += 1;
+                if (_js1 >= _js2) {
+                    break;
+                };
+                y = x[_js1];
+            };
+            return;
+        } else {
+            return null;
+        };
+    case 2:
+        return x;
+    default:
+        return 3;
+    };
+};")
+
+(test-ps-js return-case1
+  (defun foo ()
+    (return-from foo
+      (case x
+        (1 (if a 1 2))
+        (2 x)
+        ((t) 3))))
+  "function foo() {
+    switch (x) {
+    case 1:
+        return a ? 1 : 2;
+    case 2:
+        return x;
+    default:
+        return 3;
+    };
+};")
+
+(test-ps-js lambda-loop-if-return
+  (lambda ()
+    (if a
+        (loop for y in x do (foo y))
+        c))
+  "(function () {
+    if (a) {
+        var _js4 = x.length;
+        var _js3 = 0;
+        if (_js3 < _js4) {
+            var y = x[_js3];
+            while (true) {
+                foo(y);
+                _js3 += 1;
+                if (_js3 >= _js4) {
+                    break;
+                };
+                y = x[_js3];
+            };
+        };
+    } else {
+        return c;
+    };
+});")
+
+(test-ps-js lambda-loop-if-return1
+  (defun baz ()
+    (foo (lambda ()
+           (if a
+               (progn (loop for y in x do (foo y))
+                      (return-from baz))
+               c))))
+  "function baz() {
+    try {
+        return foo(function () {
+            if (a) {
+                var _js4 = x.length;
+                var _js3 = 0;
+                if (_js3 < _js4) {
+                    var y = x[_js3];
+                    while (true) {
+                        foo(y);
+                        _js3 += 1;
+                        if (_js3 >= _js4) {
+                            break;
+                        };
+                        y = x[_js3];
+                    };
+                };
+                throw { 'ps-block-tag' : 'baz', 'ps-return-value' : null };
+            } else {
+                return c;
+            };
+        });
+    } catch (err) {
+        if (err && 'baz' === err['ps-block-tag']) {
+            return err['ps-return-value'];
+        } else {
+            throw err;
+        };
+    };
 };")
 
 (test-ps-js switch-loop
@@ -2295,7 +2407,6 @@ __setf_foo(5, x, 1, 2, 3, 4);")
 switch (foo) {
 case 123:
     return bar() ? true : null;
-    break;
 case 345:
     return blah();
 };
@@ -2688,8 +2799,9 @@ var x = 1;")
     case 'bar':
         if (y) {
             return true;
+        } else {
+            return null;
         };
-        break;
     case 'baz':
         return null;
     };
@@ -2705,8 +2817,9 @@ var x = 1;")
     case 'bar':
         if (y) {
             return true;
+        } else {
+            return null;
         };
-        break;
     case 'baz':
         return null;
     };
@@ -2718,10 +2831,10 @@ var x = 1;")
 baz();
 foo = 3;")
 
-;; (test-ps-js var-progn
-;;   (var x (progn (foo) (bar)))
-;;   "foo();
-;; var x = bar();")
+(test-ps-js var-progn
+  (var x (progn (foo) (bar)))
+  "foo();
+var x = bar();")
 
 (test-ps-js implicit-return-loop
   (lambda ()
@@ -2998,8 +3111,9 @@ foo = 3;")
     case 'a':
         if (foo()) {
             return 111;
+        } else {
+            return null;
         };
-        break;
     case 'b':
         return true;
     };
@@ -3063,10 +3177,11 @@ var foo = function () {
 (test-ps-js case-cond-breaks
   (defun blah (x)
     (case x
-      (123 (cond ((foo1) (when (foo2)
-                           (when (foo3)
-                             (return-from blah nil))
-                           t))))
+      (123 (cond ((foo1)
+                  (when (foo2)
+                    (when (foo3)
+                      (return-from blah nil))
+                    t))))
       (456 (foo7))))
   "function blah(x) {
     switch (x) {
@@ -3077,13 +3192,29 @@ var foo = function () {
                     return null;
                 };
                 return true;
+            } else {
+                return null;
             };
+        } else {
+            return null;
         };
-        break;
     case 456:
         return foo7();
     };
 };")
+
+(test-ps-js cond-double-t
+  (lambda ()
+    (cond (foo 1)
+          (t 2)
+          (t 3)))
+  "(function () {
+    if (foo) {
+        return 1;
+    } else {
+        return 2;
+    };
+});")
 
 (test-ps-js let-let-funcall-lambda
   (let ((x 5))
@@ -3195,8 +3326,15 @@ return function (x) {
     for (var i = 0; i <= 10; i += 1) {
         i + 1;
     };
-    return null;
 })());")
+
+(test-ps-js plus-block-expression-loop-lambda
+  (1+ (loop for i from 0 to 10 do (1+ i)))
+  "(function () {
+    for (var i = 0; i <= 10; i += 1) {
+        i + 1;
+    };
+})() + 1;")
 
 (test-ps-js let-closures-rename
   (lambda ()

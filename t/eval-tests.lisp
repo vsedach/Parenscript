@@ -107,12 +107,12 @@
              ("bar" (if y (return-from foo 1)))
              ("baz" 2)))
          (list (foo "bar" t) (foo "bar" nil) (foo "baz" nil)))
-  '(1 :undefined 2))
+  '(1 :null 2))
 
 (test-js-eval funcall-loop-doing
   ((lambda (x) x)
    (loop for i from 0 to 10 do (1+ i)))
-  :null)
+  :undefined)
 
 (test-js-eval block-dynamic-lambda2
   ((lambda () (1+ (block nil (return 4) (+ 1 2)))))

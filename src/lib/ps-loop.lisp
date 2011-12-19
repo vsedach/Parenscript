@@ -331,7 +331,7 @@
                     ,@(initially loop)
                     ,main
                     ,@(finally loop))
-                  ,(aif (default-accum-var loop) it nil))))
+                  ,@(awhen (default-accum-var loop) (list it)))))
     (if (default-accum-var loop)
         `((lambda () ,full)) ;; this needs to be generalized
         full)))

@@ -189,8 +189,13 @@ vice-versa.")
 (defprinter ps-js:negate (x)
   "-"(print-op-argument op x))
 
-(defprinter (ps-js:delete ps-js:typeof ps-js:new ps-js:throw ps-js:return) (x)
+(defprinter (ps-js:delete ps-js:typeof ps-js:new ps-js:throw) (x)
   (print-op op)" "(print-op-argument op x))
+
+(defprinter (ps-js:return) (&optional (x nil x?))
+  (print-op op)
+  (when x?
+    (psw " ") (print-op-argument op x)))
 
 (defprinter ps-js:post++ (x)
   (ps-print x)"++")

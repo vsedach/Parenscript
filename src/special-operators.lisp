@@ -137,6 +137,7 @@
 (define-statement-operator block (name &rest body)
   (if in-function-scope?
       (let* ((name (or name 'nilBlock))
+             (in-loop-scope? (if name in-loop-scope? nil))
              (*dynamic-return-tags* (cons (cons name nil) *dynamic-return-tags*))
              (*current-block-tag* name)
              (compiled-body (compile-statement `(progn ,@body))))
@@ -248,11 +249,11 @@ Parenscript now implements implicit return, update your code! Things like (lambd
                (expressionize-result tag form)
                (return-exp tag form))))
         (in-loop-scope?
-         (when result
-           (warn "Trying to (RETURN ~A) from inside a loop with an implicit nil block (DO, DOLIST, DOTIMES, etc.)
-Parenscript doesn't support returning values this way from inside a loop yet!"
-                 result))
-         '(ps-js:break))
+         (setf loop-returns? t
+               *loop-return-var* (or *loop-return-var*
+                                     (ps-gensym "loop-result-var")))
+         (compile-statement `(progn (setf ,*loop-return-var* ,result)
+                                    (break))))
         (t (ps-compile `(return-from nilBlock ,result)))))
 
 (define-statement-operator throw (&rest args)

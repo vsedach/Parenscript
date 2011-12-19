@@ -136,7 +136,7 @@ Syntax of key spec:
                    (lambda (var)
                      `(var ,var))
                    (remove-duplicates *vars-needing-to-be-declared*))))))
-      (when in-loop-scope? ;; this is probably broken when it comes to let-renaming
+      (when in-loop-scope? ;; this might be broken when it comes to let-renaming
         (setf *loop-scope-lexicals-captured*
               (append (intersection (flatten body) *loop-scope-lexicals*)
                       *loop-scope-lexicals-captured*)))

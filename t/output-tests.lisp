@@ -2922,13 +2922,18 @@ var x = bar();")
     (when (= x 1)
       (return))
     (chain console (log x)))
-  "for (var x = null, _js_arrvar2 = [2, 1, 3], _js_idx1 = 0; _js_idx1 < _js_arrvar2.length; _js_idx1 += 1) {
+  "(function () {
+var loopResultVar3 = null;
+for (var x = null, _js_arrvar2 = [2, 1, 3], _js_idx1 = 0; _js_idx1 < _js_arrvar2.length; _js_idx1 += 1) {
     x = _js_arrvar2[_js_idx1];
     if (x === 1) {
+        loopResultVar3 = null;
         break;
     };
     console.log(x);
-};")
+};
+return loopResultVar3;
+})();")
 
 (test-ps-js explicit-nil-block
   (defun bar ()
@@ -3068,8 +3073,30 @@ var x = bar();")
     if (x) {
         return 1;
     } else {
+        var loopResultVar1 = null;
         for (var i = 0; i < 4; i += 1) {
+            loopResultVar1 = 1;
             break;
+        };
+        loopResultVar1;
+    };
+    return 2;
+});")
+
+(test-ps-js lambda-nil-return-implicit-nested2
+  (lambda (x)
+    (block foo
+      (if x
+        (return-from foo 1)
+        (dotimes (i 4)
+          (return-from foo i)))
+      2))
+  "(function (x) {
+    if (x) {
+        return 1;
+    } else {
+        for (var i = 0; i < 4; i += 1) {
+            return i;
         };
     };
     return 2;
@@ -3427,4 +3454,17 @@ return function (x) {
     var x = 1;
     return x;
     return 2;
+})();")
+
+(test-ps-js dolist-return1
+  (dolist (x '(5 2 3))
+    (return (1+ x)))
+  "(function () {
+var loopResultVar3 = null;
+for (var x = null, _js_arrvar2 = [5, 2, 3], _js_idx1 = 0; _js_idx1 < _js_arrvar2.length; _js_idx1 += 1) {
+    x = _js_arrvar2[_js_idx1];
+    loopResultVar3 = x + 1;
+    break;
+};
+return loopResultVar3;
 })();")

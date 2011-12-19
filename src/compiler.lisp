@@ -83,6 +83,10 @@ block.")
   "Used for seeing when we're in loops, so that we can introduce
   proper scoping for lambdas closing over loop-bound
   variables (otherwise they all share the same binding).")
+(defvar *loop-return-var* nil
+  "Variable which is used to return values from inside loop bodies.")
+(defvar loop-returns? nil
+  "Set to T by RETURN-FROM when it returns a value from inside a loop.")
 
 (defvar *loop-scope-lexicals*)
 (setf (documentation '*loop-scope-lexicals* 'variable)

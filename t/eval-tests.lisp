@@ -266,12 +266,12 @@
   (block nil (return 1) 2)
   1)
 
-;;; broken
-
 (test-js-eval dolist-return
   (dolist (x '(5 2 3))
     (return (1+ x)))
   6)
+
+;;; broken
 
 (test-js-eval equality-nary1
   (let ((x 10) (y 10) (z 10))

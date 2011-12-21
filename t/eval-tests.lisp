@@ -271,6 +271,18 @@
     (return (1+ x)))
   6)
 
+(test-js-eval let-defun-toplevel
+  (progn (let ((foo 0))
+           (defun bar () foo))
+         (bar))
+  0)
+
+(test-js-eval let-defvar-toplevel
+  (progn (let ((foo 0))
+           (defvar bar (1+ foo)))
+         bar)
+  1)
+
 ;;; broken
 
 (test-js-eval equality-nary1

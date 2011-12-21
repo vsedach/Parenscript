@@ -450,9 +450,12 @@ Parenscript now implements implicit return, update your code! Things like (lambd
                            (setf ,@(mapcan (lambda (x) `(,(var x) ,(rename x)))
                                            dynamic-bindings)))))
                       renamed-body))))
-        (ps-compile (if in-function-scope?
-                        let-body
-                        (with-lambda-scope let-body)))))))
+        (ps-compile (cond (in-function-scope? let-body)
+                          ((find-if (lambda (x)
+                                      (member x '(defun defvar defparameter)))
+                                    (flatten let-body))
+                           let-body)
+                          (t (with-lambda-scope let-body))))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; iteration

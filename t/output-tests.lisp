@@ -578,22 +578,6 @@ return element.innerHTML = ['<TEXTAREA', disabled || !authorized ? [' DISABLED=\
   (setf x (+ x "middle" "after"))
   "x = x + 'middle' + 'after';")
 
-(test-ps-js setf-side-effects
-  (progn
-    (let ((x 10))
-      (defun side-effect()
-        (setf x 4)
-        3)
-      (setf x (+ 2 (side-effect) x 5))))
-  "(function () {
-var x = 10;
-function sideEffect() {
-  x = 4;
-  return 3;
-};
-return x = 2 + sideEffect() + x + 5;
-})();")
-
 (test-ps-js method-call-op-form
   (funcall (getprop (+ "" x) 'to-string))
   "('' + x).toString();")
@@ -3468,3 +3452,37 @@ for (var x = null, _js_arrvar2 = [5, 2, 3], _js_idx1 = 0; _js_idx1 < _js_arrvar2
 };
 return loopResultVar3;
 })();")
+
+;;; broken
+
+(test-ps-js let-defun-toplevel
+  (progn (let ((foo 0))
+           (defun bar () foo))
+         (bar))
+  "var bar_foo1 = 0;
+function bar() {
+    return bar_foo1;
+};
+bar();")
+
+(test-ps-js let-defvar-toplevel
+  (progn (let ((foo 0))
+           (defvar bar (1+ foo)))
+         bar)
+  "var bar_foo1 = 0;
+var bar = bar_foo1 + 1;
+bar;")
+
+(test-ps-js setf-side-effects
+  (progn
+    (let ((x 10))
+      (defun side-effect()
+        (setf x 4)
+        3)
+      (setf x (+ 2 (side-effect) x 5))))
+  "var sideEffect_x1 = 10;
+function sideEffect() {
+    sideEffect_x1 = 4;
+    return 3;
+};
+sideEffect_x1 = 2 + sideEffect() + x + 5;")

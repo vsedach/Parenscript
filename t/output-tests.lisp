@@ -3453,6 +3453,23 @@ for (var x = null, _js_arrvar2 = [5, 2, 3], _js_idx1 = 0; _js_idx1 < _js_arrvar2
 return loopResultVar3;
 })();")
 
+(test-ps-js expressionize-if-macroexpand-error
+  (progn (defmacro xbaz () `(blah))
+
+         (defun foo (xbaz)
+           (unless (blah)
+             (cond (xbaz (blah))
+                   (t (blahblah))))))
+  "function foo(xbaz) {
+    if (!blah()) {
+        if (xbaz) {
+            return blah();
+        } else {
+            return blahblah();
+        };
+    };
+};")
+
 ;;; broken
 
 (test-ps-js let-defun-toplevel

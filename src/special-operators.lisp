@@ -162,12 +162,12 @@
            (t (warn "Returning from unknown block ~A" tag)
               `(ps-js:return ,@cvalue))))) ;; for backwards-compatibility
 
-(defun try-expressionizing-if? (exp &optional (score 0))
+(defun try-expressionizing-if? (exp &optional (score 0)) ;; poor man's codewalker
   (cond ((< 1 score) nil)
         ((listp exp)
          (loop for x in (cdr exp) always
               (try-expressionizing-if?
-               (ps-macroexpand x)
+               (or (ignore-errors (ps-macroexpand x)) x) ;; fail
                (+ score (case (car exp)
                           ((if cond let) 1)
                           ((progn) (1- (length (cdr exp))))

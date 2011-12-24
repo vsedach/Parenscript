@@ -361,6 +361,15 @@ Parenscript now implements implicit return, update your code! Things like (lambd
                                 (third rhs)))
                (list 'ps-js:= lhs rhs))))))
 
+(define-statement-operator defvar (name &optional
+                                        (value (values) value-provided?)
+                                        documentation)
+  ;; this must be used as a top-level form, otherwise the resulting
+  ;; behavior will be undefined.
+  (declare (ignore documentation))
+  (pushnew name *special-variables*)
+  (ps-compile `(var ,name ,@(when value-provided? (list value)))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; binding
 
@@ -451,9 +460,13 @@ Parenscript now implements implicit return, update your code! Things like (lambd
                                            dynamic-bindings)))))
                       renamed-body))))
         (ps-compile (cond (in-function-scope? let-body)
+                          ;; HACK
                           ((find-if (lambda (x)
-                                      (member x '(defun defvar defparameter)))
-                                    (flatten let-body))
+                                      (member x '(defun% defvar)))
+                                    (flatten
+                                     (loop for x in body collecting
+                                          (or (ignore-errors (ps-macroexpand x))
+                                              x))))
                            let-body)
                           (t (with-lambda-scope let-body))))))))
 

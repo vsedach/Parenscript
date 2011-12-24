@@ -264,10 +264,10 @@ x = a + b + c;")
   "(function () {
 var a = 1;
 var b = 2;
-var _js1 = b;
-var _js2 = a;
-a = _js1;
-return b = _js2;
+var _js3 = b;
+var _js4 = a;
+a = _js3;
+return b = _js4;
 })();")
 
 (test-ps-js assignment-6
@@ -460,8 +460,8 @@ return alert('Summation to 10 is ' + (function () {
       ((@ document write) (+ "c: " c "<br/>"))))
   "(function () {
 var l = [1, 2, 4, 8, 16, 32];
-for (var c = null, _js_idx1 = 0; _js_idx1 < l.length; _js_idx1 += 1) {
-    c = l[_js_idx1];
+for (var c = null, _js_idx2 = 0; _js_idx2 < l.length; _js_idx2 += 1) {
+    c = l[_js_idx2];
     document.write('c: ' + c + '<br/>');
 };
 })();")
@@ -3470,36 +3470,49 @@ return loopResultVar3;
     };
 };")
 
+(test-ps-js toplevel-defun-macroexpand
+  (progn (defmacro defun-js (name lambda-list &body body)
+           `(defun ,name ,lambda-list ,@body))
+
+         (let ((foo 0))
+           (defun-js bar () (1+ foo))
+           (defvar baz 2)))
+  "var foo = 0;
+function bar() {
+    return foo + 1;
+};
+var baz = 2;")
+
 ;;; broken
 
-(test-ps-js let-defun-toplevel
-  (progn (let ((foo 0))
-           (defun bar () foo))
-         (bar))
-  "var bar_foo1 = 0;
-function bar() {
-    return bar_foo1;
-};
-bar();")
+;; (test-ps-js let-defun-toplevel
+;;   (progn (let ((foo 0))
+;;            (defun bar () foo))
+;;          (bar))
+;;   "var bar_foo1 = 0;
+;; function bar() {
+;;     return bar_foo1;
+;; };
+;; bar();")
 
-(test-ps-js let-defvar-toplevel
-  (progn (let ((foo 0))
-           (defvar bar (1+ foo)))
-         bar)
-  "var bar_foo1 = 0;
-var bar = bar_foo1 + 1;
-bar;")
+;; (test-ps-js let-defvar-toplevel
+;;   (progn (let ((foo 0))
+;;            (defvar bar (1+ foo)))
+;;          bar)
+;;   "var bar_foo1 = 0;
+;; var bar = bar_foo1 + 1;
+;; bar;")
 
-(test-ps-js setf-side-effects
-  (progn
-    (let ((x 10))
-      (defun side-effect()
-        (setf x 4)
-        3)
-      (setf x (+ 2 (side-effect) x 5))))
-  "var sideEffect_x1 = 10;
-function sideEffect() {
-    sideEffect_x1 = 4;
-    return 3;
-};
-sideEffect_x1 = 2 + sideEffect() + x + 5;")
+;; (test-ps-js setf-side-effects
+;;   (progn
+;;     (let ((x 10))
+;;       (defun side-effect()
+;;         (setf x 4)
+;;         3)
+;;       (setf x (+ 2 (side-effect) x 5))))
+;;   "var sideEffect_x1 = 10;
+;; function sideEffect() {
+;;     sideEffect_x1 = 4;
+;;     return 3;
+;; };
+;; sideEffect_x1 = 2 + sideEffect() + x + 5;")

@@ -435,15 +435,6 @@ lambda-list::=
 
 ;;; misc
 
-(defpsmacro defvar (name &optional
-                         (value (values) value-provided?)
-                         documentation)
-  ;; this must be used as a top-level form, otherwise the resulting
-  ;; behavior will be undefined.
-  (declare (ignore documentation))
-  (pushnew name *special-variables*)
-  `(var ,name ,@(when value-provided? (list value))))
-
 (defpsmacro let* (bindings &body body)
   (if bindings
       `(let (,(car bindings))

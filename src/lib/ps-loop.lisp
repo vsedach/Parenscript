@@ -238,7 +238,7 @@
       (wrap-with-destructurings
        (cdr iterations)
        (aif (second (car iterations))
-            `((destructuring-bind ,it ,(first (car iterations)) ,@forms))
+            `((bind ,it ,(first (car iterations)) ,@forms))
             forms))))
 
 (defun maybe-lift-vars (loop)
@@ -276,12 +276,11 @@
                                (loop :for (var bindings nil step test) :in (iterations loop)
                                  :collect `(setf ,var ,step)
                                  :when test :collect `(when ,test (break))
-                                 :when bindings :collect `(dset ,bindings ,var))))))
+                                 :when bindings :collect `(bset ,bindings ,var))))))
         (loop :for (var bindings init nil test) :in (reverse (iterations loop)) :do
           (when bindings
-            (setf form `(,(if (member bindings lifted :test #'equalp)
-                              'dset
-                              'destructuring-bind) ,bindings ,var ,form)))
+            (setf form `(,(if (member bindings lifted :test #'equalp) 'bset 'bind)
+                          ,bindings ,var ,form)))
           (when test
             (setf form `(unless ,test ,form)))
           (let ((setter (if (member var lifted) 'setf 'var)))
@@ -317,7 +316,7 @@
                   :do (push (cdar head) decls)
                   :finally (return `(let* ,(nreverse decls)
                                       (with-prologue (,head) ,@body))))))
-        (:dbind `(destructuring-bind ,@(cdr (car prologue))
+        (:dbind `(bind ,@(cdr (car prologue))
                      (with-prologue (,(cdr prologue)) ,@body))))))
 
 (defpsmacro loop (&rest keywords-and-forms)

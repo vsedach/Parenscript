@@ -277,6 +277,10 @@
    #:apply
    #:destructuring-bind
 
+   ;; binding
+   #:bind
+   #:bind*
+
    ;; DOM accessing utils
    #:inner-html
    #:uri-encode

@@ -408,6 +408,85 @@ lambda-list::=
         bound
         `(let ((,arr ,expr)) ,bound))))
 
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (defun property-bindings-p (x)
+    (when (consp x)
+      (every (lambda (y)
+               (or (keywordp y)
+                   (and (consp y)
+                        (= (length y) 2)
+                        (symbolp (car y))
+                        (not (keywordp (car y)))
+                        (keywordp (cadr y)))))
+             x)))
+
+  (defun extract-bindings (x)
+    ;; returns a pair of destructuring bindings and property bindings
+    (cond ((atom x) (list x nil))
+          ((property-bindings-p x)
+           (let ((var (gensym)))
+             (list var (list x var))))
+          (t (loop :for y :on x
+               :for (d p) = (extract-bindings (car y))
+               :append (cond ((listp (cdr y)) (list d))
+                             (t (cons d (cdr y)))) ; dotted list
+               :into ds
+               :when p :append p :into ps
+               :finally (return (list ds ps))))))
+
+  (defun property-bindings (bindings expr body &key setf?)
+    (let ((bind-exprs
+           (loop :for b :in bindings
+             :for (var p) = (if (consp b) b (list (intern (string b)) b))
+             :if setf? :collect `(setf ,var (@ ,expr ,p))
+             :else :collect `(,var (@ ,expr ,p)))))
+      (if setf?
+          `(progn ,@bind-exprs ,@body)
+          `(let (,@bind-exprs) ,@body)))))
+
+(defpsmacro bind (bindings expr &body body)
+  (destructuring-bind (d p)
+      (extract-bindings bindings)
+    (cond ((and (atom d)
+                (or (= (length bindings) 1)
+                    (atom expr)
+                    (atom (ps-macroexpand expr))))
+           (property-bindings bindings expr body))
+          ((atom d)
+           (with-ps-gensyms (var)
+             `(let ((,var ,expr))
+                (bind ,bindings ,var ,@body))))
+          ((null p) `(destructuring-bind ,bindings ,expr ,@body))
+          (t `(destructuring-bind ,d ,expr
+                (bind* ,p ,@body))))))
+
+(defpsmacro bind* (bindings &body body)
+  (cond ((= (length bindings) 2)
+         `(bind ,(car bindings) ,(cadr bindings) ,@body))
+        (t `(bind ,(car bindings) ,(cadr bindings)
+              (bind* ,(cddr bindings) ,@body)))))
+
+(defpsmacro bset (bindings expr &body body)
+  (destructuring-bind (d p)
+      (extract-bindings bindings)
+    (cond ((and (atom d)
+                (or (= (length bindings) 1)
+                    (atom expr)
+                    (atom (ps-macroexpand expr))))
+           (property-bindings bindings expr body :setf? t))
+          ((atom d)
+           (with-ps-gensyms (var)
+             `(let ((,var ,expr))
+                (bind ,bindings ,var ,@body))))
+          ((null p) `(dset ,bindings ,expr ,@body))
+          (t `(dset ,d ,expr (bset* ,p ,@body))))))
+
+(defpsmacro bset* (bindings &body body)
+  (cond ((= (length bindings) 2)
+         `(bset ,(car bindings) ,(cadr bindings) ,@body))
+        (t `(bset ,(car bindings) ,(cadr bindings)
+                  (bset* ,(cddr bindings) ,@body)))))
+
 ;;; Control structures
 
 (defpsmacro return (&optional result)

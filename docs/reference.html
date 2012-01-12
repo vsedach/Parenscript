@@ -722,6 +722,14 @@
       <dd><code>[[ 2, 3 ], ['foo', 'bar']];</code></dd>
     </dl>
 
+    <p>The <code>[]</code> macro treats list arguments as quoted,
+    making it easy to write nested array literals:</p>
+
+    <dl>
+      <dt><code>([] 1 2 (3 4) 5 6)</code></dt>
+      <dd><code>[1, 2, [3, 4], 5, 6];</code></dd>
+    </dl>
+
     <p>Arrays can also be created with a call to the <code>Array</code>
       function using <code>MAKE-ARRAY</code>.</p>
 

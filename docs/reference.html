@@ -828,7 +828,8 @@
       <li>(<code id="progn">PROGN</code> {statement}*) in statement context</li>
       <li>(<code>PROGN</code> {expression}*) in expression context</li>
       <li>(<code id="prog1">PROG1</code> {expression | statement}*)</li>
-      <li>(<code ud="prog2">PROG2</code> {expression | statement}*)</li>
+      <li>(<code id="prog2">PROG2</code> {expression | statement}*)</li>
+      <li>(<code id="eval-when">EVAL-WHEN</code> {expression | statement}*)</li>
     </ul>
 
     <dl>
@@ -850,6 +851,13 @@ blafoo(i);</pre>
       <dt><code>(+ i (progn (blorg i) (blafoo i)))</code></dt>
       <dd><code>i + (blorg(i), blafoo(i));</code></dd>
     </dl>
+
+    <p>The Parenscript <code>EVAL-WHEN</code> special operator has a
+slightly different meaning from the Common Lisp one. The code in
+the <code>EVAL-WHEN</code> special form is assumed to be Common Lisp
+code in :compile-toplevel and :load-toplevel sitations, and is
+executed by the Parenscript compiler, and is assumed to be Parenscript
+code in the :execute situation, when it is run as JavaScript.</p>
 
     <h2 id="section-functions">Functions and multiple values</h2>
     <ul>
@@ -1422,6 +1430,6 @@ someDiv.offsetLeft;</pre>
       that the extension does not work
       in <code>slime-repl-mode</code>, which is intentional.</p>
 
-    <p style="font-size:xxx-small"><i>Last modified: 2012-01-12</i></p>
+    <p style="font-size:xxx-small"><i>Last modified: 2012-02-01</i></p>
   </body>
 </html>

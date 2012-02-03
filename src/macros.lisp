@@ -108,17 +108,6 @@
 
 ;;; multiple values
 
-(defpsmacro values (&optional main &rest additional)
-  (when main
-    (if additional
-        (with-ps-gensyms (val1 valrest)
-          `(let ((,val1 ,main)
-                 (,valrest (list ,@additional)))
-             (when (defined (@ arguments :callee :caller :mv))
-               (setf (@ arguments :callee :caller :mv) ,valrest))
-             ,val1))
-        main)))
-
 (defpsmacro multiple-value-bind (vars form &body body)
   (let* ((form (ps-macroexpand form))
          (progn-form

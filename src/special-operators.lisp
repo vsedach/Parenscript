@@ -129,6 +129,10 @@
                   ,@(loop for tag in it collect
                          `((and err (eql ',tag (getprop err :ps-block-tag)))
                            ;; FIXME make this a multiple-value return
+                           (when (and (@ arguments :callee :caller)
+                                      (defined (@ arguments :callee :caller :mv)))
+                             (setf (@ arguments :callee :caller :mv)
+                                   (getprop err :ps-return-mv-rest)))
                            (return-from ,tag (getprop err :ps-return-value))))
                  (t (throw err))))))
           :finally nil))
@@ -146,21 +150,35 @@
                         (list name) compiled-body)))
       (ps-compile (with-lambda-scope `(block ,name ,@body)))))
 
-;; fixme to handle multiple values
-(defun return-exp (tag &optional (value nil value?))
-  (let ((cvalue (when value? (list (compile-expression value)))))
-    (acond ((or (eql '%function tag) (member tag *function-block-names*))
-            `(ps-js:return ,@cvalue))
-           ((eql tag *current-block-tag*)
+(defun return-exp (tag &optional (value nil value?) rest-values)
+  (symbol-macrolet
+      ((cvalue (when value? (list (compile-expression value))))
+       (crest  (mapcar #'compile-expression rest-values)))
+    (acond ((or (eql '%function tag)
+                (member tag *function-block-names*))
+            (if rest-values
+                (with-ps-gensyms (val1 valrest)
+                  (compile-statement
+                   `(let ((,val1 ,value)
+                          (,valrest (list ,@rest-values)))
+                      (when (defined (@ arguments :callee :caller :mv))
+                        (setf (@ arguments :callee :caller :mv) ,valrest))
+                      (return-from ,tag ,val1))))
+                `(ps-js:return ,@cvalue)))
+           ((eql tag *current-block-tag*) ;; fixme: multiple values
             (if value?
-                `(ps-js:block ,@cvalue (ps-js:break ,tag))
+                `(ps-js:block ,@cvalue ,@crest (ps-js:break ,tag))
                 `(ps-js:break ,tag)))
            ((assoc tag *dynamic-return-tags*)
             (setf (cdr it) t)
-            (ps-compile `(throw (create :ps-block-tag ',tag
-                                        :ps-return-value ,value))))
-           (t (warn "Returning from unknown block ~A" tag)
-              `(ps-js:return ,@cvalue))))) ;; for backwards-compatibility
+            (ps-compile `(throw (create
+                                 :ps-block-tag      ',tag
+                                 :ps-return-value   ,value
+                                 ,@(when rest-values
+                                    `(:ps-return-mv-rest (list ,@rest-values)))))))
+           (t
+            (warn "Returning from unknown block ~A" tag)
+            `(ps-js:return ,@cvalue))))) ;; for backwards-compatibility
 
 (defun try-expressionizing-if? (exp &optional (score 0)) ;; poor man's codewalker
   (cond ((< 1 score) nil)
@@ -177,6 +195,12 @@
 (defun expressionize-result (tag form)
   (ps-compile
    (case (car form)
+     ((continue break throw) ;; non-local exit
+      form)
+     ((with label let flet labels macrolet symbol-macrolet) ;; implicit progn forms
+      `(,(first form) ,(second form)
+         ,@(butlast (cddr form))
+         (return-from ,tag ,(car (last (cddr form))))))
      (progn
        `(progn ,@(butlast (cdr form))
                (return-from ,tag ,(car (last (cdr form))))))
@@ -209,18 +233,6 @@
           ,@(loop for clause in (cdr form) collect
                  `(,@(butlast clause) (return-from ,tag ,(car (last clause)))))
           ,@(when in-case? `((t (return-from ,tag nil))))))
-     ((with label let flet labels macrolet symbol-macrolet) ;; implicit progn forms
-      `(,(first form) ,(second form)
-         ,@(butlast (cddr form))
-         (return-from ,tag ,(car (last (cddr form))))))
-     ((continue break throw) ;; non-local exit
-      form)
-     (return-from ;; this will go away someday
-      (unless tag
-        (warn 'simple-style-warning
-              :format-control "Trying to RETURN a RETURN without a block tag specified. Perhaps you're still returning values from functions by hand?
-Parenscript now implements implicit return, update your code! Things like (lambda () (return x)) are not valid Common Lisp and may not be supported in future versions of Parenscript."))
-       form)
      (if
       (if (and (try-expressionizing-if? form)
                (let ((used-up-names *used-up-names*)
@@ -233,7 +245,13 @@ Parenscript now implements implicit return, update your code! Things like (lambd
            `(if ,(second form)
                 (return-from ,tag ,(third form))
                 ,@(when (or in-case? (fourth form))
-                    `((return-from ,tag ,(fourth form)))))))
+                   `((return-from ,tag ,(fourth form)))))))
+     (return-from ;; this will go away someday
+      (unless tag
+        (warn 'simple-style-warning
+              :format-control "Trying to RETURN a RETURN without a block tag specified. Perhaps you're still returning values from functions by hand?
+Parenscript now implements implicit return, update your code! Things like (lambda () (return x)) are not valid Common Lisp and may not be supported in future versions of Parenscript."))
+       form)
      (otherwise
       (return-from expressionize-result
         (cond ((not (gethash (car form) *special-statement-operators*))
@@ -245,16 +263,24 @@ Parenscript now implements implicit return, update your code! Things like (lambd
 (define-statement-operator return-from (tag &optional result)
   (cond (tag
          (let ((form (ps-macroexpand result)))
-           (if (listp form)
-               (expressionize-result tag form)
-               (return-exp tag form))))
+           (cond ((atom form)             (return-exp tag form))
+                 ((eq 'values (car form)) (return-exp tag (cadr form) (cddr form)))
+                 (t                       (expressionize-result tag form)))))
         (in-loop-scope?
-         (setf loop-returns? t
+         (setf loop-returns?     t
                *loop-return-var* (or *loop-return-var*
                                      (ps-gensym "loop-result-var")))
          (compile-statement `(progn (setf ,*loop-return-var* ,result)
                                     (break))))
-        (t (ps-compile `(return-from nilBlock ,result)))))
+        (t
+         (ps-compile `(return-from nilBlock ,result)))))
+
+
+(define-expression-operator values (&optional main &rest additional)
+  (when main
+    (ps-compile (if additional
+                    `(prog1 ,main ,@additional)
+                    main))))
 
 (define-statement-operator throw (&rest args)
   `(ps-js:throw ,@(mapcar #'compile-expression args)))

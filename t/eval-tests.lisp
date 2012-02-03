@@ -35,7 +35,8 @@
   ((lambda (x)
      (let ((x 10))
        (incf x))
-     (incf x)) 0)
+     (incf x))
+   0)
   1)
 
 (test-js-eval times-rem
@@ -55,7 +56,10 @@
   5)
 
 (test-js-eval case-return-break-null
-  ((lambda (x) (case x (1) (2 3))) 1)
+  ((lambda (x) (case x
+                 (1)
+                 (2 3)))
+   1)
   :null)
 
 (test-js-eval defun-return1
@@ -283,14 +287,53 @@
          bar)
   1)
 
-;;; broken
+(test-js-eval values-not-returned
+  (let ((x 1))
+    (setf x (+ x (values 2 (incf x))))
+    x)
+  3)
 
 (test-js-eval equality-nary1
   (let ((x 10) (y 10) (z 10))
     (= x y z))
   t)
-;; cl-js is broken?
-;; (cl-js:run-js "var x = 10; x === 10;") => T
-;; (cl-js:run-js "(function () { var x = 10; return x === 10; })();") => nil
-;; (cl-js:run-js "(function () { return 10 === 10; })();") => nil
-;; (cl-js:run-js "(function () { return 10; })();") => 10
+
+(test-js-eval values-not-returned1
+  (let ((x 1))
+    (incf x (+ x (values 1 (incf x))))
+    x)
+  4) ;; CL gives 4, CL-JS and FF give 3 howto fix??
+
+(test-js-eval incf-incf
+  (let ((x 1))
+    (incf x (incf x))
+    x)
+  4) ;; ditto - CL says 4
+
+(test-js-eval incf-setf
+  (let ((x 1))
+    (incf x (setf x 4))
+    x)
+  8) ;; JS blows
+
+(test-js-eval values0
+  ((lambda () (values)))
+  :null)
+
+(test-js-eval mv-return1
+  (progn (defun foo ()
+           (values 1 2 3))
+         (multiple-value-bind (a b c) (foo)
+           (list a b c)))
+  '(1 2 3)) ;; cl-js doesn't define callee.caller - fixme
+
+(test-js-eval dynamic-extent-function-return-values
+  (progn (defun foo ()
+           ((lambda ()
+              (return-from foo (values 1 2 3)))))
+         (multiple-value-bind (a b c) (foo)
+           (list a b c)))
+  '(1 2 3)) ;; cl-js doesn't define callee.caller - fixme
+
+;;; FIXME: need to compute value of increment *before* increment if it
+;;; sets that var

@@ -803,6 +803,17 @@ __setf_someThing('foo', 1, 2);")
     return null;
 };")
 
+(test-ps-js return-values
+  (defun foo ()  (return-from foo (values 1 2 3)))
+  "function foo() {
+    var val1_1 = 1;
+    var valrest2 = [2, 3];
+    if ('undefined' !== typeof arguments['callee']['caller']['mv']) {
+        arguments['callee']['caller']['mv'] = valrest2;
+    };
+    return val1_1;
+};")
+
 (test-ps-js set-timeout
   (set-timeout (lambda () (alert "foo")) 10)
   "setTimeout(function () { return alert('foo'); }, 10);")
@@ -2053,7 +2064,7 @@ try {
   "x;")
 
 (test-ps-js values2
-  (values x y)
+  (lambda () (values x y))
   "(function () {
 var val1_1 = x;
 var valrest2 = [y];
@@ -2061,10 +2072,10 @@ if ('undefined' !== typeof arguments['callee']['caller']['mv']) {
     arguments['callee']['caller']['mv'] = valrest2;
 };
 return val1_1;
-})();")
+});")
 
 (test-ps-js values3
-  (values x y z)
+  (lambda () (values x y z))
   "(function () {
     var val1_1 = x;
     var valrest2 = [y, z];
@@ -2072,7 +2083,7 @@ return val1_1;
         arguments['callee']['caller']['mv'] = valrest2;
     };
     return val1_1;
-})();")
+});")
 
 (test-ps-js values-return
   (defun foo ()
@@ -2232,6 +2243,9 @@ if (foowhat(x)) {
         });
     } catch (err) {
         if (err && 'baz' === err['ps-block-tag']) {
+            if (arguments['callee']['caller'] && 'undefined' !== typeof arguments['callee']['caller']['mv']) {
+                arguments['callee']['caller']['mv'] = err['ps-return-mv-rest'];
+            };
             return err['ps-return-value'];
         } else {
             throw err;
@@ -2935,7 +2949,9 @@ return loopResultVar3;
 };")
 
 (test-ps-js dynamic-extent-function-return
-  (defun foo () ((lambda () (return-from foo 6))))
+  (defun foo ()
+    ((lambda ()
+       (return-from foo 6))))
   "function foo() {
     try {
         return (function () {
@@ -2943,6 +2959,51 @@ return loopResultVar3;
         })();
     } catch (err) {
         if (err && 'foo' === err['ps-block-tag']) {
+            if (arguments['callee']['caller'] && 'undefined' !== typeof arguments['callee']['caller']['mv']) {
+                arguments['callee']['caller']['mv'] = err['ps-return-mv-rest'];
+            };
+            return err['ps-return-value'];
+        } else {
+            throw err;
+        };
+    };
+};")
+
+(test-ps-js dynamic-extent-function-return-nothing
+  (defun foo ()
+    ((lambda ()
+       (return-from foo))))
+  "function foo() {
+    try {
+        return (function () {
+            throw { 'ps-block-tag' : 'foo', 'ps-return-value' : null };
+        })();
+    } catch (err) {
+        if (err && 'foo' === err['ps-block-tag']) {
+            if (arguments['callee']['caller'] && 'undefined' !== typeof arguments['callee']['caller']['mv']) {
+                arguments['callee']['caller']['mv'] = err['ps-return-mv-rest'];
+            };
+            return err['ps-return-value'];
+        } else {
+            throw err;
+        };
+    };
+};")
+
+(test-ps-js dynamic-extent-function-return-values
+  (defun foo ()
+    ((lambda ()
+       (return-from foo (values 1 2 3)))))
+  "function foo() {
+    try {
+        return (function () {
+            throw { 'ps-block-tag' : 'foo', 'ps-return-value' : 1, 'ps-return-mv-rest' : [2, 3] };
+        })();
+    } catch (err) {
+        if (err && 'foo' === err['ps-block-tag']) {
+            if (arguments['callee']['caller'] && 'undefined' !== typeof arguments['callee']['caller']['mv']) {
+                arguments['callee']['caller']['mv'] = err['ps-return-mv-rest'];
+            };
             return err['ps-return-value'];
         } else {
             throw err;
@@ -2951,7 +3012,9 @@ return loopResultVar3;
 };")
 
 (test-ps-js dynamic-extent-function-return-funcall
-  (defun foo () ((lambda () (return-from foo (if baz 6 5)))))
+  (defun foo ()
+    ((lambda ()
+       (return-from foo (if baz 6 5)))))
   "function foo() {
     try {
         return (function () {
@@ -2959,6 +3022,9 @@ return loopResultVar3;
         })();
     } catch (err) {
         if (err && 'foo' === err['ps-block-tag']) {
+            if (arguments['callee']['caller'] && 'undefined' !== typeof arguments['callee']['caller']['mv']) {
+                arguments['callee']['caller']['mv'] = err['ps-return-mv-rest'];
+            };
             return err['ps-return-value'];
         } else {
             throw err;
@@ -2979,6 +3045,9 @@ return loopResultVar3;
         return 1 + 2;
     } catch (err) {
         if (err && 'nilBlock' === err['ps-block-tag']) {
+            if (arguments['callee']['caller'] && 'undefined' !== typeof arguments['callee']['caller']['mv']) {
+                arguments['callee']['caller']['mv'] = err['ps-return-mv-rest'];
+            };
             return err['ps-return-value'];
         } else {
             throw err;

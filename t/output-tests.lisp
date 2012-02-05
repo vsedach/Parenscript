@@ -396,7 +396,8 @@ try {
        ((or (= d (@ c length)) (string= e "x")))
     (setf a d b e)
     (funcall (@ document write) (+ "a: " a " b: " b "<br/>")))
-  "for (var a = null, b = null, c = ['a', 'b', 'c', 'd', 'e'], d = 0, e = c[d]; !(d === c.length || e === 'x'); d += 1, e = c[d]) {
+  "for (var a = null, b = null, c = ['a', 'b', 'c', 'd', 'e'], d = 0, e = c[d];
+       !(d === c.length || e === 'x'); d += 1, e = c[d]) {
     a = d;
     b = e;
     document.write('a: ' + a + ' b: ' + b + '<br/>');
@@ -1453,16 +1454,33 @@ return foo(1);
   "[1, 'foo', 3];")
 
 (test ps-lisp-expands-in-lexical-environment
-  (is (string= "5;" (let ((x 5)) (ps (lisp x))))))
+  (is (string= "5;" (let ((x 5))
+                      (ps (lisp x))))))
 
-(test ps*-lisp-expands-in-null-lexical-environment ;; ccl only does a warning
-  (signals unbound-variable (let ((x 5)) (declare (ignore x)) (ps* '(lisp x)))))
+(test ps-lisp-expands-in-lexical-environment1
+  (is (string= "1 + 5;" (let ((x 5))
+                          (ps (+ 1 (lisp x)))))))
+
+(test ps-lisp-expands-in-lexical-environment2
+  (is (string= "1 + 2 + 3;" (let ((x 2))
+                          (ps (+ 1 (lisp x) 3))))))
+
+(test ps*-lisp-expands-in-null-lexical-environment
+  (signals unbound-variable (let ((x 5))
+                              (declare (ignore x))
+                              (ps* '(lisp x)))))
 
 (test ps*-lisp-expands-in-dynamic-environment
-  (is (string= "1 + 2;" (let ((foo 2)) (declare (special foo)) (ps* '(+ 1 (lisp (locally (declare (special foo)) foo))))))))
+  (is (string= "1 + 2;"
+               (let ((foo 2))
+                 (declare (special foo))
+                 (ps* '(+ 1 (lisp (locally (declare (special foo)) foo))))))))
 
 (test ps-lisp-dynamic-environment
-  (is (string= "1 + 2;" (let ((foo 2)) (declare (special foo)) (ps (+ 1 (lisp foo)))))))
+  (is (string= "1 + 2;"
+               (let ((foo 2))
+                 (declare (special foo))
+                 (ps (+ 1 (lisp foo)))))))
 
 (test-ps-js nested-if-expressions1
   (defun foo ()
@@ -2236,14 +2254,16 @@ if (foowhat(x)) {
                         y = x[_js3];
                     };
                 };
-                throw { 'ps-block-tag' : 'baz', 'ps-return-value' : null };
+                throw { 'ps-block-tag' : 'baz',
+                        'ps-return-value' : null };
             } else {
                 return c;
             };
         });
     } catch (err) {
         if (err && 'baz' === err['ps-block-tag']) {
-            if (arguments['callee']['caller'] && 'undefined' !== typeof arguments['callee']['caller']['mv']) {
+            if (arguments['callee']['caller'] &&
+                'undefined' !== typeof arguments['callee']['caller']['mv']) {
                 arguments['callee']['caller']['mv'] = err['ps-return-mv-rest'];
             };
             return err['ps-return-value'];
@@ -2922,7 +2942,9 @@ var x = bar();")
     (chain console (log x)))
   "(function () {
 var loopResultVar3 = null;
-for (var x = null, _js_arrvar2 = [2, 1, 3], _js_idx1 = 0; _js_idx1 < _js_arrvar2.length; _js_idx1 += 1) {
+for (var x = null, _js_arrvar2 = [2, 1, 3], _js_idx1 = 0;
+     _js_idx1 < _js_arrvar2.length;
+     _js_idx1 += 1) {
     x = _js_arrvar2[_js_idx1];
     if (x === 1) {
         loopResultVar3 = null;

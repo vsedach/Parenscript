@@ -413,7 +413,7 @@ var s = 0;
 for (; i <= 10; ) {
     document.write('i: ' + i + ' s: ' + s + '<br/>');
     var _js1 = i + 1;
-    var _js2 = s + i + i + 1;
+    var _js2 = s + i + (i + 1);
     i = _js1;
     s = _js2;
 };
@@ -708,7 +708,7 @@ return element.innerHTML = ['<TEXTAREA', disabled || !authorized ? [' DISABLED=\
 
 (test-ps-js getprop-setf
   (setf (getprop x 'y) (+ (+ a 3) 4))
-  "x.y = a + 3 + 4;")
+  "x.y = (a + 3) + 4;")
 
 (test-ps-js getprop-conditional1
   (getprop (if zoo foo bar) 'x)

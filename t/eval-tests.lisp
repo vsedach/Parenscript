@@ -335,5 +335,11 @@
            (list a b c)))
   '(1 2 3)) ;; cl-js doesn't define callee.caller - fixme
 
+(test-js-eval plus-not-associative
+  (let ((str "a")
+        (n 1))
+    (+ str (+ n 1)))
+  "a2")
+
 ;;; FIXME: need to compute value of increment *before* increment if it
 ;;; sets that var

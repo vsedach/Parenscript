@@ -161,7 +161,7 @@ vice-versa.")
     (gethash op precedence-table -1)))
 
 (defun associative? (op)
-  (member op '(ps-js:+ ps-js:* ps-js:& ps-js:&& ps-js:\| ps-js:\|\|
+  (member op '(ps-js:* ps-js:& ps-js:&& ps-js:\| ps-js:\|\|
                ps-js:funcall ps-js:aref ps-js:getprop))) ;; these aren't really associative, but RPN
 
 (defun parenthesize-print (x)

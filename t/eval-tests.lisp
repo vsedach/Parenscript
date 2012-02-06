@@ -302,19 +302,19 @@
   (let ((x 1))
     (incf x (+ x (values 1 (incf x))))
     x)
-  4) ;; CL gives 4, CL-JS and FF give 3 howto fix??
+  4)
 
 (test-js-eval incf-incf
   (let ((x 1))
     (incf x (incf x))
     x)
-  4) ;; ditto - CL says 4
+  4)
 
 (test-js-eval incf-setf
   (let ((x 1))
     (incf x (setf x 4))
     x)
-  8) ;; JS blows
+  8)
 
 (test-js-eval values0
   ((lambda () (values)))
@@ -340,6 +340,3 @@
         (n 1))
     (+ str (+ n 1)))
   "a2")
-
-;;; FIXME: need to compute value of increment *before* increment if it
-;;; sets that var

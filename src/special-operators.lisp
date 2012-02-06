@@ -63,17 +63,31 @@
   ;; nontrivial runtime algorithm), so we restrict it to binary in PS
   `(ps-js:!== ,(compile-expression a) ,(compile-expression b)))
 
+(defun references? (exp place)
+  (cond ((not exp) nil)
+        ((atom exp) (equal exp place))
+        (t (or (equal exp place)
+               (references? (car exp) place)
+               (references? (cdr exp) place)))))
+
+(defmacro inc-dec (op op1 op2)
+  `(let ((delta (ps-macroexpand delta)))
+     (cond ((eql delta 1)
+            (list ',op1 (compile-expression x)))
+           ((references? delta x)
+            (ps-compile
+             (let ((var (ps-gensym "_PS_INCR_PLACE")))
+               `(let ((,var ,delta))
+                  (,',op ,x ,var)))))
+           (t
+            (list ',op2 (compile-expression x)
+                  (compile-expression delta))))))
+
 (define-expression-operator incf (x &optional (delta 1))
-  (let ((delta (ps-macroexpand delta)))
-    (if (eql delta 1)
-        `(ps-js:++ ,(compile-expression x))
-        `(ps-js:+= ,(compile-expression x) ,(compile-expression delta)))))
+  (inc-dec incf ps-js:++ ps-js:+=))
 
 (define-expression-operator decf (x &optional (delta 1))
-  (let ((delta (ps-macroexpand delta)))
-    (if (eql delta 1)
-        `(ps-js:-- ,(compile-expression x))
-        `(ps-js:-= ,(compile-expression x) ,(compile-expression delta)))))
+  (inc-dec decf ps-js:-- ps-js:-=))
 
 (let ((inverses (mapcan (lambda (x)
                           (list x (reverse x)))

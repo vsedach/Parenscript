@@ -612,8 +612,15 @@
       <dt>body</dt> <dd>implicit <code>PROGN</code></dd>
     </dl>
 
-    <p>Object literals can be create
-      using <code>CREATE</code>. <code>CREATE</code> takes a property
+    <p>The <code>NEW</code> operator maps to JavaScript like:</p>
+
+    <dl>
+      <dt><code>(new (Person age shoe-size))</code></dt>
+      <dd><code>new Person(age, shoeSize);</code></dd>
+    </dl>
+
+    <p>Object literals are created
+      with <code>CREATE</code>. <code>CREATE</code> takes a property
       list of property names and values.</p>
 
     <dl>

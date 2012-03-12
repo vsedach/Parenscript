@@ -3,7 +3,7 @@
 
 (defpackage #:ps-test
   (:use #:cl #:parenscript #:eos)
-  (:export #:run-tests #:interface-function #:test-js-eval #:jsarray))
+  (:export #:parenscript-tests #:run-tests #:interface-function #:test-js-eval #:jsarray))
 
 (defpackage #:ps-eval-tests
   (:use #:cl #:eos #:parenscript #:ps-test))

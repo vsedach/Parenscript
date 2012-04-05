@@ -26,11 +26,6 @@
 (defun loop-keyword? (term &rest keys)
   (member (as-keyword term) keys))
 
-(defun turn-lisp-style-function-name-to-ordinary-js-name (sym)
-  (if (and (consp sym) (eq 'function (first sym)))
-      (second sym)
-      sym))
-
 (defun err (expected got)
   (error "PS-LOOP expected ~a, got ~a." expected got))
 
@@ -123,10 +118,9 @@
 
 (defun for-on (var bindings state)
   (with-local-var (arr (eat state) state)
-    (let ((by (aif (eat state :if :by)
-                   `(,(turn-lisp-style-function-name-to-ordinary-js-name it) ,var)
-                   `((@ ,var :slice) 1))))
-      (push-tokens state `(,var := ,arr :then ,by))
+    (let* ((by (or (eat state :if :by) 1))
+           (then (if (numberp by) `((@ ,var :slice) ,by) `(,by ,var))))
+      (push-tokens state `(,var := ,arr :then ,then))
       (for-clause state)
       (let ((this-iteration (car (iterations state))))
         (setf (second this-iteration) bindings)

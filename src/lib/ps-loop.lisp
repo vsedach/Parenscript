@@ -1,19 +1,16 @@
 (in-package #:parenscript)
 
-(defun complex-js-expr? (expr)
-  (if (symbolp expr)
-      (consp (ps-macroexpand expr))
-      (consp expr)))
-
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (defvar *loop-keywords*
     '(:named :for :repeat :with :while :until :initially :finally
       :from :to :below :downto :above :by :in :across :on := :then
       :when :unless :if :else :end :do :return
-      :sum :collect :append :count :minimize :maximize :map :into))
+      :sum :collect :append :count :minimize :maximize :map :of :into))
 
   (defun as-keyword (key)
-    (intern (symbol-name key) :keyword)))
+    (cond ((not (symbolp key)) key)
+          ((keywordp key) key)
+          (t (intern (symbol-name key) :keyword)))))
 
 (defmacro loop-case (key &body forms)
   (loop :for (match . nil) :in forms
@@ -23,28 +20,18 @@
               nil "~a isn't a recognized loop keyword." k)))
   `(case (as-keyword ,key) ,@forms))
 
-(defun loop-keyword? (term &rest keys)
-  (member (as-keyword term) keys))
-
 (defun err (expected got)
   (error "PS-LOOP expected ~a, got ~a." expected got))
 
 (defclass loop-state ()
   ((tokens :initarg :tokens :accessor tokens)
    (name :initform nil :accessor name)
-   (iterations :initform nil :accessor iterations)
+   (iterations :initform nil :accessor iterations) ; (place init step test obj)*
    (prologue :initform nil :accessor prologue)
-   (initially :initform nil :accessor initially)
    (finally :initform nil :accessor finally)
-   (default-accum-var :initform nil :accessor default-accum-var)
-   (default-accum-kind :initform nil :accessor default-accum-kind)
+   (implicit-accum-var :initform nil :accessor implicit-accum-var)
+   (implicit-accum-kind :initform nil :accessor implicit-accum-kind)
    (body :initform nil :accessor body)))
-
-(defun nreverse-loop-state (state)
-  (macrolet ((rev% (&rest accs)
-               (cons 'progn (loop :for a :in accs :collect `(setf (,a state) (nreverse (,a state)))))))
-    (rev% iterations prologue initially finally body))
-  state)
 
 (defun push-tokens (state toks)
   (setf (tokens state) (append toks (tokens state))))
@@ -54,7 +41,7 @@
 
 (defun eat (state &optional what tag)
   (case what
-    (:if (when (loop-keyword? (peek state) tag)
+    (:if (when (eq (as-keyword (peek state)) tag)
            (eat state)
            (values (eat state) t)))
     (:progn (cons 'progn (loop :collect (if (consp (peek state))
@@ -68,113 +55,110 @@
                    (err "a symbol" tok))
                  tok))))
 
-(defun prevar (var expr state)
-  (pushnew (list :var var expr) (prologue state) :key #'second)
-  var)
-
-(defun prebind (bindings expr state)
-  (pushnew (list :dbind bindings expr) (prologue state) :key #'second :test #'equalp)
-  bindings)
-
-(defmacro with-local-var ((name expr state) &body body)
-  (once-only (expr)
-    `(let ((,name (aif (and (complex-js-expr? ,expr) (ps-gensym))
-                       (prevar it ,expr ,state)
-                       ,expr)))
-       ,@body)))
+(defun maybe-extract-var (expr state)
+  (cond ((complex-js-expr? expr)
+         (let ((var (ps-gensym)))
+           (push (list var expr) (prologue state))
+           var))
+        (t expr)))
 
 (defun for-from (var state)
+  (unless (atom var)
+    (err "an atom after FROM" var))
   (let ((start (eat state))
         (op '+)
         (test-op nil)
         (by nil)
         (end nil))
-    (loop while (loop-keyword? (peek state) :to :below :downto :above :by) do
+    (loop while (member (as-keyword (peek state)) '(:to :below :downto :above :by)) do
           (let ((term (eat state)))
-            (if (loop-keyword? term :by)
+            (if (eq (as-keyword term) :by)
                 (setf by (eat state))
                 (setf op (loop-case term ((:downto :above) '-) (otherwise '+))
-                      test-op (loop-case term (:to '>) (:below '>=) (:downto '<) (:above '<=))
+                      test-op (loop-case term (:to '<=) (:below '<) (:downto '>=) (:above '>))
                       end (eat state)))))
     (let ((test (when test-op
-                  (with-local-var (v end state)
-                    (list test-op var v)))))
-      (push `(,var nil ,start (,op ,var ,(or by 1)) ,test :for-from) (iterations state)))))
+                  (list test-op var (maybe-extract-var end state)))))
+      (push `(,var ,start (,op ,var ,(or by 1)) ,test) (iterations state)))))
 
-(defun for-= (var bindings state)
+(defun for-= (place state)
   (let ((start (eat state)))
     (multiple-value-bind (then thenp)
         (eat state :if :then)
-      (push (list var bindings start (if thenp then start) nil :for-=) (iterations state)))))
+      (push (list place start (if thenp then start) nil) (iterations state)))))
 
-(defun for-in (var bindings state)
-  (with-local-var (arr (eat state) state)
-    (let ((index (ps-gensym)))
-      (push-tokens state `(,index :from 0 :below (length ,arr)
-                                  ,var := (aref ,arr ,index)))
-      (for-clause state)
-      (for-clause state)
-      ;; set bindings associated with original clause, e.g. "loop :for (a b) :in c"
-      (setf (second (car (iterations state))) bindings))))
+(defun for-in (place state)
+  (let ((arr (maybe-extract-var (eat state) state))
+        (index (ps-gensym)))
+    (push-tokens state `(,index :from 0 :below (length ,arr)
+                                ,place := (aref ,arr ,index)))
+    (for-clause state)
+    (for-clause state)))
 
-(defun for-on (var bindings state)
-  (with-local-var (arr (eat state) state)
-    (let* ((by (or (eat state :if :by) 1))
-           (then (if (numberp by) `((@ ,var :slice) ,by) `(,by ,var))))
-      (push-tokens state `(,var := ,arr :then ,then))
-      (for-clause state)
-      (let ((this-iteration (car (iterations state))))
-        (setf (second this-iteration) bindings)
-        ;; set the end-test
-        (setf (fifth this-iteration) `(or (null ,var) (= (length ,var) 0)))))))
+(defun for-on (place state)
+  (let* ((arr (eat state))
+         (by (or (eat state :if :by) 1))
+         (var (if (atom place) place (ps-gensym)))
+         (then (if (numberp by) `((@ ,var :slice) ,by) `(,by ,var))))
+    (push-tokens state `(,var := ,arr :then ,then))
+    (for-clause state)
+    ;; set the end-test
+    (setf (fourth (car (iterations state))) `(> (length ,var) 0))
+    (unless (eq place var)
+      (push-tokens state `(,place := ,var))
+      (for-clause state))))
 
-(defun var-or-bindings (state)
-  (let* ((place (eat state))
-         (var (when (atom place) place))
-         (bindings (unless var place)))
-    (values var bindings)))
+(defun for-keys-of (place state)
+  (when (iterations state)
+    (error "FOR..OF is only allowed as the first clause in a loop."))
+  (when (consp place)
+    (unless (<= (length place) 2) ; length 1 is ok, treat (k) as (k nil)
+      (error "FOR..OF must be followed by a key variable or key-value pair."))
+    (unless (atom (first place))
+      (error "The key in a FOR..OF clause must be a variable.")))
+  (let ((k (or (if (atom place) place (first place)) (ps-gensym)))
+        (v (when (consp place) (second place))))
+    (let ((obj (eat state)))
+      (when v ; assign OBJ to a local var if we need to for value binding (otherwise inline it)
+        (setf obj (maybe-extract-var obj state)))
+      (push (list k nil nil nil obj) (iterations state))
+      (when v
+        (let ((val `(getprop ,obj ,k)))
+          (push (list v val val nil) (iterations state)))))))
 
 (defun for-clause (state)
-  (multiple-value-bind (var bindings)
-      (var-or-bindings state)
-    (let ((term (eat state :atom)))
-      (when bindings
-        (when (loop-keyword? term :from)
-          (err "an atom after FROM" bindings))
-        (setf var (ps-gensym)))
-      (loop-case term
-            (:from (for-from var state))
-            (:= (for-= var bindings state))
-            ((:in :across) (for-in var bindings state))
-            (:on (for-on var bindings state))
-            (otherwise (error "FOR ~s ~s is not valid in PS-LOOP." var term))))))
+  (let ((place (eat state))
+        (term (eat state :atom)))
+    (loop-case term
+          (:from (for-from place state))
+          (:= (for-= place state))
+          ((:in :across) (for-in place state))
+          (:on (for-on place state))
+          (:of (for-keys-of place state))
+          (otherwise (error "FOR ~s ~s is not valid in PS-LOOP." place term)))))
 
 (defun a-with-clause (state) ;; so named to avoid with-xxx macro convention
-  (multiple-value-bind (var bindings)
-      (var-or-bindings state)
-    (let ((expr (eat state :if :=)))
-      (if var
-          (prevar var expr state)
-          (prebind bindings expr state)))))
+  (let ((place (eat state)))
+    (push (list place (eat state :if :=)) (prologue state))))
 
 (defun accumulate (kind item var state)
   (when (null var)
-    (when (and (default-accum-kind state) (not (eq kind (default-accum-kind state))))
-      (error "PS-LOOP encountered illegal ~a: ~a was already declared, and there can only be one kind of default accumulation per loop." kind (default-accum-kind state)))
-    (unless (default-accum-var state)
-      (setf (default-accum-var state)
+    (when (and (implicit-accum-kind state) (not (eq kind (implicit-accum-kind state))))
+      (error "PS-LOOP encountered illegal ~a: ~a was already declared, and there can only be one kind of implicit accumulation per loop." kind (implicit-accum-kind state)))
+    (unless (implicit-accum-var state)
+      (setf (implicit-accum-var state)
             (ps-gensym (string (loop-case kind
                                      (:minimize 'min)
                                      (:maximize 'max)
                                      (t kind)))))
-      (setf (default-accum-kind state) kind))
-    (setf var (default-accum-var state)))
+      (setf (implicit-accum-kind state) kind))
+    (setf var (implicit-accum-var state)))
   (let ((initial (loop-case kind
                        ((:sum :count) 0)
                        ((:maximize :minimize) nil)
                        ((:collect :append) '[])
                        ((:map) '{}))))
-    (prevar var initial state))
+    (push (list var initial) (prologue state)))
   (loop-case kind
         (:sum `(incf ,var ,item))
         (:count `(unless (null ,item) (incf ,var)))
@@ -190,18 +174,11 @@
     (setf (tokens state) (append `(,index :from 0 :below ,(eat state)) (tokens state)))
     (for-clause state)))
 
-(flet ((while-or-until (tag var state)
-         (let ((expr (eat state))
-               (test (ecase tag
-                       (:while `(not ,var))
-                       (:until var))))
-           (push (list var nil expr expr test tag) (iterations state)))))
+(defun while-clause (state)
+  (push (list nil nil nil (eat state)) (iterations state)))
 
-  (defun while-clause (state)
-    (while-or-until :while (ps-gensym) state))
-
-  (defun until-clause (state)
-    (while-or-until :until (ps-gensym) state)))
+(defun until-clause (state)
+  (push (list nil nil nil `(not ,(eat state))) (iterations state)))
 
 (defun body-clause (term state)
   (loop-case term
@@ -209,16 +186,16 @@
          (let* ((test-form (eat state))
                 (seqs (list (body-clause (eat state :atom) state)))
                 (alts (list)))
-           (loop while (loop-keyword? (peek state) :and)
+           (loop while (eq (as-keyword (peek state)) :and)
                  do (eat state)
                     (push (body-clause (eat state :atom) state) seqs))
-           (when (loop-keyword? (peek state) :else)
+           (when (eq (as-keyword (peek state)) :else)
              (eat state)
              (push (body-clause (eat state :atom) state) alts)
-             (loop while (loop-keyword? (peek state) :and)
+             (loop while (eq (as-keyword (peek state)) :and)
                    do (eat state)
                       (push (body-clause (eat state :atom) state) alts)))
-           (when (loop-keyword? (peek state) :end)
+           (when (eq (as-keyword (peek state)) :end)
              (eat state))
            (if (null alts)
                `(,(loop-case term ((:unless) 'unless) (otherwise 'when))
@@ -250,116 +227,91 @@
           (:repeat (repeat-clause state))
           (:while (while-clause state))
           (:until (until-clause state))
-          (:initially (push (eat state :progn) (initially state)))
           (:finally (push (eat state :progn) (finally state)))
           (otherwise (push (body-clause term state) (body state))))))
 
 (defun parse-ps-loop (terms)
-  (if (null terms)
-      (err "loop definition" nil)
-      (let ((state (make-instance 'loop-state :tokens terms)))
-        (loop :while (tokens state) :do (clause state))
-        (nreverse-loop-state state))))
+  (cond ((null terms) (err "loop definition" nil))
+        (t (let ((state (make-instance 'loop-state :tokens terms)))
+             (loop :while (tokens state) :do (clause state))
+             state))))
 
-(defun wrap-with-destructurings (iterations forms)
-  (if (null iterations)
-      forms
-      (wrap-with-destructurings
-       (cdr iterations)
-       (aif (second (car iterations))
-            `((bind ,it ,(first (car iterations)) ,@forms))
-            forms))))
+(defun fold-tests (iterations)
+  ;; unifies adjacent test expressions by destructively modifying iterations
+  (let ((folded '()))
+    (loop :for iter :in iterations :do
+      (let ((place (first iter))
+            (test (fourth iter)))
+        (cond ((and (null place) (car folded))
+               (assert test nil "Iteration ~a has neither PLACE nor TEST." iter)
+               (let ((test^ (fourth (car folded))))
+                 (setf (fourth (car folded)) (if test^ `(and ,test^ ,test) test))))
+              (t (push iter folded)))))
+    (nreverse folded)))
 
-(defun maybe-lift-vars (loop)
-  ;; When :INITIALLY or :FINALLY clauses are present, we need to
-  ;; lift declarations of iteration variables to prologue level,
-  ;; because these clauses must be evaluated regardless of whether
-  ;; or not we make it to the loop body (and may use the vars).
-  (when (or (initially loop) (finally loop))
-    (let ((lifted nil))
-      (loop :for iteration :in (reverse (iterations loop))
-        :for (var bindings init nil nil tag) = iteration
-        ;; only lift named iteration vars, not anonymous ones (e.g. for :WHILE or :UNTIL)
-        :when (loop-keyword? tag :for-from :for-=) :do
-        (when bindings
-          (mapcar (lambda (b) (prevar b nil loop)) (reverse bindings))
-          (push bindings lifted))
-        (if (loop-keyword? tag :for-from)
-            (progn
-              (prevar var init loop)
-              (setf (third iteration) nil))
-            (prevar var nil loop))
-        (push var lifted))
-      lifted)))
+(defun augmented-loop-body (body clauses firstvar)
+  (cond ((null clauses) body)
+        (t (destructuring-bind (place init step test) (car clauses)
+             (setf body (augmented-loop-body body (cdr clauses) firstvar))
+             (when test
+               (push `(unless ,test (break)) body))
+             (when place
+               (let ((expr (if (tree-equal init step) init `(if ,firstvar ,init ,step))))
+                 (setf body
+                       (cond ((and (atom place) (eq expr init))
+                              `((let ((,place ,expr)) ,@body)))
+                             ;; can't use LET because EXPR may reference PLACE
+                             ((atom place) `((var ,place ,expr) ,@body))
+                             ;; BIND has scoping problems. For example,
+                             ;; (loop :for (a b) = x :then b) doesn't work
+                             ;; since EXPR is referencing part of PLACE.
+                             ;; But the following is ok for known uses so far.
+                             (t `((bind ,place ,expr ,@body))))))))
+           body)))
 
-(defun parallel-form (loop)
-  ;; When there are parallel clauses, we want the loop to break as
-  ;; soon as any clause fails its initial test (the way CL does it).
-  ;; Javascript FOR loops won't give us this, because they evaluate
-  ;; every clause's init form up front and only then check the test
-  ;; forms. But we can get the desired behavior from a WHILE loop.
-  (let ((lifted (maybe-lift-vars loop)))
-    (when (or lifted (> (length (iterations loop)) 1))
-      (let ((form `(while t
-                     ,@(append (body loop)
-                               (loop :for (var bindings nil step test) :in (iterations loop)
-                                 :collect `(setf ,var ,step)
-                                 :when test :collect `(when ,test (break))
-                                 :when bindings :collect `(bset ,bindings ,var))))))
-        (loop :for (var bindings init nil test) :in (reverse (iterations loop)) :do
-          (when bindings
-            (setf form `(,(if (member bindings lifted :test #'equalp) 'bset 'bind)
-                          ,bindings ,var ,form)))
-          (when test
-            (setf form `(unless ,test ,form)))
-          (let ((setter (if (member var lifted) 'setf 'var)))
-            (when (or (eq setter 'var) init) ; only set to null if variable is being introduced
-              (setf form `(progn (,setter ,var ,init) ,form)))))
-        form))))
+(defun master-loop (master body)
+  (destructuring-bind (place init step test &optional obj) master
+    (cond ((null place) `(while ,test ,@body))
+          (obj `(for-in (,place ,obj) ,@body))
+          (t (assert (atom place) nil "Unexpected destructuring list ~a in master loop" place)
+             `(for ((,place ,init)) (,(or test t)) ((setf ,place ,step)) ,@body)))))
 
-(defun straightforward-form (loop)
-  ;; An optimization for when we can get away with a nice tight FOR loop.
-  (flet ((inits% ()
-           (mapcar (lambda (x) (list (first x) (third x)))
-                   (iterations loop)))
-         (steps% ()
-           (mapcar (lambda (x) `(setf ,(first x) ,(fourth x)))
-                   (iterations loop)))
-         (test% ()
-           (aif (loop :for x :in (iterations loop)
-                  :when (fifth x) :collect (fifth x))
-                (if (cdr it)
-                    (list 'not (cons 'or it))
-                    (cons 'not it))
-                t)))
-    `(for ,(inits%) (,(test%)) ,(steps%)
-          ,@(wrap-with-destructurings (iterations loop) (body loop)))))
+(defun build-loop (iterations body)
+  (destructuring-bind (master . clauses) iterations
+    (let ((firstvar (loop :for (nil init step) :in clauses
+                      :unless (tree-equal init step) :do
+                      (return (ps-gensym "first")))))
+      (setf body (augmented-loop-body body clauses firstvar))
+      (when firstvar
+        (setf body (append body `((setf ,firstvar nil)))))
+      (let ((form (master-loop master body)))
+        (if firstvar `(let ((,firstvar t)) ,form) form)))))
 
-(defpsmacro with-prologue ((prologue) &body body)
-  (if (null prologue)
-      (cons 'progn body)
-      (ecase (caar prologue)
-        (:var (let ((decls '()))
-                (loop :for head :on prologue
-                  :while (eq (caar head) :var)
-                  :do (push (cdar head) decls)
-                  :finally (return `(let* ,(nreverse decls)
-                                      (with-prologue (,head) ,@body))))))
-        (:dbind `(bind ,@(cdr (car prologue))
-                     (with-prologue (,(cdr prologue)) ,@body))))))
+(defun normalize (iterations)
+  (cond ((null iterations) (list (list nil nil nil t))) ; while (true)
+        (t (destructuring-bind (master . clauses) (fold-tests iterations)
+             (destructuring-bind (place init step test &optional obj) master
+               (when (and (null obj) (complex-js-expr? place))
+                 (let ((var (ps-gensym)))
+                   (setf master (list var init step test))
+                   (push (list place var var nil) clauses)))
+               (cons master clauses))))))
+
+(defun prologue-wrap (prologue body)
+  (cond ((null prologue) body)
+        (t (destructuring-bind (place expr) (car prologue)
+             (prologue-wrap
+              (cdr prologue)
+              (cond ((atom place) (cons `(var ,place ,expr) body))
+                    (t `((bind ,place ,expr ,@body)))))))))
 
 (defpsmacro loop (&rest keywords-and-forms)
-  (let* ((loop (parse-ps-loop keywords-and-forms))
-         ;; Variable lifting to support initially/finally may
-         ;; add to prologue, so compute main loop first.
-         (main (or (parallel-form loop)
-                   (straightforward-form loop)))
-         (full `(block ,(name loop)
-                  (with-prologue (,(prologue loop))
-                    ,@(initially loop)
-                    ,main
-                    ,@(finally loop))
-                  ,@(awhen (default-accum-var loop) (list it)))))
-    (if (default-accum-var loop)
-        `((lambda () ,full)) ;; this needs to be generalized
-        full)))
+  (let* ((state (parse-ps-loop keywords-and-forms))
+         (main `(,(build-loop (normalize (reverse (iterations state))) (reverse (body state)))
+                  ,@(reverse (finally state))
+                  ,@(awhen (implicit-accum-var state) (list it))))
+         (full (prologue-wrap (prologue state) main)))
+    (cond ((implicit-accum-var state)
+           `((lambda () ,@full)))
+          ((name state) `(block ,(name state) ,@full))
+          (t `(progn ,@full)))))

@@ -347,49 +347,42 @@ lambda-list::=
 
 ;;; Destructuring bind
 
-(defun destructuring-wrap (arr n bindings body &key setf?)
-  (labels ((bind-expr (var expr inner-body)
-             (if setf?
-                 `(progn (setf ,var ,expr) ,inner-body)
-                 `(let ((,var ,expr)) ,inner-body)))
-           (bind-rest (sym)
-             (bind-expr sym `(if (> (length ,arr) ,n)
-                                 ((@ ,arr slice) ,n)
-                                 '())
-                        body)))
-    (cond ((null bindings)
-           body)
-          ((atom bindings) ;; dotted destructuring list
-           (bind-rest bindings))
-          ((eq (car bindings) '&rest)
-           (if (and (= (length bindings) 2)
-                    (atom (second bindings)))
-               (bind-rest (second bindings))
-               (error "~a is invalid in destructuring list." bindings)))
-          ((eq (car bindings) '&optional)
-           (destructuring-wrap arr n (cdr bindings) body :setf? setf?))
-          (t (let ((var (car bindings))
-                   (inner-body (destructuring-wrap arr (1+ n) (cdr bindings) body :setf? setf?)))
-               (cond ((null var) inner-body)
-                     ((atom var) (bind-expr var `(aref ,arr ,n) inner-body))
-                     (t `(,(if setf? 'dset 'destructuring-bind)
-                           ,var (aref ,arr ,n)
-                           ,inner-body))))))))
+(defun complex-js-expr? (expr)
+  (consp (if (symbolp expr) (ps-macroexpand expr) expr)))
 
-(defpsmacro dset (bindings expr &body body)
-  (let ((arr (if (complex-js-expr? expr) (ps-gensym) expr)))
-    `(progn
-       ,@(unless (eq arr expr) `((setf ,arr ,expr)))
-       ,(destructuring-wrap arr 0 bindings (cons 'progn body) :setf? t))))
+(defun hoist-expr? (bindings expr)
+  (and (> (length bindings) 1) (complex-js-expr? expr)))
+
+(defun destructuring-wrap (arr n bindings body)
+  (cond ((null bindings) body)
+        ((eq (car bindings) '&rest)
+         (cond ((and (= (length bindings) 2) (atom (second bindings)))
+                `(let ((,(second bindings) (if (> (length ,arr) ,n) ((@ ,arr slice) ,n) '())))
+                   ,body))
+               (t (error "~a is invalid in destructuring list." bindings))))
+        ((eq (car bindings) '&optional)
+         (destructuring-wrap arr n (cdr bindings) body))
+        (t (let ((var (car bindings))
+                 (inner-body (destructuring-wrap arr (1+ n) (cdr bindings) body)))
+             (cond ((null var) inner-body)
+                   ((atom var) `(let ((,var (aref ,arr ,n))) ,inner-body))
+                   (t `(,'destructuring-bind ,var (aref ,arr ,n) ,inner-body)))))))
 
 (defpsmacro destructuring-bind (bindings expr &body body)
-  (let* ((arr (if (complex-js-expr? expr) (ps-gensym) expr))
+  (setf bindings (dot->rest bindings))
+  (let* ((arr (if (hoist-expr? bindings expr) (ps-gensym) expr))
          (bound (destructuring-wrap arr 0 bindings (cons 'progn body))))
-    (if (eq arr expr)
-        bound
-        `(let ((,arr ,expr)) ,bound))))
+    (cond ((eq arr expr) bound)
+          (t `(let ((,arr ,expr)) ,bound)))))
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
+
+  (defun dot->rest (x)
+    (cond ((atom x) x)
+          ((not (listp (cdr x)))        ; dotted list
+           (list (dot->rest (car x)) '&rest (dot->rest (cdr x))))
+          (t (cons (dot->rest (car x)) (dot->rest (cdr x))))))
+
   (defun property-bindings-p (x)
     (when (consp x)
       (every (lambda (y)
@@ -405,27 +398,22 @@ lambda-list::=
     ;; returns a pair of destructuring bindings and property bindings
     (cond ((atom x) (list x nil))
           ((property-bindings-p x)
-           (let ((var (gensym)))
+           (let ((var (ps-gensym)))
              (list var (list x var))))
           (t (loop :for y :on x
                :for (d p) = (extract-bindings (car y))
-               :append (cond ((listp (cdr y)) (list d))
-                             (t (cons d (cdr y)))) ; dotted list
-               :into ds
+               :append (list d) :into ds
                :when p :append p :into ps
                :finally (return (list ds ps))))))
 
-  (defun property-bindings (bindings expr body &key setf?)
-    (let ((bind-exprs
-           (loop :for b :in bindings
+  (defun property-bindings (bindings expr body)
+    `(let ,(loop :for b :in bindings
              :for (var p) = (if (consp b) b (list (intern (string b)) b))
-             :if setf? :collect `(setf ,var (@ ,expr ,p))
-             :else :collect `(,var (@ ,expr ,p)))))
-      (if setf?
-          `(progn ,@bind-exprs ,@body)
-          `(let (,@bind-exprs) ,@body)))))
+             :collect `(,var (@ ,expr ,p)))
+       ,@body)))
 
 (defpsmacro bind (bindings expr &body body)
+  (setf bindings (dot->rest bindings))
   (destructuring-bind (d p)
       (extract-bindings bindings)
     (cond ((and (atom d)
@@ -446,27 +434,6 @@ lambda-list::=
          `(bind ,(car bindings) ,(cadr bindings) ,@body))
         (t `(bind ,(car bindings) ,(cadr bindings)
               (bind* ,(cddr bindings) ,@body)))))
-
-(defpsmacro bset (bindings expr &body body)
-  (destructuring-bind (d p)
-      (extract-bindings bindings)
-    (cond ((and (atom d)
-                (or (= (length bindings) 1)
-                    (atom expr)
-                    (atom (ps-macroexpand expr))))
-           (property-bindings bindings expr body :setf? t))
-          ((atom d)
-           (with-ps-gensyms (var)
-             `(let ((,var ,expr))
-                (bind ,bindings ,var ,@body))))
-          ((null p) `(dset ,bindings ,expr ,@body))
-          (t `(dset ,d ,expr (bset* ,p ,@body))))))
-
-(defpsmacro bset* (bindings &body body)
-  (cond ((= (length bindings) 2)
-         `(bset ,(car bindings) ,(cadr bindings) ,@body))
-        (t `(bset ,(car bindings) ,(cadr bindings)
-                  (bset* ,(cddr bindings) ,@body)))))
 
 ;;; Control structures
 

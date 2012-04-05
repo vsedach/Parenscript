@@ -2151,7 +2151,7 @@ return val1_1;
       (symbol-macrolet ((x 2))
         (loop do (+ x x)))))
   "function foo() {
-    for (; true; ) {
+    while (true) {
         2 + 2;
     };
 };")
@@ -2165,17 +2165,9 @@ return val1_1;
   "function foo() {
 if (foowhat(x)) {
     var _js2 = x.length;
-    var _js1 = 0;
-    if (_js1 < _js2) {
+    for (var _js1 = 0; _js1 < _js2; _js1 += 1) {
         var y = x[_js1];
-        while (true) {
-            foo(y);
-            _js1 += 1;
-            if (_js1 >= _js2) {
-                break;
-            };
-            y = x[_js1];
-        };
+        foo(y);
     };
 } else if (barwhat(x)) {
     return x;
@@ -2195,21 +2187,11 @@ if (foowhat(x)) {
     switch (x) {
     case 1:
         var _js2 = x.length;
-        var _js1 = 0;
-        if (_js1 < _js2) {
+        for (var _js1 = 0; _js1 < _js2; _js1 += 1) {
             var y = x[_js1];
-            while (true) {
-                foo(y);
-                _js1 += 1;
-                if (_js1 >= _js2) {
-                    break;
-                };
-                y = x[_js1];
-            };
-            return;
-        } else {
-            return null;
+            foo(y);
         };
+        return;
     case 2:
         return x;
     default:
@@ -2243,17 +2225,9 @@ if (foowhat(x)) {
   "(function () {
     if (a) {
         var _js4 = x.length;
-        var _js3 = 0;
-        if (_js3 < _js4) {
+        for (var _js3 = 0; _js3 < _js4; _js3 += 1) {
             var y = x[_js3];
-            while (true) {
-                foo(y);
-                _js3 += 1;
-                if (_js3 >= _js4) {
-                    break;
-                };
-                y = x[_js3];
-            };
+            foo(y);
         };
     } else {
         return c;
@@ -2272,17 +2246,9 @@ if (foowhat(x)) {
         return foo(function () {
             if (a) {
                 var _js4 = x.length;
-                var _js3 = 0;
-                if (_js3 < _js4) {
+                for (var _js3 = 0; _js3 < _js4; _js3 += 1) {
                     var y = x[_js3];
-                    while (true) {
-                        foo(y);
-                        _js3 += 1;
-                        if (_js3 >= _js4) {
-                            break;
-                        };
-                        y = x[_js3];
-                    };
+                    foo(y);
                 };
                 throw { 'ps-block-tag' : 'baz',
                         'ps-return-value' : null };
@@ -3573,15 +3539,13 @@ var baz = 2;")
      (let ((block (elt blocks i)))
        (foo block)
        (lambda () nil)))
-  "(function () {
-for (var i = 0; i < 5; i += 1) {
+  "for (var i = 0; i < 5; i += 1) {
     var block = blocks[i];
     foo(block);
     function () {
         return null;
     };
-};
-})();")
+};")
 
 (test-ps-js broken-quote-expansion1
   (lambda (p)

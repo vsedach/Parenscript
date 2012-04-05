@@ -56,7 +56,7 @@
   (case what
     (:if (when (loop-keyword? (peek state) tag)
            (eat state)
-           (eat state)))
+           (values (eat state) t)))
     (:progn (cons 'progn (loop :collect (if (consp (peek state))
                                             (eat state)
                                             (err "a compound form" (peek state)))
@@ -102,9 +102,10 @@
       (push `(,var nil ,start (,op ,var ,(or by 1)) ,test :for-from) (iterations state)))))
 
 (defun for-= (var bindings state)
-  (let ((start (eat state))
-        (then (eat state :if :then)))
-    (push (list var bindings start (or then start) nil :for-=) (iterations state))))
+  (let ((start (eat state)))
+    (multiple-value-bind (then thenp)
+        (eat state :if :then)
+      (push (list var bindings start (if thenp then start) nil :for-=) (iterations state)))))
 
 (defun for-in (var bindings state)
   (with-local-var (arr (eat state) state)

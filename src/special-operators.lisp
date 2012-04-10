@@ -196,6 +196,8 @@
 
 (defun try-expressionizing-if? (exp &optional (score 0)) ;; poor man's codewalker
   (cond ((< 1 score) nil)
+        ((and (listp exp) (eq (car exp) 'quote))
+         t)
         ((listp exp)
          (loop for x in (cdr exp) always
               (try-expressionizing-if?

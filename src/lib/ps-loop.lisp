@@ -10,7 +10,7 @@
     '(:named :for :repeat :with :while :until :initially :finally
       :from :to :below :downto :above :by :in :across :on := :then
       :when :unless :if :else :end :do :return
-      :sum :collect :append :count :minimize :maximize :into))
+      :sum :collect :append :count :minimize :maximize :map :into))
 
   (defun as-keyword (key)
     (intern (symbol-name key) :keyword)))
@@ -157,7 +157,7 @@
           (prevar var expr state)
           (prebind bindings expr state)))))
 
-(defun accumulate (kind term var state)
+(defun accumulate (kind item var state)
   (when (null var)
     (when (and (default-accum-kind state) (not (eq kind (default-accum-kind state))))
       (error "PS-LOOP encountered illegal ~a: ~a was already declared, and there can only be one kind of default accumulation per loop." kind (default-accum-kind state)))
@@ -172,15 +172,18 @@
   (let ((initial (loop-case kind
                        ((:sum :count) 0)
                        ((:maximize :minimize) nil)
-                       ((:collect :append) '(array)))))
+                       ((:collect :append) '[])
+                       ((:map) '{}))))
     (prevar var initial state))
   (loop-case kind
-        (:sum `(incf ,var ,term))
-        (:count `(unless (null ,term) (incf ,var)))
-        (:minimize `(setf ,var (if (null ,var) ,term (min ,var ,term))))
-        (:maximize `(setf ,var (if (null ,var) ,term (max ,var ,term))))
-        (:collect `((@ ,var :push) ,term))
-        (:append `(setf ,var (append ,var ,term)))))
+        (:sum `(incf ,var ,item))
+        (:count `(unless (null ,item) (incf ,var)))
+        (:minimize `(setf ,var (if (null ,var) ,item (min ,var ,item))))
+        (:maximize `(setf ,var (if (null ,var) ,item (max ,var ,item))))
+        (:collect `((@ ,var :push) ,item))
+        (:append `(setf ,var (append ,var ,item)))
+        (:map (destructuring-bind (key val) item
+                `(setf (getprop ,var ,key) ,val)))))
 
 (defun repeat-clause (state)
   (let ((index (ps-gensym)))
@@ -228,6 +231,12 @@
                     (progn ,@(reverse alts))))))
         ((:sum :collect :append :count :minimize :maximize)
          (accumulate term (eat state) (eat state :if :into) state))
+        (:map (let ((key (eat state)))
+                (multiple-value-bind (val valp)
+                    (eat state :if :to)
+                  (unless valp
+                    (error "MAP must be followed by a TO to specify value."))
+                  (accumulate :map (list key val) (eat state :if :into) state))))
         (:do (eat state :progn))
         (:return `(return-from ,(name state) ,(eat state)))
         (otherwise (err "a PS-LOOP keyword" term))))

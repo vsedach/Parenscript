@@ -340,3 +340,11 @@
         (n 1))
     (+ str (+ n 1)))
   "a2")
+
+(test-js-eval loop-return
+  (progn (defun foo ()
+           (* 10 (loop for i from 0 below 10 do
+                      (when (> i 3)
+                        (return i)))))
+         (foo))
+  40)

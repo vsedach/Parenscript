@@ -125,7 +125,8 @@
           (let ((loop-wrapped? t))
             (compile-statement `(let (,*loop-return-var*)
                                   (,',name ,@whole)
-                                  ,*loop-return-var*)))
+                                  ;; fix the below so it doesn't give a warning
+                                  (return ,*loop-return-var*))))
           ,loop-body))))
 
 (define-statement-operator for (init-forms cond-forms step-forms &body body)

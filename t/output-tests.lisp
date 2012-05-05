@@ -3153,7 +3153,7 @@ return loopResultVar3;
             loopResultVar1 = 1;
             break;
         };
-        loopResultVar1;
+        return loopResultVar1;
     };
     return 2;
 });")

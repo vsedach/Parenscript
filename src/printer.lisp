@@ -9,12 +9,9 @@
 This variable is used when you want to embed the resulting JavaScript
 in an html attribute delimited by #\\\" as opposed to #\\', or
 vice-versa.")
-(defvar *max-column-width* 78)
 
 (defvar *indent-level*)
 (defvar *column*)
-(defvar *break-indent* nil)
-(defvar *in-line-break?* nil)
 
 (defvar *psw-stream*)
 
@@ -56,14 +53,10 @@ vice-versa.")
            (let ((str (eval obj)))
              (incf *column* (length str))
              (write-string str *psw-stream*))
-           (progn
-             (when *in-line-break?*
-               ;; this doesn't preserve *column* or *indent-level*
-               (throw 'stop-breaking 'stop-breaking))
-             (setf %psw-accumulator
-                   (list* obj
-                          (get-output-stream-string *psw-stream*)
-                          %psw-accumulator))))))))
+           (setf %psw-accumulator
+                 (list* obj
+                        (get-output-stream-string *psw-stream*)
+                        %psw-accumulator)))))))
 
 (defgeneric ps-print (form))
 (defgeneric ps-print% (js-primitive args))
@@ -105,38 +98,14 @@ vice-versa.")
 (defmethod ps-print ((compiled-form cons))
   (ps-print% (car compiled-form) (cdr compiled-form)))
 
-(defun newline-and-indent ()
+(defun newline-and-indent (&optional indent-spaces)
   (if *ps-print-pretty*
       (progn (psw #\Newline)
-             (loop repeat (if *break-indent*
-                              *break-indent*
+             (loop repeat (if indent-spaces
+                              indent-spaces
                               (* *indent-level* *indent-num-spaces*))
-                do (psw #\Space)))
+                   do (psw #\Space)))
       (psw #\Space)))
-
-(defmacro with-breakable-line (&body body)
-  `(progn (setf *break-indent* *column*)
-          ,@body
-          (setf *break-indent* nil)))
-
-(defmacro maybe-break-line (&body print-forms)
-  `(if (and *ps-print-pretty* *break-indent*)
-       (if (eq 'stop-breaking
-               (catch 'stop-breaking
-                 (let ((result-str (let ((*indent-level* 0)
-                                         (*column* 0)
-                                         (*break-indent* nil)
-                                         (*in-line-break?* t))
-                                     (with-output-to-string (*psw-stream*)
-                                       ,@print-forms))))
-                   (if (> (+ *column* (length result-str)) *max-column-width*)
-                       (progn (psw #\Newline)
-                              (loop repeat *break-indent* do (psw #\Space))
-                              (psw result-str))
-                       (psw result-str)))))
-           (progn ,@print-forms nil)
-           t)
-       (progn ,@print-forms nil)))
 
 (defun print-comment (comment-str)
   (when *ps-print-pretty*
@@ -252,7 +221,7 @@ vice-versa.")
 (defprinter (ps-js:+ ps-js:- ps-js:* ps-js:/ ps-js:% ps-js:&& ps-js:\|\| ps-js:& ps-js:\| ps-js:-= ps-js:+= ps-js:*= ps-js:/= ps-js:%= ps-js:^ ps-js:<< ps-js:>> ps-js:&= ps-js:^= ps-js:\|= ps-js:= ps-js:in ps-js:> ps-js:>= ps-js:< ps-js:<=)
     (&rest args)
   (loop for (arg . remaining) on args do
-       (maybe-break-line (print-op-argument op arg))
+       (print-op-argument op arg)
        (when remaining (format *psw-stream* " ~(~A~) " op))))
 
 (defprinter (ps-js:== ps-js:!= ps-js:=== ps-js:!==) (x y)
@@ -262,7 +231,7 @@ vice-versa.")
                (print-op-argument op form))))
     (parenthesize-equality x)
     (format *psw-stream* " ~A " op)
-    (maybe-break-line (parenthesize-equality y))))
+    (parenthesize-equality y)))
 
 (defprinter ps-js:aref (array &rest indices)
   (print-op-argument 'ps-js:aref array)
@@ -271,14 +240,14 @@ vice-versa.")
 
 (defun print-comma-delimited-list (ps-forms)
   (loop for (form . remaining) on ps-forms do
-        (maybe-break-line (print-op-argument 'ps-js:|,| form))
+        (print-op-argument 'ps-js:|,| form)
         (when remaining (psw ", "))))
 
 (defprinter ps-js:array (&rest initial-contents)
   "["(print-comma-delimited-list initial-contents)"]")
 
 (defprinter (ps-js:|,|) (&rest expressions)
-  (with-breakable-line (print-comma-delimited-list expressions)))
+  (print-comma-delimited-list expressions))
 
 (defprinter ps-js:funcall (fun-designator &rest args)
   (print-op-argument op fun-designator)"("(print-comma-delimited-list args)")")
@@ -309,21 +278,28 @@ vice-versa.")
   (parenthesize-at-toplevel
    (lambda ()
      (psw "{ ")
-     (with-breakable-line
-         (loop for ((slot-name . slot-value) . remaining) on slot-defs do
-              (maybe-break-line
-               (ps-print slot-name) (psw " : ")
-               (if (and (consp slot-value) (eq 'ps-js:|,| (car slot-value)))
-                   (parenthesize-print slot-value)
-                   (ps-print slot-value)))
-              (when remaining (psw ", "))))
-     (psw " }"))))
+     (let ((indent? (< 2 (length slot-defs)))
+           (indent *column*))
+       (loop for ((slot-name . slot-value) . remaining) on slot-defs do
+             (ps-print slot-name) (psw " : ")
+             (if (and (consp slot-value) (eq 'ps-js:|,| (car slot-value)))
+                 (parenthesize-print slot-value)
+                 (ps-print slot-value))
+            (when remaining
+              (psw ",")
+              (if indent?
+                  (newline-and-indent indent)
+                  (psw #\Space))))
+       (if indent?
+           (newline-and-indent (- indent 2))
+           (psw #\Space)))
+     (psw "}"))))
 
 (defprinter ps-js:getprop (obj slot)
   (print-op-argument op obj)"."(psw (symbol-to-js-string slot)))
 
 (defprinter ps-js:if (test consequent &rest clauses)
-  "if (" (with-breakable-line (ps-print test)) ") "
+  "if (" (ps-print test) ") "
   (ps-print consequent)
   (loop while clauses do
        (ecase (car clauses)
@@ -353,22 +329,18 @@ vice-versa.")
 
 ;;; iteration
 (defprinter ps-js:for (vars tests steps body-block)
-  (psw "for (")
-  (with-breakable-line
-   (loop for ((var-name . var-init) . remaining) on vars
-      for decl = "var " then "" do
-      (psw decl (symbol-to-js-string var-name) " = ") (ps-print var-init)
-        (when remaining (psw ", ")))
-   (psw  "; ")
-   (let ((broken?
-          (maybe-break-line
-            (loop for (test . remaining) on tests do
-                 (ps-print test) (when remaining (psw ", "))))))
-     (psw ";")
-     (if broken? (newline-and-indent) (psw " "))
-     (loop for (step . remaining) on steps do
-          (ps-print step) (when remaining (psw ", "))))
-   (psw ") "))
+  "for ("
+  (loop for ((var-name . var-init) . remaining) on vars
+     for decl = "var " then "" do
+       (psw decl (symbol-to-js-string var-name) " = ") (ps-print var-init)
+       (when remaining (psw ", ")))
+  "; "
+  (loop for (test . remaining) on tests do
+       (ps-print test) (when remaining (psw ", ")))
+  "; "
+  (loop for (step . remaining) on steps do
+       (ps-print step) (when remaining (psw ", ")))
+  ") "
   (ps-print body-block))
 
 (defprinter ps-js:for-in (var object body-block)

@@ -3574,6 +3574,19 @@ function bar() {
 };
 var baz = 2;")
 
+(test-ps-js js-ir-package-unique-symbols
+  (loop :for i :from 0 :below 5 :do
+     (let ((block (elt blocks i)))
+       (foo block)
+       (lambda () nil)))
+  "for (var i = 0; i < 5; i += 1) {
+    var block = blocks[i];
+    foo(block);
+    function () {
+        return null;
+    };
+};")
+
 ;;; broken
 
 ;; (test-ps-js let-defun-toplevel

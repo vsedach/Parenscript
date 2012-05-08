@@ -2,11 +2,7 @@
 (in-readtable :parenscript)
 
 (defpackage #:ps-js
-  (:shadowing-import-from #:cl
-   #:+
-   #:-
-   #:*
-   #:/)
+  (:use)
   (:export
    ;; operators
    ;; arithmetic

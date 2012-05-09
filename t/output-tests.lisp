@@ -3587,6 +3587,22 @@ var baz = 2;")
     };
 };")
 
+(test-ps-js broken-quote-expansion1
+  (lambda (p)
+    (with-slots (x y) p
+      (if (< x 0) y x)))
+  "(function (p) {
+    return p.x < 0 ? p.y : p.x;
+});")
+
+(test-ps-js broken-quote-expansion2
+  (progn
+    (define-symbol-macro foo123 (ps:@ a foo123))
+    (lambda () (when (> foo123 1) 2)))
+  "(function () {
+    return a.foo123 > 1 ? 2 : null;
+});")
+
 ;;; broken
 
 ;; (test-ps-js let-defun-toplevel

@@ -272,6 +272,7 @@
    #:stringp
    #:numberp
    #:functionp
+   #:booleanp
    #:objectp
    #:append
    #:apply

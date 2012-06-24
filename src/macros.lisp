@@ -82,6 +82,9 @@
 (defpsmacro functionp (x)
   `(string= (typeof ,x) "function"))
 
+(defpsmacro booleanp (x)
+  `(string= (typeof ,x) "boolean"))
+
 ;;; Data structures
 
 (defpsmacro make-array (&rest initial-values)

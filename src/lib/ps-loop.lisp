@@ -154,8 +154,7 @@
 (defun a-with-clause (state) ;; so named to avoid with-xxx macro convention
   (multiple-value-bind (var bindings)
       (var-or-bindings state)
-    (eat state :=)
-    (let ((expr (eat state)))
+    (let ((expr (eat state :if :=)))
       (if var
           (prevar var expr state)
           (prebind bindings expr state)))))

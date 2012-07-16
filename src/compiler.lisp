@@ -85,8 +85,10 @@ block.")
   variables (otherwise they all share the same binding).")
 (defvar *loop-return-var* nil
   "Variable which is used to return values from inside loop bodies.")
-(defvar loop-returns? nil
-  "Set to T by RETURN-FROM when it returns a value from inside a loop.")
+(defvar *loop-return-set-var* nil
+  "Variable which is set by RETURN-FROM when it returns a value from inside
+  a loop.  The value is the name of a PS variable which dynamically
+  indicates if the return statement indeed has been invoked.")
 
 (defvar *loop-scope-lexicals*)
 (setf (documentation '*loop-scope-lexicals* 'variable)

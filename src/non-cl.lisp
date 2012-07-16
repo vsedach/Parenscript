@@ -126,14 +126,15 @@
 (defmacro wrap-loop-for-return (name loop)
   (let ((loop-body (gensym)))
    `(let* ((*loop-return-var* nil)
-           (loop-returns? nil)
+           (*loop-return-set-var* nil)
            (,loop-body ,loop))
-      (if (and loop-returns? (not loop-wrapped?))
+      (if (and *loop-return-set-var* (not loop-wrapped?))
           (let ((loop-wrapped? t))
-            (compile-statement `(let (,*loop-return-var*)
+            (compile-statement `(let (,*loop-return-set-var* ,*loop-return-var*)
                                   (,',name ,@whole)
                                   ;; fix the below so it doesn't give a warning
-                                  (return ,*loop-return-var*))))
+                                  (when ,*loop-return-set-var*
+                                    (return ,*loop-return-var*)))))
           ,loop-body))))
 
 (define-statement-operator for (init-forms cond-forms step-forms &body body)

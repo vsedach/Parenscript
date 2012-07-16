@@ -286,10 +286,12 @@ Parenscript now implements implicit return, update your code! Things like (lambd
                  ((eq 'values (car form)) (return-exp tag (cadr form) (cddr form)))
                  (t                       (expressionize-result tag form)))))
         (in-loop-scope?
-         (setf loop-returns?     t
+         (setf *loop-return-set-var* (or *loop-return-set-var*
+                                         (ps-gensym "loop-result-var-set"))
                *loop-return-var* (or *loop-return-var*
                                      (ps-gensym "loop-result-var")))
-         (compile-statement `(progn (setf ,*loop-return-var* ,result)
+         (compile-statement `(progn (setf ,*loop-return-set-var* t
+                                          ,*loop-return-var* ,result)
                                     (break))))
         (t
          (ps-compile `(return-from nilBlock ,result)))))

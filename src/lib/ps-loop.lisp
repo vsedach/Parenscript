@@ -7,8 +7,9 @@
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (defvar *loop-keywords*
-    '(:for :do :repeat :with :when :unless :while :until :initially :finally
+    '(:for :do :repeat :with :while :until :initially :finally
       :from :to :below :downto :above :by :in :across :on := :then
+      :when :unless :if :else :end
       :sum :collect :append :count :minimize :maximize :into))
 
   (defun as-keyword (key)
@@ -204,10 +205,30 @@
 
 (defun body-clause (term state)
   (loop-case term
-        ((:when :unless)
-         (list (intern (symbol-name term))
-               (eat state)
-               (body-clause (eat state :atom) state)))
+        ((:if :when :unless)
+         (let* ((test-form (eat state))
+                (seqs (list (body-clause (eat state :atom) state)))
+                (alts (list)))
+           (loop while (loop-keyword? (peek state) :and)
+                 do (eat state)
+                    (push (body-clause (eat state :atom) state) seqs))
+           (when (loop-keyword? (peek state) :else)
+             (eat state)
+             (push (body-clause (eat state :atom) state) alts)
+             (loop while (loop-keyword? (peek state) :and)
+                   do (eat state)
+                      (push (body-clause (eat state :atom) state) alts)))
+           (when (loop-keyword? (peek state) :end)
+             (eat state))
+           (if (null alts)
+               `(,(loop-case term ((:unless) 'unless) (otherwise 'when))
+                 ,test-form
+                 ,@(reverse seqs))
+               `(if ,(loop-case term
+                       ((:unless) `(not ,test-form))
+                       (otherwise test-form))
+                    (progn ,@(reverse seqs))
+                    (progn ,@(reverse alts))))))
         ((:sum :collect :append :count :minimize :maximize)
          (accumulate term (eat state) (eat state :if :into) state))
         (:do (eat state :progn))

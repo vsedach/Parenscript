@@ -7,9 +7,9 @@
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (defvar *loop-keywords*
-    '(:for :do :repeat :with :while :until :initially :finally
+    '(:named :for :repeat :with :while :until :initially :finally
       :from :to :below :downto :above :by :in :across :on := :then
-      :when :unless :if :else :end
+      :when :unless :if :else :end :do :return
       :sum :collect :append :count :minimize :maximize :into))
 
   (defun as-keyword (key)
@@ -36,6 +36,7 @@
 
 (defclass loop-state ()
   ((tokens :initarg :tokens :accessor tokens)
+   (name :initform nil :accessor name)
    (iterations :initform nil :accessor iterations)
    (prologue :initform nil :accessor prologue)
    (initially :initform nil :accessor initially)
@@ -68,6 +69,8 @@
     (otherwise (let ((tok (pop (tokens state))))
                  (when (and (eq what :atom) (not (atom tok)))
                    (err "an atom" tok))
+                 (when (and (eq what :symbol) (not (symbolp tok)))
+                   (err "a symbol" tok))
                  tok))))
 
 (defun prevar (var expr state)
@@ -231,11 +234,13 @@
         ((:sum :collect :append :count :minimize :maximize)
          (accumulate term (eat state) (eat state :if :into) state))
         (:do (eat state :progn))
+        (:return `(return-from ,(name state) ,(eat state)))
         (otherwise (err "a PS-LOOP keyword" term))))
 
 (defun clause (state)
   (let ((term (eat state :atom)))
     (loop-case term
+          (:named (setf (name state) (eat state :symbol)))
           (:with (a-with-clause state))
           (:for (for-clause state))
           (:repeat (repeat-clause state))
@@ -345,7 +350,7 @@
          ;; add to prologue, so compute main loop first.
          (main (or (parallel-form loop)
                    (straightforward-form loop)))
-         (full `(progn
+         (full `(block ,(name loop)
                   (with-prologue (,(prologue loop))
                     ,@(initially loop)
                     ,main

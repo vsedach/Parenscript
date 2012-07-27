@@ -733,6 +733,22 @@ return element.innerHTML = ['<TEXTAREA', disabled || !authorized ? [' DISABLED=\
   'nil
   "[];")
 
+(test-ps-js quoted-nil-is-array1
+  '()
+  "[];")
+
+(test-ps-js literal-nil
+  (foo ())
+  "foo(null);")
+
+(test-ps-js quoted-quoted-nil
+  '(())
+  "[null];")
+
+(test-ps-js quoted-quoted-nil1
+  '(1 ())
+  "[1, null];")
+
 (test-ps-js defsetf1
   (progn (defsetf baz (x y) (newval) `(set-baz ,x ,y ,newval))
          (setf (baz 1 2) 3))
@@ -1452,6 +1468,14 @@ return foo(1);
 (test-ps-js literal-array-1
   '(1 foo 3)
   "[1, 'foo', 3];")
+
+(test-ps-js literal-array-literal
+  '[]
+  "[];")
+
+(test-ps-js literal-array-literal1
+  '(1 [])
+  "[1, []];")
 
 (test ps-lisp-expands-in-lexical-environment
   (is (string= "5;" (let ((x 5))

@@ -551,7 +551,7 @@ Parenscript now implements implicit return, update your code! Things like (lambd
     (compile-expression
      (typecase x
        (cons `(array ,@(mapcar #'quote% x)))
-       (null '(array))
+       ((or null (eql [])) '(array))
        (keyword x)
        (symbol (symbol-to-js-string x))
        (number x)

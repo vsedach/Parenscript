@@ -119,6 +119,10 @@
     (+ a b c))
   "this.a + this.b + this.c;")
 
+(test-ps-js object-literal-quoted-symbols
+  (create 'test "bang" 'symbol-saved-my-life "parenscript")
+  "({ 'test' : 'bang', 'symbolSavedMyLife' : 'parenscript' });")
+
 (test-ps-js regular-expression-literals-1
   (regex "foobar")
   "/foobar/;")

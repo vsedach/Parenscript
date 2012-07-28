@@ -51,19 +51,19 @@
 (define-expression-operator create (&rest arrows)
   `(ps-js:object
     ,@(loop for (key val-expr) on arrows by #'cddr collecting
-           (cons (acond ((and (symbolp key) (reserved-symbol? key))
-                         it)
-                        ((or (stringp key) (numberp key) (symbolp key))
-                         key)
-                        ((and (consp key)
-                              (eq 'quote (first  key))
-                              (symbolp   (second key))
-                              (null      (third  key)))
-                         (symbol-to-js-string (second key)))
-                        (t
-                         (error
-                          "Slot key ~s is not one of symbol, string or number."
-                          key)))
+           (cons (cond ((and (symbolp key) (reserved-symbol-p key))
+                        (reserved-symbol-p key))
+                       ((or (stringp key) (numberp key) (symbolp key))
+                        key)
+                       ((and (consp key)
+                             (eq 'quote (first  key))
+                             (symbolp   (second key))
+                             (null      (third  key)))
+                        (symbol-to-js-string (second key)))
+                       (t
+                        (error
+                         "Slot key ~s is not one of symbol, string or number."
+                         key)))
                  (compile-expression val-expr)))))
 
 (define-expression-operator %js-getprop (obj slot)
@@ -71,7 +71,7 @@
         (obj (compile-expression obj)))
     (if (and (listp expanded-slot)
              (eq 'quote (car expanded-slot)))
-        (aif (or (reserved-symbol? (second expanded-slot))
+        (aif (or (reserved-symbol-p (second expanded-slot))
                  (and (keywordp (second expanded-slot)) (second expanded-slot)))
              `(ps-js:aref ,obj ,it)
              `(ps-js:getprop ,obj ,(second expanded-slot)))

@@ -30,7 +30,7 @@
 (defvar *lambda-wrappable-statements* ;; break, return, continue not included
   '(throw switch for for-in while try block))
 
-(defun reserved-symbol? (symbol)
+(defun reserved-symbol-p (symbol)
   (find (string-downcase (string symbol)) *reserved-symbol-names* :test #'string=))
 
 ;;; special forms

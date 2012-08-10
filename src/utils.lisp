@@ -59,4 +59,8 @@ paren-script becomes parenScript, *some-global* becomes SOMEGLOBAL."
 
 (defun tree-search (A tree)
   (or (equal A tree)
-      (and (consp tree) (some (lambda (x) (tree-search A x)) tree))))
+      (when (consp tree)
+        (loop for x on tree thereis ;; fucking dotted lists
+              (or (tree-search A (car x))
+                  (unless (listp (cdr x))
+                    (equal A (cdr x))))))))

@@ -348,3 +348,38 @@
                         (return i)))))
          (foo))
   40)
+
+(test-js-eval loop-with-clause
+  (loop for i :from 0 :to 5
+        with x
+        unless (< i 3)
+     do (return (setf x i)))
+  3)
+
+(test-js-eval loop-extended-conditional-clauses
+  (loop for i :from 0 :to 5
+     for x := (1+ i)
+     when x
+       collect x
+       and if (oddp x)
+         collect (1+ x)
+       else
+         collect (/ x 2)
+       end)
+  '(1 2 2 1 3 4 4 2 5 6 6 3))
+
+(test-js-eval loop-extended-conditional-clauses1
+  (let* ((foo 0)
+         (bar (loop for i :from 0 :to 5
+                 for x := (1+ i)
+                 when x
+                   collect x
+                   and if (oddp x)
+                     collect (1+ x)
+                   else
+                     collect (/ x 2)
+                   end
+                   and do (incf foo x))))
+    (funcall (@ bar push) foo)
+    bar)
+  '(1 2 2 1 3 4 4 2 5 6 6 3 21))

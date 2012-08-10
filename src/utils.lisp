@@ -40,7 +40,8 @@ paren-script becomes parenScript, *some-global* becomes SOMEGLOBAL."
                     ((every #'lower-case-p (remove-if-not #'alpha-char-p identifier)) (string-upcase identifier))
                     (t identifier))))))
 
-(defun ordered-set-difference (list1 list2 &key (test #'eql)) ; because the CL set-difference may not preserve order
+(defun ordered-set-difference (list1 list2 &key (test #'eql))
+  "CL set-difference may not preserve order."
   (reduce (lambda (list el) (remove el list :test test))
           (cons list1 list2)))
 
@@ -55,3 +56,7 @@ paren-script becomes parenScript, *some-global* becomes SOMEGLOBAL."
   (cond ((null x) acc)
         ((atom x) (cons x acc))
         (t (flatten (car x) (flatten (cdr x) acc)))))
+
+(defun tree-search (A tree)
+  (or (equal A tree)
+      (and (consp tree) (some (lambda (x) (tree-search A x)) tree))))

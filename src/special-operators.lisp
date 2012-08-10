@@ -154,14 +154,16 @@
 
 (define-statement-operator block (name &rest body)
   (if in-function-scope?
-      (let* ((name (or name 'nilBlock))
-             (in-loop-scope? (if name in-loop-scope? nil))
+      (let* ((name                  (or name 'nilBlock))
+             (in-loop-scope?        (if name in-loop-scope? nil))
              (*dynamic-return-tags* (cons (cons name nil) *dynamic-return-tags*))
-             (*current-block-tag* name)
-             (compiled-body (compile-statement `(progn ,@body))))
-        `(ps-js:label ,name
-                      ,(wrap-for-dynamic-return
-                        (list name) compiled-body)))
+             (*current-block-tag*   name)
+             (compiled-body         (wrap-for-dynamic-return
+                                     (list name)
+                                     (compile-statement `(progn ,@body)))))
+        (if (tree-search `(ps-js:break ,name) compiled-body)
+            `(ps-js:label ,name ,compiled-body)
+            compiled-body))
       (ps-compile (with-lambda-scope `(block ,name ,@body)))))
 
 (defun return-exp (tag &optional (value nil value?) rest-values)
@@ -213,7 +215,8 @@
    (case (car form)
      ((continue break throw) ;; non-local exit
       form)
-     ((with label let flet labels macrolet symbol-macrolet) ;; implicit progn forms
+     ;; implicit progn forms
+     ((with label let flet labels macrolet symbol-macrolet block)
       `(,(first form) ,(second form)
          ,@(butlast (cddr form))
          (return-from ,tag ,(car (last (cddr form))))))

@@ -3631,6 +3631,38 @@ var baz = 2;")
     return a.foo123 > 1 ? 2 : null;
 });")
 
+(test-ps-js unused-named-block-not-printed1
+  (block foobar
+    (+ 1 2 3))
+  "(function () {
+    return 1 + 2 + 3;
+})();")
+
+(test-ps-js unused-named-block-not-printed2
+  (block nil
+    (block nil
+      (+ 1 2 3)))
+  "(function () {
+    return 1 + 2 + 3;
+})();")
+
+(test-ps-js unused-named-block-not-printed3
+  (block foobar
+    (block nil
+     (+ 1 2 3)))
+  "(function () {
+    return 1 + 2 + 3;
+})();")
+
+(test-ps-js unused-named-block-not-printed4
+  (block nil
+    (block foobar
+     (block nil
+       (+ 1 2 3))))
+  "(function () {
+    return 1 + 2 + 3;
+})();")
+
 ;;; broken
 
 ;; (test-ps-js let-defun-toplevel

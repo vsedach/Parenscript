@@ -2312,13 +2312,20 @@ case 1:
 };")
 
 (test-ps-js switch-folds-blocks
-  (case x
-    (1 (loop repeat 3 do (alert "foo"))))
-  "switch (x) {
+  (defun foo ()
+    (case x
+      (1 (loop repeat 3 do (alert "foo")))
+      (2 "bar")))
+  "function foo() {
+switch (x) {
 case 1:
     for (var _js1 = 0; _js1 < 3; _js1 += 1) {
         alert('foo');
     };
+    return;
+case 2:
+    return 'bar';
+};
 };")
 
 (test-ps-js setf-places-before-macros
@@ -3607,13 +3614,15 @@ var baz = 2;")
      (let ((block (elt blocks i)))
        (foo block)
        (lambda () nil)))
-  "for (var i = 0; i < 5; i += 1) {
+  "(function () {
+for (var i = 0; i < 5; i += 1) {
     var block = blocks[i];
     foo(block);
     function () {
         return null;
     };
-};")
+};
+})();")
 
 (test-ps-js broken-quote-expansion1
   (lambda (p)

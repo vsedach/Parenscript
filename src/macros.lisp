@@ -172,21 +172,19 @@ lambda-list::=
              `(defun% ,name ,lambda-list ,@body))
       (progn (assert (and (listp name) (= (length name) 2) (eq 'setf (car name))) ()
                      "(defun ~s ~s ...) needs to have a symbol or (setf symbol) for a name." name lambda-list)
-             `(defun-setf ,name ,lambda-list ,@body))))
+             `(defun-setf ,(second name) ,lambda-list ,@body))))
 
 ;;; defining setf expanders
 
 (defvar *defun-setf-name-prefix* '__setf_)
 
-(defpsmacro defun-setf (setf-name lambda-list &body body)
+(defpsmacro defun-setf (name lambda-list &body body)
   (let ((mangled-function-name
-         (intern (concatenate 'string (string *defun-setf-name-prefix*) (string (second setf-name)))
-                 (symbol-package (second setf-name)))))
-    (setf (gethash (second setf-name) *setf-expanders*)
-          (compile
-           nil
-           (lambda (access-args store-form)
-             `(,mangled-function-name ,store-form ,@access-args))))
+         (intern (format nil "~A~A" (string *defun-setf-name-prefix*) (string name))
+                 (symbol-package name))))
+    (setf (gethash name *setf-expanders*)
+          (lambda (access-args store-form)
+            `(,mangled-function-name ,store-form ,@access-args)))
     `(defun ,mangled-function-name ,lambda-list ,@body)))
 
 ;;; slightly broken WRT lambda lists

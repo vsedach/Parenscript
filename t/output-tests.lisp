@@ -400,12 +400,14 @@ try {
        ((or (= d (@ c length)) (string= e "x")))
     (setf a d b e)
     (funcall (@ document write) (+ "a: " a " b: " b "<br/>")))
-  "for (var a = null, b = null, c = ['a', 'b', 'c', 'd', 'e'], d = 0, e = c[d];
+  "(function () {
+for (var a = null, b = null, c = ['a', 'b', 'c', 'd', 'e'], d = 0, e = c[d];
        !(d === c.length || e === 'x'); d += 1, e = c[d]) {
     a = d;
     b = e;
     document.write('a: ' + a + ' b: ' + b + '<br/>');
-};")
+};
+})();")
 
 (test-ps-js iteration-constructs-2
   (do ((i 0 (1+ i))
@@ -429,9 +431,11 @@ for (; i <= 10; ) {
         (s 0 (+ s i (1- i))))
        ((> i 10))
     ((@ document write) (+ "i: " i " s: " s "<br/>")))
-  "for (var i = 0, s = 0; i <= 10; i += 1, s = s + i + (i - 1)) {
+  "(function () {
+for (var i = 0, s = 0; i <= 10; i += 1, s = s + i + (i - 1)) {
     document.write('i: ' + i + ' s: ' + s + '<br/>');
-};")
+};
+})();")
 
 (test-ps-js iteration-constructs-4
   (let ((arr (array "a" "b" "c" "d" "e")))
@@ -1448,17 +1452,15 @@ return foo(1);
 })();")
 
 (test-ps-js for-loop-var-init-exp
-  ((lambda (x)
+   ((lambda (x)
      (do* ((y (if x 0 1) (1+ y))
            (z 0 (1+ z)))
           ((= y 3) z)))
-   true)
+    t)
   "(function (x) {
-    return (function () {
-        for (var y = x ? 0 : 1, z = 0; y !== 3; y += 1, z += 1) {
-        };
-        return z;
-    })();
+      for (var y = x ? 0 : 1, z = 0; y !== 3; y += 1, z += 1) {
+      };
+      return z;
 })(true);")
 
 (test-ps-js math-pi
@@ -2302,13 +2304,17 @@ if (foowhat(x)) {
 };")
 
 (test-ps-js switch-loop
-  (case x
-    (1 (dolist (a b))))
-  "switch (x) {
+  (defun foo (x)
+    (case x
+      (1 (dolist (a b)))))
+  "function foo(x) {
+switch (x) {
 case 1:
     for (var a = null, _js_idx1 = 0; _js_idx1 < b.length; _js_idx1 += 1) {
             a = b[_js_idx1];
     };
+    return;
+};
 };")
 
 (test-ps-js switch-folds-blocks
@@ -2909,30 +2915,35 @@ var x = bar();")
 ;; closures in loops need a new binding per loop iteration (idea borrowed from Scheme2JS)
 (test-ps-js loop-closures
  (dotimes (i 10) (lambda () (+ i 1)))
- "for (var i = 0; i < 10; i += 1) {
+ "(function () {
+for (var i = 0; i < 10; i += 1) {
     with ({ i : i }) {
         function () {
             return i + 1;
         };
     };
-};")
+};
+})();")
 
 (test-ps-js loop-closures-let
  (dotimes (i 10)
    (let ((x (+ i 1)))
      (lambda () (+ i x))))
- "for (var i = 0; i < 10; i += 1) {
+ "(function () {
+for (var i = 0; i < 10; i += 1) {
     with ({ i : i, x : null }) {
         var x = i + 1;
         function () {
             return i + x;
         };
     };
-};")
+};
+})();")
 
 (test-ps-js loop-closures-flet
   (dotimes (i 10) (flet ((foo (x) (+ i x))) (lambda () (foo i))))
- "for (var i = 0; i < 10; i += 1) {
+ "(function () {
+for (var i = 0; i < 10; i += 1) {
     with ({ foo : null, i : i }) {
         var foo = function (x) {
             return i + x;
@@ -2941,7 +2952,8 @@ var x = bar();")
             return foo(i);
         };
     };
-};")
+};
+})();")
 
 (test-ps-js while-closures-let
   (while (foo)
@@ -2969,26 +2981,6 @@ var x = bar();")
         return [b, c];
     };
 };")
-
-(test-ps-js return-from-loop
-  (dolist (x '(2 1 3))
-    (when (= x 1)
-      (return))
-    (chain console (log x)))
-  "(function () {
-var loopResultVar3 = null;
-for (var x = null, _js_arrvar2 = [2, 1, 3], _js_idx1 = 0;
-     _js_idx1 < _js_arrvar2.length;
-     _js_idx1 += 1) {
-    x = _js_arrvar2[_js_idx1];
-    if (x === 1) {
-        loopResultVar3 = null;
-        break;
-    };
-    console.log(x);
-};
-return loopResultVar3;
-})();")
 
 (test-ps-js explicit-nil-block
   (defun bar ()
@@ -3130,14 +3122,16 @@ return loopResultVar3;
 
 (test-ps-js iteration-lambda-capture-no-need
   (dolist (x y) (lambda (x) (1+ x))) ;; there's really no need to create a 'with' scope in this case
-  "for (var x = null, _js_idx1 = 0; _js_idx1 < y.length; _js_idx1 += 1) {
+  "(function () {
+for (var x = null, _js_idx1 = 0; _js_idx1 < y.length; _js_idx1 += 1) {
     with ({ x : x }) {
         x = y[_js_idx1];
         function (x) {
             return x + 1;
         };
     };
-};")
+};
+})();")
 
 (test-ps-js case-invert1
   (encodeURIComponent fooBar)
@@ -3167,28 +3161,6 @@ return loopResultVar3;
   "(function (x) {
     if (x) {
         return 1;
-    };
-    return 2;
-});")
-
-(test-ps-js lambda-nil-return-implicit-nested
-  (lambda (x)
-    (block nil
-      (if x
-        (return 1)
-        (dotimes (i 4)
-          (return 1)))
-      2))
-  "(function (x) {
-    if (x) {
-        return 1;
-    } else {
-        var loopResultVar1 = null;
-        for (var i = 0; i < 4; i += 1) {
-            loopResultVar1 = 1;
-            break;
-        };
-        return loopResultVar1;
     };
     return 2;
 });")
@@ -3564,19 +3536,6 @@ return function (x) {
     var x = 1;
     return x;
     return 2;
-})();")
-
-(test-ps-js dolist-return1
-  (dolist (x '(5 2 3))
-    (return (1+ x)))
-  "(function () {
-var loopResultVar3 = null;
-for (var x = null, _js_arrvar2 = [5, 2, 3], _js_idx1 = 0; _js_idx1 < _js_arrvar2.length; _js_idx1 += 1) {
-    x = _js_arrvar2[_js_idx1];
-    loopResultVar3 = x + 1;
-    break;
-};
-return loopResultVar3;
 })();")
 
 (test-ps-js expressionize-if-macroexpand-error

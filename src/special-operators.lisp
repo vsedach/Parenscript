@@ -170,7 +170,11 @@
   (symbol-macrolet
       ((cvalue (when value? (list (compile-expression value))))
        (crest  (mapcar #'compile-expression rest-values)))
-    (acond ((or (eql '%function tag)
+    (acond ((eql tag *current-block-tag*) ;; fixme: multiple values
+            (if value?
+                `(ps-js:block ,@cvalue ,@crest (ps-js:break ,tag))
+                `(ps-js:break ,tag)))
+           ((or (eql '%function tag)
                 (member tag *function-block-names*))
             (if rest-values
                 (with-ps-gensyms (val1 valrest)
@@ -181,10 +185,6 @@
                         (setf (@ arguments :callee :caller :mv) ,valrest))
                       (return-from ,tag ,val1))))
                 `(ps-js:return ,@cvalue)))
-           ((eql tag *current-block-tag*) ;; fixme: multiple values
-            (if value?
-                `(ps-js:block ,@cvalue ,@crest (ps-js:break ,tag))
-                `(ps-js:break ,tag)))
            ((assoc tag *dynamic-return-tags*)
             (setf (cdr it) t)
             (ps-compile `(throw (create

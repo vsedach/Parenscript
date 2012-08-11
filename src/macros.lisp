@@ -301,26 +301,20 @@ lambda-list::=
                          decls))))
 
 (defpsmacro do* (decls (termination &optional (result nil result?)) &body body)
-  (if result?
-      `((lambda ()
-          (for ,(do-make-for-vars/init decls) ((not ,termination)) ,(do-make-for-steps decls)
-               ,@body)
-          ,result))
-      `(for ,(do-make-for-vars/init decls) ((not ,termination)) ,(do-make-for-steps decls)
-            ,@body)))
+  `(block nil
+     (for ,(do-make-for-vars/init decls)
+          ((not ,termination))
+          ,(do-make-for-steps decls)
+          ,@body)
+     ,@(when result? (list result))))
 
 (defpsmacro do (decls (termination &optional (result nil result?)) &body body)
-  (if result?
-      `((lambda ,(do-make-init-vars decls)
-          (for () ((not ,termination)) ()
-               ,@body
-               ,(do-make-iter-psteps decls))
-          ,result)
-        ,@(do-make-init-vals decls))
-      `(let ,(do-make-let-bindings decls)
-         (for () ((not ,termination)) ()
-              ,@body
-              ,(do-make-iter-psteps decls)))))
+  `(block nil
+     (let ,(do-make-let-bindings decls)
+       (for () ((not ,termination)) ()
+            ,@body
+            ,(do-make-iter-psteps decls))
+       ,@(when result? (list result)))))
 
 (defpsmacro dotimes ((var count &optional (result nil result?)) &rest body)
   `(do* ((,var 0 (1+ ,var)))

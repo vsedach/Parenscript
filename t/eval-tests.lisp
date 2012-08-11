@@ -383,3 +383,44 @@
     (funcall (@ bar push) foo)
     bar)
   '(1 2 2 1 3 4 4 2 5 6 6 3 21))
+
+(test-js-eval loop-conditional-return-works
+  (block nil
+    (dotimes (i 10)
+      (if (< 10 i) (return i)))
+    (return -1))
+  -1)
+
+(test-js-eval return-from-loop
+  (let ((a 0))
+    (dolist (x '(2 1 3))
+      (when (= x 1)
+        (return))
+      (incf a))
+    a)
+  1)
+
+(test-js-eval for-loop-var-init-exp
+  ((lambda (x)
+     (do* ((y (if x 0 1) (1+ y))
+           (z 0 (1+ z)))
+          ((= y 3) z)))
+   true)
+  3)
+
+(test-js-eval dolist-return1
+  (dolist (x '(5 2 3))
+    (return (1+ x)))
+  6)
+
+(test-js-eval lambda-nil-return-implicit-nested
+  (progn (defun foo (x)
+           (block nil
+             (if x
+                 (return 1)
+                 (dotimes (i 4)
+                   (return 1)))
+             2))
+
+         (list (foo t) (foo nil)))
+  '(1 2))

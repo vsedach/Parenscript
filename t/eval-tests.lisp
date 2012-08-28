@@ -356,6 +356,14 @@
      do (return (setf x i)))
   3)
 
+(test-js-eval loop-append
+   (loop :for i :from 0 :below 10 :by 3 :append (list i (* i 100)))
+   '(0 0 3 300 6 600 9 900))
+
+(test-js-eval loop-for-on
+   (loop :for (a b) :on '(10 20 30 40 50 60) :by 2 :collect (list b a))
+   '((20 10) (40 30) (60 50)))
+
 (test-js-eval loop-extended-conditional-clauses
   (loop for i :from 0 :to 5
      for x := (1+ i)

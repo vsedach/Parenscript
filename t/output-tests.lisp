@@ -511,6 +511,208 @@ for (var i in obj) {
     this.eat(new Popcorn);
 };")
 
+(test-ps-js loop-for-bindings
+  (loop :for ((a b) (:c :d)) :in arr :do (foo a b c d))
+"var _js2 = arr.length;
+for (var _js1 = 0; _js1 < _js2; _js1 += 1) {
+    var _js4 = arr[_js1];
+    var _js5 = _js4[0];
+    var a = _js5[0];
+    var b = _js5[1];
+    var _js3 = _js4[1];
+    var c = _js3['c'];
+    var d = _js3['d'];
+    foo(a, b, c, d);
+};")
+
+(test-ps-js loop-for-on
+  (loop :for (k v) :on plist :by 2 :do (foo k v))
+  "for (var _js1 = plist; _js1.length > 0; _js1 = _js1['slice'](2)) {
+    var k = _js1[0];
+    var v = _js1[1];
+    foo(k, v);
+};")
+
+(test-ps-js loop-for-keys-of
+  (loop :for k :of obj :do (foo k))
+  "for (var k in obj) {
+    foo(k);
+};")
+
+(test-ps-js loop-for-key-val-pairs-of
+   (loop :for (k v) :of obj :do (foo k v))
+   "for (var k in obj) {
+    var v = obj[k];
+    foo(k, v);
+};")
+
+(test-ps-js loop-for-key-val-pairs-of-with-bindings
+   (loop :for (k (a b)) :of obj :do (foo k a b))
+"for (var k in obj) {
+    var _js1 = obj[k];
+    var a = _js1[0];
+    var b = _js1[1];
+    foo(k, a, b);
+};")
+
+(test-ps-js loop-for-just-vals-of
+   (loop :for (nil v) :of obj :do (foo k v))
+   "for (var _js1 in obj) {
+    var v = obj[_js1];
+    foo(k, v);
+};")
+
+(test-ps-js loop-map-to
+   (loop :for str :in strs :map str :to (length str))
+"(function () {
+    var _js2 = strs.length;
+    var map3 = {  };
+    for (var _js1 = 0; _js1 < _js2; _js1 += 1) {
+        var str = strs[_js1];
+        map3[str] = str.length;
+    };
+    return map3;
+})();")
+
+(test-ps-js loop-for-of-map-to
+   (loop :for k :of obj :map k :to (foo k))
+"(function () {
+    var map1 = {  };
+    for (var k in obj) {
+        map1[k] = foo(k);
+    };
+    return map1;
+})();")
+
+(test-ps-js loop-for-of-when
+   (loop :for k :of obj :when (foo k) :map k :to (bar k))
+"(function () {
+    var map1 = {  };
+    for (var k in obj) {
+        if (foo(k)) {
+            map1[k] = bar(k);
+        };
+    };
+    return map1;
+})();")
+
+(test-ps-js loop-for-in-until-when
+   (loop :for a :in b :until (> a 100) :when (< a 50) :do (foo a))
+"var _js2 = b.length;
+for (var _js1 = 0; _js1 < _js2; _js1 += 1) {
+    var a = b[_js1];
+    if (a > 100) {
+        break;
+    };
+    if (a < 50) {
+        foo(a);
+    };
+};")
+
+(test-ps-js loop-with-for-when
+   (loop :with c = c1 :for d :from c1 :below c2
+     :when (foo c d) :do (setf c d)
+     :do (bar d))
+"var c = c1;
+for (var d = c1; d < c2; d += 1) {
+    if (foo(c, d)) {
+        c = d;
+    };
+    bar(d);
+};")
+
+(test-ps-js loop-for-then-for-in-while
+   (defun blah (c)
+     (loop :for a = (foo) :then (bar) :for b :in c :while b :do (foo a b c)))
+"function blah(c) {
+    var _js2 = c.length;
+    var FIRST3 = true;
+    for (var a = foo(); true; a = bar()) {
+        var _js1 = FIRST3 ? 0 : _js1 + 1;
+        if (_js1 >= _js2) {
+            break;
+        };
+        var b = c[_js1];
+        if (!b) {
+            break;
+        };
+        foo(a, b, c);
+        FIRST3 = null;
+    };
+};")
+
+(test-ps-js loop-while-when
+   (loop :for a = (pop stack) :while a :for (b c) = (foo a) :when b :do (bar c))
+"for (var a = pop(stack); a; a = pop(stack)) {
+    var _js1 = foo(a);
+    var b = _js1[0];
+    var c = _js1[1];
+    if (b) {
+        bar(c);
+    };
+};")
+
+(test-ps-js loop-for-of-for-in
+   (defun blah (obj b)
+     (loop :for k :of obj :for a :in b :do (foo k a)))
+"function blah(obj, b) {
+    var _js2 = b.length;
+    var FIRST3 = true;
+    for (var k in obj) {
+        var _js1 = FIRST3 ? 0 : _js1 + 1;
+        if (_js1 >= _js2) {
+            break;
+        };
+        var a = b[_js1];
+        foo(k, a);
+        FIRST3 = null;
+    };
+};")
+
+(test-ps-js loop-for-dot
+   (loop :for (op . args) :in expr :do (foo op args))
+"var _js2 = expr.length;
+for (var _js1 = 0; _js1 < _js2; _js1 += 1) {
+    var _js3 = expr[_js1];
+    var op = _js3[0];
+    var args = _js3.length > 1 ? _js3.slice(1) : [];
+    foo(op, args);
+};")
+
+(test-ps-js loop-for-rest
+   (loop :for (op &rest args) :in expr :do (foo op args))
+"var _js2 = expr.length;
+for (var _js1 = 0; _js1 < _js2; _js1 += 1) {
+    var _js3 = expr[_js1];
+    var op = _js3[0];
+    var args = _js3.length > 1 ? _js3.slice(1) : [];
+    foo(op, args);
+};")
+
+(test-ps-js loop-collect
+   (setf x (loop :for a :in b :collect (foo a)))
+"x = (function () {
+    var _js2 = b.length;
+    var collect3 = [];
+    for (var _js1 = 0; _js1 < _js2; _js1 += 1) {
+        var a = b[_js1];
+        collect3['push'](foo(a));
+    };
+    return collect3;
+})();")
+
+(test-ps-js loop-append
+   (loop :for a :in b :append a)
+"(function () {
+    var _js2 = b.length;
+    var append3 = [];
+    for (var _js1 = 0; _js1 < _js2; _js1 += 1) {
+        var a = b[_js1];
+        append3 = append3.concat(a);
+    };
+    return append3;
+})();")
+
 (test-ps-js the-case-statement-1
   (case (aref blorg i)
   ((1 "one") (alert "one"))

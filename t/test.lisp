@@ -10,9 +10,13 @@
 (defun remove-duplicate-spaces (str)
   (labels ((spacep (char) (and char (char= char #\Space)))
            (rds (list)
-             (cond ((null list) nil)
-                   ((and (spacep (first list)) (spacep (second list))) (rds (cons #\Space (cddr list))))
-                   (t (cons (car list) (rds (cdr list)))))))
+             (cond ((null list)
+                    nil)
+                   ((and (spacep (first list))
+                         (spacep (second list)))
+                    (rds (cons #\Space (cddr list))))
+                   (t
+                    (cons (car list) (rds (cdr list)))))))
     (coerce (rds (coerce str 'list)) 'string)))
 
 (defun trim-spaces (str)
@@ -20,7 +24,8 @@
 
 (defun remove-spaces-near-brackets (str)
   (let ((cl-ppcre:*use-bmh-matchers* nil))
-    (reduce (lambda (str rex-pair) (cl-ppcre:regex-replace-all (first rex-pair) str (second rex-pair)))
+    (reduce (lambda (str rex-pair)
+              (cl-ppcre:regex-replace-all (first rex-pair) str (second rex-pair)))
             (cons str '(("\\[ " "[") (" \\]" "]") ("\\( " "(") (" \\)" ")"))))))
 
 (defun normalize-js-code (str)
@@ -30,11 +35,13 @@
      (same-space-between-statements
       (normalize-whitespace str))))))
 
-(defmacro test-ps-js (testname parenscript javascript &key (js-target-version *js-target-version*))
+(defmacro test-ps-js (testname parenscript javascript
+                      &key (js-target-version *js-target-version*))
   `(test ,testname ()
-         (is (string= (normalize-js-code (let ((*js-target-version* ,js-target-version))
-                                           (ps-doc* ',parenscript)))
-                      (normalize-js-code ,javascript)))))
+         (is (string= (normalize-js-code ,javascript)
+                      (normalize-js-code
+                       (let ((*js-target-version* ,js-target-version))
+                         (ps-doc* ',parenscript)))))))
 
 (defun jsarray (contents)
   (cl-js:js-array

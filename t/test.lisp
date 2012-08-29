@@ -45,18 +45,23 @@
 
 (defun jsarray (contents)
   (cl-js:js-array
-   (make-array (length contents) :initial-contents contents :adjustable t)))
+   (make-array (length contents)
+               :initial-contents (mapcar (lambda (x)
+                                           (if (listp x)
+                                               (jsarray x)
+                                               x))
+                                         contents)
+               :adjustable t)))
 
 (defmacro test-js-eval (testname parenscript result)
   (let ((js-result (gensym)))
    `(test ,testname ()
       (cl-js:with-js-env ()
         (let ((,js-result (cl-js:run-js (ps-doc* ',parenscript))))
-          (is (funcall (if (typep ,js-result 'structure-object) #'equalp #'equal)
-                       ,js-result
-                       ,(if (atom result)
-                            result
-                            `(jsarray ,result)))))))))
+          (is (equalp ,js-result
+                      ,(if (atom result)
+                           result
+                           `(jsarray ,result)))))))))
 
 (def-suite parenscript-tests)
 (def-suite output-tests :in parenscript-tests)

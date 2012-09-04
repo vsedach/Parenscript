@@ -111,4 +111,6 @@ is output to the OUTPUT-STREAM stream."
   (warn-deprecated 'label 'block)
   `(block ,@args))
 
+(define-ps-symbol-macro f ps-js:false)
+
 (setf %compiling-reserved-forms-p% nil)

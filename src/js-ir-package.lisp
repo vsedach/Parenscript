@@ -73,7 +73,7 @@
    ;; literals
    #:nil
    #:t
-   #:f
+   #:false
    #:undefined
    #:this
 

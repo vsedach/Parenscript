@@ -140,19 +140,33 @@
 ;;; conditionals
 
 (defpsmacro case (value &rest clauses)
-  (labels ((make-clause (val body more)
-             (cond ((and (listp val) (not (eq (car val) 'quote)))
-                    (append (mapcar #'list (butlast val))
-                            (make-clause (first (last val)) body more)))
-                   ((member val '(t otherwise))
-                    (make-clause 'default body more))
-                   (more `((,val ,@body break)))
-                   (t `((,val ,@body))))))
-    `(switch ,value ,@(mapcon (lambda (clause)
-                                (make-clause (car (first clause))
-                                             (cdr (first clause))
-                                             (rest clause)))
-                              clauses))))
+  (let ((allowed-symbols '(t otherwise false %true)))
+   (labels ((make-switch-clause (val body more)
+              (cond ((listp val)
+                     (append (mapcar #'list (butlast val))
+                             (make-switch-clause
+                              (if (eq t (car (last val))) ;; literal 'true'
+                                  '%true
+                                  (car (last val)))
+                              body
+                              more)))
+                    ((and (symbolp val)
+                          (not (keywordp val))
+                          (not (member val allowed-symbols)))
+                     (error "Parenscript only supports keywords, numbers, and string literals as keys in case clauses. ~S is a symbol in clauses ~S"
+                            val clauses))
+                    (t
+                     `((,(case val
+                           ((t otherwise) 'default)
+                           (%true          t)
+                           (t              val))
+                         ,@body
+                         ,@(when more '(break))))))))
+     `(switch ,value ,@(mapcon (lambda (clause)
+                                 (make-switch-clause (car (first clause))
+                                                     (cdr (first clause))
+                                                     (rest clause)))
+                               clauses)))))
 
 (defpsmacro when (test &rest body)
   `(if ,test (progn ,@body)))

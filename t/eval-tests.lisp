@@ -432,3 +432,27 @@
 
          (list (foo t) (foo nil)))
   '(1 2))
+
+(test-js-eval case-clauses0
+  (let* ((foo :bar)
+         (bar :baz)
+         (x bar))
+    (case x
+      ((:foo) 1)
+      ((:bar :baz) 2)))
+  2)
+
+(test-js-eval case-clauses-false
+  (* 2 (case (= 1 2)
+         (1 1)
+         (false 3)
+         (2 5)
+         (otherwise 7)))
+  6)
+
+(test-js-eval case-clauses-true
+  (* 2 (case (= 2 2)
+         (1 1)
+         ((t) 3)
+         (otherwise 7)))
+  6)

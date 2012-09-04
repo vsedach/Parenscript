@@ -22,14 +22,9 @@
   >>         ps-js:>>
   )
 
-;; Common Lisp Hyperspec, 11.1.2.1.2
-;; (defun array (&rest initial-contents)
-;;   (make-array (length initial-contents) :initial-contents initial-contents))
-
 (define-statement-operator continue (&optional label)
   `(ps-js:continue ,label))
 
-;; todo: write CL equivalent
 (define-statement-operator switch (test-expr &rest clauses)
   `(ps-js:switch ,(compile-expression test-expr)
      ,@(loop for (val . body) in clauses collect
@@ -39,7 +34,7 @@
                         (compile-expression val)))
                   (mapcan (lambda (x)
                             (let* ((in-case? t)
-                                   (exp (compile-statement x)))
+                                   (exp      (compile-statement x)))
                               (if (and (listp exp) (eq 'ps-js:block (car exp)))
                                   (cdr exp)
                                   (list exp))))
@@ -132,7 +127,6 @@
           (let ((loop-wrapped? t))
             (compile-statement `(let (,*loop-return-set-var* ,*loop-return-var*)
                                   (,',name ,@whole)
-                                  ;; fix the below so it doesn't give a warning
                                   (when ,*loop-return-set-var*
                                     (return ,*loop-return-var*)))))
           ,loop-body))))
@@ -216,6 +210,5 @@
   "Like concatenate but prints all of its arguments."
   (format nil "~{~A~}" things))
 
-(define-ps-symbol-macro f ps-js:f) ;; probably not a good idea to define 'f' to be a special variable
-(define-ps-symbol-macro false ps-js:f)
+(define-ps-symbol-macro false ps-js:false)
 (defvar false nil)

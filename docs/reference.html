@@ -1009,12 +1009,15 @@ code in the :execute situation, when it is run as JavaScript.</p>
       </dd>
     </dl>
 
-    <p><code>CASE</code> works like its Common Lisp equivalent. An
-    additional form, <code>SWITCH</code>, takes the same syntax
+    <p><code>CASE</code> works similar to its Common Lisp equivalent,
+    but symbol literals are not allowed as keys in clauses - only
+    keywords, numbers, and string literals are. An additional
+    form, <code>SWITCH</code>, takes the same syntax
     as <code>CASE</code>, but the individual branches must be
     terminated with the
     symbol <a href="#break"><code>BREAK</code></a>. This allows
-    C-style case "fall-throughs" in <code>switch</code> statements:</p>
+    C-style case "fall-throughs" in <code>switch</code>
+    statements:</p>
 
     <dl>
       <dt><code>

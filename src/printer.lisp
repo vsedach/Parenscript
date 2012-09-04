@@ -87,7 +87,7 @@ vice-versa.")
 (defmethod ps-print ((x (eql t)))
   (psw "true"))
 
-(defmethod ps-print ((x (eql 'ps-js:f)))
+(defmethod ps-print ((x (eql 'ps-js:false)))
   (psw "false"))
 
 (defmethod ps-print ((s symbol))

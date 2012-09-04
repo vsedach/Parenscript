@@ -81,13 +81,14 @@
    #:concat-string
    #:with
    #:label
+   #:f
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Language
 
    ;; literals
    #:t
-   #:f
+   #:false
    #.(symbol-name 'nil) ; for case-sensitive Lisps like some versions of Allegro
    #:this
    #:undefined

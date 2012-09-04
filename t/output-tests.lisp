@@ -715,9 +715,9 @@ for (var _js1 = 0; _js1 < _js2; _js1 += 1) {
 
 (test-ps-js the-case-statement-1
   (case (aref blorg i)
-  ((1 "one") (alert "one"))
-  (2 (alert "two"))
-  (t (alert "default clause")))
+    ((1 "one") (alert "one"))
+    (2 (alert "two"))
+    (t (alert "default clause")))
   "switch (blorg[i]) {
     case 1:
     case 'one':
@@ -732,9 +732,9 @@ for (var _js1 = 0; _js1 < _js2; _js1 += 1) {
 
 (test-ps-js the-case-statement-2
   (switch (aref blorg i)
-  (1 (alert "If I get here"))
-  (2 (alert "I also get here"))
-  (default (alert "I always get here")))
+    (1 (alert "If I get here"))
+    (2 (alert "I also get here"))
+    (default (alert "I always get here")))
   "switch (blorg[i]) {
     case 1: alert('If I get here');
     case 2: alert('I also get here');
@@ -848,20 +848,20 @@ return element.innerHTML = ['<TEXTAREA', disabled || !authorized ? [' DISABLED=\
   ;; after the alert. Otherwise it continues on the next
   ;; clause.
   (switch (aref blorg i)
-     (1 (alert "one"))
-     (2 (alert "two"))
+     (1       (alert "one"))
+     (2       (alert "two"))
      (default (alert "default clause")))
   "switch (blorg[i]) {
          case 1:   alert('one');
          case 2:   alert('two');
-         default:   alert('default clause');
+         default:  alert('default clause');
          };")
 
 (test-ps-js lisp-like-case
    (case (aref blorg i)
      (1 (alert "one"))
      (2 (alert "two"))
-     (default (alert "default clause")))
+     (t (alert "default clause")))
      "switch (blorg[i]) {
          case 1:
                    alert('one');
@@ -2200,13 +2200,13 @@ return foo(1, 'y', 2);
   (defun foo ()
     (return-from foo
       (case x
-       (a 'eh)
-       (b 'bee))))
+       (:a 'eh)
+       (:b 'bee))))
   "function foo() {
     switch (x) {
-    case a:
+    case 'a':
         return 'eh';
-    case b:
+    case 'b':
         return 'bee';
     };
 };")
@@ -2216,13 +2216,13 @@ return foo(1, 'y', 2);
     (return-from foo
       (macrolet ((x () 1))
         (case (x)
-          (a 'eh)
-          (b 'bee)))))
+          (:a 'eh)
+          (:b 'bee)))))
   "function foo() {
     switch (1) {
-    case a:
+    case 'a':
         return 'eh';
-    case b:
+    case 'b':
         return 'bee';
     };
 };")
@@ -2396,7 +2396,7 @@ if (foowhat(x)) {
         return;
     case 2:
         return x;
-    default:
+    case true:
         return 3;
     };
 };")
@@ -2414,7 +2414,7 @@ if (foowhat(x)) {
         return a ? 1 : 2;
     case 2:
         return x;
-    default:
+    case true:
         return 3;
     };
 };")

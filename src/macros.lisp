@@ -119,23 +119,27 @@
                       (car form)
                       '(with label let flet labels macrolet symbol-macrolet progn)))
             (pop form))))
-    (with-ps-gensyms (mv prev-mv)
-      `(let (,prev-mv)
-         (,(or progn-form 'progn)
-          ,@(when progn-form (butlast form))
-          (setf ,prev-mv (@ arguments :callee :mv))
-          (try
-           (progn
-             (setf (@ arguments :callee :mv) t)
-             (let ((,(car vars) ,(if progn-form (car (last form)) form))
-                   (,mv (if (objectp (@ arguments :callee :mv))
-                            (@ arguments :callee :mv)
-                            (make-array ,(1- (length vars))))))
-               (destructuring-bind ,(cdr vars) ,mv
-                 ,@body)))
-           (:finally (if (undefined ,prev-mv)
-                         (delete (@ arguments :callee :mv))
-                         (setf (@ arguments :callee :mv) ,prev-mv)))))))))
+    (if progn-form
+        `(,progn-form
+           ,@(butlast form)
+           (multiple-value-bind ,vars
+               ,@(last form)
+             ,@body))
+        ;; assume function call
+        (with-ps-gensyms (funobj prev-mv mv)
+          `(let ((,funobj ,(car form))
+                 ,prev-mv)
+             (progn
+               (setf ,prev-mv (@ ,funobj __ps_mv))
+               (try
+                (let ((,mv []))
+                  (setf (@ ,funobj __ps_mv) ,mv)
+                  (let ((,(car vars) (,funobj ,@(cdr form))))
+                    (destructuring-bind (&optional ,@(cdr vars)) ,mv
+                      ,@body)))
+                (:finally (if (undefined ,prev-mv)
+                              (delete (@ ,funobj __ps_mv))
+                              (setf   (@ ,funobj __ps_mv) ,prev-mv))))))))))
 
 ;;; conditionals
 

@@ -325,7 +325,7 @@
            (values 1 2 3))
          (multiple-value-bind (a b c) (foo)
            (list a b c)))
-  '(1 2 3)) ;; cl-js doesn't define callee.caller - fixme
+  '(1 2 3))
 
 (test-js-eval dynamic-extent-function-return-values
   (progn (defun foo ()
@@ -333,7 +333,7 @@
               (return-from foo (values 1 2 3)))))
          (multiple-value-bind (a b c) (foo)
            (list a b c)))
-  '(1 2 3)) ;; cl-js doesn't define callee.caller - fixme
+  '(1 2 3))
 
 (test-js-eval plus-not-associative
   (let ((str "a")
@@ -456,3 +456,18 @@
          ((t) 3)
          (otherwise 7)))
   6)
+
+(test-js-eval multiple-value-call-twice
+  (progn
+    (defun foo (x &optional y z)
+      (if z
+          (values x y z)
+          (values x y)))
+
+    (defun bar ()
+      (foo 1 2 3)
+      (foo 4 5))
+
+    (multiple-value-bind (a b c) (bar)
+      (list a b c)))
+  '(4 5 :undefined))

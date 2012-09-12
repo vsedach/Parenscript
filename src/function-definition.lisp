@@ -112,23 +112,29 @@ Syntax of key spec:
 
 (defun compile-function-body (args body)
   (with-declaration-effects (body body)
-    (let* ((in-function-scope? t)
-           (*vars-needing-to-be-declared* ())
-           (*used-up-names* ())
+    (let* ((in-function-scope?                          t)
+           (*returning-multiple-values*               nil)
+           (*vars-needing-to-be-declared*              ())
+           (*used-up-names*                            ())
            (*enclosing-function-arguments*
             (append args *enclosing-function-arguments*))
            (*enclosing-lexicals*
             (set-difference *enclosing-lexicals* args))
-           (collapsed-body (collapse-function-return-blocks body))
-           (*dynamic-return-tags* (append (mapcar (lambda (x) (cons x nil))
-                                                  *function-block-names*)
-                                          *dynamic-return-tags*))
+           (collapsed-body
+            (collapse-function-return-blocks body))
+           (*dynamic-return-tags*
+            (append (mapcar (lambda (x) (cons x nil))
+                            *function-block-names*)
+                    *dynamic-return-tags*))
            (body
             (let ((in-loop-scope?                 nil)
-                  (*loop-scope-lexicals*          ())
-                  (*loop-scope-lexicals-captured* ()))
-              (compile-statement
-               `(return-from %function (progn ,@collapsed-body)))))
+                  (*loop-scope-lexicals*           ())
+                  (*loop-scope-lexicals-captured*  ()))
+              (cdr
+               (wrap-for-dynamic-return
+                *function-block-names*
+                (compile-statement
+                 `(return-from %function (progn ,@collapsed-body)))))))
            (var-decls
             (compile-statement
              `(progn
@@ -141,7 +147,10 @@ Syntax of key spec:
               (append (intersection (flatten body) *loop-scope-lexicals*)
                       *loop-scope-lexicals-captured*)))
       `(ps-js:block ,@(reverse (cdr var-decls))
-         ,@(cdr (wrap-for-dynamic-return *function-block-names* body))))))
+         ,@(awhen *returning-multiple-values*
+             (list (compile-statement `(var ,it #1=(@ arguments callee __ps_mv)))
+                   (compile-statement `(delete  #1#))))
+         ,@body))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; lambda

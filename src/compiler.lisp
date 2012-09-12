@@ -115,6 +115,16 @@ block.")
 (defvar *current-block-tag* nil
   "Name of the lexically enclosing block, if any.")
 
+(defvar *returning-multiple-values* nil
+  "Does the function being compiled return multiple values? If so, the
+value of this variable is the gensym that will hold the MV array.")
+(defvar values-thrown? nil
+  "To be used with *dynamic-return-tags*")
+
+(defun mv-return-arr ()
+  (or *returning-multiple-values*
+      (setf *returning-multiple-values* (ps-gensym "__mv_return_array"))))
+
 (defvar *special-variables* ()
   "Special variables declared during any Parenscript run. Re-bind this if you want to clear the list.")
 

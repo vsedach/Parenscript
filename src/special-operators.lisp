@@ -132,31 +132,33 @@
   (aif (loop for (tag . thrown?) in *dynamic-return-tags*
              when (and thrown? (member tag handled-tags))
              collect tag)
-      `(ps-js:block
-         (ps-js:try
-          ,body
-          :catch
-          (err
-           ,(compile-statement
-             `(progn
-                (cond
-                  ,@(loop for tag in it collect
-                         `((and err (eql ',tag (getprop err :ps-block-tag)))
-                           ;; FIXME make this a multiple-value return
-                           (when (and (@ arguments :callee :caller)
-                                      (defined (@ arguments :callee :caller :mv)))
-                             (setf (@ arguments :callee :caller :mv)
-                                   (getprop err :ps-return-mv-rest)))
-                           (return-from ,tag (getprop err :ps-return-value))))
-                 (t (throw err))))))
-          :finally nil))
-      body))
+       (with-ps-gensyms (_ps_err mvs i)
+         (flet ((make-catch-clause (tag)
+                  `((and ,_ps_err (eql ',tag (getprop ,_ps_err :ps-block-tag)))
+                    ,@(when values-thrown?
+                       `((let ((,mvs (getprop ,_ps_err :ps-return-mv-rest)))
+                           (when ,mvs
+                             (dotimes (,i (length ,mvs))
+                               (setf (aref ,(mv-return-arr) ,i)
+                                     (aref ,mvs ,i)))))))
+                    (return-from ,tag (getprop ,_ps_err :ps-return-value)))))
+           `(ps-js:block
+               (ps-js:try
+                ,body
+                :catch  (,_ps_err
+                         ,(compile-statement
+                           `(progn (cond
+                                     ,@(mapcar #'make-catch-clause it)
+                                     (t (throw ,_ps_err))))))
+                :finally nil))))
+       body))
 
 (define-statement-operator block (name &rest body)
   (if in-function-scope?
       (let* ((name                  (or name 'nilBlock))
              (in-loop-scope?        (if name in-loop-scope? nil))
              (*dynamic-return-tags* (cons (cons name nil) *dynamic-return-tags*))
+             (values-thrown?        nil)
              (*current-block-tag*   name)
              (compiled-body         (wrap-for-dynamic-return
                                      (list name)
@@ -167,36 +169,60 @@
       (ps-compile (with-lambda-scope `(block ,name ,@body)))))
 
 (defun return-exp (tag &optional (value nil value?) rest-values)
-  (symbol-macrolet
-      ((cvalue (when value? (list (compile-expression value))))
-       (crest  (mapcar #'compile-expression rest-values)))
-    (acond ((eql tag *current-block-tag*) ;; fixme: multiple values
-            (if value?
-                `(ps-js:block ,@cvalue ,@crest (ps-js:break ,tag))
-                `(ps-js:break ,tag)))
+  (flet ((ret1only ()
+           (if value?
+               (let ((form (compile-expression value)))
+                 (if (and (listp form) (eq 'ps-js:funcall (car form)))
+                     (let ((value (if (eq (car value) 'funcall)
+                                      (cdr value)
+                                      value)))
+                       (compile-statement
+                        (with-ps-gensyms (funobj result)
+                          `(let ((,funobj ,(car value)))
+                             (setf (@ ,funobj __ps_mv) ,(mv-return-arr))
+                             ;; need a var because of inf. recursion
+                             (let ((,result (funcall ,funobj ,@(cdr value))))
+                               (unwind-protect
+                                    (return-from ,tag ,result)
+                                 (delete (@ ,funobj __ps_mv))))))))
+                     `(ps-js:return ,form)))
+               `(ps-js:return)))
+         (fill-mv ()
+           (let ((values-array (mv-return-arr)))
+             `((setf ,values-array (or ,values-array []))
+               ,@(loop for i from 0 for x in rest-values collect
+                      `(setf (aref ,values-array ,i) ,x))))))
+    (acond ((eql tag *current-block-tag*)
+            (compile-statement
+             (if value?
+                 `(progn ,value
+                         ,@(when rest-values (fill-mv))
+                         (break ,tag))
+                 `(break ,tag))))
            ((or (eql '%function tag)
                 (member tag *function-block-names*))
             (if rest-values
-                (with-ps-gensyms (val1 valrest)
+                (with-ps-gensyms (val1)
                   (compile-statement
-                   `(let ((,val1 ,value)
-                          (,valrest (list ,@rest-values)))
-                      (when (defined (@ arguments :callee :caller :mv))
-                        (setf (@ arguments :callee :caller :mv) ,valrest))
+                   `(let ((,val1 ,value))
+                      ,@(fill-mv)
                       (return-from ,tag ,val1))))
-                `(ps-js:return ,@cvalue)))
+                (ret1only)))
            ((assoc tag *dynamic-return-tags*)
             (setf (cdr it) t)
-            (ps-compile `(throw (create
-                                 :ps-block-tag      ',tag
-                                 :ps-return-value   ,value
-                                 ,@(when rest-values
-                                    `(:ps-return-mv-rest (list ,@rest-values)))))))
+            (ps-compile
+             `(throw (create
+                      :ps-block-tag      ',tag
+                      :ps-return-value   ,value
+                      ,@(when rest-values
+                          (setf values-thrown? t)
+                         `(:ps-return-mv-rest (list ,@rest-values)))))))
            (t
             (warn "Returning from unknown block ~A" tag)
-            `(ps-js:return ,@cvalue))))) ;; for backwards-compatibility
+            (ret1only))))) ;; for backwards-compatibility
 
 (defun try-expressionizing-if? (exp &optional (score 0)) ;; poor man's codewalker
+  "Heuristic that tries not to expressionize deeply nested if expressions."
   (cond ((< 1 score) nil)
         ((and (listp exp) (eq (car exp) 'quote))
          t)
@@ -254,8 +280,9 @@
           ,@(when in-case? `((t (return-from ,tag nil))))))
      (if
       (if (and (try-expressionizing-if? form)
-               (let ((used-up-names *used-up-names*)
-                     (*lambda-wrappable-statements* ()))
+               (not (find 'values (flatten form)))
+               (let ((used-up-names                   *used-up-names*)
+                     (*lambda-wrappable-statements*                ()))
                  (handler-case (compile-expression form)
                    (compile-expression-error ()
                      (setf *used-up-names* used-up-names)

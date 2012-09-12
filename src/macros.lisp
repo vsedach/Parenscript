@@ -462,6 +462,10 @@ lambda-list::=
     `(try (progn ,@forms)
           (:catch (,e) nil))))
 
+(defpsmacro unwind-protect (protected-form cleanup-form)
+  `(try ,protected-form
+        (:finally ,cleanup-form)))
+
 (defpsmacro prog1 (first &rest others)
   (with-ps-gensyms (val)
     `(let ((,val ,first))

@@ -907,11 +907,12 @@ code in the :execute situation, when it is run as JavaScript.</p>
     <h2 id="section-control-transfer">Control transfer and exceptions</h2>
     <ul>
       <li>(<code id="return">RETURN</code> {value}?)</li>
-      <li>(<code id="trow">THROW</code> {exp}?)</li>
+      <li>(<code id="throw">THROW</code> {exp}?)</li>
       <li>(<code id="try">TRY</code> form
         {(<code id="catch">:CATCH</code> (var) body)}?
-        {(<code id="finaly">:FINALLY</code> body)}?)</li>
-      <li>(<code>IGNORE-ERRORS</code> body)</li>
+        {(<code id="finally">:FINALLY</code> body)}?)</li>
+      <li>(<code id="unwind-protect">UNWIND-PROTECT</code> protected-form cleanup-form)</li>
+      <li>(<code id="ignore-errors">IGNORE-ERRORS</code> body)</li>
     </ul>
 
     <dl>

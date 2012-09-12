@@ -471,3 +471,55 @@
     (multiple-value-bind (a b c) (bar)
       (list a b c)))
   '(4 5 :undefined))
+
+(test-js-eval recursive-values
+  (progn
+    (defun foo (x)
+      (if (= 0 x)
+          (values 1 2 3 4)
+          (progn
+            (foo 0)
+            23)))
+
+    (defun bar ()
+      (foo 1))
+
+    (multiple-value-bind (a b c d) (bar)
+      (list a b c d)))
+  '(23 :undefined :undefined :undefined))
+
+(test-js-eval recursive-values1
+  (progn
+    (defun foo (x)
+      (if (= 0 x)
+          (values 1 2 3)
+          (baz)))
+
+    (defun baz (x)
+      (foo 0)
+      23)
+
+    (defun bar ()
+      (foo 1))
+
+    (multiple-value-bind (a b c d) (bar)
+      (list a b c d)))
+  '(23 :undefined :undefined :undefined))
+
+(test-js-eval values-nonlocal-return
+  (progn
+    (defun foo (x)
+      (if (= 0 x)
+          (values 1 2 3)
+          (progn
+            (foo 0)
+            (throw 23))))
+
+    (defun bar ()
+      (try (foo 1)
+           (:catch (e)
+             27)))
+
+    (multiple-value-bind (a b c) (bar)
+      (list a b c)))
+  '(27 :undefined :undefined))

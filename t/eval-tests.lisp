@@ -544,3 +544,20 @@
     (multiple-value-bind (a b c) (bar 1)
       (list a b c)))
   '(27 :undefined :undefined))
+
+(test-js-eval values-nonlocal-return2
+  (progn
+    (defun foo (x)
+      (try
+       (if (= 0 x)
+           (values 1 2 3)
+           (bar))
+       (:catch (e) 27)))
+
+    (defun bar ()
+      (foo 0)
+      (throw 13))
+
+    (multiple-value-bind (a b c) (foo 1)
+      (list a b c)))
+  '(27 :undefined :undefined))

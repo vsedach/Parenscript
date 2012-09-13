@@ -515,11 +515,11 @@ for (var i in obj) {
   (loop :for ((a b) (:c :d)) :in arr :do (foo a b c d))
 "var _js2 = arr.length;
 for (var _js1 = 0; _js1 < _js2; _js1 += 1) {
-    var _js4 = arr[_js1];
-    var _js5 = _js4[0];
-    var a = _js5[0];
-    var b = _js5[1];
-    var _js3 = _js4[1];
+    var _db4 = arr[_js1];
+    var _db5 = _db4[0];
+    var a = _db5[0];
+    var b = _db5[1];
+    var _js3 = _db4[1];
     var c = _js3['c'];
     var d = _js3['d'];
     foo(a, b, c, d);
@@ -549,9 +549,9 @@ for (var _js1 = 0; _js1 < _js2; _js1 += 1) {
 (test-ps-js loop-for-key-val-pairs-of-with-bindings
    (loop :for (k (a b)) :of obj :do (foo k a b))
 "for (var k in obj) {
-    var _js1 = obj[k];
-    var a = _js1[0];
-    var b = _js1[1];
+    var _db1 = obj[k];
+    var a = _db1[0];
+    var b = _db1[1];
     foo(k, a, b);
 };")
 
@@ -644,9 +644,9 @@ for (var d = c1; d < c2; d += 1) {
 (test-ps-js loop-while-when
    (loop :for a = (pop stack) :while a :for (b c) = (foo a) :when b :do (bar c))
 "for (var a = pop(stack); a; a = pop(stack)) {
-    var _js1 = foo(a);
-    var b = _js1[0];
-    var c = _js1[1];
+    var _db1 = foo(a);
+    var b = _db1[0];
+    var c = _db1[1];
     if (b) {
         bar(c);
     };
@@ -673,9 +673,9 @@ for (var d = c1; d < c2; d += 1) {
    (loop :for (op . args) :in expr :do (foo op args))
 "var _js2 = expr.length;
 for (var _js1 = 0; _js1 < _js2; _js1 += 1) {
-    var _js3 = expr[_js1];
-    var op = _js3[0];
-    var args = _js3.length > 1 ? _js3.slice(1) : [];
+    var _db3 = expr[_js1];
+    var op = _db3[0];
+    var args = _db3.length > 1 ? _db3.slice(1) : [];
     foo(op, args);
 };")
 
@@ -683,9 +683,9 @@ for (var _js1 = 0; _js1 < _js2; _js1 += 1) {
    (loop :for (op &rest args) :in expr :do (foo op args))
 "var _js2 = expr.length;
 for (var _js1 = 0; _js1 < _js2; _js1 += 1) {
-    var _js3 = expr[_js1];
-    var op = _js3[0];
-    var args = _js3.length > 1 ? _js3.slice(1) : [];
+    var _db3 = expr[_js1];
+    var op = _db3[0];
+    var args = _db3.length > 1 ? _db3.slice(1) : [];
     foo(op, args);
 };")
 
@@ -1033,12 +1033,8 @@ __setf_someThing('foo', 1, 2);")
 (test-ps-js return-values
   (defun foo ()  (return-from foo (values 1 2 3)))
   "function foo() {
-    var val1_1 = 1;
-    var valrest2 = [2, 3];
-    if ('undefined' !== typeof arguments['callee']['caller']['mv']) {
-        arguments['callee']['caller']['mv'] = valrest2;
-    };
-    return val1_1;
+    __PS_MV_REG = { 'tag' : arguments.callee, 'values' : [2, 3] };
+    return 1;
 };")
 
 (test-ps-js set-timeout
@@ -2234,23 +2230,17 @@ return foo(1, 'y', 2);
         (doesnt))
     (alert a)
     (alert b))
-  "(function () {
-var prevMv2 = null;
-returnsMv();
-prevMv2 = arguments['callee']['mv'];
+  "returnsMv();
+(function () {
+  var prevMv1 = 'undefined' === typeof __PS_MV_REG ? (__PS_MV_REG = undefined) : __PS_MV_REG;
 try {
-    arguments['callee']['mv'] = true;
     var a = doesnt();
-    var mv1 = typeof arguments['callee']['mv'] === 'object' ? arguments['callee']['mv'] : new Array(1);
-    var b = mv1[0];
+    var _db3 = doesnt === __PS_MV_REG['tag'] ? __PS_MV_REG['values'] : [];
+    var b = _db3[0];
     alert(a);
     return alert(b);
 } finally {
-    if ('undefined' === typeof prevMv2) {
-        delete arguments['callee']['mv'];
-    } else {
-        arguments['callee']['mv'] = prevMv2;
-    };
+    __PS_MV_REG = prevMv1;
 };
 })();")
 
@@ -2262,23 +2252,17 @@ try {
     (alert a)
     (alert b))
   "(function () {
-var prevMv2 = null;
 var a = 1;
 returnsMv(a);
-prevMv2 = arguments['callee']['mv'];
+var prevMv3 = 'undefined' === typeof __PS_MV_REG ? (__PS_MV_REG = undefined) : __PS_MV_REG;
 try {
-    arguments['callee']['mv'] = true;
-    var a3 = doesnt(b);
-    var mv1 = typeof arguments['callee']['mv'] === 'object' ? arguments['callee']['mv'] : new Array(1);
-    var b = mv1[0];
-    alert(a3);
+    var a5 = doesnt(b);
+    var _db6 = doesnt === __PS_MV_REG['tag'] ? __PS_MV_REG['values'] : [];
+    var b = _db6[0];
+    alert(a5);
     return alert(b);
 } finally {
-    if ('undefined' === typeof prevMv2) {
-        delete arguments['callee']['mv'];
-    } else {
-        arguments['callee']['mv'] = prevMv2;
-    };
+    __PS_MV_REG = prevMv3;
 };
 })();")
 
@@ -2286,26 +2270,21 @@ try {
   (multiple-value-bind (a b) (blah)
     (+ a b))
   "(function () {
-var prevMv2 = null;
-prevMv2 = arguments['callee']['mv'];
+    var prevMv1 = 'undefined' === typeof __PS_MV_REG ? (__PS_MV_REG = undefined) : __PS_MV_REG;
 try {
-    arguments['callee']['mv'] = true;
     var a = blah();
-    var mv1 = typeof arguments['callee']['mv'] === 'object' ? arguments['callee']['mv'] : new Array(1);
-    var b = mv1[0];
+    var _db3 = blah === __PS_MV_REG['tag'] ? __PS_MV_REG['values'] : [];
+    var b = _db3[0];
     return a + b;
 } finally {
-    if ('undefined' === typeof prevMv2) {
-        delete arguments['callee']['mv'];
-    } else {
-        arguments['callee']['mv'] = prevMv2;
-    };
+    __PS_MV_REG = prevMv1;
 };
 })();")
 
 (test-ps-js values0
   (lambda () (values))
   "(function () {
+    __PS_MV_REG = {};
     return null;
 });")
 
@@ -2316,34 +2295,23 @@ try {
 (test-ps-js values2
   (lambda () (values x y))
   "(function () {
-var val1_1 = x;
-var valrest2 = [y];
-if ('undefined' !== typeof arguments['callee']['caller']['mv']) {
-    arguments['callee']['caller']['mv'] = valrest2;
-};
-return val1_1;
+__PS_MV_REG = { 'tag' : arguments.callee, 'values' : [y] };
+return x;
 });")
 
 (test-ps-js values3
   (lambda () (values x y z))
   "(function () {
-    var val1_1 = x;
-    var valrest2 = [y, z];
-    if ('undefined' !== typeof arguments['callee']['caller']['mv']) {
-        arguments['callee']['caller']['mv'] = valrest2;
-    };
-    return val1_1;
+    __PS_MV_REG = { 'tag' : arguments.callee, 'values' : [y, z] };
+    return x;
 });")
 
 (test-ps-js values-return
-  (defun foo ()
-    (return-from foo (values x y)))
-  "function foo() {
-    var val1_1 = x;
-    var valrest2 = [y];
-    if ('undefined' !== typeof arguments['callee']['caller']['mv']) {
-        arguments['callee']['caller']['mv'] = valrest2;
-    };
+  (defun foo (x y)
+    (return-from foo (values (* x x) y)))
+  "function foo(x, y) {
+    var val1_1 = x * x;
+    __PS_MV_REG = { 'tag' : arguments.callee, 'values' : [y] };
     return val1_1;
 };")
 
@@ -2452,21 +2420,18 @@ if (foowhat(x)) {
                     var y = x[_js3];
                     foo(y);
                 };
-                throw { 'ps-block-tag' : 'baz',
-                        'ps-return-value' : null };
+                throw { '__ps_block_tag' : 'baz',
+                        '__ps_value1' : null };
             } else {
                 return c;
             };
         });
-    } catch (err) {
-        if (err && 'baz' === err['ps-block-tag']) {
-            if (arguments['callee']['caller'] &&
-                'undefined' !== typeof arguments['callee']['caller']['mv']) {
-                arguments['callee']['caller']['mv'] = err['ps-return-mv-rest'];
-            };
-            return err['ps-return-value'];
+    } catch (_ps_err5) {
+        if (_ps_err5 && 'baz' === _ps_err5['__ps_block_tag']) {
+            __PS_MV_REG = { 'tag' : arguments.callee, 'values' : _ps_err5['__ps_values'] };
+            return _ps_err5['__ps_value1'];
         } else {
-            throw err;
+            throw _ps_err5;
         };
     };
 };")
@@ -3172,16 +3137,14 @@ for (var i = 0; i < 10; i += 1) {
   "function foo() {
     try {
         return (function () {
-            throw { 'ps-block-tag' : 'foo', 'ps-return-value' : 6 };
+            throw { '__ps_block_tag' : 'foo', '__ps_value1' : 6 };
         })();
-    } catch (err) {
-        if (err && 'foo' === err['ps-block-tag']) {
-            if (arguments['callee']['caller'] && 'undefined' !== typeof arguments['callee']['caller']['mv']) {
-                arguments['callee']['caller']['mv'] = err['ps-return-mv-rest'];
-            };
-            return err['ps-return-value'];
+    } catch (_ps_err1) {
+        if (_ps_err1 && 'foo' === _ps_err1['__ps_block_tag']) {
+            __PS_MV_REG = { 'tag' : arguments.callee, 'values' : _ps_err1['__ps_values'] };
+            return _ps_err1['__ps_value1'];
         } else {
-            throw err;
+            throw _ps_err1;
         };
     };
 };")
@@ -3193,16 +3156,14 @@ for (var i = 0; i < 10; i += 1) {
   "function foo() {
     try {
         return (function () {
-            throw { 'ps-block-tag' : 'foo', 'ps-return-value' : null };
+            throw { '__ps_block_tag' : 'foo', '__ps_value1' : null };
         })();
-    } catch (err) {
-        if (err && 'foo' === err['ps-block-tag']) {
-            if (arguments['callee']['caller'] && 'undefined' !== typeof arguments['callee']['caller']['mv']) {
-                arguments['callee']['caller']['mv'] = err['ps-return-mv-rest'];
-            };
-            return err['ps-return-value'];
+    } catch (_ps_err1) {
+        if (_ps_err1 && 'foo' === _ps_err1['__ps_block_tag']) {
+            __PS_MV_REG = { 'tag' : arguments.callee, 'values' : _ps_err1['__ps_values'] };
+            return _ps_err1['__ps_value1'];
         } else {
-            throw err;
+            throw _ps_err1;
         };
     };
 };")
@@ -3213,17 +3174,18 @@ for (var i = 0; i < 10; i += 1) {
        (return-from foo (values 1 2 3)))))
   "function foo() {
     try {
+        __PS_MV_REG = {};
         return (function () {
-            throw { 'ps-block-tag' : 'foo', 'ps-return-value' : 1, 'ps-return-mv-rest' : [2, 3] };
+            throw { '__ps_block_tag' : 'foo',
+                    '__ps_value1' : 1,
+                    '__ps_values' : [2, 3] };
         })();
-    } catch (err) {
-        if (err && 'foo' === err['ps-block-tag']) {
-            if (arguments['callee']['caller'] && 'undefined' !== typeof arguments['callee']['caller']['mv']) {
-                arguments['callee']['caller']['mv'] = err['ps-return-mv-rest'];
-            };
-            return err['ps-return-value'];
+    } catch (_ps_err1) {
+        if (_ps_err1 && 'foo' === _ps_err1['__ps_block_tag']) {
+            __PS_MV_REG = { 'tag' : arguments.callee, 'values' : _ps_err1['__ps_values'] };
+            return _ps_err1['__ps_value1'];
         } else {
-            throw err;
+            throw _ps_err1;
         };
     };
 };")
@@ -3235,16 +3197,14 @@ for (var i = 0; i < 10; i += 1) {
   "function foo() {
     try {
         return (function () {
-            throw { 'ps-block-tag' : 'foo', 'ps-return-value' : baz ? 6 : 5 };
+            throw { '__ps_block_tag' : 'foo', '__ps_value1' : baz ? 6 : 5 };
         })();
-    } catch (err) {
-        if (err && 'foo' === err['ps-block-tag']) {
-            if (arguments['callee']['caller'] && 'undefined' !== typeof arguments['callee']['caller']['mv']) {
-                arguments['callee']['caller']['mv'] = err['ps-return-mv-rest'];
-            };
-            return err['ps-return-value'];
+    } catch (_ps_err1) {
+        if (_ps_err1 && 'foo' === _ps_err1['__ps_block_tag']) {
+            __PS_MV_REG = { 'tag' : arguments.callee, 'values' : _ps_err1['__ps_values'] };
+            return _ps_err1['__ps_value1'];
         } else {
-            throw err;
+            throw _ps_err1;
         };
     };
 };")
@@ -3257,17 +3217,15 @@ for (var i = 0; i < 10; i += 1) {
   "var foo = (function () {
     try {
         (function () {
-            throw { 'ps-block-tag' : 'nilBlock', 'ps-return-value' : 6 };
+            throw { '__ps_block_tag' : 'nilBlock', '__ps_value1' : 6 };
         })();
         return 1 + 2;
-    } catch (err) {
-        if (err && 'nilBlock' === err['ps-block-tag']) {
-            if (arguments['callee']['caller'] && 'undefined' !== typeof arguments['callee']['caller']['mv']) {
-                arguments['callee']['caller']['mv'] = err['ps-return-mv-rest'];
-            };
-            return err['ps-return-value'];
+    } catch (_ps_err1) {
+        if (_ps_err1 && 'nilBlock' === _ps_err1['__ps_block_tag']) {
+            __PS_MV_REG = { 'tag' : arguments.callee, 'values' : _ps_err1['__ps_values'] };
+            return _ps_err1['__ps_value1'];
         } else {
-            throw err;
+            throw _ps_err1;
         };
     };
 })();")

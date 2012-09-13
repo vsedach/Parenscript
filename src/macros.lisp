@@ -126,20 +126,23 @@
                ,@(last form)
              ,@body))
         ;; assume function call
-        (with-ps-gensyms (funobj prev-mv mv)
-          `(let ((,funobj ,(car form))
-                 ,prev-mv)
-             (progn
-               (setf ,prev-mv (@ ,funobj __ps_mv))
-               (try
-                (let ((,mv []))
-                  (setf (@ ,funobj __ps_mv) ,mv)
-                  (let ((,(car vars) (,funobj ,@(cdr form))))
-                    (destructuring-bind (&optional ,@(cdr vars)) ,mv
-                      ,@body)))
-                (:finally (if (undefined ,prev-mv)
-                              (delete (@ ,funobj __ps_mv))
-                              (setf   (@ ,funobj __ps_mv) ,prev-mv))))))))))
+        (with-ps-gensyms (prev-mv mv)
+          (let* ((fun-exp (car form))
+                 (funobj (if (symbolp fun-exp)
+                             fun-exp
+                             (ps-gensym "funobj"))))
+           `(let (,@(unless (symbolp fun-exp) `((,funobj ,fun-exp)))
+                  (,prev-mv (if (undefined __PS_MV_REG)
+                                (setf __PS_MV_REG undefined)
+                                __PS_MV_REG)))
+              (try
+               (let ((,(car vars) (,funobj ,@(cdr form))))
+                 (destructuring-bind (&optional ,@(cdr vars))
+                     (if (eql ,funobj (@ __PS_MV_REG :tag))
+                         (@ __PS_MV_REG :values)
+                         (list))
+                   ,@body))
+               (:finally (setf __PS_MV_REG ,prev-mv)))))))))
 
 ;;; conditionals
 
@@ -391,7 +394,7 @@ lambda-list::=
 
 (defpsmacro destructuring-bind (bindings expr &body body)
   (setf bindings (dot->rest bindings))
-  (let* ((arr (if (hoist-expr? bindings expr) (ps-gensym) expr))
+  (let* ((arr (if (hoist-expr? bindings expr) (ps-gensym "_DB") expr))
          (bound (destructuring-wrap arr 0 bindings (cons 'progn body))))
     (cond ((eq arr expr) bound)
           (t `(let ((,arr ,expr)) ,bound)))))

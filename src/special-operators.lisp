@@ -128,28 +128,30 @@
 (define-statement-operator progn (&rest body)
   `(ps-js:block ,@(compile-progn body)))
 
+(defun fill-mv-reg (values)
+  `(setf __PS_MV_REG (create :tag    (@ arguments callee)
+                             :values ,values)))
+
+(defvar suppress-values?)
+
 (defun wrap-for-dynamic-return (handled-tags body)
   (aif (loop for (tag . thrown?) in *dynamic-return-tags*
              when (and thrown? (member tag handled-tags))
              collect tag)
        (with-ps-gensyms (_ps_err mvs i)
          (flet ((make-catch-clause (tag)
-                  `((and ,_ps_err (eql ',tag (getprop ,_ps_err :ps-block-tag)))
-                    ,@(when values-thrown?
-                       `((let ((,mvs (getprop ,_ps_err :ps-return-mv-rest)))
-                           (when ,mvs
-                             (dotimes (,i (length ,mvs))
-                               (setf (aref ,(mv-return-arr) ,i)
-                                     (aref ,mvs ,i)))))))
-                    (return-from ,tag (getprop ,_ps_err :ps-return-value)))))
+                  `((and ,_ps_err (eql ',tag (getprop ,_ps_err :__ps_block_tag)))
+                    ,(fill-mv-reg `(getprop ,_ps_err :__ps_values))
+                    (return-from ,tag (getprop ,_ps_err :__ps_value1)))))
            `(ps-js:block
                (ps-js:try
                 ,body
-                :catch  (,_ps_err
-                         ,(compile-statement
-                           `(progn (cond
-                                     ,@(mapcar #'make-catch-clause it)
-                                     (t (throw ,_ps_err))))))
+                :catch   (,_ps_err
+                          ,(let ((suppress-values? nil))
+                             (compile-statement
+                              `(progn (cond
+                                        ,@(mapcar #'make-catch-clause it)
+                                        (t (throw ,_ps_err)))))))
                 :finally nil))))
        body))
 
@@ -158,7 +160,6 @@
       (let* ((name                  (or name 'nilBlock))
              (in-loop-scope?        (if name in-loop-scope? nil))
              (*dynamic-return-tags* (cons (cons name nil) *dynamic-return-tags*))
-             (values-thrown?        nil)
              (*current-block-tag*   name)
              (compiled-body         (wrap-for-dynamic-return
                                      (list name)
@@ -170,28 +171,15 @@
 
 (defun return-exp (tag &optional (value nil value?) rest-values)
   (flet ((ret1only ()
-           (if value?
-               (let ((form (compile-expression value)))
-                 (if (and (listp form) (eq 'ps-js:funcall (car form)))
-                     (let ((value (if (eq (car value) 'funcall)
-                                      (cdr value)
-                                      value)))
-                       (compile-statement
-                        (with-ps-gensyms (funobj result)
-                          `(let ((,funobj ,(car value)))
-                             (setf (@ ,funobj __ps_mv) ,(mv-return-arr))
-                             ;; need a var because of inf. recursion
-                             (let ((,result (funcall ,funobj ,@(cdr value))))
-                               (unwind-protect
-                                    (return-from ,tag ,result)
-                                 (delete (@ ,funobj __ps_mv))))))))
-                     `(ps-js:return ,form)))
-               `(ps-js:return)))
+           (let ((ret `(ps-js:return
+                         ,@(when value?
+                                 (list (compile-expression value))))))
+             (if suppress-values?
+                 `(ps-js:block (ps-js:= __PS_MV_REG {})
+                               ,ret)
+                 ret)))
          (fill-mv ()
-           (let ((values-array (mv-return-arr)))
-             `((setf ,values-array (or ,values-array []))
-               ,@(loop for i from 0 for x in rest-values collect
-                      `(setf (aref ,values-array ,i) ,x))))))
+           (list (fill-mv-reg `(list ,@rest-values)))))
     (acond ((eql tag *current-block-tag*)
             (compile-statement
              (if value?
@@ -202,21 +190,24 @@
            ((or (eql '%function tag)
                 (member tag *function-block-names*))
             (if rest-values
-                (with-ps-gensyms (val1)
-                  (compile-statement
-                   `(let ((,val1 ,value))
-                      ,@(fill-mv)
-                      (return-from ,tag ,val1))))
+                (let* ((cvalue (compile-expression value))
+                       (val1   (unless (or (constantp cvalue)
+                                           (symbolp   cvalue))
+                                 (ps-gensym "VAL1_"))))
+                  (let ((suppress-values? nil))
+                    (compile-statement
+                     `(let ,(when val1 `((,val1 ,value)))
+                        ,@(fill-mv)
+                        (return-from ,tag ,(or val1 value))))))
                 (ret1only)))
            ((assoc tag *dynamic-return-tags*)
             (setf (cdr it) t)
             (ps-compile
              `(throw (create
-                      :ps-block-tag      ',tag
-                      :ps-return-value   ,value
+                      :__ps_block_tag      ',tag
+                      :__ps_value1          ,value
                       ,@(when rest-values
-                          (setf values-thrown? t)
-                         `(:ps-return-mv-rest (list ,@rest-values)))))))
+                         `(:__ps_values (list ,@rest-values)))))))
            (t
             (warn "Returning from unknown block ~A" tag)
             (ret1only))))) ;; for backwards-compatibility

@@ -457,20 +457,21 @@
          (otherwise 7)))
   6)
 
-(test-js-eval multiple-value-call-twice
-  (progn
-    (defun foo (x &optional y z)
-      (if z
-          (values x y z)
-          (values x y)))
+;;; needs MV pass-through to work
+;; (test-js-eval multiple-value-call-twice
+;;   (progn
+;;     (defun foo (x &optional y z)
+;;       (if z
+;;           (values x y z)
+;;           (values x y)))
 
-    (defun bar ()
-      (foo 1 2 3)
-      (foo 4 5))
+;;     (defun bar ()
+;;       (foo 1 2 3)
+;;       (foo 4 5))
 
-    (multiple-value-bind (a b c) (bar)
-      (list a b c)))
-  '(4 5 :undefined))
+;;     (multiple-value-bind (a b c) (bar)
+;;       (list a b c)))
+;;   '(4 5 :undefined))
 
 (test-js-eval recursive-values
   (progn

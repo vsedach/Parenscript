@@ -113,7 +113,6 @@ Syntax of key spec:
 (defun compile-function-body (args body)
   (with-declaration-effects (body body)
     (let* ((in-function-scope?                          t)
-           (*returning-multiple-values*               nil)
            (*vars-needing-to-be-declared*              ())
            (*used-up-names*                            ())
            (*enclosing-function-arguments*
@@ -122,6 +121,8 @@ Syntax of key spec:
             (set-difference *enclosing-lexicals* args))
            (collapsed-body
             (collapse-function-return-blocks body))
+           (suppress-values?
+            (find 'values (flatten body)))
            (*dynamic-return-tags*
             (append (mapcar (lambda (x) (cons x nil))
                             *function-block-names*)
@@ -147,9 +148,6 @@ Syntax of key spec:
               (append (intersection (flatten body) *loop-scope-lexicals*)
                       *loop-scope-lexicals-captured*)))
       `(ps-js:block ,@(reverse (cdr var-decls))
-         ,@(awhen *returning-multiple-values*
-             (list (compile-statement `(var ,it #1=(@ arguments callee __ps_mv)))
-                   (compile-statement `(delete  #1#))))
          ,@body))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

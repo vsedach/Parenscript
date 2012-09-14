@@ -1011,9 +1011,14 @@ code in the :execute situation, when it is run as JavaScript.</p>
     </dl>
 
     <p><code>CASE</code> works similar to its Common Lisp equivalent,
-    but symbol literals are not allowed as keys in clauses - only
-    keywords, numbers, and string literals are. An additional
-    form, <code>SWITCH</code>, takes the same syntax
+    but keys are limited to keywords, numbers, and strings, and the
+    symbols <tt>t</tt> and <tt>otherwise</tt>. Any other symbols used
+    as keys are assumed to be symbol-macros that macroexpand to
+    numbers or strings (this behavior differs from Common Lisp, which
+    does not macroexpand keys). If the symbol does not macroexpand to
+    a number or string, an error is signalled.
+
+    An additional form, <code>SWITCH</code>, takes the same syntax
     as <code>CASE</code>, but the individual branches must be
     terminated with the
     symbol <a href="#break"><code>BREAK</code></a>. This allows

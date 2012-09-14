@@ -158,6 +158,7 @@
                               body
                               more)))
                     ((and (symbolp val)
+                          (symbolp (ps-macroexpand-1 val))
                           (not (keywordp val))
                           (not (member val allowed-symbols)))
                      (error "Parenscript only supports keywords, numbers, and string literals as keys in case clauses. ~S is a symbol in clauses ~S"
@@ -166,7 +167,7 @@
                      `((,(case val
                            ((t otherwise) 'default)
                            (%true          t)
-                           (t              val))
+                           (t              (ps-macroexpand-1 val)))
                          ,@body
                          ,@(when more '(break))))))))
      `(switch ,value ,@(mapcon (lambda (clause)

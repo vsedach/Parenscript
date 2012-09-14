@@ -562,3 +562,12 @@
     (multiple-value-bind (a b c) (foo 1)
       (list a b c)))
   '(27 :undefined :undefined))
+
+(test-js-eval case-symbol-macro-key
+  (symbol-macrolet ((x 1))
+    (let ((blah 1))
+      (case blah
+        (0 3)
+        (x 7)
+        (t 13))))
+  7)

@@ -364,6 +364,12 @@
    (loop :for (a b) :on '(10 20 30 40 50 60) :by 2 :collect (list b a))
    '((20 10) (40 30) (60 50)))
 
+(test-js-eval loop-parallel-clauses-with-return
+   (loop :for i :from 0 :below 10 :for x = (* i 10)
+     :when (> i 5) :do (return x)
+     :collect i)
+   60)
+
 (test-js-eval loop-extended-conditional-clauses
   (loop for i :from 0 :to 5
      for x := (1+ i)

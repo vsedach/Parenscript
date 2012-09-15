@@ -513,7 +513,8 @@ for (var i in obj) {
 
 (test-ps-js loop-for-bindings
   (loop :for ((a b) (:c :d)) :in arr :do (foo a b c d))
-"var _js2 = arr.length;
+"(function () {
+var _js2 = arr.length;
 for (var _js1 = 0; _js1 < _js2; _js1 += 1) {
     var _db4 = arr[_js1];
     var _db5 = _db4[0];
@@ -523,44 +524,55 @@ for (var _js1 = 0; _js1 < _js2; _js1 += 1) {
     var c = _js3['c'];
     var d = _js3['d'];
     foo(a, b, c, d);
-};")
+};
+})();")
 
 (test-ps-js loop-for-on
   (loop :for (k v) :on plist :by 2 :do (foo k v))
-  "for (var _js1 = plist; _js1.length > 0; _js1 = _js1['slice'](2)) {
+  "(function () {
+for (var _js1 = plist; _js1.length > 0; _js1 = _js1['slice'](2)) {
     var k = _js1[0];
     var v = _js1[1];
     foo(k, v);
-};")
+};
+})();")
 
 (test-ps-js loop-for-keys-of
   (loop :for k :of obj :do (foo k))
-  "for (var k in obj) {
+  "(function () {
+for (var k in obj) {
     foo(k);
-};")
+};
+})();")
 
 (test-ps-js loop-for-key-val-pairs-of
    (loop :for (k v) :of obj :do (foo k v))
-   "for (var k in obj) {
+   "(function () {
+for (var k in obj) {
     var v = obj[k];
     foo(k, v);
-};")
+};
+})();")
 
 (test-ps-js loop-for-key-val-pairs-of-with-bindings
    (loop :for (k (a b)) :of obj :do (foo k a b))
-"for (var k in obj) {
+"(function () {
+for (var k in obj) {
     var _db1 = obj[k];
     var a = _db1[0];
     var b = _db1[1];
     foo(k, a, b);
-};")
+};
+})();")
 
 (test-ps-js loop-for-just-vals-of
    (loop :for (nil v) :of obj :do (foo k v))
-   "for (var _js1 in obj) {
+   "(function () {
+for (var _js1 in obj) {
     var v = obj[_js1];
     foo(k, v);
-};")
+};
+})();")
 
 (test-ps-js loop-map-to
    (loop :for str :in strs :map str :to (length str))
@@ -598,7 +610,8 @@ for (var _js1 = 0; _js1 < _js2; _js1 += 1) {
 
 (test-ps-js loop-for-in-until-when
    (loop :for a :in b :until (> a 100) :when (< a 50) :do (foo a))
-"var _js2 = b.length;
+"(function () {
+var _js2 = b.length;
 for (var _js1 = 0; _js1 < _js2; _js1 += 1) {
     var a = b[_js1];
     if (a > 100) {
@@ -607,19 +620,22 @@ for (var _js1 = 0; _js1 < _js2; _js1 += 1) {
     if (a < 50) {
         foo(a);
     };
-};")
+};
+})();")
 
 (test-ps-js loop-with-for-when
    (loop :with c = c1 :for d :from c1 :below c2
      :when (foo c d) :do (setf c d)
      :do (bar d))
-"var c = c1;
+"(function () {
+var c = c1;
 for (var d = c1; d < c2; d += 1) {
     if (foo(c, d)) {
         c = d;
     };
     bar(d);
-};")
+};
+})();")
 
 (test-ps-js loop-for-then-for-in-while
    (defun blah (c)
@@ -643,14 +659,16 @@ for (var d = c1; d < c2; d += 1) {
 
 (test-ps-js loop-while-when
    (loop :for a = (pop stack) :while a :for (b c) = (foo a) :when b :do (bar c))
-"for (var a = pop(stack); a; a = pop(stack)) {
+"(function () {
+for (var a = pop(stack); a; a = pop(stack)) {
     var _db1 = foo(a);
     var b = _db1[0];
     var c = _db1[1];
     if (b) {
         bar(c);
     };
-};")
+};
+})();")
 
 (test-ps-js loop-for-of-for-in
    (defun blah (obj b)
@@ -671,23 +689,27 @@ for (var d = c1; d < c2; d += 1) {
 
 (test-ps-js loop-for-dot
    (loop :for (op . args) :in expr :do (foo op args))
-"var _js2 = expr.length;
+"(function () {
+var _js2 = expr.length;
 for (var _js1 = 0; _js1 < _js2; _js1 += 1) {
     var _db3 = expr[_js1];
     var op = _db3[0];
     var args = _db3.length > 1 ? _db3.slice(1) : [];
     foo(op, args);
-};")
+};
+})();")
 
 (test-ps-js loop-for-rest
    (loop :for (op &rest args) :in expr :do (foo op args))
-"var _js2 = expr.length;
+"(function () {
+var _js2 = expr.length;
 for (var _js1 = 0; _js1 < _js2; _js1 += 1) {
     var _db3 = expr[_js1];
     var op = _db3[0];
     var args = _db3.length > 1 ? _db3.slice(1) : [];
     foo(op, args);
-};")
+};
+})();")
 
 (test-ps-js loop-collect
    (setf x (loop :for a :in b :collect (foo a)))
@@ -3699,13 +3721,15 @@ var baz = 2;")
      (let ((block (elt blocks i)))
        (foo block)
        (lambda () nil)))
-  "for (var i = 0; i < 5; i += 1) {
+  "(function () {
+for (var i = 0; i < 5; i += 1) {
     var block = blocks[i];
     foo(block);
     function () {
         return null;
     };
-};")
+};
+})();")
 
 (test-ps-js broken-quote-expansion1
   (lambda (p)

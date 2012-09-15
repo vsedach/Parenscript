@@ -250,24 +250,29 @@ form, FORM, returns the new value for *compilation-level*."
           (t (error 'compile-expression-error :form form)))))
 
 (defun ps-compile (form)
-  (typecase form
-    ((or null number string character) form)
-    (vector (ps-compile `(quote ,(coerce form 'list))))
-    ((or symbol list)
-     (multiple-value-bind (expansion expanded?) (ps-macroexpand form)
-       (if expanded?
-           (ps-compile expansion)
-           (if (symbolp form)
-               form
-               (let ((*compilation-level*
-                      (adjust-compilation-level form *compilation-level*)))
-                 (if (special-form? form)
-                     (compile-special-form form)
-                     `(ps-js:funcall
-                       ,(if (symbolp (car form))
-                            (maybe-rename-local-function (car form))
-                            (compile-expression (car form)))
-                       ,@(mapcar #'compile-expression (cdr form)))))))))))
+  (macrolet ((try-expanding (form &body body)
+               `(multiple-value-bind (expansion expanded?) (ps-macroexpand ,form)
+                  (if expanded?
+                      (ps-compile expansion)
+                      ,@body))))
+    (typecase form
+      ((or null number string character)
+       form)
+      (vector
+       (ps-compile `(quote ,(coerce form 'list))))
+      (symbol
+       (try-expanding form form))
+      (cons
+       (try-expanding form
+         (let ((*compilation-level*
+                (adjust-compilation-level form *compilation-level*)))
+           (if (special-form? form)
+               (compile-special-form form)
+               `(ps-js:funcall
+                 ,(if (symbolp (car form))
+                      (maybe-rename-local-function (car form))
+                      (compile-expression (car form)))
+                 ,@(mapcar #'compile-expression (cdr form))))))))))
 
 (defun compile-statement (form)
   (let ((compile-expression? nil))

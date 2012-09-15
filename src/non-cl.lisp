@@ -115,40 +115,21 @@
 
 ;;; iteration
 
-(defvar loop-wrapped? nil
-  "Bind to T when wrapping to avoid infinite recursion.")
-
-(defmacro wrap-loop-for-return (name loop)
-  (let ((loop-body (gensym)))
-   `(let* ((*loop-return-var* nil)
-           (*loop-return-set-var* nil)
-           (,loop-body ,loop))
-      (if (and *loop-return-set-var* (not loop-wrapped?))
-          (let ((loop-wrapped? t))
-            (compile-statement `(let (,*loop-return-set-var* ,*loop-return-var*)
-                                  (,',name ,@whole)
-                                  (when ,*loop-return-set-var*
-                                    (return ,*loop-return-var*)))))
-          ,loop-body))))
-
 (define-statement-operator for (init-forms cond-forms step-forms &body body)
   (let ((init-forms (make-for-vars/inits init-forms)))
-    (wrap-loop-for-return for
-     `(ps-js:for ,init-forms
-                 ,(mapcar #'compile-expression cond-forms)
-                 ,(mapcar #'compile-expression step-forms)
-                 ,(compile-loop-body (mapcar #'car init-forms) body)))))
+    `(ps-js:for ,init-forms
+                ,(mapcar #'compile-expression cond-forms)
+                ,(mapcar #'compile-expression step-forms)
+                ,(compile-loop-body (mapcar #'car init-forms) body))))
 
 (define-statement-operator for-in ((var object) &rest body)
-  (wrap-loop-for-return for-in
-   `(ps-js:for-in ,(compile-expression var)
-                  ,(compile-expression object)
-                  ,(compile-loop-body (list var) body))))
+  `(ps-js:for-in ,(compile-expression var)
+                 ,(compile-expression object)
+                 ,(compile-loop-body (list var) body)))
 
 (define-statement-operator while (test &rest body)
-  (wrap-loop-for-return while
-   `(ps-js:while ,(compile-expression test)
-      ,(compile-loop-body () body))))
+  `(ps-js:while ,(compile-expression test)
+     ,(compile-loop-body () body)))
 
 (defmacro while (test &body body)
   `(loop while ,test do (progn ,@body)))

@@ -138,7 +138,7 @@
   (aif (loop for (tag . thrown?) in *dynamic-return-tags*
              when (and thrown? (member tag handled-tags))
              collect tag)
-       (with-ps-gensyms (_ps_err mvs i)
+       (with-ps-gensyms (_ps_err)
          (flet ((make-catch-clause (tag)
                   `((and ,_ps_err (eql ',tag (getprop ,_ps_err :__ps_block_tag)))
                     ,(fill-mv-reg `(getprop ,_ps_err :__ps_values))
@@ -298,21 +298,12 @@ Parenscript now implements implicit return, update your code! Things like (lambd
               (t (compile-statement form))))))))
 
 (define-statement-operator return-from (tag &optional result)
-  (cond (tag
-         (let ((form (ps-macroexpand result)))
-           (cond ((atom form)             (return-exp tag form))
-                 ((eq 'values (car form)) (return-exp tag (cadr form) (cddr form)))
-                 (t                       (expressionize-result tag form)))))
-        (in-loop-scope?
-         (setf *loop-return-set-var* (or *loop-return-set-var*
-                                         (ps-gensym "loop-result-var-set"))
-               *loop-return-var* (or *loop-return-var*
-                                     (ps-gensym "loop-result-var")))
-         (compile-statement `(progn (setf ,*loop-return-set-var* t
-                                          ,*loop-return-var* ,result)
-                                    (break))))
-        (t
-         (ps-compile `(return-from nilBlock ,result)))))
+  (if tag
+      (let ((form (ps-macroexpand result)))
+        (cond ((atom form)             (return-exp tag form))
+              ((eq 'values (car form)) (return-exp tag (cadr form) (cddr form)))
+              (t                       (expressionize-result tag form))))
+      (ps-compile `(return-from nilBlock ,result))))
 
 
 (define-expression-operator values (&optional main &rest additional)
@@ -545,14 +536,13 @@ Parenscript now implements implicit return, update your code! Things like (lambd
           init-forms))
 
 (defun compile-loop-body (loop-vars body)
-  (let* ((in-loop-scope? t)
-         (in-function-scope? t) ;; not really, but we provide lexical
-                                ;; bindings for all free variables
-                                ;; using WITH
-         (*loop-scope-lexicals* loop-vars)
-         (*loop-scope-lexicals-captured* ())
-         (*ps-gensym-counter* *ps-gensym-counter*)
-         (compiled-body (compile-statement `(progn ,@body))))
+  (let* ((in-loop-scope?                                                    t)
+         ;; provides lexical bindings for all free variables using WITH
+         (in-function-scope?                                                t)
+         (*loop-scope-lexicals*                                     loop-vars)
+         (*loop-scope-lexicals-captured*                                   ())
+         (*ps-gensym-counter*                             *ps-gensym-counter*)
+         (compiled-body                   (compile-statement `(progn ,@body))))
     ;; the sort is there to make order for output-tests consistent across implementations
     (aif (sort (remove-duplicates *loop-scope-lexicals-captured*)
                #'string< :key #'symbol-name)

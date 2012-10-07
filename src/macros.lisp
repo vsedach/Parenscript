@@ -41,6 +41,7 @@
     (atanh (n) `((lambda (x) (/ (- (log (+ 1 x)) (log (- 1 x))) 2)) ,n))
     (1+ (n) `(+ ,n 1))
     (1- (n) `(- ,n 1))
+    (mod (x n) `((lambda (n) (rem (+ (rem ,x n) n) n)) ,n))
     (abs (n) `((@ *math abs) ,n))
     (evenp (n) `(not (oddp ,n)))
     (oddp (n) `(rem ,n 2))

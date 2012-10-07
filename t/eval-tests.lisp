@@ -577,3 +577,11 @@
         (x 7)
         (t 13))))
   7)
+
+(test-js-eval negative-mod
+  (mod -12 7)
+  2)
+
+(test-js-eval negative-rem
+  (rem -12 7)
+  -5)

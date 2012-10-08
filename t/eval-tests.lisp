@@ -597,3 +597,51 @@
 (test-js-eval negative-rem1
   (rem -12 (funcall (@ Math floor) 7.5))
   -5)
+
+(test-js-eval-epsilon trig1
+  (sinh 3.14)
+  11.530293)
+
+(test-js-eval-epsilon trig2
+  (sinh (floor 3.14))
+  10.017875)
+
+(test-js-eval-epsilon trig3
+  (cosh 3.14)
+  11.573576)
+
+(test-js-eval-epsilon trig4
+  (cosh (floor 3.14))
+  10.067662)
+
+(test-js-eval-epsilon trig5
+  (tanh 3.14)
+  0.9962602)
+
+(test-js-eval-epsilon trig6
+  (tanh (floor 3.14))
+  0.9950548)
+
+(test-js-eval-epsilon trig7
+  (asinh 3.14)
+  1.8618126)
+
+(test-js-eval-epsilon trig8
+  (asinh (floor 3.14))
+  1.8184465)
+
+(test-js-eval-epsilon trig7
+  (acosh 3.14)
+  1.8109914)
+
+(test-js-eval-epsilon trig8
+  (acosh (floor 3.14))
+  1.7627472)
+
+(test-js-eval-epsilon trig7
+  (atanh 0.71)
+  0.88718385)
+
+(test-js-eval-epsilon trig8
+  (atanh (expt -0.71 3))
+  -0.37448788)

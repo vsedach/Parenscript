@@ -3779,6 +3779,17 @@ for (var i = 0; i < 5; i += 1) {
     return 1 + 2 + 3;
 })();")
 
+(test-ps-js trig-no-bind1
+  (cosh 3.14)
+  "(Math.exp(3.14) + Math.exp(-3.14)) / 2;")
+
+(test-ps-js trig-bind1
+  (acosh (floor 3.14))
+  "(function () {
+    var x1 = Math.floor(3.14);
+    return 2 * Math.log(Math.sqrt((x1 + 1) / 2) + Math.sqrt((x1 - 1) / 2));
+})();")
+
 ;;; broken
 
 ;; (test-ps-js let-defun-toplevel

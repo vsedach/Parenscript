@@ -312,3 +312,17 @@ gensym-prefix-string)."
        `(let* (,,@(mapcar (lambda (g v) ``(,,g ,,v)) gensyms vars))
           ,(let ,(mapcar (lambda (g v) `(,v ,g)) gensyms vars)
              ,@body)))))
+
+(defmacro maybe-once-only (vars &body body)
+  "Introduces a binding for a form if the form is not a variable or
+  constant. If it is, uses that form in the body directly."
+  (let ((vars-bound (gensym)))
+    `(let* ((,vars-bound ())
+            ,@(loop for var in vars collect
+                   `(,var (if (or (constantp ,var) (symbolp ,var))
+                              ,var
+                              (let ((gensym (ps-gensym ,(symbol-name var))))
+                                (push `(,gensym ,,var) ,vars-bound)
+                                gensym)))))
+       `(let ,,vars-bound
+         ,,@body))))

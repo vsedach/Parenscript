@@ -53,15 +53,22 @@
                                          contents)
                :adjustable t)))
 
+(defmacro %test-js-eval (testname parenscript test-statement)
+  `(test ,testname ()
+     (cl-js:with-js-env ()
+       (let ((js-result (cl-js:run-js (ps-doc* ',parenscript))))
+         ,test-statement))))
+
 (defmacro test-js-eval (testname parenscript result)
-  (let ((js-result (gensym)))
-   `(test ,testname ()
-      (cl-js:with-js-env ()
-        (let ((,js-result (cl-js:run-js (ps-doc* ',parenscript))))
-          (is (equalp ,js-result
-                      ,(if (atom result)
-                           result
-                           `(jsarray ,result)))))))))
+  `(%test-js-eval ,testname ,parenscript
+     (is (equalp js-result
+                 ,(if (atom result)
+                      result
+                      `(jsarray ,result))))))
+
+(defmacro test-js-eval-epsilon (testname parenscript result)
+  `(%test-js-eval ,testname ,parenscript
+     (is (< (abs (- js-result ,result)) 0.0001))))
 
 (def-suite parenscript-tests)
 (def-suite output-tests :in parenscript-tests)

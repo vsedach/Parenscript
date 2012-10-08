@@ -582,6 +582,18 @@
   (mod -12 7)
   2)
 
+(test-js-eval negative-mod1
+  (mod -12 (funcall (@ Math floor) 7.5))
+  2)
+
+(test-js-eval negative-mod2
+  (1+ (mod -12 7))
+  3)
+
 (test-js-eval negative-rem
   (rem -12 7)
+  -5)
+
+(test-js-eval negative-rem1
+  (rem -12 (funcall (@ Math floor) 7.5))
   -5)

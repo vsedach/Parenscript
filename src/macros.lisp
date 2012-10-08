@@ -16,6 +16,20 @@
 (defpsmacro null (x)
   `(equal ,x nil))
 
+(defpsmacro maybe-once-only (vars &body body)
+  "Introduces a binding for a form if the form is not a variable or
+  constant. If it is, uses that form in the body directly."
+  (let ((vars-bound (gensym)))
+    `(let* ((,vars-bound ())
+            ,@(loop for var in vars collect
+                   `(,var (if (or (constantp ,var) (symbolp ,var))
+                              ,var
+                              (let ((gensym (ps-gensym ,(symbol-name var))))
+                                (push `(,gensym ,,var) ,vars-bound)
+                                gensym)))))
+       `(let ,,vars-bound
+         ,,@body))))
+
 ;;; Math
 
 (defmacro def-js-maths (&rest mathdefs)
@@ -41,7 +55,7 @@
     (atanh (n) `((lambda (x) (/ (- (log (+ 1 x)) (log (- 1 x))) 2)) ,n))
     (1+ (n) `(+ ,n 1))
     (1- (n) `(- ,n 1))
-    (mod (x n) `((lambda (n) (rem (+ (rem ,x n) n) n)) ,n))
+    (mod (x n) (maybe-once-only (n) `(rem (+ (rem ,x ,n) ,n) ,n)))
     (abs (n) `((@ *math abs) ,n))
     (evenp (n) `(not (oddp ,n)))
     (oddp (n) `(rem ,n 2))

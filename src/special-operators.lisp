@@ -132,7 +132,7 @@
   `(setf __PS_MV_REG (create :tag    (@ arguments callee)
                              :values ,values)))
 
-(defvar suppress-values?)
+(defvar suppress-values? nil)
 
 (defun wrap-for-dynamic-return (handled-tags body)
   (aif (loop for (tag . thrown?) in *dynamic-return-tags*

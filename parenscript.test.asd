@@ -2,6 +2,7 @@
 
 (defsystem :parenscript.test
   :license "Public Domain"
+  :description "Unit tests for Parenscript"
   :components ((:module :t
                         :serial t
                         :components ((:file "test-package")

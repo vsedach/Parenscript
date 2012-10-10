@@ -5,6 +5,7 @@
   :author "Manuel Odendahl <manuel@bl0rg.net>"
   :maintainer "Vladimir Sedach <vsedach@gmail.com>"
   :licence "BSD"
+  :description "Lisp to JavaScript transpiler"
   :components
   ((:static-file "parenscript.asd")
    (:module :src

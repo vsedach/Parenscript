@@ -57,46 +57,12 @@
    #:*ps-print-pretty*
    #:*indent-num-spaces*
 
-   ;; deprecated interface
-   #:define-script-symbol-macro
-   #:gen-js-name
-   #:with-unique-js-names
-   #:defjsmacro
-   #:js-compile
-   #:js-inline
-   #:js-inline*
-   #:js
-   #:js*
-   #:symbol-to-js
-   #:slot-value
-   #:compile-script
-   #:defmacro/ps
-   #:%
-   #:==
-   #:===
-   #:!=
-   #:!==
-   #:labeled-for
-   #:do-set-timeout
-   #:concat-string
-   #:with
-   #:label
-   #:f
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Language
 
    ;; literals
    #:t
-   #:false
    #.(symbol-name 'nil) ; for case-sensitive Lisps like some versions of Allegro
-   #:this
-   #:undefined
-   #:{}
-
-   ;; keywords
-   #:break
-   #:continue
 
    ;; array literals
    #:array
@@ -142,25 +108,15 @@
    ;; body forms
    #:progn
 
-   ;; object literals
-   #:create
-   #:with-slots
-
    ;; if
    #:if
    #:when
    #:unless
 
-   ;; single argument statements
+   ;; control flow
    #:return
    #:return-from
    #:throw
-
-   ;; single argument expressions
-   #:delete
-   #:typeof
-   #:instanceof
-   #:new
 
    ;; assignment and binding
    #:setf
@@ -172,13 +128,9 @@
    #:let
 
    ;; variables
-   #:var
    #:defvar
 
    ;; iteration
-   #:for
-   #:for-in
-   #:while
    #:do
    #:do*
    #:dotimes
@@ -189,12 +141,6 @@
    #:switch
    #:case
    #:default
-
-   ;; try throw catch
-   #:try
-
-   ;; regex literals
-   #:regex
 
    ;; function definition
    #:defun
@@ -211,28 +157,12 @@
    #:&environment
    #:&key-object
 
-   ;; slot access
-   #:with-slots
-   #:getprop
-   #:in
-
    ;; macros
    #:macrolet
    #:symbol-macrolet
    #:define-symbol-macro
    #:define-ps-symbol-macro
    #:defmacro
-
-   ;; lisp eval
-   #:lisp
-
-   ;; v v v STUFF WE SHOULD PROBABLY MOVE TO OTHER LIBS v v v
-
-   ;; html generator for javascript
-   #:*ps-html-empty-tag-aware-p*
-   #:*ps-html-mode*
-   #:ps-html
-   #:who-ps-html
 
    ;; utils
    #:max
@@ -265,24 +195,25 @@
    #:random
    #:ignore-errors
    #:concatenate
-   #:stringify
    #:length
-   #:defined
-   #:undefined
-   #:@
-   #:chain
    #:stringp
    #:numberp
    #:functionp
-   #:booleanp
-   #:objectp
    #:append
    #:apply
    #:destructuring-bind
 
-   ;; binding
-   #:bind
-   #:bind*
+   ;; js runtime utils
+   #:*ps-lisp-library*
+   #:mapcar
+   #:map-into
+   #:map
+   #:member
+   #:append
+   #:set-difference
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Non-Common Lisp functionality
 
    ;; DOM accessing utils
    #:inner-html
@@ -293,12 +224,83 @@
    #:inner
    #:client
 
-   ;; js runtime utils
-   #:*ps-lisp-library*
-   #:mapcar
-   #:map-into
-   #:map
-   #:member
-   #:append
-   #:set-difference
+   ;; utils
+   #:@
+   #:chain
+   #:defined
+   #:undefined
+   #:booleanp
+   #:objectp
+   #:stringify
+
+   ;; html generator for javascript
+   #:*ps-html-empty-tag-aware-p*
+   #:*ps-html-mode*
+   #:ps-html
+   #:who-ps-html
+
+   ;; lisp eval
+   #:lisp
+
+   ;; js object stuff
+   #:delete
+   #:typeof
+   #:instanceof
+   #:new
+   #:create
+
+   ;; slot access
+   #:with-slots
+   #:getprop
+   #:in
+
+   ;; literals
+   #:regex
+   #:this
+   #:undefined
+   #:{}
+   #:false
+
+   ;; iteration
+   #:for
+   #:for-in
+   #:while
+
+   ;; global var
+   #:var
+
+   ;; control flow
+   #:try
+   #:break
+   #:continue
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Deprecated functionality
+
+   #:define-script-symbol-macro
+   #:gen-js-name
+   #:with-unique-js-names
+   #:defjsmacro
+   #:js-compile
+   #:js-inline
+   #:js-inline*
+   #:js
+   #:js*
+   #:symbol-to-js
+   #:slot-value
+   #:compile-script
+   #:defmacro/ps
+   #:%
+   #:==
+   #:===
+   #:!=
+   #:!==
+   #:labeled-for
+   #:do-set-timeout
+   #:concat-string
+   #:with
+   #:label
+   #:f
+   #:bind
+   #:bind*
    ))

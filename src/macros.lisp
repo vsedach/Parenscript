@@ -445,7 +445,19 @@ lambda-list::=
   (let ((arglist (if (> (length args) 1)
                      `(append (list ,@(butlast args)) ,(car (last args)))
                      (first args))))
-    `(funcall (getprop ,fn 'apply) this ,arglist)))
+    (case (and (listp fn) (car fn))
+      ((getprop @ chain)
+       (let ((obj (ps-gensym)) (method (ps-gensym)))
+         `(let* ((,obj ,(if (= (length fn) 3) (cadr fn) (butlast fn)))
+                 (,method (,(car fn) ,obj ,(car (last fn)))))
+            (funcall (getprop ,method 'apply) ,obj ,arglist))))
+      (t `(funcall (getprop ,fn 'apply) this ,arglist)))))
+
+(defpsmacro apply-to (this-arg fn &rest args)
+  (let ((arglist (if (> (length args) 1)
+                     `(append (list ,@(butlast args)) ,(car (last args)))
+                     (first args))))
+    `(funcall (getprop ,fn 'apply) ,this-arg ,arglist)))
 
 ;;; misc
 

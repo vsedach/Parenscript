@@ -123,6 +123,22 @@
   (create 'test "bang" 'symbol-saved-my-life "parenscript")
   "({ 'test' : 'bang', 'symbolSavedMyLife' : 'parenscript' });")
 
+(test-ps-js object-method-apply-1
+  (apply (@ an-object foo) nil)
+  "(function () {
+      var _js1 = anObject;
+      var _js2 = _js1.foo;
+      return _js2.apply(_js1, null);
+    })();")
+
+(test-ps-js object-method-apply-2
+  (apply (getprop (make-an-object) foo 'bar) nil)
+  "(function () {
+      var _js1 = makeAnObject()[foo];
+      var _js2 = _js1.bar;
+      return _js2.apply(_js1, null);
+    })();")
+
 (test-ps-js regular-expression-literals-1
   (regex "foobar")
   "/foobar/;")

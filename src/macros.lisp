@@ -105,8 +105,27 @@
 
 ;;; Data structures
 
-(defpsmacro make-array (&rest initial-values)
-  `(new (*array ,@initial-values)))
+(defpsmacro make-array (&rest args)
+  (or (ignore-errors
+        (destructuring-bind (dim &key (initial-element nil initial-element-p)
+                                 initial-contents element-type)
+            args
+          (declare (ignore element-type))
+          (and (or initial-element-p initial-contents)
+               (not (and initial-element-p initial-contents))
+               (let ((arr (ps-gensym)) (init (ps-gensym))
+                     (elt (ps-gensym)) (i (ps-gensym)))
+                 `(let ((,arr (new (*array ,dim))))
+                    ,@(when initial-element-p
+                        `((let ((,elt ,initial-element))
+                            (dotimes (,i (length ,arr))
+                              (setf (aref ,arr ,i) ,elt)))))
+                    ,@(when initial-contents
+                        `((let ((,init ,initial-contents))
+                            (dotimes (,i (min (length ,arr) (length ,init)))
+                              (setf (aref ,arr ,i) (aref ,init ,i))))))
+                    ,arr)))))
+      `(new (*array ,@args))))
 
 (defpsmacro length (a)
   `(getprop ,a 'length))

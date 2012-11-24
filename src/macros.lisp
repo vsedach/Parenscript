@@ -453,12 +453,6 @@ lambda-list::=
             (funcall (getprop ,method 'apply) ,obj ,arglist))))
       (t `(funcall (getprop ,fn 'apply) this ,arglist)))))
 
-(defpsmacro apply-to (this-arg fn &rest args)
-  (let ((arglist (if (> (length args) 1)
-                     `(append (list ,@(butlast args)) ,(car (last args)))
-                     (first args))))
-    `(funcall (getprop ,fn 'apply) ,this-arg ,arglist)))
-
 ;;; misc
 
 (defpsmacro let* (bindings &body body)

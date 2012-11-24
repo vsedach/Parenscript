@@ -201,7 +201,6 @@
    #:functionp
    #:append
    #:apply
-   #:apply-to
    #:destructuring-bind
 
    ;; js runtime utils

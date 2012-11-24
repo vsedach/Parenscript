@@ -125,11 +125,7 @@
 
 (test-ps-js object-method-apply-1
   (apply (@ an-object foo) nil)
-  "(function () {
-      var _js1 = anObject;
-      var _js2 = _js1.foo;
-      return _js2.apply(_js1, null);
-    })();")
+  "anObject.foo.apply(anObject, null);")
 
 (test-ps-js object-method-apply-2
   (apply (getprop (make-an-object) foo 'bar) nil)
@@ -138,6 +134,14 @@
       var _js2 = _js1.bar;
       return _js2.apply(_js1, null);
     })();")
+
+(test-ps-js object-method-apply-3
+  (apply (@ (make-an-object) foo) (bar))
+  "(function () {
+    var _js1 = makeAnObject();
+    var _js2 = _js1.foo;
+    return _js2.apply(_js1, bar());
+})();")
 
 (test-ps-js regular-expression-literals-1
   (regex "foobar")

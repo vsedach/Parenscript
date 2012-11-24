@@ -445,13 +445,15 @@ lambda-list::=
   (let ((arglist (if (> (length args) 1)
                      `(append (list ,@(butlast args)) ,(car (last args)))
                      (first args))))
-    (case (and (listp fn) (car fn))
-      ((getprop @ chain)
-       (let ((obj (ps-gensym)) (method (ps-gensym)))
-         `(let* ((,obj ,(if (= (length fn) 3) (cadr fn) (butlast fn)))
-                 (,method (,(car fn) ,obj ,(car (last fn)))))
-            (funcall (getprop ,method 'apply) ,obj ,arglist))))
-      (t `(funcall (getprop ,fn 'apply) this ,arglist)))))
+    (if (and (listp fn)
+             (find (car fn) #(getprop chain @)))
+        (if (and (= (length fn) 3) (symbolp (second fn)))
+            `(funcall (getprop ,fn 'apply) ,(second fn) ,arglist)
+            (let ((obj (ps-gensym)) (method (ps-gensym)))
+              `(let* ((,obj    ,(butlast fn))
+                      (,method (,(car fn) ,obj ,(car (last fn)))))
+                 (funcall (getprop ,method 'apply) ,obj ,arglist))))
+        `(funcall (getprop ,fn 'apply) this ,arglist))))
 
 ;;; misc
 

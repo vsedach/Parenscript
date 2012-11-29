@@ -113,8 +113,7 @@
           (declare (ignore element-type))
           (and (or initial-element-p initial-contents)
                (not (and initial-element-p initial-contents))
-               (let ((arr (ps-gensym)) (init (ps-gensym))
-                     (elt (ps-gensym)) (i (ps-gensym)))
+               (with-ps-gensyms (arr init elt i)
                  `(let ((,arr (new (*array ,dim))))
                     ,@(when initial-element-p
                         `((let ((,elt ,initial-element))

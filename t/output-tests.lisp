@@ -97,24 +97,24 @@
 (test-ps-js array-init-1
   (make-array 2 :initial-contents '(10 20))
   "(function () {
-      var _js1 = new Array(2);
-      var _js2 = [10, 20];
-      for (var _js4 = 0; _js4 < Math.min(_js1.length, _js2.length); _js4 += 1) {
-          _js1[_js4] = _js2[_js4];
-      };
-      return _js1;
-  })();")
+    var arr1 = new Array(2);
+    var init2 = [10, 20];
+    for (var i4 = 0; i4 < Math.min(arr1.length, init2.length); i4 += 1) {
+        arr1[i4] = init2[i4];
+    };
+    return arr1;
+})();")
 
 (test-ps-js array-init-2
   (make-array 5 :initial-element 10)
   "(function () {
-      var _js1 = new Array(5);
-      var _js3 = 10;
-      for (var _js4 = 0; _js4 < _js1.length; _js4 += 1) {
-          _js1[_js4] = _js3;
-      };
-      return _js1;
-  })();")
+    var arr1 = new Array(5);
+    var elt3 = 10;
+    for (var i4 = 0; i4 < arr1.length; i4 += 1) {
+        arr1[i4] = elt3;
+    };
+    return arr1;
+})();")
 
 (test-ps-js object-literals-1
   (create foo "bar" :blorg 1)

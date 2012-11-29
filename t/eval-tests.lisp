@@ -645,3 +645,26 @@
 (test-js-eval-epsilon trig8
   (atanh (expt -0.71 3))
   -0.37448788)
+
+(test-js-eval let-let
+  (let ((x (let ((y 12))
+             (+ 1 2)
+             y)))
+    (1+ x))
+  13)
+
+(test-js-eval let-let1
+  (let ((x (let ((y 12))
+             (dolist (x '(1 2 3))
+               (* x x))
+             y)))
+    (1+ x))
+  13)
+
+(test-js-eval array-init-1
+  (make-array 2 :initial-contents '(10 20))
+  '(10 20))
+
+(test-js-eval array-init-2
+  (make-array 5 :initial-element 10)
+  '(10 10 10 10 10))

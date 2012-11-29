@@ -3826,9 +3826,9 @@ for (var i = 0; i < 5; i += 1) {
   "(Math.exp(3.14) + Math.exp(-3.14)) / 2;")
 
 (test-ps-js trig-bind1
-  (acosh (floor 3.14))
+  (acosh (blah 3.14))
   "(function () {
-    var x1 = Math.floor(3.14);
+    var x1 = blah(3.14);
     return 2 * Math.log(Math.sqrt((x1 + 1) / 2) + Math.sqrt((x1 - 1) / 2));
 })();")
 

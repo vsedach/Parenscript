@@ -41,6 +41,7 @@
    #:ps-gensym
    #:with-ps-gensyms
    #:ps-once-only
+   #:maybe-once-only
    #:*ps-gensym-counter*
 
    ;; naming and namespaces

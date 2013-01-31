@@ -222,7 +222,8 @@
               (try-expressionizing-if?
                (or (ignore-errors (ps-macroexpand x)) x) ;; fail
                (+ score (case (car exp)
-                          ((if cond let) 1)
+                          ((if cond) 1)
+                          (let (if (second exp) 1 0)) ;; ignore empty binding list
                           ((progn) (1- (length (cdr exp))))
                           (otherwise 0))))))
         (t t)))

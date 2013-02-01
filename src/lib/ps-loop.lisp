@@ -55,7 +55,7 @@
                    (err "a symbol" tok))
                  tok))))
 
-(defun maybe-extract-var (expr state)
+(defun maybe-hoist (expr state)
   (cond ((complex-js-expr? expr)
          (let ((var (ps-gensym)))
            (push (list var expr) (prologue state))
@@ -78,7 +78,7 @@
                       test-op (loop-case term (:to '<=) (:below '<) (:downto '>=) (:above '>))
                       end (eat state)))))
     (let ((test (when test-op
-                  (list test-op var (maybe-extract-var end state)))))
+                  (list test-op var (maybe-hoist end state)))))
       (push `(,var ,start (,op ,var ,(or by 1)) ,test) (iterations state)))))
 
 (defun for-= (place state)
@@ -88,7 +88,7 @@
       (push (list place start (if thenp then start) nil) (iterations state)))))
 
 (defun for-in (place state)
-  (let ((arr (maybe-extract-var (eat state) state))
+  (let ((arr (maybe-hoist (eat state) state))
         (index (ps-gensym)))
     (push-tokens state `(,index :from 0 :below (length ,arr)
                                 ,place := (aref ,arr ,index)))
@@ -120,7 +120,7 @@
         (v (when (consp place) (second place))))
     (let ((obj (eat state)))
       (when v ; assign OBJ to a local var if we need to for value binding (otherwise inline it)
-        (setf obj (maybe-extract-var obj state)))
+        (setf obj (maybe-hoist obj state)))
       (push (list k nil nil nil obj) (iterations state))
       (when v
         (let ((val `(getprop ,obj ,k)))
@@ -237,7 +237,8 @@
              state))))
 
 (defun fold-tests (iterations)
-  ;; unifies adjacent test expressions by destructively modifying iterations
+  ;; Unifies adjacent test expressions by ANDing them together where
+  ;; possible. The elements of ITERATIONS are destructively modified.
   (let ((folded '()))
     (loop :for iter :in iterations :do
       (let ((place (first iter))

@@ -369,6 +369,26 @@
     (loop :repeat 3 :for (:a :b) = (foo) :sum (+ a b)))
   15)
 
+(test-js-eval loop-until1
+   (let ((x 0))
+     (loop :do (incf x) :until t)
+     x)
+   1)
+
+(test-js-eval loop-until2
+  (let ((b nil) (c nil))
+    (loop :for a :in '(4 9 10) :do (setf b a) :until (> a 5))
+    (loop :for a :in '(4 9 10) :until (> a 5) :do (setf c a))
+    (list b c))
+  '(9 4))
+
+(test-js-eval loop-until3
+   (let ((x 0) (y 0))
+     (loop :do (incf x) :until (= x 5)
+       :do (incf y) :until (= y 3))
+     (list x y))
+   '(3 3))
+
 (test-js-eval loop-with-clause
   (loop for i :from 0 :to 5
         with x

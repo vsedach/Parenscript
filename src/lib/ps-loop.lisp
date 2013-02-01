@@ -26,18 +26,18 @@
 (defclass loop-state ()
   ((tokens :initarg :tokens :accessor tokens)
    (name :initform nil :accessor name)
-   (iterations :initform nil :accessor iterations) ; (place init step test js-obj)*
+   ;; A clause is either (:BODY FORM) or (:ITER PLACE INIT STEP TEST &OPTIONAL JS-OBJ)
+   (clauses :initform nil :accessor clauses)
    (prologue :initform nil :accessor prologue)
    (finally :initform nil :accessor finally)
    (accum-var :initform nil :accessor accum-var)
-   (accum-kind :initform nil :accessor accum-kind)
-   (body :initform nil :accessor body)))
+   (accum-kind :initform nil :accessor accum-kind)))
 
 (defun push-body-clause (clause state)
-  (push clause (body state)))
+  (push (list :body clause) (clauses state)))
 
 (defun push-iter-clause (clause state)
-  (push clause (iterations state)))
+  (push (cons :iter clause) (clauses state)))
 
 (defun push-tokens (state toks)
   (setf (tokens state) (append toks (tokens state))))
@@ -108,14 +108,14 @@
          (then (if (numberp by) `((@ ,var :slice) ,by) `(,by ,var))))
     (push-tokens state `(,var := ,arr :then ,then))
     (for-clause state)
-    ;; set the end-test
-    (setf (fourth (car (iterations state))) `(> (length ,var) 0))
+    ;; set the end-test by snooping into the iteration clause we just added
+    (setf (fifth (car (clauses state))) `(> (length ,var) 0))
     (unless (eq place var)
       (push-tokens state `(,place := ,var))
       (for-clause state))))
 
 (defun for-keys-of (place state)
-  (when (iterations state)
+  (when (clauses state)
     (error "FOR..OF is only allowed as the first clause in a loop."))
   (when (consp place)
     (unless (<= (length place) 2) ; length 1 is ok, treat (k) as (k nil)
@@ -242,66 +242,85 @@
              (loop :while (tokens state) :do (clause state))
              state))))
 
-(defun fold-tests (iterations)
-  ;; Unifies adjacent test expressions by ANDing them together where
-  ;; possible. The elements of ITERATIONS are destructively modified.
+(defun fold-iterations-where-possible (clauses)
   (let ((folded '()))
-    (loop :for iter :in iterations :do
-      (let ((place (first iter))
-            (test (fourth iter)))
-        (cond ((and (null place) (car folded))
-               (assert test nil "Iteration ~a has neither PLACE nor TEST." iter)
-               (let ((test^ (fourth (car folded))))
-                 (setf (fourth (car folded)) (if test^ `(and ,test^ ,test) test))))
-              (t (push iter folded)))))
+    (loop :for clause :in clauses :do
+      (assert (member (car clause) '(:iter :body)))
+      (let ((folded? nil))
+        (when (and (eq (car clause) :iter) (eq (caar folded) :iter))
+          (destructuring-bind (tag place init step test &optional js-obj) clause
+            (declare (ignore tag))
+            (when (null place) ;; can't combine two iterations that both have state
+              (assert (not (or init step js-obj)) nil "Invalid iteration ~a: PLACE should not be null." clause)
+              (assert test nil "Iteration ~a has neither PLACE nor TEST." clause)
+              (let ((test^ (fifth (car folded))))
+                (setf (fifth (car folded)) (if test^ `(and ,test^ ,test) test))
+                (setf folded? t)))))
+        (unless folded?
+          (push clause folded))))
     (nreverse folded)))
 
-(defun augmented-loop-body (body aux-iters firstvar)
-  (cond ((null aux-iters) body)
-        (t (destructuring-bind (place init step test) (car aux-iters)
-             (setf body (augmented-loop-body body (cdr aux-iters) firstvar))
-             (when test
-               (push `(unless ,test (break)) body))
-             (when place
-               (let ((expr (if (tree-equal init step) init `(if ,firstvar ,init ,step))))
-                 (setf body
-                       (cond ((and (atom place) (eq expr init))
-                              `((let ((,place ,expr)) ,@body)))
-                             ;; can't use LET because EXPR may reference PLACE
-                             ((atom place) `((var ,place ,expr) ,@body))
-                             ;; BIND has scoping problems. For example,
-                             ;; (loop :for (a b) = x :then b) doesn't work
-                             ;; since EXPR is referencing part of PLACE.
-                             ;; But the following is ok for known uses so far.
-                             (t `((bind ,place ,expr ,@body))))))))
-           body)))
+(defun organize-iterations (clauses)
+  ;; we want clauses to start with a master loop to provide the
+  ;; skeleton for everything else. secondary iterations are ok but
+  ;; will be generated inside the body of this master loop
+  (unless (eq (caar clauses) :iter)
+    (push (list :iter nil nil nil t) clauses))
+  ;; unify adjacent test expressions by ANDing them together where possible
+  (setf clauses (fold-iterations-where-possible clauses))
+  ;; if leading iteration has a binding expression, replace it with a var
+  (destructuring-bind (tag place init step test &optional js-obj) (car clauses)
+    (assert (eq tag :iter))
+    (when (complex-js-expr? place)
+      (assert (null js-obj) nil "Invalid iteration ~a: FOR..IN can't have a binding expression." (car clauses))
+      (let ((var (ps-gensym)))
+        (pop clauses)
+        (push (list :iter place var var nil) clauses)
+        (push (list :iter var init step test) clauses))))
+  clauses)
 
-(defun master-loop (iteration body)
-  (destructuring-bind (place init step test &optional js-obj) iteration
+(defun build-body (clauses firstvar)
+  (cond ((null clauses) nil)
+        ((eq (caar clauses) :body)
+         (cons (second (car clauses)) (build-body (cdr clauses) firstvar)))
+        (t (destructuring-bind (tag place init step test) (car clauses)
+             (assert (eq tag :iter))
+             (let ((body (build-body (cdr clauses) firstvar)))
+               (when test
+                 (push `(unless ,test (break)) body))
+               (when place
+                 (let ((expr (if (tree-equal init step) init `(if ,firstvar ,init ,step))))
+                   (setf body
+                         (cond ((and (atom place) (eq expr init))
+                                `((let ((,place ,expr)) ,@body)))
+                               ;; can't use LET because EXPR may reference PLACE
+                               ((atom place) `((var ,place ,expr) ,@body))
+                               ;; BIND has scoping problems. For example,
+                               ;; (loop :for (a b) = x :then b) doesn't work
+                               ;; since EXPR is referencing part of PLACE.
+                               ;; But the following is ok for known uses so far.
+                               (t `((bind ,place ,expr ,@body)))))))
+               body)))))
+
+(defun master-loop (master-iter body)
+  (destructuring-bind (tag place init step test &optional js-obj) master-iter
+    (assert (eq tag :iter))
     (cond ((null place) `(while ,test ,@body))
           (js-obj `(for-in (,place ,js-obj) ,@body))
           (t (assert (atom place) nil "Unexpected destructuring list ~a in master loop" place)
              `(for ((,place ,init)) (,(or test t)) ((setf ,place ,step)) ,@body)))))
 
-(defun build-loop (master aux body)
-  (let ((firstvar (loop :for (nil init step) :in aux
-                    :unless (tree-equal init step) :do
-                    (return (ps-gensym "first")))))
-    (setf body (augmented-loop-body body aux firstvar))
-    (when firstvar
-      (setf body (append body `((setf ,firstvar nil)))))
-    (let ((form (master-loop master body)))
-      (if firstvar `(let ((,firstvar t)) ,form) form))))
-
-(defun normalize-iterations (iterations)
-  (cond ((null iterations) (list (list nil nil nil t))) ; while (true)
-        (t (destructuring-bind (master . aux) (fold-tests iterations)
-             (destructuring-bind (place init step test &optional js-obj) master
-               (when (and (null js-obj) (complex-js-expr? place))
-                 (let ((var (ps-gensym)))
-                   (setf master (list var init step test))
-                   (push (list place var var nil) aux)))
-               (cons master aux))))))
+(defun build-loop (clauses)
+  (destructuring-bind (master . rest) clauses
+    (assert (eq (car master) :iter) nil "First clause is not master loop: ~a" master)
+    (let* ((firstvar (loop :for (tag nil init step) :in rest
+                       :when (and (eq tag :iter) (not (tree-equal init step)))
+                       :do (return (ps-gensym "first"))))
+           (body (build-body rest firstvar)))
+      (when firstvar
+        (setf body (append body `((setf ,firstvar nil)))))
+      (let ((form (master-loop master body)))
+        (if firstvar `(let ((,firstvar t)) ,form) form)))))
 
 (defun prologue-wrap (prologue body)
   (cond ((null prologue) body)
@@ -313,11 +332,11 @@
 
 (defpsmacro loop (&rest keywords-and-forms)
   (let ((state (parse-ps-loop keywords-and-forms)))
-    (destructuring-bind (master . aux) (normalize-iterations (reverse (iterations state)))
-      (let* ((main `(,(build-loop master aux (reverse (body state)))
-                      ,@(reverse (finally state))
-                      ,@(awhen (accum-var state) (list it))))
-             (full `(block ,(name state) ,@(prologue-wrap (prologue state) main))))
-        (if (accum-var state)
-            `((lambda () ,full))
-            full)))))
+    (let* ((clauses (organize-iterations (reverse (clauses state))))
+           (main `(,(build-loop (organize-iterations clauses))
+                    ,@(reverse (finally state))
+                    ,@(awhen (accum-var state) (list it))))
+           (full `(block ,(name state) ,@(prologue-wrap (prologue state) main))))
+      (if (accum-var state)
+          `((lambda () ,full))
+          full))))

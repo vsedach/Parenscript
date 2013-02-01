@@ -161,7 +161,7 @@
     (push (list var initial) (prologue state)))
   (loop-case kind
         (:sum `(incf ,var ,item))
-        (:count `(unless (null ,item) (incf ,var)))
+        (:count `(when ,item (incf ,var))) ;; note the JS semantics - neither 0 nor "" will count
         (:minimize `(setf ,var (if (null ,var) ,item (min ,var ,item))))
         (:maximize `(setf ,var (if (null ,var) ,item (max ,var ,item))))
         (:collect `((@ ,var :push) ,item))

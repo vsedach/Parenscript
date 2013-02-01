@@ -349,6 +349,26 @@
          (foo))
   40)
 
+(test-js-eval for-arr-place-in
+  (loop :for (a b) :in '((2 3) (4 5)) :sum (+ a b))
+  14)
+
+(test-js-eval for-obj-place-in
+  (loop :for (:a :b) :in (list (create :a 2 :b 3)
+                               (create :a 4 :b 5))
+    :sum (+ a b))
+  14)
+
+(test-js-eval for-arr-place-=
+  (flet ((foo () '(2 3)))
+    (loop :repeat 3 :for (a b) = (foo) :sum (+ a b)))
+  15)
+
+(test-js-eval for-obj-place-=
+  (flet ((foo () (create :a 2 :b 3)))
+    (loop :repeat 3 :for (:a :b) = (foo) :sum (+ a b)))
+  15)
+
 (test-js-eval loop-with-clause
   (loop for i :from 0 :to 5
         with x

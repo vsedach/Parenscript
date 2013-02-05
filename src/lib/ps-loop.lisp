@@ -253,9 +253,10 @@
             (when (null place) ;; can't combine two iterations that both have state
               (assert (not (or init step js-obj)) nil "Invalid iteration ~a: PLACE should not be null." clause)
               (assert test nil "Iteration ~a has neither PLACE nor TEST." clause)
-              (let ((test^ (fifth (car folded))))
-                (setf (fifth (car folded)) (if test^ `(and ,test^ ,test) test))
-                (setf folded? t)))))
+              (unless (sixth (car folded)) ;; js-obj means a for..in loop and those can't have tests
+                (let ((test^ (fifth (car folded))))
+                  (setf (fifth (car folded)) (if test^ `(and ,test^ ,test) test))
+                  (setf folded? t))))))
         (unless folded?
           (push clause folded))))
     (nreverse folded)))
@@ -306,7 +307,9 @@
   (destructuring-bind (tag place init step test &optional js-obj) master-iter
     (assert (eq tag :iter))
     (cond ((null place) `(while ,test ,@body))
-          (js-obj `(for-in (,place ,js-obj) ,@body))
+          (js-obj
+           (assert (not (or init step test)) nil "Unexpected iteration state in for..in loop: ~a" master-iter)
+           `(for-in (,place ,js-obj) ,@body))
           (t (assert (atom place) nil "Unexpected destructuring list ~a in master loop" place)
              `(for ((,place ,init)) (,(or test t)) ((setf ,place ,step)) ,@body)))))
 

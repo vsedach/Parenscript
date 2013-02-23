@@ -158,60 +158,60 @@
             (pop form))))
     (if progn-form
         `(,progn-form
-           ,@(butlast form)
-           (multiple-value-bind ,vars
-               ,@(last form)
-             ,@body))
+          ,@(butlast form)
+          (multiple-value-bind ,vars
+              ,@(last form)
+            ,@body))
         ;; assume function call
         (with-ps-gensyms (prev-mv)
           (let* ((fun-exp (car form))
                  (funobj (if (symbolp fun-exp)
                              fun-exp
                              (ps-gensym "funobj"))))
-           `(let (,@(unless (symbolp fun-exp) `((,funobj ,fun-exp)))
-                  (,prev-mv (if (undefined __PS_MV_REG)
-                                (setf __PS_MV_REG undefined)
-                                __PS_MV_REG)))
-              (try
-               (let ((,(car vars) (,funobj ,@(cdr form))))
-                 (destructuring-bind (&optional ,@(cdr vars))
-                     (if (eql ,funobj (@ __PS_MV_REG :tag))
-                         (@ __PS_MV_REG :values)
-                         (list))
-                   ,@body))
-               (:finally (setf __PS_MV_REG ,prev-mv)))))))))
+            `(let (,@(unless (symbolp fun-exp) `((,funobj ,fun-exp)))
+                   (,prev-mv (if (undefined __PS_MV_REG)
+                                 (setf __PS_MV_REG undefined)
+                                 __PS_MV_REG)))
+               (try
+                (let ((,(car vars) (,funobj ,@(cdr form))))
+                  (destructuring-bind (&optional ,@(cdr vars))
+                      (if (eql ,funobj (@ __PS_MV_REG :tag))
+                          (@ __PS_MV_REG :values)
+                          (list))
+                    ,@body))
+                (:finally (setf __PS_MV_REG ,prev-mv)))))))))
 
 ;;; conditionals
 
 (defpsmacro case (value &rest clauses)
   (let ((allowed-symbols '(t otherwise false %true)))
-   (labels ((make-switch-clause (val body more)
-              (cond ((listp val)
-                     (append (mapcar #'list (butlast val))
-                             (make-switch-clause
-                              (if (eq t (car (last val))) ;; literal 'true'
-                                  '%true
-                                  (car (last val)))
-                              body
-                              more)))
-                    ((and (symbolp val)
-                          (symbolp (ps-macroexpand-1 val))
-                          (not (keywordp val))
-                          (not (member val allowed-symbols)))
-                     (error "Parenscript only supports keywords, numbers, and string literals as keys in case clauses. ~S is a symbol in clauses ~S"
-                            val clauses))
-                    (t
-                     `((,(case val
-                           ((t otherwise) 'default)
-                           (%true          t)
-                           (t              (ps-macroexpand-1 val)))
-                         ,@body
-                         ,@(when more '(break))))))))
-     `(switch ,value ,@(mapcon (lambda (clause)
-                                 (make-switch-clause (car (first clause))
-                                                     (cdr (first clause))
-                                                     (rest clause)))
-                               clauses)))))
+    (labels ((make-switch-clause (val body more)
+               (cond ((listp val)
+                      (append (mapcar #'list (butlast val))
+                              (make-switch-clause
+                               (if (eq t (car (last val))) ;; literal 'true'
+                                   '%true
+                                   (car (last val)))
+                               body
+                               more)))
+                     ((and (symbolp val)
+                           (symbolp (ps-macroexpand-1 val))
+                           (not (keywordp val))
+                           (not (member val allowed-symbols)))
+                      (error "Parenscript only supports keywords, numbers, and string literals as keys in case clauses. ~S is a symbol in clauses ~S"
+                             val clauses))
+                     (t
+                      `((,(case val
+                                ((t otherwise) 'default)
+                                (%true          t)
+                                (t              (ps-macroexpand-1 val)))
+                          ,@body
+                          ,@(when more '(break))))))))
+      `(switch ,value ,@(mapcon (lambda (clause)
+                                  (make-switch-clause (car (first clause))
+                                                      (cdr (first clause))
+                                                      (rest clause)))
+                                clauses)))))
 
 (defpsmacro when (test &rest body)
   `(if ,test (progn ,@body)))

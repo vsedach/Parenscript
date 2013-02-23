@@ -256,17 +256,17 @@ invocations or not.")
       `(switch
         ,(second form)
         ,@(loop for (cvalue . cbody) in (cddr form)
-             for remaining on (cddr form) collect
-               (aif (cond ((or (eq 'default cvalue) (not (cdr remaining)))
-                           1)
-                          ((eq 'break (car (last cbody)))
-                           2))
-                    (let ((result-form (ps-macroexpand (car (last cbody it)))))
-                      `(,cvalue
-                        ,@(butlast cbody it)
-                        (return-from ,tag
-                          ,(if (eq result-form 'break) nil result-form))))
-                    (cons cvalue cbody)))))
+                for remaining on (cddr form) collect
+                (aif (cond ((or (eq 'default cvalue) (not (cdr remaining)))
+                            1)
+                           ((eq 'break (car (last cbody)))
+                            2))
+                     (let ((result-form (ps-macroexpand (car (last cbody it)))))
+                       `(,cvalue
+                         ,@(butlast cbody it)
+                         (return-from ,tag
+                           ,(if (eq result-form 'break) nil result-form))))
+                     (cons cvalue cbody)))))
      (try
       `(try (return-from ,tag ,(second form))
             ,@(let ((catch (cdr (assoc :catch (cdr form))))
@@ -279,7 +279,7 @@ invocations or not.")
      (cond
        `(cond
           ,@(loop for clause in (cdr form) collect
-                 `(,@(butlast clause) (return-from ,tag ,(car (last clause)))))
+                  `(,@(butlast clause) (return-from ,tag ,(car (last clause)))))
           ,@(when in-case? `((t (return-from ,tag nil))))))
      (if
       (if (and (try-expressionizing-if? form)
@@ -290,11 +290,11 @@ invocations or not.")
                    (compile-expression-error ()
                      (setf *used-up-names* used-up-names)
                      nil))))
-           (return-from expressionize-result (return-exp tag form))
-           `(if ,(second form)
-                (return-from ,tag ,(third form))
-                ,@(when (or in-case? (fourth form))
-                   `((return-from ,tag ,(fourth form)))))))
+          (return-from expressionize-result (return-exp tag form))
+          `(if ,(second form)
+               (return-from ,tag ,(third form))
+               ,@(when (or in-case? (fourth form))
+                       `((return-from ,tag ,(fourth form)))))))
      (return-from ;; this will go away someday
       (unless tag
         (warn 'simple-style-warning
@@ -317,7 +317,6 @@ Parenscript now implements implicit return, update your code! Things like (lambd
             (expressionize-result tag form)))
       (ps-compile `(return-from nilBlock ,result))))
 
-
 (define-expression-operator values (&optional main &rest additional)
   (when main
     (ps-compile (if additional
@@ -331,9 +330,9 @@ Parenscript now implements implicit return, update your code! Things like (lambd
 ;;; conditionals
 
 (define-expression-operator if (test then &optional else)
-   `(ps-js:? ,(compile-expression test)
-             ,(compile-expression then)
-             ,(compile-expression else)))
+  `(ps-js:? ,(compile-expression test)
+            ,(compile-expression then)
+            ,(compile-expression else)))
 
 (define-statement-operator if (test then &optional else)
   `(ps-js:if ,(compile-expression test)
@@ -355,10 +354,10 @@ Parenscript now implements implicit return, update your code! Things like (lambd
   `(ps-js:if ,(compile-expression (caar clauses))
              ,(compile-statement `(progn ,@(cdar clauses)))
              ,@(loop for (test . body) in (cdr clauses) appending
-                    (if (eq t test)
-                        `(:else ,(compile-statement `(progn ,@body)))
-                        `(:else-if ,(compile-expression test)
-                                   ,(compile-statement `(progn ,@body)))))))
+                     (if (eq t test)
+                         `(:else ,(compile-statement `(progn ,@body)))
+                         `(:else-if ,(compile-expression test)
+                                    ,(compile-statement `(progn ,@body)))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; macros

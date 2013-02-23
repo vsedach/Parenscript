@@ -30,7 +30,7 @@ vice-versa.")
     (with-standard-io-syntax
       (if (and (listp form) (eq 'ps-js:block (car form))) ; ignore top-level block
           (loop for (statement . remaining) on (cdr form) do
-               (ps-print statement) (psw #\;) (when remaining (psw #\Newline)))
+                (ps-print statement) (psw #\;) (when remaining (psw #\Newline)))
           (ps-print form)))
     (unless immediate?
       (reverse (cons (get-output-stream-string *psw-stream*)
@@ -345,9 +345,9 @@ vice-versa.")
   (flet ((print-body (body)
            (incf *indent-level*)
            (loop for statement in body do
-                (newline-and-indent)
-                (ps-print statement)
-                (psw #\;))
+                 (newline-and-indent)
+                 (ps-print statement)
+                 (psw #\;))
            (decf *indent-level*)))
     (loop for (val . statements) in clauses do
          (newline-and-indent)

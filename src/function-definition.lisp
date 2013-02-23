@@ -79,8 +79,8 @@ Syntax of key spec:
                              assigns)))
                    (reverse keys))
                   `((loop for ,n from ,(length requireds) below (length arguments) by 2 do
-                         (case (aref arguments ,n)
-                           ,@assigns))
+                          (case (aref arguments ,n)
+                            ,@assigns))
                     ,@defaults)))))
            (rest-form
             (when rest?
@@ -213,8 +213,8 @@ Syntax of key spec:
 
 (define-expression-operator flet (fn-defs &rest body)
   (local-functions flet
-   ;; the function definitions need to be compiled with previous
-   ;; lexical bindings
+    ;; the function definitions need to be compiled with previous
+    ;; lexical bindings
     (definitions (compile-local-function-defs fn-defs fn-renames))
     ;; the flet body needs to be compiled with the extended
     ;; lexical environment
@@ -225,11 +225,11 @@ Syntax of key spec:
 
 (define-expression-operator labels (fn-defs &rest body)
   (local-functions labels
-   (*enclosing-lexicals*   (append fn-renames *enclosing-lexicals*))
-   (*loop-scope-lexicals*  (when in-loop-scope?
-                             (append fn-renames *loop-scope-lexicals*)))
-   (*local-function-names* (append fn-renames *local-function-names*))
-   (definitions (compile-local-function-defs fn-defs *local-function-names*))))
+    (*enclosing-lexicals*   (append fn-renames *enclosing-lexicals*))
+    (*loop-scope-lexicals*  (when in-loop-scope?
+                              (append fn-renames *loop-scope-lexicals*)))
+    (*local-function-names* (append fn-renames *local-function-names*))
+    (definitions (compile-local-function-defs fn-defs *local-function-names*))))
 
 (define-expression-operator function (fn-name)
   ;; one of the things responsible for function namespace

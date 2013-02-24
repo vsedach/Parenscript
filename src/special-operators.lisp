@@ -169,48 +169,51 @@
             compiled-body))
       (ps-compile (with-lambda-scope `(block ,name ,@body)))))
 
-(defun return-exp (tag &optional (value nil value?) rest-values)
-  (flet ((ret1only ()
-           (let ((ret `(ps-js:return
-                         ,@(when value?
-                                 (list (compile-expression value))))))
-             (if suppress-values?
-                 `(ps-js:block (ps-js:= __PS_MV_REG {})
-                               ,ret)
-                 ret)))
-         (fill-mv ()
-           (list (fill-mv-reg `(list ,@rest-values)))))
-    (acond ((eql tag *current-block-tag*)
-            (compile-statement
-             (if value?
-                 `(progn ,value
-                         ,@(when rest-values (fill-mv))
-                         (break ,tag))
-                 `(break ,tag))))
-           ((or (eql '%function tag)
-                (member tag *function-block-names*))
-            (if rest-values
-                (let* ((cvalue (compile-expression value))
-                       (val1   (unless (or (constantp cvalue)
-                                           (symbolp   cvalue))
-                                 (ps-gensym "VAL1_"))))
-                  (let ((suppress-values? nil))
-                    (compile-statement
-                     `(let ,(when val1 `((,val1 ,value)))
-                        ,@(fill-mv)
-                        (return-from ,tag ,(or val1 value))))))
-                (ret1only)))
-           ((assoc tag *dynamic-return-tags*)
-            (setf (cdr it) t)
-            (ps-compile
-             `(throw (create
-                      :__ps_block_tag      ',tag
-                      :__ps_value1          ,value
-                      ,@(when rest-values
-                         `(:__ps_values (list ,@rest-values)))))))
-           (t
-            (warn "Returning from unknown block ~A" tag)
-            (ret1only))))) ;; for backwards-compatibility
+(defun return-exp (tag &optional (value nil value?))
+  (let (rest-values)
+    (when (and (consp value) (eq 'values (car value))) ; multiple value return?
+      (setf rest-values (cddr value) value (cadr value)))
+    (flet ((ret1only ()
+             (let ((ret `(ps-js:return
+                           ,@(when value?
+                                   (list (compile-expression value))))))
+               (if suppress-values?
+                   `(ps-js:block (ps-js:= __PS_MV_REG {})
+                      ,ret)
+                   ret)))
+           (fill-mv ()
+             (list (fill-mv-reg `(list ,@rest-values)))))
+      (acond ((eql tag *current-block-tag*)
+              (compile-statement
+               (if value?
+                   `(progn ,value
+                           ,@(when rest-values (fill-mv))
+                           (break ,tag))
+                   `(break ,tag))))
+             ((or (eql '%function tag)
+                  (member tag *function-block-names*))
+              (if rest-values
+                  (let* ((cvalue (compile-expression value))
+                         (val1   (unless (or (constantp cvalue)
+                                             (symbolp   cvalue))
+                                   (ps-gensym "VAL1_"))))
+                    (let ((suppress-values? nil))
+                      (compile-statement
+                       `(let ,(when val1 `((,val1 ,value)))
+                          ,@(fill-mv)
+                          (return-from ,tag ,(or val1 value))))))
+                  (ret1only)))
+             ((assoc tag *dynamic-return-tags*)
+              (setf (cdr it) t)
+              (ps-compile
+               `(throw (create
+                        :__ps_block_tag      ',tag
+                        :__ps_value1          ,value
+                        ,@(when rest-values
+                                `(:__ps_values (list ,@rest-values)))))))
+             (t
+              (warn "Returning from unknown block ~A" tag)
+              (ret1only)))))) ;; for backwards-compatibility
 
 (defun try-expressionizing-if? (exp &optional (score 0)) ;; poor man's codewalker
   "Heuristic that tries not to expressionize deeply nested if expressions."
@@ -301,9 +304,9 @@ Parenscript now implements implicit return, update your code! Things like (lambd
 (define-statement-operator return-from (tag &optional result)
   (if tag
       (let ((form (ps-macroexpand result)))
-        (cond ((atom form)             (return-exp tag form))
-              ((eq 'values (car form)) (return-exp tag (cadr form) (cddr form)))
-              (t                       (expressionize-result tag form))))
+        (if (or (atom form) (eq 'values (car form)))
+            (return-exp tag form)
+            (expressionize-result tag form)))
       (ps-compile `(return-from nilBlock ,result))))
 
 

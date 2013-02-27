@@ -767,7 +767,7 @@ for (var _js1 = 0; _js1 < _js2; _js1 += 1) {
     var collect3 = [];
     for (var _js1 = 0; _js1 < _js2; _js1 += 1) {
         var a = b[_js1];
-        collect3['push'](foo(a));
+        collect3.push(foo(a));
     };
     return collect3;
 })();")
@@ -832,13 +832,13 @@ for (var _js1 = 0; _js1 < _js2; _js1 += 1) {
 
 (test-ps-js the-html-generator-2
   (ps-html ((:a :href (generate-a-link)) "blorg"))
-  "['<A HREF=\"', generateALink(), '\">blorg</A>']['join']('');")
+  "['<A HREF=\"', generateALink(), '\">blorg</A>'].join('');")
 
 (test-ps-js the-html-generator-3
   (funcall (getprop document 'write)
            (ps-html ((:a :href "#"
                          :onclick (ps-inline (transport))) "link")))
-  "document.write(['<A HREF=\"#\" ONCLICK=\"', 'javascript:' + 'transport()', '\">link</A>']['join'](''));")
+  "document.write(['<A HREF=\"#\" ONCLICK=\"', 'javascript:' + 'transport()', '\">link</A>'].join(''));")
 
 (test-ps-js the-html-generator-4
   (let ((disabled nil)
@@ -849,7 +849,7 @@ for (var _js1 = 0; _js1 < _js2; _js1 += 1) {
   "(function () {
 var disabled = null;
 var authorized = true;
-return element.innerHTML = ['<TEXTAREA', disabled || !authorized ? [' DISABLED=\"', 'disabled', '\"']['join']('') : '', '>Edit me</TEXTAREA>']['join']('');
+return element.innerHTML = ['<TEXTAREA', disabled || !authorized ? [' DISABLED=\"', 'disabled', '\"'].join('') : '', '>Edit me</TEXTAREA>'].join('');
 })();")
 
 (test-ps-js plus-is-not-commutative
@@ -1395,7 +1395,7 @@ __setf_someThing('foo', 1, 2);")
                       :onclick (ps-inline (transport)))
                   img))
         img))
-  "document.write(LINKORNOT === 1 ? ['<A HREF=\"#\" ONCLICK=\"', 'javascript:' + 'transport()', '\">', img, '</A>']['join']('') : img);")
+  "document.write(LINKORNOT === 1 ? ['<A HREF=\"#\" ONCLICK=\"', 'javascript:' + 'transport()', '\">', img, '</A>'].join('') : img);")
 
 (test-ps-js negate-number-literal
   (- 1)
@@ -1616,7 +1616,7 @@ __setf_someThing('foo', 1, 2);")
                       (:a :href "http://foo.com"
                           symbol)
                       (:span :class "ticker-symbol-popup")))
-  "['<SPAN CLASS=\"ticker-symbol\" TICKER-SYMBOL=\"', symbol, '\"><A HREF=\"http://foo.com\">', symbol, '</A><SPAN CLASS=\"ticker-symbol-popup\"></SPAN></SPAN>']['join']('');")
+  "['<SPAN CLASS=\"ticker-symbol\" TICKER-SYMBOL=\"', symbol, '\"><A HREF=\"http://foo.com\">', symbol, '</A><SPAN CLASS=\"ticker-symbol-popup\"></SPAN></SPAN>'].join('');")
 
 (test-ps-js who-html2
   (who-ps-html (:p "t0" (:span "t1")))

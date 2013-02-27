@@ -97,9 +97,9 @@
                           (ps-js:> ps-js:<=)))))
   (define-expression-operator not (x)
     (let ((form (compile-expression x)))
-      (acond ((and (listp form) (eq (car form) 'ps-js:!))
+      (acond ((and (listp form) (eq (car form) 'ps-js:!)) ;; not not → identity
               (second form))
-             ((and (listp form) (cadr (assoc (car form) inverses)))
+             ((and (listp form) (cadr (assoc (car form) inverses))) ;; not equal → !=
               `(,it ,@(cdr form)))
              (t `(ps-js:! ,form))))))
 
@@ -182,12 +182,12 @@
                       ,ret)
                    ret)))
            (fill-mv ()
-             (list (fill-mv-reg `(list ,@rest-values)))))
+             (fill-mv-reg `(list ,@rest-values))))
       (acond ((eql tag *current-block-tag*)
               (compile-statement
                (if value?
                    `(progn ,value
-                           ,@(when rest-values (fill-mv))
+                           ,@(when rest-values (list (fill-mv)))
                            (break ,tag))
                    `(break ,tag))))
              ((or (eql '%function tag)
@@ -200,7 +200,7 @@
                     (let ((suppress-values? nil))
                       (compile-statement
                        `(let ,(when val1 `((,val1 ,value)))
-                          ,@(fill-mv)
+                          ,(fill-mv)
                           (return-from ,tag ,(or val1 value))))))
                   (ret1only)))
              ((assoc tag *dynamic-return-tags*)
@@ -572,7 +572,7 @@ Parenscript now implements implicit return, update your code! Things like (lambd
          compiled-body)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; evalutation
+;;; evaluation
 
 (define-expression-operator quote (x)
   (flet ((quote% (expr) (when expr `',expr)))

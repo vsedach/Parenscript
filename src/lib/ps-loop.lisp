@@ -11,8 +11,8 @@
 (defun property-bindings-p (x)
   (when (consp x)
     (every (lambda (y)
-             (or (keywordp y)
-                 (and (consp y)
+             (or (keywordp y) ; standalone property name
+                 (and (consp y) ; var name paired with property name
                       (= (length y) 2)
                       (symbolp (car y))
                       (not (keywordp (car y)))
@@ -27,32 +27,33 @@
            (list var (list x var))))
         (t (loop :for y :on x
               :for (d p) = (extract-bindings (car y))
-              :append (list d) :into ds
+              :collect d :into ds
               :when p :append p :into ps
               :finally (return (list ds ps))))))
 
 (defun property-bindings (bindings expr body)
   `(let ,(loop :for b :in bindings
-            :for (var p) = (if (consp b) b (list (intern (string b)) b))
+            :for (var p) = (cond ((consp b) b) ; var name paired with property name
+                                 (t (list (intern (string b)) b))) ; make var from prop
             :collect `(,var (@ ,expr ,p)))
      ,@body))
 
 (defpsmacro bind (bindings expr &body body)
-  (setf bindings (dot->rest bindings))
-  (destructuring-bind (d p)
-      (extract-bindings bindings)
-    (cond ((and (atom d)
-                (or (= (length bindings) 1)
-                    (atom expr)
-                    (atom (ps-macroexpand expr))))
-           (property-bindings bindings expr body))
-          ((atom d)
-           (with-ps-gensyms (var)
-             `(let ((,var ,expr))
-                (bind ,bindings ,var ,@body))))
-          ((null p) `(destructuring-bind ,bindings ,expr ,@body))
-          (t `(destructuring-bind ,d ,expr
-                (bind* ,p ,@body))))))
+  (let ((bindings (dot->rest bindings)))
+    (destructuring-bind (d p)
+        (extract-bindings bindings)
+      (cond ((and (atom d)
+                  (or (= (length bindings) 1)
+                      (atom (ps-macroexpand expr))))
+             (property-bindings bindings expr body))
+            ((atom d)
+             (with-ps-gensyms (var)
+               `(let ((,var ,expr))
+                  (bind ,bindings ,var ,@body))))
+            ((null p)
+             `(destructuring-bind ,bindings ,expr ,@body))
+            (t `(destructuring-bind ,d ,expr
+                  (bind* ,p ,@body)))))))
 
 (defpsmacro bind* (bindings &body body)
   (cond ((= (length bindings) 2)
@@ -106,6 +107,7 @@
   (car (tokens state)))
 
 (defun eat (state &optional what tag)
+  "Consumes the next meaningful chunk of loop for processing."
   (case what
     (:if (when (eq (as-keyword (peek state)) tag)
            (eat state)
@@ -230,7 +232,7 @@
         (:count `(when ,item (incf ,var))) ;; note the JS semantics - neither 0 nor "" will count
         (:minimize `(setf ,var (if (null ,var) ,item (min ,var ,item))))
         (:maximize `(setf ,var (if (null ,var) ,item (max ,var ,item))))
-        (:collect `((@ ,var :push) ,item))
+        (:collect `((@ ,var 'push) ,item))
         (:append `(setf ,var (append ,var ,item)))
         (:map (destructuring-bind (key val) item
                 `(setf (getprop ,var ,key) ,val)))))
@@ -314,8 +316,8 @@
               (assert (not (or init step js-obj)) nil "Invalid iteration ~a: PLACE should not be null." clause)
               (assert test nil "Iteration ~a has neither PLACE nor TEST." clause)
               (unless (sixth (car folded)) ;; js-obj means a for..in loop and those can't have tests
-                (let ((test^ (fifth (car folded))))
-                  (setf (fifth (car folded)) (if test^ `(and ,test^ ,test) test))
+                (let ((prev-test (fifth (car folded))))
+                  (setf (fifth (car folded)) (if prev-test `(and ,prev-test ,test) test))
                   (setf folded? t))))))
         (unless folded?
           (push clause folded))))

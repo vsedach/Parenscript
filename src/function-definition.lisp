@@ -54,14 +54,14 @@ Syntax of key spec:
             (mapcar (lambda (opt-spec)
                       (multiple-value-bind (name value suppl)
                           (parse-optional-spec opt-spec)
-                        (if suppl
-                            `(progn
-                               (var ,suppl (not (eql ,name undefined)))
-                               ,@(when value
-                                   `((when (not ,suppl) (setf ,name ,value)))))
-                            (when value
-                              `(when (eql ,name undefined)
-                                 (setf ,name ,value))))))
+                        (cond (suppl
+                               `(progn
+                                  (var ,suppl (not (eql ,name undefined)))
+                                  ,@(when value
+                                          `((when (not ,suppl) (setf ,name ,value))))))
+                              (value
+                               `(when (eql ,name undefined)
+                                  (setf ,name ,value))))))
                     optionals))
            (key-forms
             (when keys?
@@ -105,7 +105,7 @@ Syntax of key spec:
 (defun collapse-function-return-blocks (body)
   (append (butlast body)
           (let ((last (ps-macroexpand (car (last body)))))
-            (if (and (listp last) (eq 'block (car last)))
+            (if (and (listp last) (eq 'block (car last))) ; no need for a block at the end of a function body
                 (progn (push (or (second last) 'nilBlock) *function-block-names*)
                        (cddr last))
                 (list last)))))
@@ -202,7 +202,7 @@ Syntax of key spec:
             ,@(compile-progn body)))
        (ps-compile (with-lambda-scope `(,',special-op ,fn-defs ,@body)))))
 
-(defun compile-local-function-body (fn-defs renames)
+(defun compile-local-function-defs (fn-defs renames)
   (loop for (fn-name . (args . body)) in fn-defs collect
        (progn (when compile-expression?
                 (push (getf renames fn-name)
@@ -215,7 +215,7 @@ Syntax of key spec:
   (local-functions flet
    ;; the function definitions need to be compiled with previous
    ;; lexical bindings
-    (definitions (compile-local-function-body fn-defs fn-renames))
+    (definitions (compile-local-function-defs fn-defs fn-renames))
     ;; the flet body needs to be compiled with the extended
     ;; lexical environment
     (*enclosing-lexicals*   (append fn-renames *enclosing-lexicals*))
@@ -229,7 +229,7 @@ Syntax of key spec:
    (*loop-scope-lexicals*  (when in-loop-scope?
                              (append fn-renames *loop-scope-lexicals*)))
    (*local-function-names* (append fn-renames *local-function-names*))
-   (definitions (compile-local-function-body fn-defs *local-function-names*))))
+   (definitions (compile-local-function-defs fn-defs *local-function-names*))))
 
 (define-expression-operator function (fn-name)
   ;; one of the things responsible for function namespace

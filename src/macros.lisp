@@ -315,20 +315,11 @@ lambda-list::=
 
 ;;; iteration
 
-(defun do-make-let-bindings (decls)
+(defun do-make-iteration-bindings (decls)
   (mapcar (lambda (x)
-            (if (atom x)
-                x
-                (if (endp (cdr x))
-                    (list (car x))
-                    (subseq x 0 2))))
-          decls))
-
-(defun do-make-for-vars/init (decls)
-  (mapcar (lambda (x)
-            (if (atom x) x
-                (if (endp (cdr x)) x
-                    (subseq x 0 2))))
+            (cond ((atom x) x)
+                  ((endp (cdr x)) (list (car x)))
+                  (t (subseq x 0 2))))
           decls))
 
 (defun do-make-for-steps (decls)
@@ -346,18 +337,18 @@ lambda-list::=
                            (or (atom x) (< (length x) 3)))
                          decls))))
 
-(defpsmacro do* (decls (termination &optional (result nil result?)) &body body)
+(defpsmacro do* (decls (end-test &optional (result nil result?)) &body body)
   `(block nil
-     (for ,(do-make-for-vars/init decls)
-          ((not ,termination))
+     (for ,(do-make-iteration-bindings decls)
+          ((not ,end-test))
           ,(do-make-for-steps decls)
           ,@body)
      ,@(when result? (list result))))
 
-(defpsmacro do (decls (termination &optional (result nil result?)) &body body)
+(defpsmacro do (decls (end-test &optional (result nil result?)) &body body)
   `(block nil
-     (let ,(do-make-let-bindings decls)
-       (for () ((not ,termination)) ()
+     (let ,(do-make-iteration-bindings decls)
+       (for () ((not ,end-test)) ()
             ,@body
             ,(do-make-iter-psteps decls))
        ,@(when result? (list result)))))

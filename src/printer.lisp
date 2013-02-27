@@ -342,20 +342,20 @@ vice-versa.")
 
 (defprinter ps-js:switch (test &rest clauses)
   "switch ("(ps-print test)") {"
-  (flet ((print-body-statements (body-statements)
+  (flet ((print-body (body)
            (incf *indent-level*)
-           (loop for statement in body-statements do
-                (progn (newline-and-indent)
-                       (ps-print statement)
-                       (psw #\;)))
+           (loop for statement in body do
+                (newline-and-indent)
+                (ps-print statement)
+                (psw #\;))
            (decf *indent-level*)))
-    (loop for (val . statements) in clauses
-       do (progn (newline-and-indent)
-                 (if (eq val 'ps-js:default)
-                     (progn (psw "default:")
-                            (print-body-statements statements))
-                     (progn (psw "case ") (ps-print val) (psw #\:)
-                            (print-body-statements statements))))))
+    (loop for (val . statements) in clauses do
+         (newline-and-indent)
+         (if (eq val 'ps-js:default)
+             (progn (psw "default:")
+                    (print-body statements))
+             (progn (psw "case ") (ps-print val) (psw #\:)
+                    (print-body statements)))))
   (newline-and-indent)
   "}")
 

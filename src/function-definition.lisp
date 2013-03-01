@@ -225,10 +225,10 @@ Syntax of key spec:
 
 (define-expression-operator labels (fn-defs &rest body)
   (local-functions labels
-   (*local-function-names* (append fn-renames *local-function-names*))
    (*enclosing-lexicals*   (append fn-renames *enclosing-lexicals*))
    (*loop-scope-lexicals*  (when in-loop-scope?
                              (append fn-renames *loop-scope-lexicals*)))
+   (*local-function-names* (append fn-renames *local-function-names*))
    (definitions (compile-local-function-body fn-defs *local-function-names*))))
 
 (define-expression-operator function (fn-name)

@@ -163,7 +163,7 @@
                ,@(last form)
              ,@body))
         ;; assume function call
-        (with-ps-gensyms (prev-mv mv)
+        (with-ps-gensyms (prev-mv)
           (let* ((fun-exp (car form))
                  (funobj (if (symbolp fun-exp)
                              fun-exp

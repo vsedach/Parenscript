@@ -2306,8 +2306,8 @@ return foo(1, 'y', 2);
   var prevMv1 = 'undefined' === typeof __PS_MV_REG ? (__PS_MV_REG = undefined) : __PS_MV_REG;
 try {
     var a = doesnt();
-    var _db3 = doesnt === __PS_MV_REG['tag'] ? __PS_MV_REG['values'] : [];
-    var b = _db3[0];
+    var _db2 = doesnt === __PS_MV_REG['tag'] ? __PS_MV_REG['values'] : [];
+    var b = _db2[0];
     alert(a);
     return alert(b);
 } finally {
@@ -2325,15 +2325,15 @@ try {
   "(function () {
 var a = 1;
 returnsMv(a);
-var prevMv3 = 'undefined' === typeof __PS_MV_REG ? (__PS_MV_REG = undefined) : __PS_MV_REG;
+var prevMv2 = 'undefined' === typeof __PS_MV_REG ? (__PS_MV_REG = undefined) : __PS_MV_REG;
 try {
-    var a5 = doesnt(b);
-    var _db6 = doesnt === __PS_MV_REG['tag'] ? __PS_MV_REG['values'] : [];
-    var b = _db6[0];
-    alert(a5);
+    var a3 = doesnt(b);
+    var _db4 = doesnt === __PS_MV_REG['tag'] ? __PS_MV_REG['values'] : [];
+    var b = _db4[0];
+    alert(a3);
     return alert(b);
 } finally {
-    __PS_MV_REG = prevMv3;
+    __PS_MV_REG = prevMv2;
 };
 })();")
 
@@ -2344,8 +2344,8 @@ try {
     var prevMv1 = 'undefined' === typeof __PS_MV_REG ? (__PS_MV_REG = undefined) : __PS_MV_REG;
 try {
     var a = blah();
-    var _db3 = blah === __PS_MV_REG['tag'] ? __PS_MV_REG['values'] : [];
-    var b = _db3[0];
+    var _db2 = blah === __PS_MV_REG['tag'] ? __PS_MV_REG['values'] : [];
+    var b = _db2[0];
     return a + b;
 } finally {
     __PS_MV_REG = prevMv1;

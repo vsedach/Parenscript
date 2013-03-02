@@ -140,10 +140,11 @@
            (if (listp slot)
                (second slot)
                slot)))
-    `(symbol-macrolet ,(mapcar (lambda (slot)
-                                 `(,(slot-var slot) (getprop ,object ',(slot-symbol slot))))
-                               slots)
-       ,@body)))
+    (maybe-once-only (object)
+      `(symbol-macrolet ,(mapcar (lambda (slot)
+                                   `(,(slot-var slot) (getprop ,object ',(slot-symbol slot))))
+                                 slots)
+         ,@body))))
 
 ;;; multiple values
 

@@ -141,6 +141,13 @@
     (+ a b c))
   "this.a + this.b + this.c;")
 
+(test-ps-js with-slots-single-eval
+  (lambda () (with-slots (a b) (foo) (+ a b)))
+  "(function () {
+    var object1 = foo();
+    return object1.a + object1.b;
+});")
+
 (test-ps-js object-literal-quoted-symbols
   (create 'test "bang" 'symbol-saved-my-life "parenscript")
   "({ 'test' : 'bang', 'symbolSavedMyLife' : 'parenscript' });")

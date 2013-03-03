@@ -324,20 +324,6 @@ lambda-list::=
                     (subseq x 0 2))))
           decls))
 
-(defun do-make-init-vars (decls)
-  (mapcar (lambda (x)
-            (if (atom x)
-                x
-                (first x)))
-          decls))
-
-(defun do-make-init-vals (decls)
-  (mapcar (lambda (x)
-            (if (or (atom x) (endp (cdr x)))
-                nil
-                (second x)))
-          decls))
-
 (defun do-make-for-vars/init (decls)
   (mapcar (lambda (x)
             (if (atom x) x

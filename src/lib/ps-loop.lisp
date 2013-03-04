@@ -1,5 +1,65 @@
 (in-package #:parenscript)
 
+;;; bind and bind* - macros used for destructuring bindings in PS LOOP
+
+(defun dot->rest (x)
+  (cond ((atom x) x)
+        ((not (listp (cdr x)))        ; dotted list
+         (list (dot->rest (car x)) '&rest (dot->rest (cdr x))))
+        (t (cons (dot->rest (car x)) (dot->rest (cdr x))))))
+
+(defun property-bindings-p (x)
+  (when (consp x)
+    (every (lambda (y)
+             (or (keywordp y)
+                 (and (consp y)
+                      (= (length y) 2)
+                      (symbolp (car y))
+                      (not (keywordp (car y)))
+                      (keywordp (cadr y)))))
+           x)))
+
+(defun extract-bindings (x)
+  ;; returns a pair of destructuring bindings and property bindings
+  (cond ((atom x) (list x nil))
+        ((property-bindings-p x)
+         (let ((var (ps-gensym)))
+           (list var (list x var))))
+        (t (loop :for y :on x
+              :for (d p) = (extract-bindings (car y))
+              :append (list d) :into ds
+              :when p :append p :into ps
+              :finally (return (list ds ps))))))
+
+(defun property-bindings (bindings expr body)
+  `(let ,(loop :for b :in bindings
+            :for (var p) = (if (consp b) b (list (intern (string b)) b))
+            :collect `(,var (@ ,expr ,p)))
+     ,@body))
+
+(defpsmacro bind (bindings expr &body body)
+  (setf bindings (dot->rest bindings))
+  (destructuring-bind (d p)
+      (extract-bindings bindings)
+    (cond ((and (atom d)
+                (or (= (length bindings) 1)
+                    (atom expr)
+                    (atom (ps-macroexpand expr))))
+           (property-bindings bindings expr body))
+          ((atom d)
+           (with-ps-gensyms (var)
+             `(let ((,var ,expr))
+                (bind ,bindings ,var ,@body))))
+          ((null p) `(destructuring-bind ,bindings ,expr ,@body))
+          (t `(destructuring-bind ,d ,expr
+                (bind* ,p ,@body))))))
+
+(defpsmacro bind* (bindings &body body)
+  (cond ((= (length bindings) 2)
+         `(bind ,(car bindings) ,(cadr bindings) ,@body))
+        (t `(bind ,(car bindings) ,(cadr bindings)
+              (bind* ,(cddr bindings) ,@body)))))
+
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (defvar *loop-keywords*
     '(:named :for :repeat :with :while :until :initially :finally

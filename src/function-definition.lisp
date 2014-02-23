@@ -84,14 +84,9 @@ Syntax of key spec:
                     ,@defaults)))))
            (rest-form
             (when rest?
-              (with-ps-gensyms (i)
-                `(progn (var ,rest (array))
-                        (dotimes (,i (- (getprop arguments 'length)
-                                        ,(length effective-args)))
-                          (setf (aref ,rest
-                                      ,i)
-                                (aref arguments
-                                      (+ ,i ,(length effective-args)))))))))
+            `(progn (var ,rest
+                         ((@ Array prototype slice call)
+                           arguments ,(length effective-args))))))
            (docstring (and (cdr body) (stringp (car body)) (car body)))
            (effective-body (append opt-forms
                                    key-forms

@@ -84,9 +84,9 @@ Syntax of key spec:
                     ,@defaults)))))
            (rest-form
             (when rest?
-            `(progn (var ,rest
-                         ((@ Array prototype slice call)
-                           arguments ,(length effective-args))))))
+            `(var ,rest
+                  ((@ Array prototype slice call)
+                   arguments ,(length effective-args)))))
            (docstring (and (cdr body) (stringp (car body)) (car body)))
            (effective-body (append opt-forms
                                    key-forms

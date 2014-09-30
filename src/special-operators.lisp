@@ -245,7 +245,7 @@ invocations or not.")
      ((continue break throw) ;; non-local exit
       form)
      ;; implicit progn forms
-     ((with label let flet labels macrolet symbol-macrolet block)
+     ((with label let flet labels macrolet symbol-macrolet)
       `(,(first form) ,(second form)
          ,@(butlast (cddr form))
          (return-from ,tag ,(car (last (cddr form))))))
@@ -295,6 +295,12 @@ invocations or not.")
                (return-from ,tag ,(third form))
                ,@(when (or in-case? (fourth form))
                        `((return-from ,tag ,(fourth form)))))))
+     (block
+      (let ((tag* (or (cadr form) 'nilBlock))
+            (body* (cddr form)))
+        (let ((*function-block-names* (cons tag* *function-block-names*)))
+          (return-from expressionize-result
+            (expressionize-result tag* `(progn ,@body*))))))
      (return-from ;; this will go away someday
       (unless tag
         (warn 'simple-style-warning

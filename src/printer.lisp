@@ -257,11 +257,13 @@ vice-versa.")
   (print-fun-def name args body-block))
 
 (defun print-fun-def (name args body)
-  (format *psw-stream* "function ~:[~;~A~](" name (symbol-to-js-string name))
-  (loop for (arg . remaining) on args do
+  (destructuring-bind (keyword name) (if (consp name) name `(function ,name))
+    (format *psw-stream* "~(~A~) ~:[~;~A~]("
+            keyword name (symbol-to-js-string name))
+    (loop for (arg . remaining) on args do
         (psw (symbol-to-js-string arg)) (when remaining (psw ", ")))
-  (psw ") ")
-  (ps-print body))
+    (psw ") ")
+    (ps-print body)))
 
 (defprinter ps-js:object (&rest slot-defs)
   (parenthesize-at-toplevel
@@ -270,10 +272,14 @@ vice-versa.")
      (let ((indent? (< 2 (length slot-defs)))
            (indent *column*))
        (loop for ((slot-name . slot-value) . remaining) on slot-defs do
-             (ps-print slot-name) (psw " : ")
-             (if (and (consp slot-value) (eq 'ps-js:|,| (car slot-value)))
-                 (parenthesize-print slot-value)
-                 (ps-print slot-value))
+            (if (consp slot-name)
+                (apply #'print-fun-def slot-name slot-value)
+                (progn
+                  (ps-print slot-name) (psw " : ")
+                  (if (and (consp slot-value)
+                           (eq 'ps-js:|,| (car slot-value)))
+                      (parenthesize-print slot-value)
+                      (ps-print slot-value))))
             (when remaining
               (psw ",")
               (if indent?

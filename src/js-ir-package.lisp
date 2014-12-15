@@ -64,6 +64,7 @@
    #:delete
    #:function
    #:get
+   #:set
    #:in
    #:instanceof
    #:new

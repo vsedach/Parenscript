@@ -152,6 +152,20 @@
   (create 'test "bang" 'symbol-saved-my-life "parenscript")
   "({ 'test' : 'bang', 'symbolSavedMyLife' : 'parenscript' });")
 
+(test-ps-js object-literal-property-accessors
+  (defun foo ()
+    (let ((x 10))
+      (create (get x)   x
+              (set x v) (setf x v))))
+  "function foo() {
+    var x = 10;
+    return { get x() {
+        return x;
+    }, set x(v) {
+        return x = v;
+    } };
+};")
+
 (test-ps-js object-method-apply-1
   (apply (@ an-object foo) nil)
   "anObject.foo.apply(anObject, null);")

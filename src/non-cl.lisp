@@ -160,7 +160,8 @@
   ;; dynamic environment only, analogous to eval.
   `(ps-js:escape
     (with-output-to-string (*psw-stream*)
-      (let ((compile-expression? ,compile-expression?))
+      (let ((compile-expression? ,compile-expression?)
+	    (*js-string-delimiter* ,*js-string-delimiter*))
         (parenscript-print (ps-compile ,lisp-form) t)))))
 
 (defun lisp (x) x)

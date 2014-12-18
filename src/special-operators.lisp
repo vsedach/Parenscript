@@ -345,19 +345,43 @@ Parenscript now implements implicit return, update your code! Things like (lambd
    (when clauses
      (destructuring-bind (test &rest body) (car clauses)
        (if (eq t test)
-           `(progn ,@body)
-           `(if ,test
-                (progn ,@body)
-                (cond ,@(cdr clauses))))))))
+           (if (null body) t `(progn ,@body))
+           (flet ((conditional (test body)
+                    `(if ,test
+                         (progn ,@body)
+                         (cond ,@(cdr clauses)))))
+             (if (null body)
+                 (with-ps-gensyms (test-result)
+                   `(let ((,test-result ,test))
+                      ,(conditional test-result (list test-result))))
+                 (conditional test body))))))))
 
 (define-statement-operator cond (&rest clauses)
-  `(ps-js:if ,(compile-expression (caar clauses))
-             ,(compile-statement `(progn ,@(cdar clauses)))
-             ,@(loop for (test . body) in (cdr clauses) appending
-                     (if (eq t test)
-                         `(:else ,(compile-statement `(progn ,@body)))
-                         `(:else-if ,(compile-expression test)
-                                    ,(compile-statement `(progn ,@body)))))))
+  (let* ((test-result nil)
+         (clauses*
+           (loop for clause in clauses for (test . body) = clause
+                 if body
+                   collect clause
+                 else
+                   do (unless test-result (setq test-result (ps-gensym)))
+                   and collect
+                     (if (and (consp test) (eq (first test) 'return-from))
+                         (cons `(setq ,test-result ,(third test))
+                               `((return-from ,(second test) ,test-result)))
+                         (cons `(setq ,test-result ,test)
+                               `(,test-result)))))
+         (if-form
+           `(ps-js:if
+              ,(compile-expression (caar clauses*))
+              ,(compile-statement `(progn ,@(cdar clauses*)))
+              ,@(loop for (test . body) in (cdr clauses*) appending
+                  (if (eq t test)
+                      `(:else ,(compile-statement `(progn ,@body)))
+                      `(:else-if ,(compile-expression test)
+                                 ,(compile-statement `(progn ,@body))))))))
+    (if test-result
+        `(ps-js:block (ps-js:var ,test-result) ,if-form)
+        if-form)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; macros

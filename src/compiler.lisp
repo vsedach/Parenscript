@@ -171,14 +171,15 @@ lambda list from a Parenscript perspective."
   (defined-operator-override-check name
       (multiple-value-bind (macro-fn-form effective-lambda-list)
           (make-ps-macro-function args body)
-        `(progn
+        `(eval-when (:compile-toplevel :load-toplevel :execute)
            (setf (gethash ',name *macro-toplevel*) ,macro-fn-form)
            (setf (gethash ',name *macro-toplevel-lambda-list*) ',effective-lambda-list)
            ',name))))
 
 (defmacro define-ps-symbol-macro (symbol expansion)
   (defined-operator-override-check symbol
-      `(setf (gethash ',symbol *symbol-macro-toplevel*) (lambda (form) (declare (ignore form)) ',expansion))))
+      `(eval-when (:compile-toplevel :load-toplevel :execute)
+	 (setf (gethash ',symbol *symbol-macro-toplevel*) (lambda (form) (declare (ignore form)) ',expansion)))))
 
 (defun import-macros-from-lisp (&rest names)
   "Import the named Lisp macros into the Parenscript macro

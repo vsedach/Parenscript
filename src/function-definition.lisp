@@ -31,6 +31,24 @@ Syntax of key spec:
          (supplied-p-var (if (listp spec) (third spec))))
     (values var init-form supplied-p-var)))
 
+(defun parse-body (body &key allow-docstring)
+  "Parses a function or block body, which may or may not include a
+docstring.  Returns 2 or 3 values: a docstring (if allowed for), a list
+of (declare ...) forms, and the remaining body."
+  (flet ((values* (docstring declarations body)
+           (if allow-docstring
+               (values docstring declarations body)
+               (values declarations body))))
+    (loop for forms on body for (form) = forms
+          with docstring = (not allow-docstring)
+          if (and (stringp form) (not docstring))
+            do (setf docstring form)
+          else if (and (consp form) (eq (first form) 'declare))
+            collect form into declarations
+          else
+            return (values* docstring declarations forms)
+          finally (return (values* docstring declarations nil)))))
+
 (defun parse-extended-function (lambda-list body)
   "The lambda list is transformed as follows:
 
@@ -91,13 +109,14 @@ Syntax of key spec:
                           (setf (aref ,rest
                                       ,i)
                                 (aref arguments
-                                      (+ ,i ,(length effective-args)))))))))
-           (docstring (and (cdr body) (stringp (car body)) (car body)))
-           (effective-body (append opt-forms
-                                   key-forms
-                                   (awhen rest-form (list it))
-                                   (if docstring (rest body) body))))
-      (values effective-args effective-body docstring))))
+                                      (+ ,i ,(length effective-args))))))))))
+      (multiple-value-bind (docstring declarations executable-body)
+          (parse-body body :allow-docstring t)
+        (values effective-args
+                (append declarations
+                        opt-forms key-forms (awhen rest-form (list it))
+                        executable-body)
+                docstring)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; common

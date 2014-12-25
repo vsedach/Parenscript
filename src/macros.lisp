@@ -342,16 +342,18 @@ lambda-list::=
      (for ,(do-make-iteration-bindings decls)
           ((not ,end-test))
           ,(do-make-for-steps decls)
-          ,@body)
+          (locally ,@body))
      ,@(when result? (list result))))
 
 (defpsmacro do (decls (end-test &optional (result nil result?)) &body body)
-  `(block nil
-     (let ,(do-make-iteration-bindings decls)
-       (for () ((not ,end-test)) ()
-            ,@body
-            ,(do-make-iter-psteps decls))
-       ,@(when result? (list result)))))
+  (multiple-value-bind (declarations executable-body) (parse-body body)
+    `(block nil
+       (let ,(do-make-iteration-bindings decls)
+         ,@declarations
+         (for () ((not ,end-test)) ()
+              ,@executable-body
+              ,(do-make-iter-psteps decls))
+         ,@(when result? (list result))))))
 
 (defpsmacro dotimes ((var count &optional (result nil result?)) &rest body)
   `(do* ((,var 0 (1+ ,var)))
@@ -392,27 +394,55 @@ lambda-list::=
 (defun hoist-expr? (bindings expr)
   (and (> (length bindings) 1) (complex-js-expr? expr)))
 
-(defun destructuring-wrap (arr n bindings body)
+(defun pop-declarations-for-var (var declarations)
+  (loop for declarations* on declarations
+        with var-declarations = nil
+        do (setf (first declarations*)
+                 (loop for spec in (first declarations*)
+                       ;; We only care for SPECIAL declarations for now
+                       ;; (cf. WITH-DECLARATION-EFFECTS)
+                       if (and (consp spec) (eq 'special (first spec)))
+                         collect
+                           (let ((vars* (remove var (rest spec))))
+                             (if (eq vars* (cdr spec))
+                                 spec
+                                 (progn
+                                   (pushnew var (getf var-declarations 'special))
+                                   (cons 'special vars*))))
+                       else
+                         collect spec))
+        finally (return
+                  (loop for (sym decls) on var-declarations by #'cddr
+                        collect (cons sym decls)))))
+
+(defun destructuring-wrap (arr n bindings declarations body)
   (cond ((null bindings) body)
         ((eq (car bindings) '&rest)
          (cond ((and (= (length bindings) 2) (atom (second bindings)))
                 `(let ((,(second bindings) (if (> (length ,arr) ,n) ((@ ,arr slice) ,n) '())))
+                   (declare ,@(pop-declarations-for-var (second bindings) declarations))
                    ,body))
                (t (error "~a is invalid in destructuring list." bindings))))
         ((eq (car bindings) '&optional)
-         (destructuring-wrap arr n (cdr bindings) body))
+         (destructuring-wrap arr n (cdr bindings) declarations body))
         (t (let ((var (car bindings))
-                 (inner-body (destructuring-wrap arr (1+ n) (cdr bindings) body)))
+                 (inner-body (destructuring-wrap arr (1+ n) (cdr bindings) declarations body)))
              (cond ((null var) inner-body)
-                   ((atom var) `(let ((,var (aref ,arr ,n))) ,inner-body))
-                   (t `(,'destructuring-bind ,var (aref ,arr ,n) ,inner-body)))))))
+                   ((atom var) `(let ((,var (aref ,arr ,n)))
+                                  (declare ,@(pop-declarations-for-var var declarations))
+                                  ,inner-body))
+                   (t `(,'destructuring-bind ,var (aref ,arr ,n)
+                         ,@declarations
+                         ,inner-body)))))))
 
 (defpsmacro destructuring-bind (bindings expr &body body)
   (setf bindings (dot->rest bindings))
-  (let* ((arr (if (hoist-expr? bindings expr) (ps-gensym "_DB") expr))
-         (bound (destructuring-wrap arr 0 bindings (cons 'progn body))))
-    (cond ((eq arr expr) bound)
-          (t `(let ((,arr ,expr)) ,bound)))))
+  (multiple-value-bind (declarations executable-body) (parse-body body)
+    (let* ((arr (if (hoist-expr? bindings expr) (ps-gensym "_DB") expr))
+           (bound (destructuring-wrap arr 0 bindings declarations
+                                      (cons 'progn executable-body))))
+      (cond ((eq arr expr) bound)
+            (t `(let ((,arr ,expr)) ,bound))))))
 
 ;;; Control structures
 
@@ -454,11 +484,14 @@ lambda-list::=
 ;;; misc
 
 (defpsmacro let* (bindings &body body)
-  (if bindings
-      `(let (,(car bindings))
-         (let* ,(cdr bindings)
-           ,@body))
-      `(progn ,@body)))
+  (multiple-value-bind (declarations executive-body) (parse-body body)
+    (loop for binding in (cons nil (reverse bindings))
+          for var = (if (symbolp binding) binding (car binding))
+          for body = executive-body
+            then `((let (,binding)
+                     (declare ,@(pop-declarations-for-var var declarations))
+                     ,@body))
+          finally (return `(progn ,@body)))))
 
 (defpsmacro in-package (package-designator)
   `(eval-when (:compile-toplevel)

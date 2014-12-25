@@ -374,17 +374,18 @@ Parenscript now implements implicit return, update your code! Things like (lambd
           macro
         (setf (gethash name local-macro-dict)
               (eval (make-ps-macro-function arglist body)))))
-    (ps-compile `(progn ,@body))))
+    (ps-compile `(locally ,@body))))
 
 (define-expression-operator symbol-macrolet (symbol-macros &body body)
   (with-local-macro-environment (local-macro-dict *symbol-macro-env*)
-    (let (local-var-bindings)
-      (dolist (macro symbol-macros)
-        (destructuring-bind (name expansion) macro
-          (setf (gethash name local-macro-dict) (lambda (x) (declare (ignore x)) expansion))
-          (push name local-var-bindings)))
-      (let ((*enclosing-lexicals* (append local-var-bindings *enclosing-lexicals*)))
-        (ps-compile `(progn ,@body))))))
+    (with-declaration-effects (body body)
+      (let (local-var-bindings)
+        (dolist (macro symbol-macros)
+          (destructuring-bind (name expansion) macro
+            (setf (gethash name local-macro-dict) (lambda (x) (declare (ignore x)) expansion))
+            (push name local-var-bindings)))
+        (let ((*enclosing-lexicals* (append local-var-bindings *enclosing-lexicals*)))
+          (ps-compile `(progn ,@body)))))))
 
 (define-expression-operator defmacro (name args &body body)
   (eval `(defpsmacro ,name ,args ,@body))
@@ -441,16 +442,16 @@ Parenscript now implements implicit return, update your code! Things like (lambd
 ;;; binding
 
 (defmacro with-declaration-effects ((var block) &body body)
-  (let ((declarations (gensym)))
-   `(let* ((,var ,block)
-           (,declarations (and (listp (car ,var))
-                               (eq (caar ,var) 'declare)
-                               (cdar ,var)))
-           (,var (if ,declarations
-                     (cdr ,var)
-                     ,var))
-           (*special-variables* (append (cdr (find 'special ,declarations :key #'car)) *special-variables*)))
-      ,@body)))
+  (with-ps-gensyms (decls)
+    `(multiple-value-bind (,decls ,var) (parse-body ,block)
+       (let ((*special-variables*
+               (append (loop for decl in ,decls
+                             nconcing
+                               (loop for (id . rest) in (cdr decl)
+                                     if (eq id 'special)
+                                       nconc rest))
+                       *special-variables*)))
+         ,@body))))
 
 (defun maybe-rename-lexical-var (x symbols-in-bindings)
   (when (or (member x *enclosing-lexicals*)
@@ -539,6 +540,10 @@ Parenscript now implements implicit return, update your code! Things like (lambd
                            let-body)
                           (t
                            (with-lambda-scope let-body))))))))
+
+(define-expression-operator locally (&rest body)
+  (with-declaration-effects (body body)
+    (ps-compile `(progn ,@body))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; iteration

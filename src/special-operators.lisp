@@ -25,6 +25,10 @@
 (define-expression-operator / (&rest args)
   `(ps-js:/ ,@(unless (cdr args) (list 1)) ,@(mapcar #'compile-expression args)))
 
+(define-expression-operator + (&rest args)
+  (let ((args (mapcar #'compile-expression args)))
+    (cons (if (cdr args) 'ps-js:+ 'ps-js:unary-plus) args)))
+
 (define-expression-operator - (&rest args)
   (let ((args (mapcar #'compile-expression args)))
     (cons (if (cdr args) 'ps-js:- 'ps-js:negate) args)))
@@ -425,7 +429,6 @@ Parenscript now implements implicit return, update your code! Things like (lambd
   (getf '(ps-js:+   ps-js:+=
           ps-js:~   ps-js:~=
           ps-js:&   ps-js:&=
-          ps-js:\|  ps-js:\|=
           ps-js:-   ps-js:-=
           ps-js:*   ps-js:*=
           ps-js:%   ps-js:%=

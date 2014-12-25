@@ -7,6 +7,7 @@
    ;; operators
    ;; arithmetic
    #:+
+   #:unary-plus
    #:-
    #:negate
    #:*

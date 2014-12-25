@@ -150,7 +150,7 @@ vice-versa.")
                        (ps-js:new)
                        (ps-js:lambda) ;; you won't find this in JS books
                        (ps-js:++ ps-js:-- ps-js:post++ ps-js:post--)
-                       (ps-js:! ps-js:~ ps-js:negate ps-js:typeof ps-js:delete)
+                       (ps-js:! ps-js:~ ps-js:negate ps-js:unary-plus ps-js:typeof ps-js:delete)
                        (ps-js:* ps-js:/ ps-js:%)
                        (ps-js:- ps-js:+)
                        (ps-js:<< ps-js:>> ps-js:>>>)
@@ -201,6 +201,9 @@ vice-versa.")
 
 (defprinter ps-js:negate (x)
   "-"(print-op-argument op x))
+
+(defprinter ps-js:unary-plus (x)
+  "+"(print-op-argument op x))
 
 (defprinter (ps-js:delete ps-js:typeof ps-js:new ps-js:throw) (x)
   (print-op op)" "(print-op-argument op x))

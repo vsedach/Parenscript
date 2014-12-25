@@ -1210,20 +1210,14 @@ __setf_someThing('foo', 1, 2);")
   (defun foo (&rest bar)
     (alert (aref bar 1)))
   "function foo() {
-    var bar = [];
-    for (var i1 = 0; i1 < arguments.length - 0; i1 += 1) {
-        bar[i1] = arguments[i1 + 0];
-    };
+    var bar = Array.prototype.slice.call(arguments, 0);
     return alert(bar[1]);
 };")
 
 (test-ps-js defun-rest2
   (defun foo (baz &rest bar) (+ baz (aref bar 1)))
   "function foo(baz) {
-    var bar = [];
-    for (var i1 = 0; i1 < arguments.length - 1; i1 += 1) {
-        bar[i1] = arguments[i1 + 1];
-    };
+    var bar = Array.prototype.slice.call(arguments, 1);
     return baz + bar[1];
 };")
 
@@ -2606,10 +2600,7 @@ try {
            (do-something b foo new-value))
          (setf (foo x 1 2 3 4) 5))
   "function __setf_foo(newValue, b) {
-    var foo = [];
-    for (var i1 = 0; i1 < arguments.length - 2; i1 += 1) {
-        foo[i1] = arguments[i1 + 2];
-    };
+    var foo = Array.prototype.slice.call(arguments, 2);
     return doSomething(b, foo, newValue);
 };
 __setf_foo(5, x, 1, 2, 3, 4);")

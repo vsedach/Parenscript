@@ -102,14 +102,9 @@ of (declare ...) forms, and the remaining body."
                     ,@defaults)))))
            (rest-form
             (when rest?
-              (with-ps-gensyms (i)
-                `(progn (var ,rest (array))
-                        (dotimes (,i (- (getprop arguments 'length)
-                                        ,(length effective-args)))
-                          (setf (aref ,rest
-                                      ,i)
-                                (aref arguments
-                                      (+ ,i ,(length effective-args))))))))))
+              `(var ,rest
+                    ((@ Array prototype slice call)
+                     arguments ,(length effective-args))))))
       (multiple-value-bind (docstring declarations executable-body)
           (parse-body body :allow-docstring t)
         (values effective-args

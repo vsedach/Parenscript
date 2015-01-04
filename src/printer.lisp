@@ -324,7 +324,8 @@ vice-versa.")
   "for ("
   (loop for ((var-name . var-init) . remaining) on vars
      for decl = "var " then "" do
-       (psw decl (symbol-to-js-string var-name) " = ") (ps-print var-init)
+       (psw decl (symbol-to-js-string var-name) " = ")
+       (print-op-argument 'ps-js:= var-init)
        (when remaining (psw ", ")))
   "; "
   (loop for (test . remaining) on tests do

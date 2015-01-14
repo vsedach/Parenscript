@@ -2713,6 +2713,48 @@ try {
 };
 })();")
 
+(test-ps-js declare-special-let*
+  (let* ((*foo* 123) (*bar* (+ *foo* *bar*)))
+    (declare (special *foo* *bar*))
+    (blah))
+  "(function () {
+    var FOO_TMPSTACK1;
+    try {
+        FOO_TMPSTACK1 = FOO;
+        FOO = 123;
+        var BAR_TMPSTACK2;
+        try {
+            BAR_TMPSTACK2 = BAR;
+            BAR = FOO + BAR;
+            return blah();
+        } finally {
+            BAR = BAR_TMPSTACK2;
+        };
+    } finally {
+        FOO = FOO_TMPSTACK1;
+    };
+})();")
+
+(test-ps-js defun-multiple-declarations-around-docstring
+  (defun foo (x y)
+    (declare (ignorable x y))
+    (declare (integer x) (float y))
+    "Fooes X while barring Y."
+    (declare (special *foo*) (special *bar*))
+    (let ((*bar* (bar y)))
+      (funcall *foo* x)))
+  "/** Fooes X while barring Y. */
+function foo(x, y) {
+    var BAR_TMPSTACK1;
+    try {
+        BAR_TMPSTACK1 = BAR;
+        BAR = bar(y);
+        return FOO(x);
+    } finally {
+        BAR = BAR_TMPSTACK1;
+    };
+};")
+
 (test-ps-js macro-null-toplevel
   (progn
     (defmacro macro-null-toplevel ()

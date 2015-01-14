@@ -2999,13 +2999,21 @@ return null;
 
 (test-ps-js empty-cond-clause
   (setf x (cond ((foo))))
-  "x = foo() ? null : null;")
+  "x = (function () { var testResult1 = foo(); return testResult1 ? testResult1 : null; })();")
 
 (test-ps-js empty-cond-clause1
   (setf x (cond ((foo) 123)
                 ((bar))
                 (t 456)))
-  "x = foo() ? 123 : (bar() ? null : 456);")
+  "x = foo() ? 123 :
+         (function () {
+            var testResult1 = bar();
+            if (testResult1) {
+              return testResult1;
+            } else {
+              if (true) { return 456; };
+            };
+          })();")
 
 (test-ps-js let-no-body
   (defun foo ()

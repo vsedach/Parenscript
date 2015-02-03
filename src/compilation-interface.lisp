@@ -1,6 +1,6 @@
 (in-package #:parenscript)
 
-(defparameter *js-target-version* 1.3)
+(defparameter *js-target-version* "1.3")
 
 (defvar *parenscript-stream* nil)
 

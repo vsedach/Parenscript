@@ -45,9 +45,11 @@
 
 (define-expression-operator create (&rest arrows)
   `(ps-js:object
-    ,@(loop for (key val-expr) on arrows by #'cddr
+    ,@(loop with allow-accessors = (vstring>= *js-target-version* "1.8.5")
+            for (key val-expr) on arrows by #'cddr
             for (accessor . accessor-args) =
-              (when (and (consp key)
+              (when (and allow-accessors
+                         (consp key)
                          (symbolp (first  key))
                          (symbolp (second key)))
                 (case (first key)
@@ -71,10 +73,12 @@
                                     (null      (third  key)))
                                (symbol-to-js-string (second key)))
                               (t
-                               (error
-                                 "Slot key ~s is not one of symbol, string, ~
-                                  number, or accessor spec."
-                                 key)))
+                               (error "Slot key ~s is not one of ~
+                                       ~{~a~#[~;, or ~:;, ~]~}."
+                                      key
+                                      `("symbol" "string" "number"
+                                        ,@(when allow-accessors
+                                            '("accessor spec"))))))
                         (compile-expression val-expr))))))
 
 (define-expression-operator %js-getprop (obj slot)

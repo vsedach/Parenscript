@@ -164,7 +164,8 @@
     }, set x(v) {
         return x = v;
     } };
-};")
+};"
+  :js-target-version "1.8.5")
 
 (test-ps-js object-method-apply-1
   (apply (@ an-object foo) nil)

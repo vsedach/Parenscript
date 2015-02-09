@@ -394,84 +394,6 @@ Parenscript now implements implicit return, update your code! Things like (lambd
         if-form)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; macros
-
-(defmacro with-local-macro-environment ((var env) &body body)
-  `(let* ((,var (make-macro-dictionary))
-          (,env (cons ,var ,env)))
-     ,@body))
-
-(define-expression-operator macrolet (macros &body body)
-  (with-local-macro-environment (local-macro-dict *macro-env*)
-    (dolist (macro macros)
-      (destructuring-bind (name arglist &body body)
-          macro
-        (setf (gethash name local-macro-dict)
-              (eval (make-ps-macro-function arglist body)))))
-    (ps-compile `(locally ,@body))))
-
-(define-expression-operator symbol-macrolet (symbol-macros &body body)
-  (with-local-macro-environment (local-macro-dict *symbol-macro-env*)
-    (with-declaration-effects (body body)
-      (let (local-var-bindings)
-        (dolist (macro symbol-macros)
-          (destructuring-bind (name expansion) macro
-            (setf (gethash name local-macro-dict) (lambda (x) (declare (ignore x)) expansion))
-            (push name local-var-bindings)))
-        (let ((*enclosing-lexicals* (append local-var-bindings *enclosing-lexicals*)))
-          (ps-compile `(progn ,@body)))))))
-
-(define-expression-operator defmacro (name args &body body)
-  (eval `(defpsmacro ,name ,args ,@body))
-  nil)
-
-(define-expression-operator define-symbol-macro (name expansion)
-  (eval `(define-ps-symbol-macro ,name ,expansion))
-  nil)
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; assignment
-
-(defun assignment-op (op)
-  (getf '(ps-js:+   ps-js:+=
-          ps-js:~   ps-js:~=
-          ps-js:&   ps-js:&=
-          ps-js:-   ps-js:-=
-          ps-js:*   ps-js:*=
-          ps-js:%   ps-js:%=
-          ps-js:>>  ps-js:>>=
-          ps-js:^   ps-js:^=
-          ps-js:<<  ps-js:<<=
-          ps-js:>>> ps-js:>>>=
-          ps-js:/   ps-js:/=)
-        op))
-
-(define-expression-operator ps-assign (lhs rhs)
-  (let ((rhs (ps-macroexpand rhs)))
-    (if (and (listp rhs) (eq (car rhs) 'progn))
-        (ps-compile `(progn ,@(butlast (cdr rhs))
-                            (ps-assign ,lhs ,(car (last (cdr rhs))))))
-        (let ((lhs (compile-expression lhs))
-              (rhs (compile-expression rhs)))
-          (aif (and (listp rhs)
-                    (= 3 (length rhs))
-                    (equal lhs (second rhs))
-                    (assignment-op (first rhs)))
-               (list it lhs (if (fourth rhs)
-                                (cons (first rhs) (cddr rhs))
-                                (third rhs)))
-               (list 'ps-js:= lhs rhs))))))
-
-(define-statement-operator defvar (name &optional
-                                        (value (values) value-provided?)
-                                        documentation)
-  ;; this must be used as a top-level form, otherwise the resulting
-  ;; behavior will be undefined.
-  (declare (ignore documentation))
-  (pushnew name *special-variables*)
-  (ps-compile `(var ,name ,@(when value-provided? (list value)))))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; binding
 
 (defmacro with-declaration-effects ((var block) &body body)
@@ -577,6 +499,84 @@ Parenscript now implements implicit return, update your code! Things like (lambd
 (define-expression-operator locally (&rest body)
   (with-declaration-effects (body body)
     (ps-compile `(progn ,@body))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; macros
+
+(defmacro with-local-macro-environment ((var env) &body body)
+  `(let* ((,var (make-macro-dictionary))
+          (,env (cons ,var ,env)))
+     ,@body))
+
+(define-expression-operator macrolet (macros &body body)
+  (with-local-macro-environment (local-macro-dict *macro-env*)
+    (dolist (macro macros)
+      (destructuring-bind (name arglist &body body)
+          macro
+        (setf (gethash name local-macro-dict)
+              (eval (make-ps-macro-function arglist body)))))
+    (ps-compile `(locally ,@body))))
+
+(define-expression-operator symbol-macrolet (symbol-macros &body body)
+  (with-local-macro-environment (local-macro-dict *symbol-macro-env*)
+    (with-declaration-effects (body body)
+      (let (local-var-bindings)
+        (dolist (macro symbol-macros)
+          (destructuring-bind (name expansion) macro
+            (setf (gethash name local-macro-dict) (lambda (x) (declare (ignore x)) expansion))
+            (push name local-var-bindings)))
+        (let ((*enclosing-lexicals* (append local-var-bindings *enclosing-lexicals*)))
+          (ps-compile `(progn ,@body)))))))
+
+(define-expression-operator defmacro (name args &body body)
+  (eval `(defpsmacro ,name ,args ,@body))
+  nil)
+
+(define-expression-operator define-symbol-macro (name expansion)
+  (eval `(define-ps-symbol-macro ,name ,expansion))
+  nil)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; assignment
+
+(defun assignment-op (op)
+  (getf '(ps-js:+   ps-js:+=
+          ps-js:~   ps-js:~=
+          ps-js:&   ps-js:&=
+          ps-js:-   ps-js:-=
+          ps-js:*   ps-js:*=
+          ps-js:%   ps-js:%=
+          ps-js:>>  ps-js:>>=
+          ps-js:^   ps-js:^=
+          ps-js:<<  ps-js:<<=
+          ps-js:>>> ps-js:>>>=
+          ps-js:/   ps-js:/=)
+        op))
+
+(define-expression-operator ps-assign (lhs rhs)
+  (let ((rhs (ps-macroexpand rhs)))
+    (if (and (listp rhs) (eq (car rhs) 'progn))
+        (ps-compile `(progn ,@(butlast (cdr rhs))
+                            (ps-assign ,lhs ,(car (last (cdr rhs))))))
+        (let ((lhs (compile-expression lhs))
+              (rhs (compile-expression rhs)))
+          (aif (and (listp rhs)
+                    (= 3 (length rhs))
+                    (equal lhs (second rhs))
+                    (assignment-op (first rhs)))
+               (list it lhs (if (fourth rhs)
+                                (cons (first rhs) (cddr rhs))
+                                (third rhs)))
+               (list 'ps-js:= lhs rhs))))))
+
+(define-statement-operator defvar (name &optional
+                                        (value (values) value-provided?)
+                                        documentation)
+  ;; this must be used as a top-level form, otherwise the resulting
+  ;; behavior will be undefined.
+  (declare (ignore documentation))
+  (pushnew name *special-variables*)
+  (ps-compile `(var ,name ,@(when value-provided? (list value)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; iteration

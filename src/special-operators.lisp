@@ -418,7 +418,7 @@ Parenscript now implements implicit return, update your code! Things like (lambd
     (ps-gensym (symbol-name x))))
 
 (defun with-lambda-scope (body)
- (prog1 `((lambda () ,body))
+ (prog1 `(chain (lambda () ,body) (call this))
    (setf *vars-needing-to-be-declared* ())))
 
 (define-expression-operator let (bindings &body body)

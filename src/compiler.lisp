@@ -247,7 +247,7 @@ form, FORM, returns the new value for *compilation-level*."
           (expression-impl
            (apply expression-impl (cdr form)))
           ((member op *lambda-wrappable-statements*)
-           (compile-expression `((lambda () ,form))))
+           (compile-expression `(chain (lambda () ,form) (call this))))
           (t (error 'compile-expression-error :form form)))))
 
 (defun ps-compile (form)

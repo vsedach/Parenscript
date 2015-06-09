@@ -403,5 +403,5 @@
                     ,@(awhen (accum-var state) (list it))))
            (full `(block ,(name state) ,@(prologue-wrap (prologue state) main))))
       (if (accum-var state)
-          `((lambda () ,full))
+         `(chain (lambda () ,full) (call this))
           full))))

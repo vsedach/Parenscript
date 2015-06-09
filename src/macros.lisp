@@ -103,6 +103,15 @@
 (defpsmacro booleanp (x)
   `(string= (typeof ,x) "boolean"))
 
+(defpsmacro listp (x)
+  (if (vstring>= *js-target-version* "1.8.5")
+      `(chain *array (is-array ,x))
+      `(= (chain *object prototype to-string (call ,x))
+          "[object Array]")))
+
+(defpsmacro arrayp (x)
+  `(listp ,x))
+
 ;;; Data structures
 
 (defpsmacro make-array (&rest args)

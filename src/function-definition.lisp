@@ -208,7 +208,7 @@ of (declare ...) forms, and the remaining body."
     `(ps-js:lambda ,args1 ,body-block)))
 
 (defmacro local-functions (special-op &body bindings)
-  `(if in-function-scope?
+  `(if (or in-function-scope? this-in-lambda-wrapped-form?)
        (let* ((fn-renames (collect-function-names fn-defs))
               ,@bindings)
          `(,(if compile-expression? 'ps-js:|,| 'ps-js:block)

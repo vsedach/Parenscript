@@ -214,6 +214,18 @@ CL environment)."
         (values (ps-macroexpand form1) t)
         form1)))
 
+;;; lambda wrapping
+
+(defvar this-in-lambda-wrapped-form? nil)
+
+(defun lambda-wrap (form)
+  (let ((this-in-lambda-wrapped-form? :query)
+	(*ps-gensym-counter* *ps-gensym-counter*))
+    (ps-compile form)
+    (if (eq this-in-lambda-wrapped-form? :yes)
+	`(chain (lambda () ,form) (call this))
+	`((lambda () ,form)))))
+
 ;;;; compiler interface
 
 (defparameter *compilation-level* :toplevel
@@ -242,12 +254,12 @@ form, FORM, returns the new value for *compilation-level*."
   (let* ((op (car form))
          (statement-impl (gethash op *special-statement-operators*))
          (expression-impl (gethash op *special-expression-operators*)))
-    (cond ((not compile-expression?)
+    (cond ((or (not compile-expression?) this-in-lambda-wrapped-form?)
            (apply (or statement-impl expression-impl) (cdr form)))
           (expression-impl
            (apply expression-impl (cdr form)))
           ((member op *lambda-wrappable-statements*)
-           (compile-expression `(chain (lambda () ,form) (call this))))
+           (compile-expression (lambda-wrap form)))
           (t (error 'compile-expression-error :form form)))))
 
 (defun ps-compile (form)
@@ -255,14 +267,17 @@ form, FORM, returns the new value for *compilation-level*."
                `(multiple-value-bind (expansion expanded?) (ps-macroexpand ,form)
                   (if expanded?
                       (ps-compile expansion)
-                      ,@body))))
+                      (progn ,@body)))))
     (typecase form
       ((or null number string character)
        form)
       (vector
        (ps-compile `(quote ,(coerce form 'list))))
       (symbol
-       (try-expanding form form))
+       (try-expanding form
+	 (when (and (eq form 'this) (eq this-in-lambda-wrapped-form? :query))
+	   (setq this-in-lambda-wrapped-form? :yes))
+	 form))
       (cons
        (try-expanding form
          (let ((*compilation-level*

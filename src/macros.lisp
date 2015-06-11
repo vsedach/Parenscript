@@ -69,7 +69,9 @@
           (and (numberp base) (= base 10) `(* (log ,n) (@ *math *log10e*)))
           `(/ (log ,n) (log ,base))))
     (sqrt (n) `((@ *math sqrt) ,n))
-    (random (arg) `(* ,arg (funcall (@ *math random)))))
+    (random (arg) (if (< (abs arg) 1)
+		      `(* ,arg (funcall (@ *math random)))
+		      `(floor (* ,arg (funcall (@ *math random)))))))
 
 (defpsmacro ash (integer count)
   (let ((count (ps-macroexpand count)))

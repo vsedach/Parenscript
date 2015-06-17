@@ -2029,6 +2029,17 @@ return x + x;
     (1+ (if x x x)))
   "(y ? y : y) + 1;")
 
+(test-ps-js preserve-this
+  (defun foo ()
+    (let ((y (block nil (bar this))))
+      (baz y)))
+  "function foo() {
+    var y = (function () {
+        return bar(this);
+    }).call(this);
+    return baz(y);
+};")
+
 (test-ps-js flet-apply
   (flet ((foo () 'bar))
     (apply (function foo) nil))
@@ -2037,7 +2048,7 @@ var foo = function () {
     return 'bar';
 };
 return foo.apply(this, null);
-})();")
+}).call(this);")
 
 (test-ps-js let-apply
   (let ((foo (lambda () 1)))
@@ -2051,7 +2062,7 @@ var foo1 = function () {
     return 2;
 };
 return foo1.apply(this, null);
-})();")
+}).call(this);")
 
 (test-ps-js flet-let
   (flet ((x (x) (1+ x)))

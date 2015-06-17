@@ -160,7 +160,7 @@
        body))
 
 (define-statement-operator block (name &rest body)
-  (if in-function-scope?
+  (if (or in-function-scope? this-in-lambda-wrapped-form?)
       (let* ((name                  (or name 'nilBlock))
              (in-loop-scope?        (if name in-loop-scope? nil))
              (*dynamic-return-tags* (cons (cons name nil) *dynamic-return-tags*))
@@ -418,7 +418,7 @@ Parenscript now implements implicit return, update your code! Things like (lambd
     (ps-gensym (symbol-name x))))
 
 (defun with-lambda-scope (body)
- (prog1 `((lambda () ,body))
+ (prog1 (lambda-wrap body)
    (setf *vars-needing-to-be-declared* ())))
 
 (define-expression-operator let (bindings &body body)
@@ -482,7 +482,7 @@ Parenscript now implements implicit return, update your code! Things like (lambd
                            (setf ,@(mapcan (lambda (x) `(,(var x) ,(rename x)))
                                            dynamic-bindings)))))
                       renamed-body))))
-        (ps-compile (cond ((or in-function-scope?
+        (ps-compile (cond ((or in-function-scope? this-in-lambda-wrapped-form?
                                (null bindings))
                            let-body)
                           ;; HACK

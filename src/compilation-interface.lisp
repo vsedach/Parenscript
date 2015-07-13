@@ -2,6 +2,8 @@
 
 (defparameter *js-target-version* "1.3")
 
+(defvar *strict-mode* nil)
+
 (defvar *parenscript-stream* nil)
 
 (defmacro ps (&body body)
@@ -77,6 +79,7 @@ if by ps*. If *parenscript-stream* is bound, writes the output to
     (let ((*compilation-level* :toplevel)
           (*readtable* *readtable*)
           (*package* *package*)
+          (*strict-mode* *strict-mode*)
           (*parenscript-stream* output-stream)
           (eof '#:eof))
       (loop for form = (funcall *ps-read-function* stream nil eof)

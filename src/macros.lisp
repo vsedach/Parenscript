@@ -158,37 +158,47 @@
 ;;; multiple values
 
 (defpsmacro multiple-value-bind (vars form &body body)
-  (let* ((form (ps-macroexpand form))
-         (progn-form
-          (when (and (consp form)
-                     (member
-                      (car form)
-                      '(with label let flet labels macrolet symbol-macrolet progn)))
-            (pop form))))
-    (if progn-form
-        `(,progn-form
-          ,@(butlast form)
-          (multiple-value-bind ,vars
-              ,@(last form)
+  (cond ((null vars)
+         `(progn
+            ,form
             ,@body))
-        ;; assume function call
-        (with-ps-gensyms (prev-mv)
-          (let* ((fun-exp (car form))
-                 (funobj (if (symbolp fun-exp)
-                             fun-exp
-                             (ps-gensym "funobj"))))
-            `(let (,@(unless (symbolp fun-exp) `((,funobj ,fun-exp)))
-                   (,prev-mv (if (undefined __PS_MV_REG)
-                                 (setf __PS_MV_REG undefined)
-                                 __PS_MV_REG)))
-               (try
-                (let ((,(car vars) (,funobj ,@(cdr form))))
-                  (destructuring-bind (&optional ,@(cdr vars))
-                      (if (eql ,funobj (@ __PS_MV_REG :tag))
-                          (@ __PS_MV_REG :values)
-                          (list))
-                    ,@body))
-                (:finally (setf __PS_MV_REG ,prev-mv)))))))))
+        ((null (rest vars))
+         `(let ((,(first vars) ,form))
+            ,@body))
+        (t
+         (when *strict-mode*
+           (error "Cannot bind multiple values in strict mode."))
+         (let* ((form (ps-macroexpand form))
+                (progn-form
+                  (when (and (consp form)
+                             (member
+                              (car form)
+                              '(with label let flet labels macrolet symbol-macrolet progn)))
+                    (pop form))))
+           (if progn-form
+               `(,progn-form
+                 ,@(butlast form)
+                 (multiple-value-bind ,vars
+                     ,@(last form)
+                   ,@body))
+               ;; assume function call
+               (with-ps-gensyms (prev-mv)
+                 (let* ((fun-exp (car form))
+                        (funobj (if (symbolp fun-exp)
+                                    fun-exp
+                                    (ps-gensym "funobj"))))
+                   `(let (,@(unless (symbolp fun-exp) `((,funobj ,fun-exp)))
+                          (,prev-mv (if (undefined __PS_MV_REG)
+                                        (setf __PS_MV_REG undefined)
+                                        __PS_MV_REG)))
+                      (try
+                       (let ((,(car vars) (,funobj ,@(cdr form))))
+                         (destructuring-bind (&optional ,@(cdr vars))
+                             (if (eql ,funobj (@ __PS_MV_REG :tag))
+                                 (@ __PS_MV_REG :values)
+                                 (list))
+                           ,@body))
+                       (:finally (setf __PS_MV_REG ,prev-mv)))))))))))
 
 ;;; conditionals
 
@@ -509,3 +519,9 @@ lambda-list::=
 (defpsmacro use-package (package-designator &optional package)
   `(eval-when (:compile-toplevel)
      (use-package ,package-designator ,@(when package (list package)))))
+
+(defpsmacro use-strict ()
+  `(progn
+     (eval-when (:compile-toplevel)
+       (setq *strict-mode* t))
+     "use strict"))

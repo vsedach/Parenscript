@@ -104,6 +104,8 @@ is output to the OUTPUT-STREAM stream."
   (apply #'stringify things))
 
 (define-statement-operator with (expression &rest body)
+  (when *strict-mode*
+    (warn "`with' is not permitted in strict mode."))
   (warn-deprecated 'with '|LET or WITH-SLOTS|)
   `(ps-js:with ,(compile-expression expression)
      ,(compile-statement `(progn ,@body))))

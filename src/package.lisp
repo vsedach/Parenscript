@@ -19,6 +19,8 @@
 
    ;; compiler
    #:*js-target-version*
+   #:*strict-mode*
+   #:use-strict
    #:ps
    #:*parenscript-stream*
    #:ps-to-stream
@@ -303,5 +305,4 @@
    #:label
    #:f
    #:bind
-   #:bind*
-   ))
+   #:bind*))

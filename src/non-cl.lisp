@@ -46,6 +46,7 @@
 (define-expression-operator create (&rest arrows)
   `(ps-js:object
     ,@(loop with allow-accessors = (vstring>= *js-target-version* "1.8.5")
+            with keys-seen = '()
             for (key val-expr) on arrows by #'cddr
             for (accessor . accessor-args) =
               (when (and allow-accessors
@@ -57,6 +58,10 @@
                             `((ps-js:get ,(second key)))))
                   (set (and (symbolp (third key)) (null (fourth key))
                             `((ps-js:set ,(second key)) ,(third key))))))
+            do (when *strict-mode*
+                 (if (member key keys-seen :test 'equal)
+                     (warn "Duplicated key in strict mode: ~a" key)
+                     (push key keys-seen)))
             collecting
               (if accessor
                   (list accessor accessor-args

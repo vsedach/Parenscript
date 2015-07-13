@@ -176,7 +176,11 @@
 (defun return-exp (tag &optional (value nil value?))
   (let (rest-values)
     (when (and (consp value) (eq 'values (car value))) ; multiple value return?
-      (setf rest-values (cddr value) value (cadr value)))
+      (if *strict-mode*
+          (if (cddr value)
+              (error "Cannot return multiple values in strict mode.")
+              (setf value (cadr value)))
+          (setf rest-values (cddr value) value (cadr value))))
     (flet ((ret1only ()
              (let ((ret `(ps-js:return
                            ,@(when value?
@@ -598,14 +602,20 @@ Parenscript now implements implicit return, update your code! Things like (lambd
     ;; the sort is there to make order for output-tests consistent across implementations
     (aif (sort (remove-duplicates *loop-scope-lexicals-captured*)
                #'string< :key #'symbol-name)
-         `(ps-js:block
-              (ps-js:with
-                  ,(compile-expression
-                    `(create
-                      ,@(loop for x in it
-                              collect x
-                              collect (when (member x loop-vars) x))))
-                ,compiled-body))
+         (if *strict-mode*
+             (let ((temps (loop for x in it collect (ps-gensym (string x)))))
+               (compile-statement
+                `(let ,(mapcar #'list temps it)
+                   (symbol-macrolet ,(mapcar #'list it temps)
+                     ,@body))))
+             `(ps-js:block
+                  (ps-js:with
+                      ,(compile-expression
+                        `(create
+                          ,@(loop for x in it
+                                  collect x
+                                  collect (when (member x loop-vars) x))))
+                    ,compiled-body)))
          compiled-body)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

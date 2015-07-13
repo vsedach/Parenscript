@@ -136,7 +136,9 @@ of (declare ...) forms, and the remaining body."
            (collapsed-body
             (collapse-function-return-blocks body))
            (suppress-values?
-            (find 'values (flatten body)))
+             (if *strict-mode*
+                 nil
+                 (find 'values (flatten body))))
            (*dynamic-return-tags*
             (append (mapcar (lambda (x) (cons x nil))
                             *function-block-names*)

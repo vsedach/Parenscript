@@ -163,23 +163,22 @@
               ,@(last form)
             ,@body))
         ;; assume function call
-        (with-ps-gensyms (prev-mv)
-          (let* ((fun-exp (car form))
-                 (funobj (if (symbolp fun-exp)
-                             fun-exp
-                             (ps-gensym "funobj"))))
-            `(let (,@(unless (symbolp fun-exp) `((,funobj ,fun-exp)))
-                   (,prev-mv (if (undefined __PS_MV_REG)
-                                 (setf __PS_MV_REG undefined)
-                                 __PS_MV_REG)))
-               (try
-                (let ((,(car vars) (,funobj ,@(cdr form))))
-                  (destructuring-bind (&optional ,@(cdr vars))
-                      (if (eql ,funobj (@ __PS_MV_REG :tag))
-                          (@ __PS_MV_REG :values)
-                          (list))
-                    ,@body))
-                (:finally (setf __PS_MV_REG ,prev-mv)))))))))
+	`(progn
+	   (setf __PS_MV_REG (list))
+	   (let ((,(car vars) ,form))
+	     (destructuring-bind (&optional ,@(cdr vars))
+		 __PS_MV_REG
+	       ,@body))))))
+
+(defpsmacro multiple-value-list (form) 
+  (with-ps-gensyms (first rest)
+    `(let* ((,first
+	     (progn
+	       (setf __PS_MV_REG (list))
+	       ,form))
+	    (,rest (chain __PS_MV_REG (slice))))
+       (chain ,rest (unshift ,first))
+       ,rest)))
 
 ;;; conditionals
 
@@ -459,10 +458,11 @@ lambda-list::=
         (:finally ,cleanup-form)))
 
 (defpsmacro prog1 (first &rest others)
-  (with-ps-gensyms (val)
-    `(let ((,val ,first))
-       ,@others
-       ,val)))
+  (with-ps-gensyms (val vals)
+    `(progn
+       (let* ((,val (multiple-value-list first)))
+	 ,@others
+	 ,val))))
 
 (defpsmacro prog2 (first second &rest others)
   `(progn ,first (prog1 ,second ,@others)))

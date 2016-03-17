@@ -20,8 +20,7 @@ or download the [latest release](https://common-lisp.net/project/parenscript/rel
 * [Tutorial](https://common-lisp.net/project/parenscript/tutorial.html)
 
 ## What's the difference?
-
-At the same time, Parenscript is different from almost all other
+Parenscript is different from almost all other
 "language X" to JavaScript translators in that it imposes almost no
 overhead:
 

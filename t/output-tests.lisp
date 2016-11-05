@@ -1790,6 +1790,12 @@ return foo(1);
                  (declare (special foo))
                  (ps (+ 1 (lisp foo)))))))
 
+(test ps-lisp-raw-embed
+  (is (string= "1 + 3;" (ps (lisp-raw "1 + 3")))))
+
+(test ps*-lisp-raw-embed
+  (is (string= "1 + 3;" (ps* '(lisp-raw "1 + 3")))))
+
 (test-ps-js nested-if-expressions1
   (defun foo ()
     (return-from foo (if (if x y z) a b)))

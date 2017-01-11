@@ -70,9 +70,10 @@
           `(/ (log ,n) (log ,base))))
     (sqrt (n) `((@ *math sqrt) ,n))
     (random (&optional arg) (if arg
-				(if (< (abs arg) 1)
-				    `(* ,arg (funcall (@ *math random)))
-				    `(floor (* ,arg (funcall (@ *math random)))))
+                                (maybe-once-only (arg)
+                                  `(if (< (abs ,arg) 1)
+                                       (* ,arg (funcall (@ *math random)))
+                                       (floor (* ,arg (funcall (@ *math random))))))
 				'(funcall (@ *math random)))))
 
 (defpsmacro ash (integer count)

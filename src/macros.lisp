@@ -496,6 +496,11 @@ lambda-list::=
                      ,@body))
           finally (return `(progn ,@body)))))
 
+(defpsmacro format (destination control-string &rest format-arguments)
+  (assert (null destination) () "Right now Parenscript 'format' only support strings building.")
+  (let ((str (apply #'format destination control-string format-arguments)))
+    str))
+
 (defpsmacro in-package (package-designator)
   `(eval-when (:compile-toplevel)
      (in-package ,package-designator)))

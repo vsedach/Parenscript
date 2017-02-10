@@ -3,13 +3,13 @@
 ;; Utilities for accessing standard DOM functionality in a Lispier, PSier way.
 
 (defpsmacro inner-html (el)
-  `(@ ,el :inner-h-t-m-l))
+  `(@ ,el 'inner-h-t-m-l))
 
 (defpsmacro uri-encode (str)
   `(if (null ,str) "" (encode-u-r-i-component ,str)))
 
 (defpsmacro attribute (el attr)
-  `((@ ,el :get-attribute) ,attr))
+  `((@ ,el 'get-attribute) ,attr))
 
 (defun assert-is-one-of (val options)
   (unless (member val options)

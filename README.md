@@ -53,5 +53,9 @@ overhead:
 * [Web site](http://common-lisp.net/project/parenscript/)
 * [Source repository](https://github.com/vsedach/Parenscript)
 
+## Live browser interaction
+
+[trident-mode](https://github.com/johnmastro/trident-mode.el) is an Emacs package for live Parenscript interaction. It provides a minor mode and a collection of commands for working with Parenscript code in SLIME and sending it to the browser via Skewer. The goal is to create an environment for hacking Parenscript which fits as naturally as possible into the Lisp style of interactive development. It can also open a Javascript REPL connected to the browser, which may be non-local.
+
 ## License
 BSD (see COPYING file)

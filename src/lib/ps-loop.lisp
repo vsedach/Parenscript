@@ -65,8 +65,10 @@
   (defvar *loop-keywords*
     '(:named :for :repeat :with :while :until :initially :finally
       :from :downfrom :to :below :downto :above :by :in :across :on := :then
-      :when :unless :if :else :end :do :return
-      :sum :collect :append :count :minimize :maximize :map :of :into))
+      :when :unless :if :else :end :do :doing :return
+      :sum :summing :collect :collecting :append :appending :count :counting
+      :minimize :minimizing :maximize :maximizing :map :mapping
+      :of :into))
 
   (defun as-keyword (key)
     (cond ((not (symbolp key)) key)
@@ -216,25 +218,25 @@
     (unless (accum-var state)
       (setf (accum-var state)
             (ps-gensym (string (loop-case kind
-                                     (:minimize 'min)
-                                     (:maximize 'max)
+                                     ((:minimize :minimizing) 'min)
+                                     ((:maximize :maximizing) 'max)
                                      (t kind)))))
       (setf (accum-kind state) kind))
     (setf var (accum-var state)))
   (let ((initial (loop-case kind
-                       ((:sum :count) 0)
-                       ((:maximize :minimize) nil)
-                       ((:collect :append) '[])
-                       ((:map) '{}))))
+                       ((:sum :summing :count :counting) 0)
+                       ((:maximize :maximizing :minimize :minimizing) nil)
+                       ((:collect :collecting :append :appending) '[])
+                       ((:map :mapping) '{}))))
     (push (list 'setf var initial) (prologue state)))
   (loop-case kind
-        (:sum `(incf ,var ,item))
-        (:count `(when ,item (incf ,var))) ;; note the JS semantics - neither 0 nor "" will count
-        (:minimize `(setf ,var (if (null ,var) ,item (min ,var ,item))))
-        (:maximize `(setf ,var (if (null ,var) ,item (max ,var ,item))))
-        (:collect `((@ ,var 'push) ,item))
-        (:append `(setf ,var (append ,var ,item)))
-        (:map (destructuring-bind (key val) item
+        ((:sum :summing)`(incf ,var ,item))
+        ((:count :counting)`(when ,item (incf ,var))) ;; note the JS semantics - neither 0 nor "" will count
+        ((:minimize :minimizing) `(setf ,var (if (null ,var) ,item (min ,var ,item))))
+        ((:maximize :maximizing) `(setf ,var (if (null ,var) ,item (max ,var ,item))))
+        ((:collect :collecting) `((@ ,var 'push) ,item))
+        ((:append :appending) `(setf ,var (append ,var ,item)))
+        ((:map :mapping) (destructuring-bind (key val) item
                 `(setf (getprop ,var ,key) ,val)))))
 
 (defun repeat-clause (state)
@@ -274,15 +276,16 @@
                        (otherwise test-form))
                     (progn ,@(reverse seqs))
                     (progn ,@(reverse alts))))))
-        ((:sum :collect :append :count :minimize :maximize)
+        ((:sum :summing :collect :collecting :append :appending :count :counting
+          :minimize :minimizing :maximize :maximizing)
          (accumulate term (eat state) (eat state :if :into) state))
-        (:map (let ((key (eat state)))
+        ((:map :mapping) (let ((key (eat state)))
                 (multiple-value-bind (val valp)
                     (eat state :if :to)
                   (unless valp
                     (error "MAP must be followed by a TO to specify value."))
                   (accumulate :map (list key val) (eat state :if :into) state))))
-        (:do (eat state :progn))
+        ((:do :doing) (eat state :progn))
         (:return `(return-from ,(name state) ,(eat state)))
         (otherwise (err "a PS-LOOP keyword" term))))
 

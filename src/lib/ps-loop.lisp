@@ -64,7 +64,7 @@
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (defvar *loop-keywords*
     '(:named :for :repeat :with :while :until :initially :finally
-      :from :to :below :downto :above :by :in :across :on := :then
+      :from :downfrom :to :below :downto :above :by :in :across :on := :then
       :when :unless :if :else :end :do :return
       :sum :collect :append :count :minimize :maximize :map :of :into))
 
@@ -126,24 +126,24 @@
 (defun maybe-hoist (expr state)
   (cond ((complex-js-expr? expr)
          (let ((var (ps-gensym)))
-           (push (list var expr) (prologue state))
+           (push (list 'setf var expr) (prologue state))
            var))
         (t expr)))
 
-(defun for-from (var state)
+(defun for-from (from-key var state)
   (unless (atom var)
     (err "an atom after FROM" var))
   (let ((start (eat state))
-        (op '+)
-        (test-op nil)
+        (op (loop-case from-key (:downfrom '-) (otherwise '+)))
+        (test-op (loop-case from-key (:downfrom '>=) (otherwise '<=)))
         (by nil)
         (end nil))
     (loop while (member (as-keyword (peek state)) '(:to :below :downto :above :by)) do
           (let ((term (eat state)))
             (if (eq (as-keyword term) :by)
                 (setf by (eat state))
-                (setf op (loop-case term ((:downto :above) '-) (otherwise '+))
-                      test-op (loop-case term (:to '<=) (:below '<) (:downto '>=) (:above '>))
+                (setf op (loop-case term ((:downto :above) '-) (otherwise op))
+                      test-op (loop-case term (:to test-op) (:below '<) (:downto '>=) (:above '>))
                       end (eat state)))))
     (let ((test (when test-op
                   (list test-op var (maybe-hoist end state)))))
@@ -198,7 +198,7 @@
   (let ((place (eat state))
         (term (eat state :atom)))
     (loop-case term
-          (:from (for-from place state))
+          ((:from :downfrom) (for-from term place state))
           (:= (for-= place state))
           ((:in :across) (for-in place state))
           (:on (for-on place state))
@@ -207,7 +207,7 @@
 
 (defun a-with-clause (state) ;; so named to avoid with-xxx macro convention
   (let ((place (eat state)))
-    (push (list place (eat state :if :=)) (prologue state))))
+    (push (list 'setf place (eat state :if :=)) (prologue state))))
 
 (defun accumulate (kind item var state)
   (when (null var)
@@ -226,7 +226,7 @@
                        ((:maximize :minimize) nil)
                        ((:collect :append) '[])
                        ((:map) '{}))))
-    (push (list var initial) (prologue state)))
+    (push (list 'setf var initial) (prologue state)))
   (loop-case kind
         (:sum `(incf ,var ,item))
         (:count `(when ,item (incf ,var))) ;; note the JS semantics - neither 0 nor "" will count
@@ -291,6 +291,7 @@
     (loop-case term
           (:named (setf (name state) (eat state :symbol)))
           (:with (a-with-clause state))
+          (:initially (push (eat state :progn) (prologue state)))
           (:for (for-clause state))
           (:repeat (repeat-clause state))
           (:while (while-clause state))
@@ -389,11 +390,15 @@
 
 (defun prologue-wrap (prologue body)
   (cond ((null prologue) body)
-        (t (destructuring-bind (place expr) (car prologue)
+        ((equal 'setf (caar prologue))
+           (destructuring-bind (place expr) (cdr (car prologue))
              (prologue-wrap
               (cdr prologue)
               (cond ((atom place) (cons `(var ,place ,expr) body))
-                    (t `((bind ,place ,expr ,@body)))))))))
+                    (t `((bind ,place ,expr ,@body)))))))
+        (t (prologue-wrap
+             (cdr prologue)
+             (cons (car prologue) body)))))
 
 (defpsmacro loop (&rest keywords-and-forms)
   (let ((state (parse-ps-loop keywords-and-forms)))

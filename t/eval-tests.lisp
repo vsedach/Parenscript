@@ -356,7 +356,7 @@
 (test-js-eval for-obj-place-in
   (loop :for (:a :b) :in (list (create :a 2 :b 3)
                                (create :a 4 :b 5))
-    :sum (+ a b))
+    :summing (+ a b))
   14)
 
 (test-js-eval for-arr-place-=
@@ -371,7 +371,7 @@
 
 (test-js-eval loop-until1
    (let ((x 0))
-     (loop :do (incf x) :until t)
+     (loop :doing (incf x) :until t)
      x)
    1)
 
@@ -400,6 +400,26 @@
    (loop :for i :from 0 :below 10 :by 3 :append (list i (* i 100)))
    '(0 0 3 300 6 600 9 900))
 
+(test-js-eval loop-appending
+   (loop :for i :from 0 :below 10 :by 3 :appending (list i (* i 100)))
+   '(0 0 3 300 6 600 9 900))
+
+(test-js-eval loop-maximize
+   (loop :for i :in (list 1 5 3 2) :maximize i)
+   5)
+
+(test-js-eval loop-maximizing
+   (loop :for i :in (list 1 5 3 7) :maximizing i)
+   7)
+
+(test-js-eval loop-minimize
+   (loop :for i :in (list 1 5 3 2) :minimize i)
+   1)
+
+(test-js-eval loop-minimizing
+   (loop :for i :in (list 3 5 3 2) :minimizing i)
+   2)
+
 (test-js-eval loop-for-on
    (loop :for (a b) :on '(10 20 30 40 50 60) :by 2 :collect (list b a))
    '((20 10) (40 30) (60 50)))
@@ -407,7 +427,7 @@
 (test-js-eval loop-parallel-clauses-with-return
    (loop :for i :from 0 :below 10 :for x = (* i 10)
      :when (> i 5) :do (return x)
-     :collect i)
+     :collecting i)
    60)
 
 (test-js-eval loop-extended-conditional-clauses
@@ -437,6 +457,16 @@
     (funcall (@ bar push) foo)
     bar)
   '(1 2 2 1 3 4 4 2 5 6 6 3 21))
+
+(test-js-eval for-loop-downfrom-to
+  (loop for i :downfrom 5 :to 0
+    collect i)
+  '(5 4 3 2 1 0))
+
+(test-js-eval for-loop-downfrom-above
+  (loop for i :downfrom 5 :above 0
+    collect i)
+  '(5 4 3 2 1))
 
 (test-js-eval loop-conditional-return-works
   (block nil

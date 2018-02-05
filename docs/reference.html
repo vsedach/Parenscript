@@ -619,7 +619,7 @@
     <p>The <code>NEW</code> operator maps to JavaScript like:</p>
 
     <dl>
-      <dt><code>(new (Person age shoe-size))</code></dt>
+      <dt><code>(new (-Person age shoe-size))</code></dt>
       <dd><code>new Person(age, shoeSize);</code></dd>
     </dl>
 
@@ -770,10 +770,8 @@
 
     <dl>
       <dt>&lt;operator&gt;</dt>
-      <dd>one of <code>*, /, %, +, -, <<, >>, >>>, < >, EQL,
-              ==, !=, =, ===, !==, &, ^, |, &&, AND, ||, OR</code>
+      <dd>one of <code>*, /, %, +, -, ASH, <, >, <=, >=, =, EQL, EQUAL, NOT, SETF, AND, OR</code>
       </dd>
-
       <dt>&lt;single-operator&gt;</dt>
       <dd>one of <code>INCF, DECF, ++, --, NOT, !</code></dd>
 
@@ -783,7 +781,7 @@
     <p>Operator forms are similar to function call forms, but have an
       operator as function name.</p>
 
-    <p>Please note that <code>=</code> is converted to <code>==</code> in
+    <p>Please note that <code>=</code> is converted to <code>===</code> in
       JavaScript. The <code>=</code> Parenscript operator is not the
       assignment operator.</p>
 
@@ -793,6 +791,21 @@
 
       <dt><code>(= 1 2)</code></dt>
       <dd><code>1 === 2;</code></dd>
+    </dl>
+
+    <p>The negation of equality operators are obtained by through <code>NOT</code>. For example:</p>
+
+    <dl>
+      <dt><code>(not (eql 1 2))</code></dt>
+      <dd><code>1 !== 2</code></dd>
+    </dl>
+
+    <p>The operators that in CL have variable arity convert into multiple calls
+    to the equivalent operators in JavaScript</p>
+
+    <dl>
+      <dt><code>(logxor 1 3 7 15)</code></dt>
+      <dd><code>1 ^ 3 ^ 7 ^ 15 </code></dd>
     </dl>
 
     <h2 id="section-math">Mathematical functions and constants</h2>

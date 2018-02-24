@@ -186,6 +186,12 @@
 
 (defun lisp (x) x)
 
+(define-expression-operator lisp-raw (lisp-form)
+  `(ps-js:escape
+    ,lisp-form))
+
+(defun lisp-raw (x) x)
+
 (defpsmacro undefined (x)
   `(eql "undefined" (typeof ,x)))
 

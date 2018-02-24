@@ -87,6 +87,7 @@
       <li>(<code id="ps-compile-stream">PS-COMPILE-STREAM</code> stream)</li>
       <li>(<code id="ps-compile-file">PS-COMPILE-FILE</code> file)</li>
       <li>(<code id="lisp">LISP</code> lisp-forms)</li>
+      <li>(<code id="lisp">LISP-RAW</code> lisp-forms)</li>
       <li>(<code id="symbol-to-js-string">SYMBOL-TO-JS-STRING</code> symbol)</li>
 
       <li><code id="*js-target-version*">*JS-TARGET-VERSION*</code></li>
@@ -151,7 +152,10 @@
       to <i>compile time</i>, where the effect is accomplished using
       macros) using the special form <code>LISP</code>. The form
       provided to <code>LISP</code> is evaluated, and its result is
-      compiled as though it were Parenscript code. For <code>PS</code>
+      compiled as though it were Parenscript code. The <code>LISP-RAW</code>
+      form acts as the <code>LISP</code> form, except that its results are
+      inserted directly into the javascript output without evaluation.
+      For <code>PS</code>
       and <code>PS-INLINE</code>, the Parenscript output code is
       generated at macro-expansion time, and the <code>LISP</code>
       statements are inserted inline into the output and have access

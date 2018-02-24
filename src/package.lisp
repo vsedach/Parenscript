@@ -242,6 +242,7 @@
 
    ;; lisp eval
    #:lisp
+   #:lisp-raw
 
    ;; js object stuff
    #:delete
@@ -303,5 +304,4 @@
    #:label
    #:f
    #:bind
-   #:bind*
-   ))
+   #:bind*))

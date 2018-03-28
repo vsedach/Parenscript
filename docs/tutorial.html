@@ -1,0 +1,347 @@
+<html>
+
+  <head>
+    <title>Parenscript Tutorial</title>
+    <style type="text/css">
+      body {
+      margin-left:50px;
+      margin-right:50px;
+      }
+      pre {
+      margin-left:60px;
+      }
+      p {
+      margin-left:10px;
+      }
+    </style>
+  </head>
+
+  <body>
+    <center><h1>Parenscript Tutorial</h1></center>
+    
+    <h2>Introduction</h2>
+
+    <p>
+      This tutorial shows how to build a simple web application in
+      Common Lisp, specifically demonstrating
+      the <a href="http://common-lisp.net/project/parenscript/">Parenscript</a>
+      Lisp to JavaScript compiler.
+    </p>
+
+    <p>
+      The <a href="http://common-lisp.net/project/parenscript/reference.html">Parenscript reference manual</a> contains a description of Parenscript functions and macros.
+    </p>
+
+    <h2>Setting up the Parenscript environment</h2>
+
+    <p>
+      This tutorial assumes you have a Common Lisp implementation
+      already
+      installed. <a href="http://www.sbcl.org/getting.html">SBCL</a>
+      is a good free software implementation if you don't have one.
+
+      Besides <a
+      href="http://common-lisp.net/project/parenscript/">Parenscript</a>,
+      the examples use <a
+      href="http://www.weitz.de/hunchentoot/">Hunchentoot</a> as a web
+      server, <a href="http://www.weitz.de/cl-who/">CL-WHO</a> for
+      HTML generation, and <a
+      href="http://www.weitz.de/cl-fad/">CL-FAD</a> for file
+      utilities. These packages are available through <a
+      href="http://www.quicklisp.org/">Quicklisp</a>. You will
+      probably want to keep the Hunchentoot webpage open in another
+      tab to refer to the documentation, since the Hunchentoot
+      interface is not explained in this tutorial.
+    </p>
+
+    <p>
+      After installing the prerequisite libraries, let's load them.
+    </p>
+    
+    <code><pre>
+(dolist (x '(:hunchentoot :cl-who :parenscript :cl-fad))
+  (asdf:oos 'asdf:load-op x))
+    </pre></code>
+
+    <p>
+      Next let's define a package to hold the example code
+    </p>
+
+    <code><pre>
+(defpackage "PS-TUTORIAL"
+  (:use "COMMON-LISP" "HUNCHENTOOT" "CL-WHO" "PARENSCRIPT" "CL-FAD"))
+
+(in-package "PS-TUTORIAL")
+    </pre></code>
+
+    <p>
+      One thing we have to do is make sure that CL-WHO and Parenscript use
+      different string delimiters so that literal strings will work as
+      intended in JavaScript code inlined in HTML element properties.
+    </p>
+
+    <code><pre>
+(setf *js-string-delimiter* #\")
+    </pre></code>
+
+    <p>
+      Now to start the server.
+    </p>
+
+    <code><pre>
+(start (make-instance 'acceptor :port 8080))
+    </pre></code>
+
+    <h2>Examples</h2>
+
+    <p>
+      The <code>ps</code> macro takes Parenscript code in the form of
+      lists (Parenscript code and Common Lisp code share the same
+      representation), translates as much as it can into constant
+      JavaScript strings at macro-expansion time, and expands into a
+      form that will evaluate to a string containing JavaScript code.
+    </p>
+
+    <code><pre>
+(define-easy-handler (tutorial1 :uri "/tutorial1") ()
+  (with-html-output-to-string (s)
+    (:html
+     (:head (:title "Parenscript tutorial: 1st example"))
+     (:body (:h2 "Parenscript tutorial: 1st example")
+            "Please click the link below." :br
+            (:a :href "#" :onclick (ps (alert "Hello World"))
+                "Hello World")))))
+    </pre></code>
+
+    <p>
+      One way to include Parenscript code in web pages is to inline it in
+      HTML <code>script</code> tags.
+    </p>
+
+    <code><pre>
+(define-easy-handler (tutorial2 :uri "/tutorial2") ()
+  (with-html-output-to-string (s)
+    (:html
+     (:head
+      (:title "Parenscript tutorial: 2nd example")
+      (:script :type "text/javascript"
+               (str (ps
+                      (defun greeting-callback ()
+                        (alert "Hello World"))))))
+     (:body
+      (:h2 "Parenscript tutorial: 2nd example")
+      (:a :href "#" :onclick (ps (greeting-callback))
+          "Hello World")))))
+    </pre></code>
+
+    <p>
+      Another way to integrate Parenscript into a web application is to
+      serve the generated JavaScript as a separate HTTP
+      resource. Requests to this resource can then be cached by the
+      browser and proxies.
+    </p>
+
+    <code><pre>
+(define-easy-handler (tutorial2-javascript :uri "/tutorial2.js") ()
+  (setf (content-type*) "text/javascript")
+  (ps
+    (defun greeting-callback ()
+      (alert "Hello World"))))
+    </pre></code>
+
+    <h2>Slideshow</h2>
+    <p>
+      Next we're going to examine a more complicated example - a web-based
+      slideshow viewer.
+    </p>
+
+    <p>
+      First we need a way to define slideshows. For this tutorial
+      we'll assume that we have several different folders containing
+      just images, and want to serve each of the folders as its own
+      slideshow under its own URL. We'll use a hash table to keep
+      track of what slideshows we are serving, which will also double
+      as a cache of the image filenames, which will save us at least a
+      system call and possibly disk access on every request. We'll use
+      the
+      <a href="http://www.weitz.de/hunchentoot/#create-folder-dispatcher-and-handler">folder
+      dispatcher</a> function provided by Hunchentoot to serve the
+      image files under /slideshow-images/{slideshow-name}/.
+    </p>
+
+    <code><pre>
+(defvar *slideshows* (make-hash-table :test 'equalp))
+
+(defun add-slideshow (slideshow-name image-folder)
+  ;; we don't want to create duplicate dispatchers
+  (unless (gethash slideshow-name *slideshows*)
+    (push (create-folder-dispatcher-and-handler
+           (format nil "/slideshow-images/~a/" slideshow-name)
+           image-folder)
+          *dispatch-table*))
+  ;; but we do want to be able to refresh the cached list of image files
+  (setf (gethash slideshow-name *slideshows*)
+        (mapcar (lambda (pathname)
+                  (url-encode (format nil "~a.~a"
+                                      (pathname-name pathname)
+                                      (pathname-type pathname))))
+                (list-directory image-folder))))
+    </pre></code>
+
+    <p>
+      Let's find some important pictures on our machine and get Hunchentoot to start
+      serving them.
+    </p>
+    
+    <code><pre>
+(add-slideshow "lolcat" "/home/junk/lolcats/")
+(add-slideshow "lolrus" "/home/other-junk/lolruses/")
+    </pre></code>
+
+    <p>
+      Next we need to create the slideshow web page. Ideally we'd like to
+      use JavaScript and DHTML to move through the slideshow without
+      refreshing the whole page, but with a fallback to regular link
+      navigation in case the client browser has JavaScript turned
+      off. Either way we want users of our slideshow to be able to
+      bookmark their place in the slideshow viewing sequence. The
+      techniques we'll use to achieve this can be similarly applied to
+      arbitrary asynchronous data loading via AJAX.
+    </p>
+
+    <p>
+      We'll need a way to generate URIs for slideshow images on both the
+      server and client sides. We can eliminate code duplication by using
+      the <code>defmacro/ps</code> macro, which is used to share macros
+      between Common Lisp and Parenscript.
+    </p>
+
+    <code><pre>
+(defmacro/ps slideshow-image-uri (slideshow-name image-file)
+  `(concatenate 'string "/slideshow-images/" ,slideshow-name "/" ,image-file))
+    </pre></code>
+
+    <p>
+Next is the function to serve up the slideshow page. The pages will
+be served under /slideshows/{slideshow-name}, all of them handled
+by a single function that will dispatch on {slideshow-name}.
+    </p>
+
+    <p>
+      Regular navigation in the slideshow is done with the help of the
+      <code>image</code> query parameter, which also allows
+      bookmarking. For JavaScript-based image loading, we provide
+      information about the slideshow in an inline script (generated
+      using <a href="http://common-lisp.net/project/parenscript/reference.html#ps*"><code>ps*</code></a>,
+      which is the function equivalent of
+      the <a href="http://common-lisp.net/project/parenscript/reference.html#ps"><code>ps</code></a>
+      macro and is used for translating runtime-generated code) and
+      give <code>onclick</code> handlers to the next/previous buttons.
+    </p>
+
+    <code><pre>
+(defun slideshow-handler ()
+  (cl-ppcre:register-groups-bind (slideshow-name) ("/slideshows/(.*)" (script-name*))
+    (let* ((images (gethash slideshow-name *slideshows*))
+           (current-image-index (or (position (get-parameter "image") images :test #'equalp)
+                                    0))
+           (previous-image-index (max 0 (1- current-image-index)))
+           (next-image-index (min (1- (length images)) (1+ current-image-index))))
+      (with-html-output-to-string (s)
+        (:html
+         (:head
+          (:title "Parenscript slideshow")
+          (:script :type "text/javascript"
+                   (str (ps* `(progn
+                                (var *slideshow-name* ,slideshow-name)
+                                (var *images* (array ,@images))
+                                (var *current-image-index* ,current-image-index)))))
+          (:script :type "text/javascript" :src "/slideshow.js"))
+         (:body
+          (:div :id "slideshow-container"
+                :style "width:100%;text-align:center"
+                (:img :id "slideshow-img-object"
+                      :src (slideshow-image-uri slideshow-name
+                                                (elt images current-image-index)))
+                :br
+                (:a :href (format nil "/slideshows/~a?image=~a"
+                                  slideshow-name (elt images previous-image-index))
+                    :onclick (ps (previous-image) (return false))
+                    "Previous")
+                " "
+                (:a :href (format nil "/slideshows/~a?image=~a"
+                                  slideshow-name (elt images next-image-index))
+                    :onclick (ps (next-image) (return false))
+                    "Next"))))))))
+    </pre></code>
+
+    <p>
+      Since this function is a custom handler, we need to create a new
+      dispatcher for it. Note that we're passing the symbol naming the
+      handler instead of the function object (which we'd do with the
+      <a href="http://www.lispworks.com/documentation/HyperSpec/Body/02_dhb.htm"><code>#'</code></a>
+      reader macro), which lets us redefine the handler without
+      touching the dispatcher.
+    </p>
+
+    <code><pre>
+(push (create-prefix-dispatcher "/slideshows/" 'slideshow-handler) 
+      *dispatch-table*)
+    </pre></code>
+
+    <p>
+      The slideshow page can accomodate regular HTML clients; now it is
+      time to add dynamic image loading using JavaScript. We can
+      accomplish bookmarkability by using the URI fragment identifier
+      (however, this will make the browser forward and back buttons
+      behave in a counterintuitive way; the fix for this is hacky and
+      browser-specific and described here:
+      <a href="http://ajaxpatterns.org/Unique_URLs">http://ajaxpatterns.org/Unique_URLs</a>).
+    </p>
+
+    <p>
+      Two things to note about the following code are
+      the <a href="http://common-lisp.net/project/parenscript/reference.html#@"><code>@</code></a>
+      and <a href="http://common-lisp.net/project/parenscript/reference.html#chain"><code>chain</code></a>
+      property chaining convenience macros. <code>(@ object slotA
+      slotB)</code> expands to
+      <code>(getprop (getprop object 'slotA)
+      'slotB)</code>. <code>chain</code> is similar, but also provides
+      nested method calls.
+    </p>
+
+    <code><pre>
+(define-easy-handler (js-slideshow :uri "/slideshow.js") ()
+  (setf (content-type*) "text/javascript")
+  (ps
+    (define-symbol-macro fragment-identifier (@ window location hash))
+    
+    (defun show-image-number (image-index)
+      (let ((image-name (aref *images* (setf *current-image-index* image-index))))
+        (setf (chain document (get-element-by-id "slideshow-img-object") src)
+              (slideshow-image-uri *slideshow-name* image-name)
+              fragment-identifier
+              image-name)))
+    
+    (defun previous-image ()
+      (when (> *current-image-index* 0)
+        (show-image-number (1- *current-image-index*))))
+      
+    (defun next-image ()
+      (when (< *current-image-index* (1- (getprop *images* 'length)))
+        (show-image-number (1+ *current-image-index*))))
+
+    ;; this gives bookmarkability using fragment identifiers
+    (setf (getprop window 'onload)
+          (lambda ()
+            (when fragment-identifier
+              (let ((image-name (chain fragment-identifier (slice 1))))
+                (dotimes (i (length *images*))
+                  (when (string= image-name (aref *images* i))
+                    (show-image-number i)))))))))
+    </pre></code>
+    </p>
+
+    <p style="font-size:xxx-small">Contact: <a href="mailto:vsedach@gmail.com">vsedach@gmail.com</a>. <i>Last modified: 2010-10-17</i></p>
+  </body>
+</html>

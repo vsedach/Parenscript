@@ -160,10 +160,13 @@
       First we need a way to define slideshows. For this tutorial we
       will assume that we have several different folders containing
       image files, and we want to serve each of the folders as its own
-      slideshow under its own URL. We will use the
+      slideshow under its own URL. We will use a custom Hunchentoot
+      handler to serve the slideshow
+      under <samp>/slideshows/{slideshow-name}</samp>, and the
+      built-in Hunchentoot
       <a href="https://edicl.github.io/hunchentoot/#create-folder-dispatcher-and-handler">folder
-      dispatcher</a> function provided by Hunchentoot to serve the
-      image files under <samp>/slideshow-images/{slideshow-name}/</samp>.
+      dispatcher</a> to serve the image files
+      from <samp>/slideshow-images/{slideshow-name}/{image-file}</samp>.
     </p>
 
     <pre><code>(defvar *slideshows* (make-hash-table :test 'equalp))
@@ -231,7 +234,9 @@
     (let* ((images (mapcar
                     (lambda (i) (url-encode (file-namestring i)))
                     (list-directory
-                     (gethash slideshow-name *slideshows*))))
+                     (or (gethash slideshow-name *slideshows*)
+                         (progn (setf (return-code*) 404)
+                                (return-from slideshow-handler))))))
            (current-image-index
              (or (position (url-encode (or (get-parameter "image") ""))
                            images
@@ -328,6 +333,6 @@
       nested method calls.
     </p>
 
-    <p style="font-size:xx-small; float:right;">Author: Vladimir Sedach &lt;<a href="mailto:vsedach@oneofus.la">vsedach@oneofus.la</a>&gt; Last modified: 2018-03-28</p>
+    <p style="font-size:xx-small; float:right;">Author: Vladimir Sedach &lt;<a href="mailto:vsedach@oneofus.la">vsedach@oneofus.la</a>&gt; Last modified: 2018-03-29</p>
   </body>
 </html>

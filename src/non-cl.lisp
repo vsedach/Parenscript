@@ -214,3 +214,44 @@
 
 (define-ps-symbol-macro false ps-js:false)
 (defvar false nil)
+
+(define-expression-operator => (lambda-list &rest body)
+  (multiple-value-bind (effective-args effective-body)
+      (parse-extended-function lambda-list body)
+    `(ps-js:=> ,effective-args
+       ,(let ((*function-block-names* ()))
+          (compile-function-body effective-args effective-body)))))
+
+(define-statement-operator es-class (name (&optional parent) &body body)
+  (let (defs)
+    (flet ((collect (form)
+	     (push form defs))
+	   (parse (sym form)
+	     (destructuring-bind (name (&rest params) &body body)
+		 form
+	       (multiple-value-bind (effective-args body-block docstring)
+		   (compile-named-function-body name params body)
+		 (list* sym name effective-args docstring body-block)))))
+      (dolist (form body)
+	(ecase (first form)
+	  (static
+	   (dolist (form (rest form))
+	     (ecase (first form)
+	       (setf
+		(pop form)
+		(while form
+		  (collect `(static-assign ,(pop form)
+					   ,(compile-expression (pop form))))))
+	       ((defun)
+		(collect (parse 'static-function
+				(rest form)))))))
+	  (setf
+	   (pop form)
+	   (while form
+	     (collect `(setf ,(pop form)
+			     ,(compile-expression (pop form))))))
+	  ((defun)
+	   (collect (parse 'function
+			   (rest form))))))
+      `(ps-js:es-class ,name ,parent
+	 ,(nreverse defs)))))

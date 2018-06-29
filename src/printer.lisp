@@ -255,6 +255,18 @@ vice-versa.")
   (parenthesize-at-toplevel
    (lambda () (print-fun-def nil args body-block))))
 
+(defprinter ps-js:=> (args body-block)
+  (parenthesize-at-toplevel
+   (lambda ()
+     (psw "(")
+     (loop
+       :for (arg . rest) :on args
+       :do (ps-print arg)
+	   (when rest
+	     (psw ", ")))
+     (psw ") => ")
+     (ps-print body-block))))
+
 (defprinter ps-js:defun (name args docstring body-block)
   (when docstring (print-comment docstring))
   (print-fun-def name args body-block))
@@ -388,3 +400,37 @@ vice-versa.")
   ;; literal-js should be a form that evaluates to a string containing
   ;; valid JavaScript
   (psw literal-js))
+
+(defprinter ps-js:es-class (name parent body)
+	    "class "
+	    (ps-print name)
+	    (when parent
+	      (psw " extends ")
+	      (ps-print parent))
+	    " {"
+	    (incf *indent-level*)
+	    (labels ((fun (form)
+		       (destructuring-bind (name (&rest args) docstring &body body)
+			   form
+			 (declare (ignore docstring))
+			 (print-fun-def (list name nil) args body))))
+	      (dolist (form body)
+		(newline-and-indent)
+		(ecase (first form)
+		  (static-assign
+		   (psw "static ")
+		   (ps-print (second form))
+		   (psw " = ")
+		   (ps-print (third form)))
+		  (static-function
+		   (psw "static ")
+		   (fun (rest form)))
+		  (setf
+		   (ps-print (second form))
+		   (psw " = ")
+		   (ps-print (third form)))
+		  (function
+		   (fun (rest form))))))
+	    (decf *indent-level*)
+	    (newline-and-indent)
+	    (psw "}"))

@@ -275,6 +275,11 @@
    #:break
    #:continue
 
+   ;; es6+ stuff
+   #:es-class
+   #:static
+   #:=>
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Deprecated functionality
 

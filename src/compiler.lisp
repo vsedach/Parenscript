@@ -216,6 +216,8 @@ CL environment)."
 
 ;;; lambda wrapping
 
+(defvar *ps-gensym-counter* 0)
+
 (defvar this-in-lambda-wrapped-form? nil)
 
 (defun lambda-wrap (form)
@@ -297,8 +299,6 @@ form, FORM, returns the new value for *compilation-level*."
 (defun compile-expression (form)
   (let ((compile-expression? t))
     (ps-compile form)))
-
-(defvar *ps-gensym-counter* 0)
 
 (defun ps-gensym (&optional (prefix-or-counter "_JS"))
   (assert (or (stringp prefix-or-counter) (integerp prefix-or-counter)))

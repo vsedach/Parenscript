@@ -1,3 +1,5 @@
+;; SPDX-License-Identifier: BSD-3-Clause
+
 (in-package #:parenscript)
 
 (defparameter *js-target-version* "1.3")

@@ -1,3 +1,5 @@
+;; SPDX-License-Identifier: BSD-3-Clause
+
 (in-package #:parenscript)
 
 ;;; bind and bind* - macros used for destructuring bindings in PS LOOP

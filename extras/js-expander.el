@@ -1,3 +1,5 @@
+;; SPDX-License-Identifier: BSD-3-Clause
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; This is an extension to SLIME that is inspired by (and works
 ;;;; like) the SLIME 'C-c M-m' macroexpansion feature.

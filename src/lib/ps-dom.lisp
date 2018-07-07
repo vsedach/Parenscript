@@ -1,3 +1,5 @@
+;; SPDX-License-Identifier: BSD-3-Clause
+
 (in-package #:parenscript)
 
 ;; Utilities for accessing standard DOM functionality in a Lispier, PSier way.

@@ -1,3 +1,5 @@
+;; SPDX-License-Identifier: BSD-3-Clause
+
 (in-package #:parenscript)
 
 (let ((cache (make-hash-table :test 'equal)))
@@ -61,7 +63,7 @@ paren-script becomes parenScript, *some-global* becomes SOMEGLOBAL."
 (labels ((compare (a b op equality)
            (if (not (stringp a)) (setf a (format nil "~A" a)))
            (if (not (stringp b)) (setf b (format nil "~A" b)))
-           (loop with i := 0 and j := 0 and m and n 
+           (loop with i := 0 and j := 0 and m and n
                  while (or i j)
                  do (multiple-value-setq (m i)
                       (if (and i (< i (length a)))

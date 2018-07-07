@@ -1,6 +1,4 @@
-;; Copying and distribution of this file, with or without
-;; modification, are permitted in any medium without royalty. This
-;; file is offered as-is, without any warranty.
+;; SPDX-License-Identifier: BSD-3-Clause
 
 (in-package #:ps-test)
 (named-readtables:in-readtable :parenscript)

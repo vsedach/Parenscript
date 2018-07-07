@@ -1,3 +1,5 @@
+;; SPDX-License-Identifier: BSD-3-Clause
+
 ;; Tracing macro courtesy of William Halliburton
 ;; <whalliburton@gmail.com>, logs to Firebug console
 

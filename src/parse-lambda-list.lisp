@@ -1,3 +1,5 @@
+;; SPDX-License-Identifier: BSD-3-Clause
+
 (in-package #:parenscript)
 
 ;;;; This software was taken from the SBCL system, mostly verbatim.

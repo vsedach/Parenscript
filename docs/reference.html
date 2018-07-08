@@ -283,20 +283,29 @@
 
     <h2 id="section-namespace">The Parenscript namespace system</h2>
     <ul>
-      <li>(<code id="in-package">in-package</code> <var>package-designator</var>)</li>
-      <li>(<code id="use-package">use-package</code> <var>package-designator</var>)</li>
-      <li>(setf (<code id="ps-package-prefix">PS-PACKAGE-PREFIX</code> <var>package-designator</var>) <var>string</var>)</li>
+      <li>
+        (<code id="in-package">in-package</code> <var>package-designator</var>)
+      </li>
+      <li>
+        (<code id="use-package">use-package</code> <var>package-designator</var>)
+      </li>
+      <li>
+        (setf (<code id="ps-package-prefix">PS-PACKAGE-PREFIX</code> <var>package-designator</var>) <var>string</var>)
+      </li>
     </ul>
 
-    <p>Although JavaScript does not offer namespacing or a package system,
-      Parenscript does provide a namespace mechanism for generated
-      JavaScript by integrating with the Common Lisp package system. Since
-      Parenscript code is normally read in by the Lisp reader, all symbols
-      (except for uninterned ones, i.e. - those specified with
-      the <code>#:</code> reader macro) have a Lisp package. By default, no
-      packages are prefixed. You can specify that symbols in a particular
-      package receive a prefix when translated to JavaScript with the
-      <var>PS-PACKAGE-PREFIX</var> place.</p>
+    <p>
+      Although JavaScript does not offer namespacing or a package
+      system, Parenscript does provide a namespace mechanism for
+      generated JavaScript by integrating with the Common Lisp package
+      system. Since Parenscript code is normally read in by the Lisp
+      reader, all symbols (except for uninterned ones, i.e. - those
+      specified with the <code>#:</code> reader macro) have a Lisp
+      package. By default, no packages are prefixed. You can specify
+      that symbols in a particular package receive a prefix when
+      translated to JavaScript with the
+      <var>PS-PACKAGE-PREFIX</var> place.
+    </p>
 
     <dl>
       <dt>
@@ -305,8 +314,8 @@
 
 (setf (ps-package-prefix "PS-REF.MY-LIBRARY") "my_library_")
 
-(defun ps-ref.my-library::library-function (x y)
-  (return (+ x y)))</code></pre>
+(ps (defun ps-ref.my-library::library-function (x y)
+      (+ x y)))</code></pre>
       </dt>
 
       <dd>
@@ -316,15 +325,21 @@
       </dd>
     </dl>
 
-    <p>Parenscript provides <code>IN-PACKAGE</code>
-    and <code>USE-PACKAGE</code> special forms, primarily useful
-    with <a href="#ps-compile-file"><code>PS-COMPILE-FILE</code></a>
-    and <a href="#ps-compile-stream"><code>PS-COMPILE-STREAM</code></a>.</p>
+    <p>
+      Parenscript provides <code>IN-PACKAGE</code>
+      and <code>USE-PACKAGE</code> special forms, primarily useful
+      with <a href="#ps-compile-file"><code>PS-COMPILE-FILE</code></a>
+      and <a href="#ps-compile-stream"><code>PS-COMPILE-STREAM</code></a>.
+    </p>
 
     <h3 id="section-obfuscation">Identifier obfuscation</h3>
     <ul>
-      <li>(<code id="obfuscate-package">OBFUSCATE-PACKAGE</code> <var>package-designator</var> &amp;optional <var>symbol-map</var>)</li>
-      <li>(<code id="unobfuscate-package">UNOBFUSCATE-PACKAGE</code> <var>package-designator</var>)</li>
+      <li>
+        (<code id="obfuscate-package">OBFUSCATE-PACKAGE</code> <var>package-designator</var> &amp;optional <var>symbol-map</var>)
+      </li>
+      <li>
+        (<code id="unobfuscate-package">UNOBFUSCATE-PACKAGE</code> <var>package-designator</var>)
+      </li>
     </ul>
 
     <p>Similar to the namespace mechanism, Parenscript provides a
@@ -416,20 +431,23 @@
 
     <h2 id="section-statements-expressions">Statements, expressions, and return</h2>
 
-    <p>In contrast to Lisp, where everything is an expression,
+    <p>
+      In contrast to Lisp, where everything is an expression,
       JavaScript makes an arbitrary distinction between expressions,
       which yield a value and can be nested in other expressions, and
-      statements, which have no value and cannot occur in
-      expressions.</p>
+      statements, which have no value and cannot occur in expressions.
+    </p>
 
-    <p>Some Parenscript special forms compile to expressions, while
+    <p>
+      Some Parenscript special forms compile to expressions, while
       others can only compile to statements. Certain Parenscript
       forms, like <code>IF</code> and <code>PROGN</code>, generate
       different JavaScript depending on if they are used in an
       expression context or a statement context. In such cases,
       Parenscript tries to generate statement code if possible to
       increase readability, only falling back to the expression code
-      if it is necessary.</p>
+      if it is necessary.
+    </p>
 
     <dl>
       <dt>
@@ -453,10 +471,12 @@
       </dd>
       </dl>
 
-    <p>One important feature found in Lisp but absent in JavaScript is
-      implicit return in functions. Parenscript supports implicit
-      return by having a <code>RETURN</code> special form that works
-      around the statement-expression dichotomy:</p>
+    <p>
+      One important feature found in Lisp but absent from JavaScript
+      is implicit return from functions. Parenscript automatically
+      provides implicit return for JavaScript statements and
+      expressions:
+    </p>
 
     <dl>
       <dt>
@@ -495,20 +515,24 @@
       </dd>
     </dl>
 
-    <p>Note that Parenscript does not enforce the statement-expression
-      dichotomy, so it is possible to generate syntactically incorrect
-      JavaScript by nesting special forms that only compile to
-      statements in a context that calls for an expression:</p>
+    <p>
+      Parenscript generates code that works around the JavaScript
+      expression-statement dichotomy in an unobtrusive way:
+    </p>
 
     <dl>
       <dt>
-        <code>(+ 1 (dotimes (x 3) (+ x x)))</code>
+        <pre><code>(+ 1 (dotimes (x 3) (if (= x 2) (return (+ x x)))))</code></pre>
       </dt>
 
       <dd>
-        <pre><samp>1 + for (var x = 0; x < 3; x += 1) {
-    x + x;
-};</samp></pre>
+        <pre><samp>(function () {
+    for (var x = 0; x < 3; x += 1) {
+        if (x === 2) {
+            return x + x;
+        };
+    };
+})() + 1;</samp></pre>
       </dd>
     </dl>
 
@@ -880,28 +904,46 @@
       <li><var id="pi">PI</var></li>
     </ul>
 
-    <p>The mathematical functions listed above work mostly like their
+    <p>
+      The mathematical functions listed above work mostly like their
       Common Lisp counterparts when called directly, with the
       exception that complex numbers are not supported. However, most
       of them are implemented as macros, and as such cannot be treated
-      as first-class functions.</p>
+      as first-class functions.
+    </p>
 
     <h2 id="section-blocks">Blocks</h2>
     <ul>
-      <li>(<code id="progn">PROGN</code> {<var>statement</var>}*) in statement context</li>
-      <li>(<code>PROGN</code> {<var>expression</var>}*) in expression context</li>
-      <li>(<code id="prog1">PROG1</code> {<var>expression</var> | <var>statement</var>}*)</li>
-      <li>(<code id="prog2">PROG2</code> {<var>expression</var> | <var>statement</var>}*)</li>
-      <li>(<code id="eval-when">EVAL-WHEN</code> {<var>expression</var> | <var>statement</var>}*)</li>
+      <li>
+        (<code id="block">BLOCK</code> <var>name</var> {<var>expression</var> | <var>statement</var>}*)
+      </li>
+      <li>
+        (<code id="progn">PROGN</code> {<var>statement</var>}*) in statement context
+      </li>
+      <li>
+        (<code>PROGN</code> {<var>expression</var>}*) in expression context
+      </li>
+      <li>
+        (<code id="prog1">PROG1</code> {<var>expression</var> | <var>statement</var>}*)
+      </li>
+      <li>
+        (<code id="prog2">PROG2</code> {<var>expression</var> | <var>statement</var>}*)
+      </li>
+      <li>
+        (<code id="eval-when">EVAL-WHEN</code> {<var>expression</var> | <var>statement</var>}*)
+      </li>
     </ul>
 
     <dl>
+      <dt><var>name</var></dt> <dd>Name/tag of the block. A symbol or nil.</dd>
       <dt><var>statement</var></dt> <dd>a form that compiles to a statement</dd>
       <dt><var>expression</var></dt> <dd>a form that compiles to an expression</dd>
     </dl>
 
-    <p>The translation of <code>PROGN</code> depends on whether it is
-    found in a statement or expression context:</p>
+    <p>
+      The translation of <code>PROGN</code> depends on whether it is
+      found in a statement or expression context:
+    </p>
 
     <dl>
       <dt><code>(progn (blorg i) (blafoo i))</code></dt>
@@ -914,12 +956,16 @@ blafoo(i);</samp></pre>
       <dd><samp>i + (blorg(i), blafoo(i));</samp></dd>
     </dl>
 
-    <p>The Parenscript <code>EVAL-WHEN</code> special operator has a
-slightly different meaning from the Common Lisp one. The code in
-the <code>EVAL-WHEN</code> special form is assumed to be Common Lisp
-code in <code>:compile-toplevel</code> and <code>:load-toplevel</code> situations, and is
-executed by the Parenscript compiler, and is assumed to be Parenscript
-code in the <code>:execute</code> situation, when it is run as JavaScript.</p>
+    <p>
+      The Parenscript <code>EVAL-WHEN</code> special operator has a
+      slightly different meaning from the Common Lisp one. The code in
+      the <code>EVAL-WHEN</code> special form is assumed to be Common
+      Lisp code in <code>:compile-toplevel</code>
+      and <code>:load-toplevel</code> situations, and is executed by
+      the Parenscript compiler, and is assumed to be Parenscript code
+      in the <code>:execute</code> situation, when it is run as
+      JavaScript.
+    </p>
 
     <h2 id="section-functions">Functions and multiple values</h2>
     <ul>
@@ -943,72 +989,96 @@ code in the <code>:execute</code> situation, when it is run as JavaScript.</p>
       <dt><var>function</var></dt> <dd>an expression that yields a function</dd>
     </dl>
 
-    <p>New function definitions can be introduced using all the
-    regular Lisp forms
-    - <code>DEFUN</code>, <code>LAMBDA</code>, <code>FLET</code>,
-    and <code>LABELS</code>. Function lambda lists
-    support <code>&amp;optional</code>, <code>&amp;rest</code> and
-    <code>&amp;key</code> arguments.</p>
+    <p>
+      New function definitions can be introduced using all the regular
+      Lisp forms
+      - <code>DEFUN</code>, <code>LAMBDA</code>, <code>FLET</code>,
+      and <code>LABELS</code>. Function lambda lists
+      support <code>&amp;optional</code>, <code>&amp;rest</code> and
+      <code>&amp;key</code> arguments.
+    </p>
 
-    <p>The Parenscript multiple value facility passes the first return
-    value using the regular JavaScript convention, therefore functions
-    returning multiple values can be called by regular JavaScript code
-    and <code>MULTIPLE-VALUE-BIND</code> works with regular JavaScript
-    functions.</p>
+    <p>
+      The Parenscript multiple value facility passes the first return
+      value using the regular JavaScript convention, therefore
+      functions returning multiple values can be called by regular
+      JavaScript code and <code>MULTIPLE-VALUE-BIND</code> works with
+      regular JavaScript functions.
+    </p>
 
-    <p><code>APPLY</code> is a macro that expands into a call to the
-    JavaScript <code>apply</code> method.</p>
+    <p>
+      <code>APPLY</code> is a macro that expands into a call to the
+      JavaScript <code>apply</code> method.
+    </p>
 
     <h2 id="section-control-transfer">Control transfer and exceptions</h2>
     <ul>
-      <li>(<code id="return">RETURN</code> {<var>value</var>}?)</li>
-      <li>(<code id="throw">THROW</code> {<var>exp</var>}?)</li>
-      <li>(<code id="try">TRY</code> <var>form</var>
+      <li>
+        (<code id="return">RETURN</code> {<var>value</var>}?)
+      </li>
+      <li>
+        (<code id="return-from">RETURN-FROM</code> <var>name</var> {<var>value</var>}?)
+      </li>
+      <li>
+        (<code id="throw">THROW</code> {<var>exp</var>}?)
+      </li>
+      <li>
+        (<code id="try">TRY</code> <var>form</var>
         {(<code id="catch">:CATCH</code> (<var>var</var>) <var>body</var>)}?
-        {(<code id="finally">:FINALLY</code> <var>body</var>)}?)</li>
-      <li>(<code id="unwind-protect">UNWIND-PROTECT</code> <var>protected-form</var> <var>cleanup-form</var>)</li>
-      <li>(<code id="ignore-errors">IGNORE-ERRORS</code> <var>body</var>)</li>
+        {(<code id="finally">:FINALLY</code> <var>body</var>)}?)
+      </li>
+      <li>
+        (<code id="unwind-protect">UNWIND-PROTECT</code> <var>protected-form</var> <var>cleanup-form</var>)
+      </li>
+      <li>
+        (<code id="ignore-errors">IGNORE-ERRORS</code> <var>body</var>)
+      </li>
     </ul>
 
     <dl>
       <dt><var>value</var></dt> <dd>a statement or expression</dd>
+      <dt><var>name</var></dt> <dd>name of block to return from</dd>
       <dt><var>exp</var></dt> <dd>an expression</dd>
       <dt><var>var</var></dt> <dd>variable to which the value of the caught <code>THROW</code> is bound</dd>
       <dt><var>body</var></dt> <dd>implicit <code>PROGN</code></dd>
     </dl>
 
-    <p>Parenscript <code>RETURN</code> and <code>THROW</code> forms do
-    not work like the Common Lisp forms with the same names.</p>
-
-    <p><code>RETURN</code> can only be used to return a value from
-    a function - Parenscript has no analogue of Common Lisp's
-    blocks. <code>RETURN</code> works when given either expressions or
-    statements (in which case it performs semantic analysis to
-    determine what should be returned).</p>
+    <p>
+      Parenscript support nested blocks and the <code>RETURN</code>
+      and <code>RETURN-FROM</code> special forms.
+    </p>
 
     <dl>
       <dt>
-<pre><code>(lambda (x)
-  (return (case x
-            (1 :a)
-            (2 :b))))</code></pre>
+<pre><code>(defun foo (x)
+  (progn
+    (abc)
+    (return-from foo
+      (case x
+        (1 :a)
+        (2 :b)))
+    (xyz)))</code></pre>
       </dt>
 
       <dd>
-<pre><samp>function (x) {
+<pre><samp>function foo(x) {
+    abc();
     switch (x) {
     case 1:
         return 'a';
     case 2:
         return 'b';
     };
+    return xyz();
 };</samp></pre>
       </dd>
     </dl>
 
-    <p>Likewise, <code>THROW</code> translates directly into the
-    JavaScript <samp>throw</samp>, to be used with <code>TRY</code>,
-    which is translated to the JavaScript <samp>try</samp>.</p>
+    <p>
+      Currently, <code>THROW</code> translates directly into the
+      JavaScript <samp>throw</samp>, to be used with <code>TRY</code>,
+      which is translated to the JavaScript <samp>try</samp>.
+    </p>
 
     <dl>
       <dt>
@@ -1500,6 +1570,6 @@ someDiv.offsetLeft;</samp></pre>
     function argument lists to the Emacs minibuffer, like SLIME
     already does for Common Lisp functions and macros.</p>
 
-    <p style="font-size:xx-small;float:right;">Last updated: 2018-06-29</p>
+    <p style="font-size:xx-small;float:right;">Last updated: 2018-07-08</p>
   </body>
 </html>

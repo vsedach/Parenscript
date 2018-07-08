@@ -738,3 +738,7 @@
 (test-js-eval array-init-2
   (make-array 5 :initial-element 10)
   '(10 10 10 10 10))
+
+(test-js-eval dotimes-block-return
+  (1+ (dotimes (x 3) (if (= x 2) (return (+ x x)))))
+  5)

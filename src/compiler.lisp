@@ -222,6 +222,8 @@ CL environment)."
 
 (defvar this-in-lambda-wrapped-form? nil)
 
+(defvar *ps-gensym-counter* 0)
+
 (defun lambda-wrap (form)
   (let ((this-in-lambda-wrapped-form? :query)
 	(*ps-gensym-counter* *ps-gensym-counter*))

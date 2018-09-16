@@ -109,4 +109,7 @@
    #:funcall
    #:escape
    #:regex
+
+   #:es-class
+   #:=>
    ))

@@ -1434,6 +1434,12 @@ __setf_someThing('foo', 1, 2);")
     (foo 1 2))
   "'(FOO 1 2)';")
 
+(test-ps-js ampersand-whole-2
+  (macrolet ((foo (&whole foo bar baz)
+               `(+ ,bar ,baz)))
+    (foo 1 2))
+  "1 + 2;")
+
 (test-ps-js keyword-consistent
   :x
   "'x';")

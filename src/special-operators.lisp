@@ -402,12 +402,12 @@ Parenscript now implements implicit return, update your code! Things like (lambd
   (with-ps-gensyms (decls)
     `(multiple-value-bind (,decls ,var) (parse-body ,block)
        (let ((*special-variables*
-               (append (loop for decl in ,decls
-                             nconcing
-                               (loop for (id . rest) in (cdr decl)
-                                     if (eq id 'special)
-                                       nconc rest))
-                       *special-variables*)))
+              (nconc
+               (loop for decl in ,decls nconc
+                    (loop for (decl-type . decl-args) in (cdr decl)
+                          if (eq decl-type 'special)
+                          append decl-args))
+               *special-variables*)))
          ,@body))))
 
 (defun maybe-rename-lexical-var (x symbols-in-bindings)

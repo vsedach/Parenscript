@@ -2277,10 +2277,9 @@ return foo(1, 'y', 2);
 
 (test-ps-js return-case-break-elimination
   (defun foo ()
-    (return-from foo
-      (case 1
-        (0 1)
-        (otherwise 2))))
+    (case 1
+      (0 1)
+      (otherwise 2)))
   "function foo() {
     switch (1) {
     case 0:
@@ -2300,11 +2299,10 @@ return foo(1, 'y', 2);
 
 (test-ps-js switch-return-fallthrough
   (defun foo ()
-    (return-from foo
-      (switch x
-        (1 (foo) break)
-        (2 (bar))
-        (default 4))))
+    (switch x
+      (1 (foo) break)
+      (2 (bar))
+      (default 4)))
   "function foo() {
     switch (x) {
     case 1:
@@ -2318,10 +2316,9 @@ return foo(1, 'y', 2);
 
 (test-ps-js return-last-case
   (defun foo ()
-    (return-from foo
-      (case x
-       (:a 'eh)
-       (:b 'bee))))
+    (case x
+      (:a 'eh)
+      (:b 'bee)))
   "function foo() {
     switch (x) {
     case 'a':
@@ -2333,11 +2330,10 @@ return foo(1, 'y', 2);
 
 (test-ps-js return-macrolet
   (defun foo ()
-    (return-from foo
-      (macrolet ((x () 1))
-        (case (x)
-          (:a 'eh)
-          (:b 'bee)))))
+    (macrolet ((x () 1))
+      (case (x)
+        (:a 'eh)
+        (:b 'bee))))
   "function foo() {
     switch (1) {
     case 'a':

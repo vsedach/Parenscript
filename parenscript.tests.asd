@@ -10,4 +10,4 @@
                                      (:file "output-tests")
                                      (:file "package-system-tests")
                                      (:file "eval-tests"))))
-  :depends-on (:parenscript :eos :cl-js))
+  :depends-on (:parenscript :fiveam :cl-js))

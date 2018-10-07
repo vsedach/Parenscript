@@ -2,7 +2,7 @@
 (named-readtables:in-readtable :parenscript)
 
 (defpackage #:parenscript.tests
-  (:use #:cl #:parenscript #:eos)
+  (:use #:cl #:parenscript #:fiveam)
   (:export
    #:parenscript-tests
    #:run-tests
@@ -12,4 +12,4 @@
    #:jsarray))
 
 (defpackage #:parenscript.eval-tests
-  (:use #:cl #:eos #:parenscript #:parenscript.tests))
+  (:use #:cl #:fiveam #:parenscript #:parenscript.tests))

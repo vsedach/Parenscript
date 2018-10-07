@@ -34,6 +34,9 @@ overhead:
 
 Parenscript is available via Quicklisp: (ql:quickload :parenscript)
 
+To run unit tests: (ql:quickload :parenscript.tests)
+                   (parenscript.tests:run-tests)
+
 Documentation:
   See docs/tutorial.html and docs/reference.html
 Mailing list:

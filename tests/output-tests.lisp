@@ -2768,6 +2768,26 @@ try {
 };
 })();")
 
+(test-ps-js declare-special-let-scope
+  (block nil
+    (let ((*foo* 123))
+      (declare (special *foo*))
+      (blah))
+    (let ((*foo* 456))
+      (+ 4 5)))
+  "(function () {
+var FOO_TMPSTACK1;
+try {
+    FOO_TMPSTACK1 = FOO;
+    FOO = 123;
+    blah();
+} finally {
+    FOO = FOO_TMPSTACK1;
+};
+var FOO = 456;
+return 4 + 5;
+})();")
+
 (test-ps-js declare-special-let*
   (let* ((*foo* 123) (*bar* (+ *foo* *bar*)))
     (declare (special *foo* *bar*))
@@ -3040,6 +3060,10 @@ return x();
 (test-ps-js vector-literal
   #(1 2 3)
   "[1, 2, 3];")
+
+(test-ps-js vector-literal1
+  #(1 2 #(a b) 3)
+  "[1, 2, ['a', 'b'], 3];")
 
 (test-ps-js rem1
   (+ 1 (rem 2 (+ 3 4)))
@@ -3934,6 +3958,10 @@ for (var i = 0; i < 5; i += 1) {
     var x1 = blah(3.14);
     return 2 * Math.log(Math.sqrt((x1 + 1) / 2) + Math.sqrt((x1 - 1) / 2));
 })();")
+
+(test-ps-js double-negation
+  (or (not foo) (not (not foo)) (not (not (not foo))))
+  "!foo || foo || !foo;")
 
 ;;; broken
 

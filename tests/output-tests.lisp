@@ -1173,6 +1173,10 @@ __setf_someThing('foo', 1, 2);")
   (getprop (progn (some-fun "abc") "123") "length")
   "(someFun('abc'), '123')['length'];")
 
+(test-ps-js getprop-multi1
+  (getprop foo 1 "two" three 'bar 1 2)
+  "foo[1]['two'][three].bar[1][2];")
+
 (test-ps-js method-call-block
   ((@ (progn (some-fun "abc") "123") to-string))
   "(someFun('abc'), '123').toString();")
@@ -2015,9 +2019,34 @@ return x + x;
   "[1];")
 
 (test-ps-js symbol-macro-obj
-  (symbol-macrolet ((x y))
+  (symbol-macrolet ((x (+ 1 2)))
     (create x 1))
   "({ x : 1 });")
+
+(test-ps-js symbol-macro-obj1
+  (symbol-macrolet ((x (+ 1 2)))
+    (ps:create x x))
+  "({ x : 1 + 2 });")
+
+(test-ps-js symbol-macro-getprop1
+  (symbol-macrolet ((x (+ 1 2)))
+    (ps:getprop a x))
+  "a[1 + 2];")
+
+(test-ps-js symbol-macro-getprop1
+  (symbol-macrolet ((x (+ 1 2)))
+    (ps:getprop a 'x))
+  "a.x;")
+
+(test-ps-js let-let-create
+  (let ((a 99))
+    (let ((a 22))
+      (create a 33)))
+  "(function () {
+    var a = 99;
+    var a1 = 22;
+    return { a : 33 };
+})();")
 
 (test-ps-js symbol-macro-conditional1
   (symbol-macrolet ((x y))

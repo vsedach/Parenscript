@@ -81,6 +81,11 @@ return !foo1 && foo1.prefix_bar + prefix_someOtherVar;
     return prefix_baz + gpp;
 };")
 
+(parenscript.tests::test-ps-js prefixed-symbol-macro-obj1
+  (symbol-macrolet ((x (+ 1 2)))
+    (ps:create x x))
+  "({ prefix_x : 1 + 2 });")
+
 (cl:in-package #:parenscript.tests)
 
 (test compile-stream-in-package

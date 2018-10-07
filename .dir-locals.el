@@ -5,4 +5,5 @@
   (indent-tabs-mode)
   (fill-column . 69))
  (lisp-mode
-  (eval put 'test-ps-js 'common-lisp-indent-function 1)))
+  (eval put 'test-ps-js 'common-lisp-indent-function 1)
+  (eval put 'test-js-eval 'common-lisp-indent-function 1)))

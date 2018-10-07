@@ -67,16 +67,16 @@
 
 (test-ps-js array-literals-1
   (array)
-  "[  ];")
+  "[];")
 
 (test-ps-js array-literals-2
   (array 1 2 3)
-  "[ 1, 2, 3 ];")
+  "[1, 2, 3];")
 
 (test-ps-js array-literals-3
   (array (array 2 3)
          (array "foobar" "bratzel bub"))
-  "[ [ 2, 3 ], [ 'foobar', 'bratzel bub' ] ];")
+  "[[2, 3], ['foobar', 'bratzel bub']];")
 
 (test-ps-js array-literals-4
   (make-array)
@@ -123,7 +123,7 @@
           blorg (array 1 2 3)
           another-object (create :schtrunz 1))
   "({ foo : 'hihi',
-  blorg : [ 1, 2, 3 ],
+  blorg : [1, 2, 3],
   anotherObject : { 'schtrunz' : 1 } });")
 
 (test-ps-js object-literals-3
@@ -237,7 +237,7 @@
 
 (test-ps-js function-calls-and-method-calls-2
   (foobar (blorg 1 2) (blabla 3 4) (array 2 3 4))
-  "foobar(blorg(1, 2), blabla(3, 4), [ 2, 3, 4 ]);")
+  "foobar(blorg(1, 2), blabla(3, 4), [2, 3, 4]);")
 
 (test-ps-js function-calls-and-method-calls-3
   ((getprop this 'blorg) 1 2)
@@ -431,7 +431,7 @@ return _js2.style.left = _js1;
 
 (test-ps-js variable-declaration-1
   (defvar *a* (array 1 2 3))
-  "var A = [ 1, 2, 3 ];")
+  "var A = [1, 2, 3];")
 
 (test-ps-js variable-declaration-2
   (progn (defvar *a* 4)
@@ -895,7 +895,7 @@ return element.innerHTML = ['<TEXTAREA', disabled || !authorized ? [' DISABLED=\
 
 (test-ps-js method-call-array
   ((@ (list 10 20) to-string))
-  "[ 10, 20 ].toString();")
+  "[10, 20].toString();")
 
 (test-ps-js method-call-lambda-call
   (funcall (getprop (funcall (lambda (x) x) 10) 'to-string))
@@ -999,7 +999,7 @@ return element.innerHTML = ['<TEXTAREA', disabled || !authorized ? [' DISABLED=\
     (loop for (js-escape . lisp-char) in escapes
           for generated = (ps-doc* (format nil "hello~ahi" lisp-char))
           for wanted = (format nil "'hello\\~ahi';" js-escape)
-          do (is (string= (normalize-js-code generated) wanted)))))
+          do (is (string= (normalize-js-output generated) wanted)))))
 
 (test-ps-js getprop-setf
   (setf (getprop x 'y) (+ (+ a 3) 4))
@@ -1014,10 +1014,10 @@ return element.innerHTML = ['<TEXTAREA', disabled || !authorized ? [' DISABLED=\
   "(!zoo ? foo : bar).x;")
 
 (test script-star-eval1
-  (is (string= "x = 1; y = 2;" (normalize-js-code (ps* '(setf x 1) '(setf y 2))))))
+  (is (string= "x = 1; y = 2;" (normalize-js-output (ps* '(setf x 1) '(setf y 2))))))
 
 (test script-star-eval2
-  (is (string= "x = 1;" (normalize-js-code (ps* '(setf x 1))))))
+  (is (string= "x = 1;" (normalize-js-output (ps* '(setf x 1))))))
 
 (test-ps-js list-with-single-nil
   (array nil)
@@ -1413,23 +1413,23 @@ __setf_someThing('foo', 1, 2);")
   "-1;")
 
 (test macro-environment1
-  (is (string= (normalize-js-code (let* ((macroname (gensym)))
+  (is (string= (normalize-js-output (let* ((macroname (gensym)))
                                     (ps* `(defmacro ,macroname (x) `(+ ,x 123))
                                          `(defun test1 ()
                                             (macrolet ((,macroname (x) `(aref data ,x)))
                                               (when (,macroname x)
                                                 (setf (,macroname x) 123)))))))
-               (normalize-js-code
+               (normalize-js-output
 "function test1() {
     return data[x] ? (data[x] = 123) : null;
 };"))))
 
 (test macro-environment2
-  (is (string= (normalize-js-code (let ((outer-lexical-variable 1))
+  (is (string= (normalize-js-output (let ((outer-lexical-variable 1))
                                     (defpsmacro macro-environment2-macro (x)
                                       `(+ ,outer-lexical-variable ,x))
                                     (ps* '(macro-environment2-macro 2))))
-               (normalize-js-code "1 + 2;"))))
+               (normalize-js-output "1 + 2;"))))
 
 (test-ps-js ampersand-whole-1
   (macrolet ((foo (&whole foo bar baz)
@@ -2193,7 +2193,7 @@ return ++x1;
 
 (test eval-when-lisp-side ()
     (setf *lisp-output* 'original-value)
-    (let ((js-output (normalize-js-code
+    (let ((js-output (normalize-js-output
               (ps-doc* `(eval-when (:compile-toplevel)
                   (setf *lisp-output* 'it-works))))))
       (is (eql 'it-works *lisp-output*))
@@ -2205,7 +2205,7 @@ return ++x1;
 
 (test eval-when-macro-expansion ()
     (setf *lisp-output* 'original-value)
-    (let ((js-output (normalize-js-code
+    (let ((js-output (normalize-js-output
               (ps-doc* `(progn
                   (my-in-package :cl-user)
                   3)))))
@@ -2214,7 +2214,7 @@ return ++x1;
 
 (test eval-when-macrolet-expansion ()
     (setf *lisp-output* 'original-value)
-    (let ((js-output (normalize-js-code
+    (let ((js-output (normalize-js-output
               (ps-doc* `(macrolet ((my-in-package2 (package-name)
                          `(eval-when (:compile-toplevel)
                         (setf *lisp-output* ,package-name))))
@@ -2928,7 +2928,7 @@ a === b;")
     baz(4);
     return x;
     return bar(5);
-}; ")
+};")
 
 (test-ps-js block-return-from
   (block scope

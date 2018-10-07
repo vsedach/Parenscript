@@ -648,6 +648,11 @@
         (t 13))))
   7)
 
+(test-js-eval symbol-macro-funcall
+  (symbol-macrolet ((bar (getprop Math 'min)))
+    (funcall bar -1 2))
+  -1)
+
 (test-js-eval negative-mod
   (mod -12 7)
   2)

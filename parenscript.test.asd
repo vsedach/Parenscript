@@ -1,9 +1,9 @@
 ;;;; -*- lisp -*-
 
 (defsystem :parenscript.test
-  :license "Public Domain"
+  :license "BSD-3-Clause"
   :description "Unit tests for Parenscript"
-  :components ((:module :t
+  :components ((:module :tests
                         :serial t
                         :components ((:file "test-package")
                                      (:file "test")

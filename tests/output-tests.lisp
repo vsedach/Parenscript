@@ -1,6 +1,6 @@
 ;; SPDX-License-Identifier: BSD-3-Clause
 
-(in-package #:ps-test)
+(in-package #:parenscript.tests)
 (named-readtables:in-readtable :parenscript)
 
 (in-suite output-tests)

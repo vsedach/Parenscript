@@ -1,9 +1,15 @@
 (in-package #:cl)
 (named-readtables:in-readtable :parenscript)
 
-(defpackage #:ps-test
+(defpackage #:parenscript.tests
   (:use #:cl #:parenscript #:eos)
-  (:export #:parenscript-tests #:run-tests #:interface-function #:test-js-eval #:test-js-eval-epsilon #:jsarray))
+  (:export
+   #:parenscript-tests
+   #:run-tests
+   #:interface-function
+   #:test-js-eval
+   #:test-js-eval-epsilon
+   #:jsarray))
 
-(defpackage #:ps-eval-tests
-  (:use #:cl #:eos #:parenscript #:ps-test))
+(defpackage #:parenscript.eval-tests
+  (:use #:cl #:eos #:parenscript #:parenscript.tests))

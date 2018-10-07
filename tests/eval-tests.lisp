@@ -1,11 +1,11 @@
 ;; SPDX-License-Identifier: BSD-3-Clause
 
-(in-package #:ps-eval-tests)
+(in-package #:parenscript.eval-tests)
 (named-readtables:in-readtable :parenscript)
 
 #+sbcl (declaim (sb-ext:muffle-conditions sb-ext:compiler-note))
 
-(in-suite ps-test::eval-tests)
+(in-suite parenscript.tests::eval-tests)
 
 (test-js-eval number
   3

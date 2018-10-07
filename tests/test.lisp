@@ -1,6 +1,6 @@
 ;; SPDX-License-Identifier: BSD-3-Clause
 
-(in-package #:ps-test)
+(in-package #:parenscript.tests)
 
 (defun normalize-whitespace (str)
   (substitute #\Space #\Newline (substitute #\Space #\Tab str)))

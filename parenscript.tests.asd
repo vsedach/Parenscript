@@ -1,6 +1,6 @@
 ;;;; -*- lisp -*-
 
-(defsystem :parenscript.test
+(defsystem :parenscript.tests
   :license "BSD-3-Clause"
   :description "Unit tests for Parenscript"
   :components ((:module :tests

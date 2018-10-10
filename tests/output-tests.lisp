@@ -3,7 +3,7 @@
 (in-package #:parenscript.tests)
 (named-readtables:in-readtable :parenscript)
 
-(in-suite output-tests)
+(fiveam:in-suite output-tests)
 
 (test-ps-js statements-and-expressions-1
   (+ i (if 1 2 3))
@@ -901,12 +901,9 @@ return element.innerHTML = ['<TEXTAREA', disabled || !authorized ? [' DISABLED=\
   (funcall (getprop (funcall (lambda (x) x) 10) 'to-string))
   "(function (x) { return x; })(10).toString();")
 
-(test no-whitespace-before-dot
-  (let* ((str (ps* '((@ ((lambda (x) x) 10) to-string))))
-         (dot-pos (position #\. str :test #'char=))
-         (char-before (elt str (1- dot-pos)))
-         (a-parenthesis #\)))
-    (is (char= char-before a-parenthesis))))
+(fiveam:test no-whitespace-before-dot
+  (let ((str (ps* '((@ ((lambda (x) x) 10) to-string)))))
+    (fiveam:is (char= #\) (elt str (1- (position #\. str)))))))
 
 (test-ps-js simple-getprop
   (let ((foo (create a 1)))
@@ -984,22 +981,25 @@ return element.innerHTML = ['<TEXTAREA', disabled || !authorized ? [' DISABLED=\
          default:   alert('default clause');
          };")
 
-(test escape-sequences-in-string
-  (let ((escapes `((#\\ . #\\)
-                   (#\b . #\Backspace)
-                   (#\f . ,(code-char 12))
-                   ("u000B" . ,(code-char #x000b));;Vertical tab, too uncommon to bother with
-                   (#\n . #\Newline)
-                   (#\r . #\Return)
-                   (#\' . #\');;Double quote need not be quoted because parenscript strings are single quoted
-                   (#\t . #\Tab)
-                   ("u001F" . ,(code-char #x001f));; character below 32
-                   ("u0080" . ,(code-char 128)) ;;Character over 127. Actually valid, parenscript escapes them to be sure.
-                   ("uABCD" . ,(code-char #xabcd)))));; Really above ascii.
+(fiveam:test escape-sequences-in-string
+  (let ((escapes
+         `((#\\     . #\\)
+           (#\b     . #\Backspace)
+           (#\f     . ,(code-char 12))
+           ("u000B" . ,(code-char #x000b))    ; vertical tab
+           (#\n     . #\Newline)
+           (#\r     . #\Return)
+           (#\'     . #\')
+           (#\t     . #\Tab)
+           ("u001F" . ,(code-char #x001f))    ; character below 32
+           ("u0080" . ,(code-char 128))       ; character over 127
+           ("uABCD" . ,(code-char #xabcd))))) ; well above ASCII
+    ;; Note that double quote need not be quoted because Parenscript
+    ;; strings are single quoted
     (loop for (js-escape . lisp-char) in escapes
           for generated = (ps-doc* (format nil "hello~ahi" lisp-char))
           for wanted = (format nil "'hello\\~ahi';" js-escape)
-          do (is (string= (normalize-js-output generated) wanted)))))
+          do (fiveam:is (string= generated wanted)))))
 
 (test-ps-js getprop-setf
   (setf (getprop x 'y) (+ (+ a 3) 4))
@@ -1013,11 +1013,15 @@ return element.innerHTML = ['<TEXTAREA', disabled || !authorized ? [' DISABLED=\
   (getprop (if (not zoo) foo bar) 'x)
   "(!zoo ? foo : bar).x;")
 
-(test script-star-eval1
-  (is (string= "x = 1; y = 2;" (normalize-js-output (ps* '(setf x 1) '(setf y 2))))))
+(fiveam:test script-star-eval1
+  (fiveam:is (string=
+              (normalize-js-output (ps* '(setf x 1) '(setf y 2)))
+              "x = 1; y = 2;")))
 
-(test script-star-eval2
-  (is (string= "x = 1;" (normalize-js-output (ps* '(setf x 1))))))
+(fiveam:test script-star-eval2
+  (fiveam:is (string=
+              (normalize-js-output (ps* '(setf x 1)))
+              "x = 1;")))
 
 (test-ps-js list-with-single-nil
   (array nil)
@@ -1412,24 +1416,29 @@ __setf_someThing('foo', 1, 2);")
   (- 1)
   "-1;")
 
-(test macro-environment1
-  (is (string= (normalize-js-output (let* ((macroname (gensym)))
-                                    (ps* `(defmacro ,macroname (x) `(+ ,x 123))
-                                         `(defun test1 ()
-                                            (macrolet ((,macroname (x) `(aref data ,x)))
-                                              (when (,macroname x)
-                                                (setf (,macroname x) 123)))))))
-               (normalize-js-output
+(fiveam:test macro-environment1
+  (fiveam:is
+   (string=
+    (normalize-js-output
+     (let* ((macroname (gensym)))
+       (ps* `(defmacro ,macroname (x) `(+ ,x 123))
+            `(defun test1 ()
+               (macrolet ((,macroname (x) `(aref data ,x)))
+                 (when (,macroname x)
+                   (setf (,macroname x) 123)))))))
+    (normalize-js-output
 "function test1() {
     return data[x] ? (data[x] = 123) : null;
 };"))))
 
-(test macro-environment2
-  (is (string= (normalize-js-output (let ((outer-lexical-variable 1))
-                                    (defpsmacro macro-environment2-macro (x)
-                                      `(+ ,outer-lexical-variable ,x))
-                                    (ps* '(macro-environment2-macro 2))))
-               (normalize-js-output "1 + 2;"))))
+(fiveam:test macro-environment2
+  (fiveam:is
+   (string=
+    (let ((outer-lexical-variable 1))
+      (defpsmacro macro-environment2-macro (x)
+        `(+ ,outer-lexical-variable ,x))
+      (ps* '(macro-environment2-macro 2)))
+    "1 + 2;")))
 
 (test-ps-js ampersand-whole-1
   (macrolet ((foo (&whole foo bar baz)
@@ -1467,6 +1476,11 @@ __setf_someThing('foo', 1, 2);")
   (progn (define-symbol-macro tst-sym-macro1 2)
          (foo tst-sym-macro1))
   "foo(2);")
+
+(test-ps-js define-symbol-macro2
+  (progn (define-symbol-macro tst-sym-macro2 3)
+         (list tst-sym-macro2))
+  "[3];")
 
 (test-ps-js expression-progn
   (1+ (progn (foo) (if x 1 2)))
@@ -1769,34 +1783,38 @@ return foo(1);
   '(1 [])
   "[1, []];")
 
-(test ps-lisp-expands-in-lexical-environment
-  (is (string= "5;" (let ((x 5))
-                      (ps (lisp x))))))
+(fiveam:test ps-lisp-expands-in-lexical-environment
+  (fiveam:is (string= (let ((x 5)) (ps (lisp x)))
+                      "5;")))
 
-(test ps-lisp-expands-in-lexical-environment1
-  (is (string= "1 + 5;" (let ((x 5))
-                          (ps (+ 1 (lisp x)))))))
+(fiveam:test ps-lisp-expands-in-lexical-environment1
+  (fiveam:is (string= (let ((x 5)) (ps (+ 1 (lisp x))))
+                      "1 + 5;")))
 
-(test ps-lisp-expands-in-lexical-environment2
-  (is (string= "1 + 2 + 3;" (let ((x 2))
-                          (ps (+ 1 (lisp x) 3))))))
+(fiveam:test ps-lisp-expands-in-lexical-environment2
+  (fiveam:is (string= (let ((x 2)) (ps (+ 1 (lisp x) 3)))
+                      "1 + 2 + 3;")))
 
-(test ps*-lisp-expands-in-null-lexical-environment
-  (signals unbound-variable (let ((x 5))
-                              (declare (ignore x))
-                              (ps* '(lisp x)))))
+(fiveam:test ps*-lisp-expands-in-null-lexical-environment
+  (fiveam:signals unbound-variable
+    (let ((x 5))
+      (declare (ignore x))
+      (ps* '(lisp x)))))
 
-(test ps*-lisp-expands-in-dynamic-environment
-  (is (string= "1 + 2;"
+(fiveam:test ps*-lisp-expands-in-dynamic-environment
+  (fiveam:is (string=
                (let ((foo 2))
                  (declare (special foo))
-                 (ps* '(+ 1 (lisp (locally (declare (special foo)) foo))))))))
+                 (ps* '(+ 1 (lisp (locally (declare (special foo))
+                                    foo)))))
+               "1 + 2;")))
 
-(test ps-lisp-dynamic-environment
-  (is (string= "1 + 2;"
+(fiveam:test ps-lisp-dynamic-environment
+  (fiveam:is (string=
                (let ((foo 2))
                  (declare (special foo))
-                 (ps (+ 1 (lisp foo)))))))
+                 (ps (+ 1 (lisp foo))))
+               "1 + 2;")))
 
 (test-ps-js nested-if-expressions1
   (defun foo ()
@@ -2191,37 +2209,41 @@ return ++x1;
 
 (defvar *lisp-output* nil)
 
-(test eval-when-lisp-side ()
-    (setf *lisp-output* 'original-value)
-    (let ((js-output (normalize-js-output
-              (ps-doc* `(eval-when (:compile-toplevel)
-                  (setf *lisp-output* 'it-works))))))
-      (is (eql 'it-works *lisp-output*))
-      (is (string= "" js-output))))
+(fiveam:test eval-when-lisp-side ()
+  (setf *lisp-output* 'original-value)
+  (let ((js-output
+         (normalize-js-output
+          (ps-doc* `(eval-when (:compile-toplevel)
+                      (setf *lisp-output* 'it-works))))))
+    (fiveam:is (eql 'it-works *lisp-output*))
+    (fiveam:is (string= "" js-output))))
 
 (defpsmacro my-in-package (package-name)
   `(eval-when (:compile-toplevel)
      (setf *lisp-output* ,package-name)))
 
-(test eval-when-macro-expansion ()
-    (setf *lisp-output* 'original-value)
-    (let ((js-output (normalize-js-output
-              (ps-doc* `(progn
-                  (my-in-package :cl-user)
-                  3)))))
-      (declare (ignore js-output))
-      (is (eql :cl-user *lisp-output*))))
+(fiveam:test eval-when-macro-expansion ()
+  (setf *lisp-output* 'original-value)
+  (let ((js-output
+         (normalize-js-output
+          (ps-doc* `(progn
+                      (my-in-package :cl-user)
+                      3)))))
+    (declare (ignore js-output))
+    (fiveam:is (eql :cl-user *lisp-output*))))
 
-(test eval-when-macrolet-expansion ()
-    (setf *lisp-output* 'original-value)
-    (let ((js-output (normalize-js-output
-              (ps-doc* `(macrolet ((my-in-package2 (package-name)
+(fiveam:test eval-when-macrolet-expansion ()
+  (setf *lisp-output* 'original-value)
+  (let ((js-output
+         (normalize-js-output
+          (ps-doc*
+           `(macrolet ((my-in-package2 (package-name)
                          `(eval-when (:compile-toplevel)
-                        (setf *lisp-output* ,package-name))))
-                  (my-in-package2 :cl-user)
-                  3)))))
-      (declare (ignore js-output))
-      (is (eql :cl-user *lisp-output*))))
+                            (setf *lisp-output* ,package-name))))
+              (my-in-package2 :cl-user)
+              3)))))
+    (declare (ignore js-output))
+    (fiveam:is (eql :cl-user *lisp-output*))))
 
 (test-ps-js getprop-keyword
   (getprop foo :bar)
@@ -2865,18 +2887,28 @@ return testSymbolMacro1_1();
 })();
 bar(1);")
 
-(test compile-stream-nulls
-  (is (string=
-       ""
-       (with-input-from-string (s "
-   (defmacro macro-null-toplevel ()
-     nil)
-   (macro-null-toplevel)")
-         (ps-compile-stream s)))))
+(fiveam:test compile-stream-nulls
+  (fiveam:is
+   (string=
+    (with-input-from-string (s "
+      (defmacro macro-null-toplevel ()
+        nil)
+      (macro-null-toplevel)")
+      (ps-compile-stream s))
+    "")))
 
-(test compile-stream1
-  (is (string=
-       "(function () {
+(fiveam:test compile-stream1
+  (fiveam:is
+   (string=
+    (with-input-from-string (s "
+      (define-symbol-macro test-symbol-macro1 1)
+      (flet ((test-symbol-macro1 () 2))
+            (foo test-symbol-macro1)
+            (test-symbol-macro1))
+      (bar test-symbol-macro1)")
+      (ps::with-blank-compilation-environment
+        (ps-compile-stream s)))
+"(function () {
     var testSymbolMacro1_1 = function () {
         return 2;
     };
@@ -2884,14 +2916,7 @@ bar(1);")
     return testSymbolMacro1_1();
 })();
 bar(1);
-"
-       (with-input-from-string (s "
-(define-symbol-macro test-symbol-macro1 1)
-(flet ((test-symbol-macro1 () 2))
-      (foo test-symbol-macro1)
-      (test-symbol-macro1))
-(bar test-symbol-macro1)")
-         (ps::with-blank-compilation-environment (ps-compile-stream s))))))
+")))
 
 (test-ps-js equality-nary1
   (let ((x 10) (y 10) (z 10))

@@ -2,7 +2,7 @@
 
 (in-package #:parenscript.tests)
 
-(in-suite package-system-tests)
+(fiveam:in-suite package-system-tests)
 
 (test-ps-js operator-packages1
   (#:new)
@@ -10,7 +10,8 @@
 
 (defpackage #:parenscript.tests.my-library
   (:use #:parenscript))
-(setf (ps-package-prefix '#:parenscript.tests.my-library) "my_library_")
+(setf (ps-package-prefix '#:parenscript.tests.my-library)
+      "my_library_")
 
 (test-ps-js lib-function1
   (defun parenscript.tests.my-library::library-function (x y)
@@ -33,7 +34,8 @@ foo.my_library_foo;")
                                     (symbol-name symbol)))))))
 
 (defpackage #:parenscript.tests.obfuscate-me)
-(obfuscate-package '#:parenscript.tests.obfuscate-me #'symbol-obfuscator)
+(obfuscate-package '#:parenscript.tests.obfuscate-me
+                   #'symbol-obfuscator)
 
 (test-ps-js obfuscation1
   (defun parenscript.tests.obfuscate-me::libfun2 (a b parenscript.tests.obfuscate-me::foo)
@@ -60,8 +62,10 @@ foo.my_library_foo;")
 
 (setf (ps-package-prefix '#:parenscript.tests.pststpkg) "prefix_")
 
-(test namespace1 ()
-  (is (string= "prefix_foo;" (normalize-js-output (ps* 'parenscript.tests.pststpkg::foo)))))
+(fiveam:test namespace1 ()
+  (fiveam:is (string=
+              (ps* 'parenscript.tests.pststpkg::foo)
+              "prefix_foo;")))
 
 (cl:in-package #:parenscript.tests.pststpkg)
 
@@ -88,16 +92,10 @@ return !foo1 && foo1.prefix_bar + prefix_someOtherVar;
 
 (cl:in-package #:parenscript.tests)
 
-(test compile-stream-in-package
-  (is (string=
-       "function __FOO___ygvo(a, __FOO___c, my_library_d) {
-    return a * mjcgvo3(__FOO___c, a) * my_library_libraryFunction(my_library_d, __FOO___c);
-};
-function interfaceFunction(prefix_baz) {
-    return prefix_baz + gpp;
-};
-"
-       (with-input-from-string (s "
+(fiveam:test compile-stream-in-package
+  (fiveam:is
+   (string=
+    (with-input-from-string (s "
 (defun parenscript.tests.obfuscate-and-prefix::xfun (a parenscript.tests.obfuscate-and-prefix::b parenscript.tests.my-library::d)
     (* a
        (parenscript.tests.obfuscate-me::libfun2 parenscript.tests.obfuscate-and-prefix::b a)
@@ -108,4 +106,11 @@ function interfaceFunction(prefix_baz) {
 (defun parenscript.tests:interface-function (baz)
     (+ baz parenscript.tests.obfuscate-me::foo))
 ")
-         (ps-compile-stream s)))))
+         (ps-compile-stream s))
+       "function __FOO___ygvo(a, __FOO___c, my_library_d) {
+    return a * mjcgvo3(__FOO___c, a) * my_library_libraryFunction(my_library_d, __FOO___c);
+};
+function interfaceFunction(prefix_baz) {
+    return prefix_baz + gpp;
+};
+")))

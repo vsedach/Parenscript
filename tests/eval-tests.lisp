@@ -5,7 +5,7 @@
 
 #+sbcl (declaim (sb-ext:muffle-conditions sb-ext:compiler-note))
 
-(in-suite parenscript.tests::eval-tests)
+(fiveam:in-suite parenscript.tests::eval-tests)
 
 (test-js-eval number
   3

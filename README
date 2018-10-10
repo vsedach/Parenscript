@@ -40,7 +40,7 @@ To run unit tests:
   (parenscript.tests:run-tests)
 
 Contributing:
-  Please send patches and bug reports to:
+  Please send patches and bug reports to the mailing list:
     parenscript-devel@common-lisp.net
 
 Documentation:

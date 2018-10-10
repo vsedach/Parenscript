@@ -26,16 +26,22 @@ overhead:
   Readable code:
     Parenscript generates concise, formatted, idiomatic JavaScript
     code. Identifier names are preserved. This enables seamless
-    debugging in tools like Firebug.
+    use of JavaScript debuggers.
   Efficiency:
     Parenscript introduces minimal overhead for advanced Common Lisp
     features. The generated code is almost as fast as hand-written
     JavaScript.
 
-Parenscript is available via Quicklisp: (ql:quickload :parenscript)
+Parenscript is available via Quicklisp:
+  (ql:quickload :parenscript)
 
-To run unit tests: (ql:quickload :parenscript.tests)
-                   (parenscript.tests:run-tests)
+To run unit tests:
+  (ql:quickload :parenscript.tests)
+  (parenscript.tests:run-tests)
+
+Contributing:
+  Please send patches and bug reports to:
+    parenscript-devel@common-lisp.net
 
 Documentation:
   See docs/tutorial.html and docs/reference.html
@@ -47,4 +53,4 @@ Web site:
 Source repository:
   https://gitlab.common-lisp.net/parenscript/parenscript.git
 License:
-  BSD-3-Clause
+  BSD-3-Clause, see the file COPYING

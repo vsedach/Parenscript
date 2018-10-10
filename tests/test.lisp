@@ -14,15 +14,13 @@
                 (let ((*js-target-version* ,js-target-version))
                   (ps-doc* ',parenscript)))))))
 
-(defun jsarray (contents)
-  (cl-js:js-array
-   (make-array (length contents)
-               :initial-contents (mapcar (lambda (x)
-                                           (if (listp x)
-                                               (jsarray x)
-                                               x))
-                                         contents)
-               :adjustable t)))
+(defun js-repr (x)
+  (if (listp x)
+      (cl-js:js-array
+       (make-array (length x)
+                   :initial-contents (mapcar #'js-repr x)
+                   :adjustable t))
+      x))
 
 (defmacro %test-js-eval (testname parenscript test-statement)
   `(fiveam:test ,testname ()
@@ -30,16 +28,13 @@
        (let ((js-result (cl-js:run-js (ps-doc* ',parenscript))))
          ,test-statement))))
 
-(defmacro test-js-eval (testname parenscript result)
+(defmacro test-js-eval (testname parenscript expected)
   `(%test-js-eval ,testname ,parenscript
-     (fiveam:is (equalp js-result
-                        ,(if (atom result)
-                             result
-                             `(jsarray ,result))))))
+     (fiveam:is (equalp js-result (js-repr ,expected)))))
 
-(defmacro test-js-eval-epsilon (testname parenscript result)
+(defmacro test-js-eval-epsilon (testname parenscript expected)
   `(%test-js-eval ,testname ,parenscript
-     (fiveam:is (< (abs (- js-result ,result)) 0.0001))))
+     (fiveam:is (< (abs (- js-result ,expected)) 0.0001))))
 
 (fiveam:def-suite parenscript-tests)
 (fiveam:def-suite output-tests         :in parenscript-tests)

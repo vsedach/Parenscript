@@ -121,6 +121,7 @@ vice-versa.")
 
 (defparameter *js-lisp-escaped-chars*
   '((#\' . #\')
+    (#\" . #\")
     (#\\ . #\\)
     (#\b . #\Backspace)
     (#\f . #.(code-char 12))

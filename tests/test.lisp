@@ -42,4 +42,5 @@
 (fiveam:def-suite eval-tests           :in parenscript-tests)
 
 (defun run-tests ()
-  (fiveam:run! 'parenscript-tests))
+  (let ((*js-string-delimiter* #\'))
+    (fiveam:run! 'parenscript-tests)))

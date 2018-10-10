@@ -841,17 +841,17 @@ for (var _js1 = 0; _js1 < _js2; _js1 += 1) {
 
 (test-ps-js the-html-generator-1
   (ps-html ((:a :href "foobar") "blorg"))
-  "'<A HREF=\"foobar\">blorg</A>';")
+  "'<A HREF=\\\"foobar\\\">blorg</A>';")
 
 (test-ps-js the-html-generator-2
   (ps-html ((:a :href (generate-a-link)) "blorg"))
-  "['<A HREF=\"', generateALink(), '\">blorg</A>'].join('');")
+  "['<A HREF=\\\"', generateALink(), '\\\">blorg</A>'].join('');")
 
 (test-ps-js the-html-generator-3
   (funcall (getprop document 'write)
            (ps-html ((:a :href "#"
                          :onclick (ps-inline (transport))) "link")))
-  "document.write(['<A HREF=\"#\" ONCLICK=\"', 'javascript:' + 'transport()', '\">link</A>'].join(''));")
+  "document.write(['<A HREF=\\\"#\\\" ONCLICK=\\\"', 'javascript:' + 'transport()', '\\\">link</A>'].join(''));")
 
 (test-ps-js the-html-generator-4
   (let ((disabled nil)
@@ -862,7 +862,7 @@ for (var _js1 = 0; _js1 < _js2; _js1 += 1) {
   "(function () {
 var disabled = null;
 var authorized = true;
-return element.innerHTML = ['<TEXTAREA', disabled || !authorized ? [' DISABLED=\"', 'disabled', '\"'].join('') : '', '>Edit me</TEXTAREA>'].join('');
+return element.innerHTML = ['<TEXTAREA', disabled || !authorized ? [' DISABLED=\\\"', 'disabled', '\\\"'].join('') : '', '>Edit me</TEXTAREA>'].join('');
 })();")
 
 (test-ps-js plus-is-not-commutative
@@ -990,16 +990,19 @@ return element.innerHTML = ['<TEXTAREA', disabled || !authorized ? [' DISABLED=\
            (#\n     . #\Newline)
            (#\r     . #\Return)
            (#\'     . #\')
+           (#\"     . #\")
            (#\t     . #\Tab)
            ("u001F" . ,(code-char #x001f))    ; character below 32
            ("u0080" . ,(code-char 128))       ; character over 127
            ("uABCD" . ,(code-char #xabcd))))) ; well above ASCII
-    ;; Note that double quote need not be quoted because Parenscript
-    ;; strings are single quoted
     (loop for (js-escape . lisp-char) in escapes
           for generated = (ps-doc* (format nil "hello~ahi" lisp-char))
           for wanted = (format nil "'hello\\~ahi';" js-escape)
           do (fiveam:is (string= generated wanted)))))
+
+(fiveam:test escape-doublequotes
+  (let ((*js-string-delimiter* #\"))
+    (fiveam:is (string= (ps-doc* "hello\"hi") "\"hello\\\"\hi\";"))))
 
 (test-ps-js getprop-setf
   (setf (getprop x 'y) (+ (+ a 3) 4))
@@ -1410,7 +1413,7 @@ __setf_someThing('foo', 1, 2);")
                       :onclick (ps-inline (transport)))
                   img))
         img))
-  "document.write(LINKORNOT === 1 ? ['<A HREF=\"#\" ONCLICK=\"', 'javascript:' + 'transport()', '\">', img, '</A>'].join('') : img);")
+  "document.write(LINKORNOT === 1 ? ['<A HREF=\\\"#\\\" ONCLICK=\\\"', 'javascript:' + 'transport()', '\\\">', img, '</A>'].join('') : img);")
 
 (test-ps-js negate-number-literal
   (- 1)
@@ -1481,6 +1484,16 @@ __setf_someThing('foo', 1, 2);")
   (progn (define-symbol-macro tst-sym-macro2 3)
          (list tst-sym-macro2))
   "[3];")
+
+(test-ps-js define-symbol-macro3
+  (progn (define-symbol-macro tst-sym-macro3 4)
+         (setq foo (create tst-sym-macro3 tst-sym-macro3)))
+  "foo = { tstSymMacro3 : 4 };")
+
+(test-ps-js define-symbol-macro4
+  (progn (define-symbol-macro tst-sym-macro4 5)
+         (setq foo (if (baz) tst-sym-macro4 bar)))
+  "foo = baz() ? 5 : bar;")
 
 (test-ps-js expression-progn
   (1+ (progn (foo) (if x 1 2)))
@@ -1647,7 +1660,7 @@ __setf_someThing('foo', 1, 2);")
                       (:a :href "http://foo.com"
                           symbol)
                       (:span :class "ticker-symbol-popup")))
-  "['<SPAN CLASS=\"ticker-symbol\" TICKER-SYMBOL=\"', symbol, '\"><A HREF=\"http://foo.com\">', symbol, '</A><SPAN CLASS=\"ticker-symbol-popup\"></SPAN></SPAN>'].join('');")
+  "['<SPAN CLASS=\\\"ticker-symbol\\\" TICKER-SYMBOL=\\\"', symbol, '\\\"><A HREF=\\\"http://foo.com\\\">', symbol, '</A><SPAN CLASS=\\\"ticker-symbol-popup\\\"></SPAN></SPAN>'].join('');")
 
 (test-ps-js who-html2
   (who-ps-html (:p "t0" (:span "t1")))
@@ -2718,7 +2731,6 @@ __setf_foo(5, x, 1, 2, 3, 4);")
     };
 };")
 
-;; this test needs to be rewritten when named blocks are implemented!!!!
 (test-ps-js return-when-returns-broken-return
   (defun foo ()
     (return-from foo (when x 1))

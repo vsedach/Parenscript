@@ -1,7 +1,7 @@
 ;;; Copyright 2005 Manuel Odendahl
 ;;; Copyright 2005-2006 Edward Marco Baringer
 ;;; Copyright 2006 Luca Capello
-;;; Copyright 2007 Red Daly
+;;; Copyright 2007-2009 Red Daly
 ;;; Copyright 2008 Travis Cross
 ;;; Copyright 2007-2011 Vladimir Sedach
 ;;; Copyright 2009-2010 Daniel Gackle

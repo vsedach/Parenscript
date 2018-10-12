@@ -53,6 +53,24 @@
         return x + y;
      };")
 
+(test-ps-js lib-function2
+  (defun parenscript.tests.my-library::library-function
+      (parenscript.tests.my-library::x
+       &key ((:y parenscript.tests.my-library::z) 1))
+    (+ parenscript.tests.my-library::x parenscript.tests.my-library::z))
+  "function my_library_libraryFunction(my_library_x) {
+    var _js2 = arguments.length;
+    for (var n1 = 1; n1 < _js2; n1 += 2) {
+        switch (arguments[n1]) {
+        case 'y':
+            my_library_z = arguments[n1 + 1];
+        };
+    };
+    var my_library_z = 'undefined' === typeof my_library_z ? 1 : my_library_z;
+
+    return my_library_x + my_library_z;
+};")
+
 (test-ps-js uniform-symbol-handling1
   (progn (create parenscript.tests.my-library::foo 1)
          (getprop foo 'parenscript.tests.my-library::foo))

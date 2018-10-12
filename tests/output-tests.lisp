@@ -1884,6 +1884,11 @@ return foo(1);
     };
 };")
 
+(test-ps-js nested-if-expressions3
+  (foo (if (if x y z) a b)
+       (if x y (if z a b)))
+  "foo((x ? y : z) ? a : b, x ? y : (z ? a : b));")
+
 (test-ps-js let1
   (let (x)
     (+ x x))

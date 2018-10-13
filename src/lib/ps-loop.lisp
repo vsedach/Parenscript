@@ -36,6 +36,7 @@
 ;;; POSSIBILITY OF SUCH DAMAGE.
 
 (in-package #:parenscript)
+(named-readtables:in-readtable :parenscript)
 
 ;;; bind and bind* - macros used for destructuring bindings in PS LOOP
 
@@ -421,7 +422,7 @@
     (assert (eq (car master) :iter) nil "First clause is not master loop: ~a" master)
     (let* ((firstvar (loop :for (tag nil init step) :in rest
                        :when (and (eq tag :iter) (not (tree-equal init step)))
-                       :do (return (ps-gensym "first"))))
+                       :do (return (ps-gensym 'FIRST))))
            (body (build-body rest firstvar)))
       (when firstvar
         (setf body (append body `((setf ,firstvar nil)))))

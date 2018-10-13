@@ -96,12 +96,16 @@ Use GETPROP, @, or CHAIN instead."
                              (char-upcase c))
                          acc)
                         (setf lowercase t)))))))
-          ((every #'upper-case-p
-                  (remove-if-not #'alpha-char-p identifier))
-            (string-downcase identifier))
-          ((every #'lower-case-p
-                  (remove-if-not #'alpha-char-p identifier))
-            (string-upcase identifier))
+          (#.(eql :invert (readtable-case
+                           (named-readtables:find-readtable :parenscript)))
+             (cond
+               ((every #'upper-case-p
+                       (remove-if-not #'alpha-char-p identifier))
+                (string-downcase identifier))
+               ((every #'lower-case-p
+                       (remove-if-not #'alpha-char-p identifier))
+                (string-upcase identifier))
+               (t identifier)))
           (t identifier))))))
 
 (defun ordered-set-difference (list1 list2 &key (test #'eql))

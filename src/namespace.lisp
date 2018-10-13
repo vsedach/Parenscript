@@ -38,13 +38,15 @@
 
 (defvar *obfuscated-packages* (make-hash-table))
 
-(defun obfuscate-package (package-designator &optional
-                          (symbol-map
-                           (let ((symbol-table (make-hash-table)))
-                             (lambda (symbol)
-                               (or #1=(gethash symbol symbol-table)
-                                   (setf #1# (ps-gensym "G")))))))
-  (setf (gethash (find-package package-designator) *obfuscated-packages*) symbol-map))
+(defun obfuscate-package (package-designator &optional symbol-map)
+  (setf (gethash (find-package package-designator)
+                 *obfuscated-packages*)
+        (or symbol-map
+            (let ((symbol-table (make-hash-table)))
+              (lambda (symbol)
+                (or (gethash symbol symbol-table)
+                    (setf (gethash symbol symbol-table)
+                          (ps-gensym 'g))))))))
 
 (defun unobfuscate-package (package-designator)
   (remhash (find-package package-designator) *obfuscated-packages*))

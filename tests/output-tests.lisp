@@ -874,17 +874,17 @@ for (var _js1 = 0; _js1 < _js2; _js1 += 1) {
 
 (test-ps-js the-html-generator-1
   (ps-html ((:a :href "foobar") "blorg"))
-  "'<A HREF=\\\"foobar\\\">blorg</A>';")
+  "'<a href=\\\"foobar\\\">blorg</a>';")
 
 (test-ps-js the-html-generator-2
   (ps-html ((:a :href (generate-a-link)) "blorg"))
-  "['<A HREF=\\\"', generateALink(), '\\\">blorg</A>'].join('');")
+  "['<a href=\\\"', generateALink(), '\\\">blorg</a>'].join('');")
 
 (test-ps-js the-html-generator-3
   (funcall (getprop document 'write)
            (ps-html ((:a :href "#"
                          :onclick (ps-inline (transport))) "link")))
-  "document.write(['<A HREF=\\\"#\\\" ONCLICK=\\\"', 'javascript:' + 'transport()', '\\\">link</A>'].join(''));")
+  "document.write(['<a href=\\\"#\\\" onclick=\\\"', 'javascript:' + 'transport()', '\\\">link</a>'].join(''));")
 
 (test-ps-js the-html-generator-4
   (let ((disabled nil)
@@ -895,7 +895,7 @@ for (var _js1 = 0; _js1 < _js2; _js1 += 1) {
   "(function () {
 var disabled = null;
 var authorized = true;
-return element.innerHTML = ['<TEXTAREA', disabled || !authorized ? [' DISABLED=\\\"', 'disabled', '\\\"'].join('') : '', '>Edit me</TEXTAREA>'].join('');
+return element.innerHTML = ['<textarea', disabled || !authorized ? [' disabled=\\\"', 'disabled', '\\\"'].join('') : '', '>Edit me</textarea>'].join('');
 })();")
 
 (test-ps-js plus-is-not-commutative
@@ -1446,7 +1446,7 @@ __setf_someThing('foo', 1, 2);")
                       :onclick (ps-inline (transport)))
                   img))
         img))
-  "document.write(LINKORNOT === 1 ? ['<A HREF=\\\"#\\\" ONCLICK=\\\"', 'javascript:' + 'transport()', '\\\">', img, '</A>'].join('') : img);")
+  "document.write(LINKORNOT === 1 ? ['<a href=\\\"#\\\" onclick=\\\"', 'javascript:' + 'transport()', '\\\">', img, '</a>'].join('') : img);")
 
 (test-ps-js negate-number-literal
   (- 1)
@@ -1479,9 +1479,11 @@ __setf_someThing('foo', 1, 2);")
 (test-ps-js ampersand-whole-1
   (macrolet ((foo (&whole foo bar baz)
                (declare (ignore bar baz))
-                (with-standard-io-syntax (format nil "~a" foo))))
+               (with-standard-io-syntax
+                 (let ((*print-case* :downcase))
+                   (format nil "~a" foo)))))
     (foo 1 2))
-  "'(FOO 1 2)';")
+  "'(foo 1 2)';")
 
 (test-ps-js ampersand-whole-2
   (macrolet ((foo (&whole foo bar baz)
@@ -1693,11 +1695,11 @@ __setf_someThing('foo', 1, 2);")
                       (:a :href "http://foo.com"
                           symbol)
                       (:span :class "ticker-symbol-popup")))
-  "['<SPAN CLASS=\\\"ticker-symbol\\\" TICKER-SYMBOL=\\\"', symbol, '\\\"><A HREF=\\\"http://foo.com\\\">', symbol, '</A><SPAN CLASS=\\\"ticker-symbol-popup\\\"></SPAN></SPAN>'].join('');")
+  "['<span class=\\\"ticker-symbol\\\" ticker-symbol=\\\"', symbol, '\\\"><a href=\\\"http://foo.com\\\">', symbol, '</a><span class=\\\"ticker-symbol-popup\\\"></span></span>'].join('');")
 
 (test-ps-js who-html2
   (who-ps-html (:p "t0" (:span "t1")))
-  "'<P>t0<SPAN>t1</SPAN></P>';")
+  "'<p>t0<span>t1</span></p>';")
 
 (test-ps-js flet1
   ((lambda () (flet ((foo (x)

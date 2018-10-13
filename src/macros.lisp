@@ -205,7 +205,7 @@
           (let* ((fun-exp (car form))
                  (funobj (if (symbolp fun-exp)
                              fun-exp
-                             (ps-gensym "funobj"))))
+                             (ps-gensym 'funobj))))
             `(let (,@(unless (symbolp fun-exp) `((,funobj ,fun-exp)))
                    (,prev-mv (if (undefined __PS_MV_REG)
                                  (setf __PS_MV_REG undefined)
@@ -399,10 +399,10 @@ lambda-list::=
      ,@body))
 
 (defpsmacro dolist ((var array &optional (result nil result?)) &body body)
-  (let* ((idx (ps-gensym "_JS_IDX"))
+  (let* ((idx (ps-gensym '_js_idx))
          (introduce-array-var? (not (symbolp array)))
          (arrvar (if introduce-array-var?
-                     (ps-gensym "_JS_ARRVAR")
+                     (ps-gensym '_js_arrvar)
                      array)))
     `(do* (,var
            ,@(when introduce-array-var?
@@ -476,7 +476,7 @@ lambda-list::=
 (defpsmacro destructuring-bind (bindings expr &body body)
   (setf bindings (dot->rest bindings))
   (multiple-value-bind (declarations executable-body) (parse-body body)
-    (let* ((arr (if (hoist-expr? bindings expr) (ps-gensym "_DB") expr))
+    (let* ((arr (if (hoist-expr? bindings expr) (ps-gensym '_db) expr))
            (bound (destructuring-wrap arr 0 bindings declarations
                                       (cons 'progn executable-body))))
       (cond ((eq arr expr) bound)

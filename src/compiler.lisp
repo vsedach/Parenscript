@@ -341,13 +341,15 @@ form, FORM, returns the new value for *compilation-level*."
   (let ((compile-expression? t))
     (ps-compile form)))
 
-(defun ps-gensym (&optional (prefix-or-counter "_JS"))
-  (assert (or (stringp prefix-or-counter) (integerp prefix-or-counter)))
-  (let ((prefix (if (stringp prefix-or-counter) prefix-or-counter "_JS"))
-        (counter (if (integerp prefix-or-counter) prefix-or-counter (incf *ps-gensym-counter*))))
-   (make-symbol (format nil "~A~:[~;_~]~A" prefix
-                        (digit-char-p (char prefix (1- (length prefix))))
-                        counter))))
+(defun ps-gensym (&optional (x '_js))
+  (make-symbol
+   (if (integerp x)
+       (format nil "~A~A" '_js x)
+       (let ((prefix (string x)))
+         (format nil "~A~:[~;_~]~A"
+                 prefix
+                 (digit-char-p (char prefix (1- (length prefix))))
+                 (incf *ps-gensym-counter*))))))
 
 (defmacro with-ps-gensyms (symbols &body body)
   "Each element of SYMBOLS is either a symbol or a list of (symbol

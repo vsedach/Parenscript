@@ -74,7 +74,7 @@
 (defun fix-nary-comparison (operator objects)
   (let* ((tmp-var-forms (butlast (cdr objects)))
          (tmp-vars (loop repeat (length tmp-var-forms)
-                         collect (ps-gensym "_CMP")))
+                         collect (ps-gensym '_cmp)))
          (all-comparisons (append (list (car objects))
                                   tmp-vars
                                   (last objects))))
@@ -118,7 +118,7 @@
             (list ',op1 (compile-expression x)))
            ((references? delta x)
             (ps-compile
-             (let ((var (ps-gensym "_PS_INCR_PLACE")))
+             (let ((var (ps-gensym '_ps_incr_place)))
                `(let ((,var ,delta))
                   (,',op ,x ,var)))))
            (t
@@ -238,7 +238,7 @@
                   (let* ((cvalue (compile-expression value))
                          (val1   (unless (or (constantp cvalue)
                                              (symbolp   cvalue))
-                                   (ps-gensym "VAL1_"))))
+                                   (ps-gensym 'val1_))))
                     (let ((suppress-values? nil))
                       (compile-statement
                        `(let ,(when val1 `((,val1 ,value)))

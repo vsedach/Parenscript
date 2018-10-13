@@ -46,7 +46,9 @@
   (unless (named-readtables:find-readtable :parenscript)
     (named-readtables:defreadtable :parenscript
       (:merge :standard)
-      (:case :invert))))
+      (:case #.(if (eql :upcase (readtable-case *readtable*))
+                   :invert
+                   (readtable-case *readtable*))))))
 
 (named-readtables:in-readtable :parenscript)
 
@@ -103,7 +105,7 @@
 
    ;; literals
    #:t
-   #.(symbol-name 'nil) ; for case-sensitive Lisps like some versions of Allegro
+   #:nil
 
    ;; array literals
    #:array

@@ -35,6 +35,7 @@
 ;;; POSSIBILITY OF SUCH DAMAGE.
 
 (in-package #:parenscript)
+(named-readtables:in-readtable :parenscript)
 
 (defvar *ps-html-empty-tag-aware-p* t)
 (defvar *ps-html-mode* :sgml "One of :sgml or :xml")
@@ -76,20 +77,20 @@
                        attr-val (pop attrs))
                  (if attr-test
                      (push `(if ,attr-test
-                                (stringify ,(format nil " ~A=\"" attr-name) ,attr-val "\"")
+                                (stringify ,(format nil " ~(~A~)=\"" attr-name) ,attr-val "\"")
                                 "")
                            r)
                      (progn
-                       (push (format nil " ~A=\"" attr-name) r)
+                       (push (format nil " ~(~A~)=\"" attr-name) r)
                        (push attr-val r)
                        (push "\"" r)))))
              (process-form% (tag attrs content)
-               (push (format nil "<~A" tag) r)
+               (push (format nil "<~(~A~)" tag) r)
                (process-attrs attrs)
                (if (or content (not (empty-tag-p tag)))
                    (progn (push ">" r)
                           (map nil #'process-form content)
-                          (push (format nil "</~A>" tag) r))
+                          (push (format nil "</~(~A~)>" tag) r))
                    (progn (when (eql *ps-html-mode* :xml)
                             (push "/" r))
                           (push ">" r))))
@@ -110,12 +111,12 @@
                (cond ((keywordp form) (process-form (list form)))
                      ((atom form) (push form r))
                      ((and (consp form) (keywordp (car form)))
-                      (push (format nil "<~A" (car form)) r)
+                      (push (format nil "<~(~A~)" (car form)) r)
                       (labels ((process-attributes (el-body)
                                  (when el-body
                                    (if (keywordp (car el-body))
                                        (progn
-                                         (push (format nil " ~A=\""
+                                         (push (format nil " ~(~A~)=\""
                                                        (car el-body)) r)
                                          (push (cadr el-body) r)
                                          (push "\"" r)
@@ -125,7 +126,7 @@
                           (if (or content (not (empty-tag-p (car form))))
                               (progn (push ">" r)
                                      (when content (map nil #'process-form content))
-                                     (push (format nil "</~A>" (car form)) r))
+                                     (push (format nil "</~(~A~)>" (car form)) r))
                               (progn (when (eql *ps-html-mode* :xml)
                                        (push "/" r))
                                      (push ">" r))))))

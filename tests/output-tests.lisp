@@ -2512,9 +2512,8 @@ return x;
 
 (test-ps-js return-macrolet1
   (defun foo ()
-    (return-from foo
-      (symbol-macrolet ((x 2))
-        (loop do (+ x x)))))
+    (symbol-macrolet ((x 2))
+      (loop do (+ x x))))
   "function foo() {
     while (true) {
         2 + 2;
@@ -2702,6 +2701,21 @@ try {
 } finally {
     cleanup();
 };
+};")
+
+(test-ps-js try-finally-return-from
+  (defun xyz ()
+    (return-from xyz
+      (ps:try (when (blah) 4)
+              (:finally (foo))))
+    (dont-call-me))
+  "function xyz() {
+    try {
+        return blah() ? 4 : null;
+    } finally {
+        foo();
+    };
+    return dontCallMe();
 };")
 
 (test-ps-js defun-setf-optional

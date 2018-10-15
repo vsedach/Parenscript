@@ -779,3 +779,24 @@
 (test-js-eval dotimes-block-return
   (1+ (dotimes (x 3) (if (= x 2) (return (+ x x)))))
   5)
+
+(test-js-eval labels-factorial
+  (progn
+    (defun fac (n)
+      (labels ((f (n a)
+                 (if (< n 2)
+                     a
+                     (f (- n 1) (* n a)))))
+        (f n 1)))
+    (fac 5))
+  120)
+
+(test-js-eval destructuring-bind1
+  ((lambda (a)
+     (when a
+       (destructuring-bind (b . c)
+           a
+         (list b c))))
+   '(1 2 3))
+  '(1 (2 3)))
+

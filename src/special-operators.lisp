@@ -287,10 +287,18 @@ invocations or not.")
      ((continue break throw) ;; non-local exit
       form)
      ;; implicit progn forms
-     ((with label let flet labels macrolet symbol-macrolet)
+     ((with) ;; deprecated and will be removed
       `(,(first form) ,(second form)
          ,@(butlast (cddr form))
          (return-from ,tag ,(car (last (cddr form))))))
+     ;; implicit body (declaration + progn) forms
+     ((let flet labels macrolet symbol-macrolet)
+      (multiple-value-bind (body declarations)
+          (parse-body (cddr form))
+        `(,(first form) ,(second form)
+           ,@declarations
+           ,@(butlast body)
+           (return-from ,tag ,(car (last body))))))
      (progn
        `(progn ,@(butlast (cdr form))
                (return-from ,tag ,(car (last (cdr form))))))
@@ -462,8 +470,8 @@ Parenscript now implements implicit return, update your code! Things like (lambd
 (define-expression-operator let (bindings &body body)
   (with-declaration-effects (body body)
     (flet ((rename (x) (first x))
-           (var (x) (second x))
-           (val (x) (third x)))
+           (var    (x) (second x))
+           (val    (x) (third x)))
       (let* ((new-lexicals ())
              (normalized-bindings
               (mapcar (lambda (x)

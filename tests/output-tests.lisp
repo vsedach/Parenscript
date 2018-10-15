@@ -4054,6 +4054,34 @@ for (var i = 0; i < 5; i += 1) {
   (or (not foo) (not (not foo)) (not (not (not foo))))
   "!foo || foo || !foo;")
 
+(test-ps-js empty-let
+  (defun foo ()
+    (let ((a (bar)))))
+  "function foo() {
+    var a = bar();
+    return null;
+};")
+
+(test-ps-js empty-let*
+  (defun foo ()
+    (let* ((a (bar)))))
+  "function foo() {
+    var a = bar();
+    return null;
+};")
+
+(test-ps-js defun-no-body-declare
+  (defun foo () (declare (ignore x)))
+  "function foo() {
+    return null;
+};")
+
+(test-ps-js defun-no-body-let-decare
+  (defun foo () (let () (declare (ignore x))))
+  "function foo() {
+    return null;
+};")
+
 (test-ps-js empty-defun-docstring-declare
   (defun foo (x)
     "docstring"

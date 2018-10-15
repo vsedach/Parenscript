@@ -3,6 +3,7 @@
 ;;; Copyright 2006 Luca Capello
 ;;; Copyright 2010-2012 Vladimir Sedach
 ;;; Copyright 2010-2013 Daniel Gackle
+;;; Copyright 2012, 2014 Boris Smilga
 
 ;;; SPDX-License-Identifier: BSD-3-Clause
 

@@ -4054,6 +4054,24 @@ for (var i = 0; i < 5; i += 1) {
   (or (not foo) (not (not foo)) (not (not (not foo))))
   "!foo || foo || !foo;")
 
+(test-ps-js empty-defun-docstring-declare
+  (defun foo (x)
+    "docstring"
+    (declare (ignore x)))
+  "/** docstring */
+function foo(x) {
+    return null;
+};")
+
+(test-ps-js defun-docstring-string
+  (defun foo (x)
+    "docstring"
+    "abc")
+  "/** docstring */
+function foo(x) {
+    return 'abc';
+};")
+
 ;;; broken
 
 ;; (test-ps-js let-defun-toplevel

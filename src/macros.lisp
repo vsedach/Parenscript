@@ -384,12 +384,12 @@ lambda-list::=
      ,@(when result? (list result))))
 
 (defpsmacro do (decls (end-test &optional (result nil result?)) &body body)
-  (multiple-value-bind (declarations executable-body) (parse-body body)
+  (multiple-value-bind (do-body declarations) (parse-body body)
     `(block nil
        (let ,(do-make-iteration-bindings decls)
          ,@declarations
          (for () ((not ,end-test)) ()
-              ,@executable-body
+              ,@do-body
               ,(do-make-iter-psteps decls))
          ,@(when result? (list result))))))
 
@@ -475,10 +475,10 @@ lambda-list::=
 
 (defpsmacro destructuring-bind (bindings expr &body body)
   (setf bindings (dot->rest bindings))
-  (multiple-value-bind (declarations executable-body) (parse-body body)
+  (multiple-value-bind (body1 declarations) (parse-body body)
     (let* ((arr (if (hoist-expr? bindings expr) (ps-gensym '_db) expr))
            (bound (destructuring-wrap arr 0 bindings declarations
-                                      (cons 'progn executable-body))))
+                                      (cons 'progn body1))))
       (cond ((eq arr expr) bound)
             (t `(let ((,arr ,expr)) ,bound))))))
 
@@ -522,10 +522,10 @@ lambda-list::=
 ;;; misc
 
 (defpsmacro let* (bindings &body body)
-  (multiple-value-bind (declarations executive-body) (parse-body body)
+  (multiple-value-bind (let-body declarations) (parse-body body)
     (loop for binding in (cons nil (reverse bindings))
           for var = (if (symbolp binding) binding (car binding))
-          for body = executive-body
+          for body = let-body
             then `((let (,binding)
                      (declare ,@(pop-declarations-for-var var declarations))
                      ,@body))

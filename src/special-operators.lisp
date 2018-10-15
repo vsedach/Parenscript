@@ -436,7 +436,7 @@ Parenscript now implements implicit return, update your code! Things like (lambd
 
 (defmacro with-declaration-effects ((var block) &body body)
   (with-ps-gensyms (decls)
-    `(multiple-value-bind (,decls ,var) (parse-body ,block)
+    `(multiple-value-bind (,var ,decls) (parse-body ,block)
        (let ((*special-variables*
               (nconc
                (loop for decl in ,decls nconc

@@ -800,3 +800,13 @@
    '(1 2 3))
   '(1 (2 3)))
 
+(test-js-eval defun-not-a-docstring
+  (progn
+    (defun foo ()
+      "bar")
+    (foo))
+  "bar")
+
+(test-js-eval lambda-not-a-docstring
+  ((lambda () "bar"))
+  "bar")

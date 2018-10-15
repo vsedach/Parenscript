@@ -71,19 +71,14 @@ Syntax of key spec:
   "Parses a function or block body, which may or may not include a
 docstring.  Returns 2 or 3 values: a docstring (if allowed for), a list
 of (declare ...) forms, and the remaining body."
-  (flet ((values* (docstring declarations body)
-           (if allow-docstring
-               (values docstring declarations body)
-               (values declarations body))))
-    (loop for forms on body for (form) = forms
-          with docstring = (not allow-docstring)
-          if (and (stringp form) (not docstring))
-            do (setf docstring form)
-          else if (and (consp form) (eq (first form) 'declare))
-            collect form into declarations
-          else
-            return (values* docstring declarations forms)
-          finally (return (values* docstring declarations nil)))))
+  (let (docstring declarations)
+    (loop while
+         (cond ((and (consp (car body)) (eq (caar body) 'declare))
+                (push (pop body) declarations))
+               ((and allow-docstring (not docstring)
+                     (stringp (car body)) (cdr body))
+                (setf docstring (pop body)))))
+    (values body declarations docstring)))
 
 (defun parse-extended-function (lambda-list body)
   "The lambda list is transformed as follows:
@@ -141,12 +136,12 @@ of (declare ...) forms, and the remaining body."
               `(var ,rest
                     ((@ Array prototype slice call)
                      arguments ,(length effective-args))))))
-      (multiple-value-bind (docstring declarations executable-body)
+      (multiple-value-bind (fun-body declarations docstring)
           (parse-body body :allow-docstring t)
         (values effective-args
                 (append declarations
                         opt-forms key-forms (awhen rest-form (list it))
-                        executable-body)
+                        fun-body)
                 docstring)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

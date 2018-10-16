@@ -810,3 +810,25 @@
 (test-js-eval lambda-not-a-docstring
   ((lambda () "bar"))
   "bar")
+
+(test-js-eval loop-variable-capture1
+  (let ((x (make-array 10)))
+    (dotimes (i 10) (setf (aref x i) (lambda () i)))
+    (loop for x across x sum (funcall x)))
+  100)
+
+(test-js-eval loop-variable-capture2
+  (let ((x (make-array 10)))
+    (dotimes (i 10)
+      (let ((y i))
+        (setf (aref x i) (lambda () y))))
+    (loop for x across x sum (funcall x)))
+  45)
+
+(test-js-eval loop-variable-capture3
+  (let ((x (make-array 10)))
+    (dotimes (i 10)
+      (let ((i i))
+        (setf (aref x i) (lambda () i))))
+    (loop for x across x sum (funcall x)))
+  45)

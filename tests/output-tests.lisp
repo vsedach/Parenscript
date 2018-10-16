@@ -2687,12 +2687,11 @@ return x.offsetLeft;
 
 (test-ps-js try-catch-return
   (defun foo ()
-    (return-from foo
-      (try (foo)
-           (:catch (e)
-             (bar))
-           (:finally
-            (cleanup)))))
+    (try (foo)
+         (:catch (e)
+           (bar))
+         (:finally
+           (cleanup))))
   "function foo() {
 try {
     return foo();
@@ -2702,6 +2701,21 @@ try {
     cleanup();
 };
 };")
+
+(test-ps-js let-try
+  (let ((x (ps:try (+ 1 2)
+                   (:catch (y) 5))))
+    x)
+  "(function () {
+    var x = (function () {
+        try {
+            return 1 + 2;
+        } catch (y) {
+            return 5;
+        };
+    })();
+    return x;
+})();")
 
 (test-ps-js try-finally-return-from
   (defun xyz ()
@@ -3327,15 +3341,12 @@ var x = bar();")
    };
 });")
 
-;; closures in loops need a new binding per loop iteration (idea borrowed from Scheme2JS)
 (test-ps-js loop-closures
  (dotimes (i 10) (lambda () (+ i 1)))
  "(function () {
 for (var i = 0; i < 10; i += 1) {
-    with ({ i : i }) {
-        function () {
-            return i + 1;
-        };
+    function () {
+        return i + 1;
     };
 };
 })();")
@@ -3346,7 +3357,7 @@ for (var i = 0; i < 10; i += 1) {
      (lambda () (+ i x))))
  "(function () {
 for (var i = 0; i < 10; i += 1) {
-    with ({ i : i, x : null }) {
+    with ({ x : null }) {
         var x = i + 1;
         function () {
             return i + x;
@@ -3356,10 +3367,12 @@ for (var i = 0; i < 10; i += 1) {
 })();")
 
 (test-ps-js loop-closures-flet
-  (dotimes (i 10) (flet ((foo (x) (+ i x))) (lambda () (foo i))))
+  (dotimes (i 10)
+    (flet ((foo (x) (+ i x)))
+      (lambda () (foo i))))
  "(function () {
 for (var i = 0; i < 10; i += 1) {
-    with ({ foo : null, i : i }) {
+    with ({ foo : null }) {
         var foo = function (x) {
             return i + x;
         };
@@ -3372,13 +3385,13 @@ for (var i = 0; i < 10; i += 1) {
 
 (test-ps-js while-closures-let
   (while (foo)
-    (let ((x (bar)))
-      (lambda () (+ 1 x))))
+    (let ((abc (bar)))
+      (lambda () (+ 1 abc))))
   "while (foo()) {
-    with ({ x : null }) {
-        var x = bar();
+    with ({ abc : null }) {
+        var abc = bar();
         function () {
-            return 1 + x;
+            return 1 + abc;
         };
     };
 };")
@@ -3529,14 +3542,13 @@ for (var i = 0; i < 10; i += 1) {
 })();")
 
 (test-ps-js iteration-lambda-capture-no-need
-  (dolist (x y) (lambda (x) (1+ x))) ;; there's really no need to create a 'with' scope in this case
+  (dolist (x y)
+    (lambda (x) (1+ x)))
   "(function () {
 for (var x = null, _js_idx1 = 0; _js_idx1 < y.length; _js_idx1 += 1) {
-    with ({ x : x }) {
-        x = y[_js_idx1];
-        function (x) {
-            return x + 1;
-        };
+    x = y[_js_idx1];
+    function (x) {
+        return x + 1;
     };
 };
 })();")

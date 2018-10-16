@@ -157,9 +157,9 @@ of (declare ...) forms, and the remaining body."
 
 (defun compile-function-body (args body)
   (with-declaration-effects (body body)
-    (let* ((in-function-scope?                          t)
-           (*vars-needing-to-be-declared*              ())
-           (*used-up-names*                            ())
+    (let* ((in-function-scope?            t)
+           (*vars-needing-to-be-declared* ())
+           (*used-up-names*               ())
            (*enclosing-function-arguments*
             (append args *enclosing-function-arguments*))
            (*enclosing-lexicals*
@@ -185,8 +185,7 @@ of (declare ...) forms, and the remaining body."
             (compile-statement
              `(progn
                 ,@(mapcar
-                   (lambda (var)
-                     `(var ,var))
+                   (lambda (var) `(var ,var))
                    (remove-duplicates *vars-needing-to-be-declared*))))))
       (when in-loop-scope? ;; this might be broken when it comes to let-renaming
         (setf *loop-scope-lexicals-captured*

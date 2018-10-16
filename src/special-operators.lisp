@@ -473,6 +473,7 @@ Parenscript now implements implicit return, update your code! Things like (lambd
            (var    (x) (second x))
            (val    (x) (third x)))
       (let* ((new-lexicals ())
+             (loop-scoped-lexicals ())
              (normalized-bindings
               (mapcar (lambda (x)
                         (if (symbolp x)
@@ -483,17 +484,20 @@ Parenscript now implements implicit return, update your code! Things like (lambd
               (mapcan (lambda (x) (flatten (cadr x)))
                       normalized-bindings))
              (lexical-bindings
-              (loop for x in normalized-bindings
-                    unless (special-variable? (car x)) collect
-                    (cons (aif (maybe-rename-lexical-var (car x)
-                                                         symbols-in-bindings)
-                               it
-                               (progn
-                                 (push (car x) new-lexicals)
-                                 (when (boundp '*used-up-names*)
-                                   (push (car x) *used-up-names*))
-                                 nil))
-                          x)))
+              (mapcan
+               (lambda (x)
+                 (unless (special-variable? (car x))
+                   (let ((renamed (maybe-rename-lexical-var
+                                   (car x) symbols-in-bindings)))
+                     (if renamed
+                         (when in-loop-scope?
+                           (push renamed loop-scoped-lexicals))
+                         (progn
+                           (push (car x) new-lexicals)
+                           (when (boundp '*used-up-names*)
+                             (push (car x) *used-up-names*))))
+                     (list (cons renamed x)))))
+               normalized-bindings))
              (dynamic-bindings
               (loop for x in normalized-bindings
                     when (special-variable? (car x)) collect
@@ -508,7 +512,8 @@ Parenscript now implements implicit return, update your code! Things like (lambd
               (append new-lexicals *enclosing-lexicals*))
              (*loop-scope-lexicals*
               (when in-loop-scope?
-                (append new-lexicals *loop-scope-lexicals*)))
+                (append new-lexicals loop-scoped-lexicals
+                        *loop-scope-lexicals*)))
              (let-body
               `(progn
                  ,@(mapcar (lambda (x)
@@ -528,19 +533,20 @@ Parenscript now implements implicit return, update your code! Things like (lambd
                            (setf ,@(mapcan (lambda (x) `(,(var x) ,(rename x)))
                                            dynamic-bindings)))))
                       renamed-body))))
-        (ps-compile (cond ((or in-function-scope? this-in-lambda-wrapped-form?
-                               (null bindings))
-                           let-body)
-                          ;; HACK
-                          ((find-if (lambda (x)
-                                      (member x '(defun% defvar)))
-                                    (flatten
-                                     (loop for x in body collecting
-                                          (or (ignore-errors (ps-macroexpand x))
-                                              x))))
-                           let-body)
-                          (t
-                           (with-lambda-scope let-body))))))))
+          (ps-compile
+           (cond ((or in-function-scope?
+                      this-in-lambda-wrapped-form?
+                      (null bindings))
+                  let-body)
+                 ;; HACK
+                 ((find-if
+                   (lambda (x) (member x '(defun% defvar)))
+                   (flatten
+                    (loop for x in body collecting
+                         (or (ignore-errors (ps-macroexpand x)) x))))
+                  let-body)
+                 (t
+                  (with-lambda-scope let-body))))))))
 
 (define-expression-operator locally (&rest body)
   (with-declaration-effects (body body)

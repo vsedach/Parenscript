@@ -187,7 +187,7 @@ of (declare ...) forms, and the remaining body."
                 ,@(mapcar
                    (lambda (var) `(var ,var))
                    (remove-duplicates *vars-needing-to-be-declared*))))))
-      (when in-loop-scope? ;; this might be broken when it comes to let-renaming
+      (when in-loop-scope?
         (setf *loop-scope-lexicals-captured*
               (append (intersection (flatten body) *loop-scope-lexicals*)
                       *loop-scope-lexicals-captured*)))

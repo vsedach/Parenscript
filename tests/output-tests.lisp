@@ -4112,6 +4112,15 @@ function foo(x) {
     return 'abc';
 };")
 
+(test-ps-js return-object
+  (defun foo (obj)
+    (ps:create :abc (let ((x (ps:getprop obj "blah")))
+                      (if x 123 456))))
+  "function foo(obj) {
+    var x;
+    return { 'abc' : (x = obj['blah'], x ? 123 : 456) };
+};")
+
 ;;; broken
 
 ;; (test-ps-js let-defun-toplevel

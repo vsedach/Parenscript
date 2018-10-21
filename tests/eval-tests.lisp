@@ -832,3 +832,39 @@
         (setf (aref x i) (lambda () i))))
     (loop for x across x sum (funcall x)))
   45)
+
+(test-js-eval nested-let
+  (let ((x (let ((y 94))
+             y)))
+    x)
+  94)
+
+(test-js-eval lambda-apply
+  ((lambda (x)
+     (apply (lambda (y) (1+ y))
+            x))
+   (list 6))
+  7)
+
+(test-js-eval subtract-associative
+  (list (- 1 2 3)
+        (- 1 (- 2 3)))
+  '(-4 2))
+
+(test-js-eval logand1
+  (let ((x 4583))
+    (setf x (logand x 947))
+    x)
+  419)
+
+(test-js-eval cons-cdr-clause-empty
+  ((lambda () (cond (923))))
+  923)
+
+(test-js-eval labels-return-from
+  (labels ((bar (x)
+             (when (evenp x)
+               (return-from bar "even"))
+             "odd"))
+    (bar 9))
+  "odd")

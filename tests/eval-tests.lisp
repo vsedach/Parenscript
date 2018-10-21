@@ -868,3 +868,21 @@
              "odd"))
     (bar 9))
   "odd")
+
+(test-js-eval random-float-const
+  (< 0 (rem (random 123.456) 1) 1)
+  t)
+
+(test-js-eval random-int-const
+  (rem (random 234) 1)
+  0)
+
+(test-js-eval random-float-fun-once-only
+  (let ((x t))
+    (flet ((foo ()
+             (prog1 (if x
+                        123.123
+                        (throw "foobar"))
+               (setf x nil))))
+      (< 0 (rem (random (foo)) 1) 1)))
+  t)

@@ -109,7 +109,10 @@
           `(/ (log ,n) (log ,base))))
     (sqrt (n) `((@ *math sqrt) ,n))
     (random (&optional upto) (if upto
-                                 `(floor (* ,upto (random)))
+                                 (maybe-once-only (upto)
+                                   `(if (rem ,upto 1)
+                                        (* ,upto (random))
+                                        (floor (* ,upto (random)))))
                                  '(funcall (@ *math random)))))
 
 (defpsmacro ash (integer count)

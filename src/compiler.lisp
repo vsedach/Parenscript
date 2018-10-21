@@ -42,7 +42,7 @@
 (in-package #:parenscript)
 (in-readtable :parenscript)
 
-(defvar *version* 2.3 "Parenscript compiler version.")
+(defvar *version* 2.7 "Parenscript compiler version.")
 
 (defparameter %compiling-reserved-forms-p% t
   "Used to issue warnings when replacing PS special operators or macros.")

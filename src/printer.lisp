@@ -158,30 +158,30 @@ vice-versa.")
       (newline-and-indent))))
 
 (defparameter *js-lisp-escaped-chars*
-  '((#\' . #\')
-    (#\" . #\")
-    (#\\ . #\\)
-    (#\b . #\Backspace)
-    (#\f . #.(code-char 12))
-    (#\n . #\Newline)
-    (#\r . #\Return)
-    (#\t . #\Tab)))
+  (list #\'            #\'
+        #\"            #\"
+        #\\            #\\
+        #\Backspace    #\b
+        (code-char 12) #\f
+        #\Newline      #\n
+        #\Return       #\r
+        #\Tab          #\t))
 
 (defmethod ps-print ((char character))
   (ps-print (string char)))
 
 (defmethod ps-print ((string string))
-  (flet ((lisp-special-char-to-js (lisp-char)
-           (car (rassoc lisp-char *js-lisp-escaped-chars*))))
-    (psw *js-string-delimiter*)
-    (loop for char across string
-          for code = (char-code char)
-          for special = (lisp-special-char-to-js char)
-          do (cond (special (psw #\\) (psw special))
-                   ((or (<= code #x1f) (>= code #x80))
-                    (format *psw-stream* "\\u~:@(~4,'0x~)" code))
-                   (t (psw char))))
-    (psw *js-string-delimiter*)))
+  (psw *js-string-delimiter*)
+  (loop for char across string do
+       (acond ((getf *js-lisp-escaped-chars* char)
+               (psw #\\ it))
+              ((or (<= (char-code char) #x1F)
+                   (<= #x80 (char-code char) #x9F)
+                   (member (char-code char) '(#xA0 #xAD #x200B #x200C)))
+               (format *psw-stream* "\\u~:@(~4,'0x~)" (char-code char)))
+              (t
+               (psw char))))
+  (psw *js-string-delimiter*))
 
 (defmethod ps-print ((number number))
   (format *psw-stream* (if (integerp number) "~D" "~F") number))

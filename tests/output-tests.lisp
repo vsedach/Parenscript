@@ -1019,15 +1019,19 @@ return element.innerHTML = ['<textarea', disabled || !authorized ? [' disabled=\
          `((#\\     . #\\)
            (#\b     . #\Backspace)
            (#\f     . ,(code-char 12))
-           ("u000B" . ,(code-char #x000b))    ; vertical tab
+           ("u000B" . ,(code-char #xB))       ; vertical tab
            (#\n     . #\Newline)
            (#\r     . #\Return)
            (#\'     . #\')
            (#\"     . #\")
            (#\t     . #\Tab)
-           ("u001F" . ,(code-char #x001f))    ; character below 32
+           ("u001F" . ,(code-char #x1F))      ; character below 32
            ("u0080" . ,(code-char 128))       ; character over 127
-           ("uABCD" . ,(code-char #xabcd))))) ; well above ASCII
+           ("u00A0" . ,(code-char 160))       ; non-breaking space
+           ("u00AD" . ,(code-char 173))       ; soft hyphen
+           ("u200B" . ,(code-char #x200B))    ; zero-width space
+           ("u200C" . ,(code-char #x200C))    ; zero-width non-joiner
+           )))
     (loop for (js-escape . lisp-char) in escapes
           for generated = (ps-doc* (format nil "hello~ahi" lisp-char))
           for wanted = (format nil "'hello\\~ahi';" js-escape)
@@ -4120,6 +4124,10 @@ function foo(x) {
     var x;
     return { 'abc' : (x = obj['blah'], x ? 123 : 456) };
 };")
+
+(test-ps-js unicode-strings
+  "фоо бар"
+  "'фоо бар';")
 
 ;;; broken
 

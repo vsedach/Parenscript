@@ -1134,20 +1134,17 @@ blafoo(i);</samp></pre>
       </dd>
     </dl>
 
-    <p><code>CASE</code> works similar to its Common Lisp equivalent,
-    but keys are limited to keywords, numbers, and strings, and the
-    symbols <code>T</code> and <code>OTHERWISE</code>. Any other symbols used
-    as keys are assumed to be symbol-macros that macro-expand to
-    numbers or strings (this behavior differs from Common Lisp, which
-    does not macro-expand keys). If the symbol does not macro-expand to
-    a number or string, an error is signaled.
+    <p>
+      <code>CASE</code> works similar to its Common Lisp equivalent.
+    </p>
 
-    An additional form, <code>SWITCH</code>, takes the same syntax
-    as <code>CASE</code>, but the individual branches must be
-    terminated with the
-    symbol <a href="#break"><code>BREAK</code></a>. This allows
-    C-style case "fall-throughs" in <code>switch</code>
-    statements:</p>
+    <p>
+      An additional form, <code>SWITCH</code>, takes the same syntax
+      as <code>CASE</code>, but the individual branches must be
+      terminated with the
+      symbol <a href="#break"><code>BREAK</code></a>. This allows
+      C-style case "fall-throughs" in <code>switch</code> statements:
+    </p>
 
     <dl>
       <dt>
@@ -1570,6 +1567,6 @@ someDiv.offsetLeft;</samp></pre>
     function argument lists to the Emacs minibuffer, like SLIME
     already does for Common Lisp functions and macros.</p>
 
-    <p style="font-size:xx-small;float:right;">Last updated: 2018-07-08</p>
+    <p style="font-size:xx-small;float:right;">Last updated: 2018-10-20</p>
   </body>
 </html>

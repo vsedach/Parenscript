@@ -558,6 +558,14 @@
          (otherwise 7)))
   6)
 
+(test-js-eval case-clauses-false-nil
+  (* 2 (case (= 1 2)
+         (1 1)
+         ((nil) 3)
+         (2 5)
+         (otherwise 7)))
+  6)
+
 (test-js-eval case-clauses-true
   (* 2 (case (= 2 2)
          (1 1)
@@ -678,6 +686,14 @@
         (0 3)
         (x 7)
         (t 13))))
+  13)
+
+(test-js-eval case-symbol
+  (let ((blah 'x))
+    (case blah
+      (0 3)
+      (x 7)
+      (t 13)))
   7)
 
 (test-js-eval symbol-macro-funcall

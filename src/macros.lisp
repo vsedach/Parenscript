@@ -226,34 +226,30 @@
 ;;; conditionals
 
 (defpsmacro case (value &rest clauses)
-  (let ((allowed-symbols '(t otherwise false %true)))
-    (labels ((make-switch-clause (val body more)
-               (cond ((listp val)
-                      (append (mapcar #'list (butlast val))
-                              (make-switch-clause
-                               (if (eq t (car (last val))) ;; literal 'true'
-                                   '%true
-                                   (car (last val)))
-                               body
-                               more)))
-                     ((and (symbolp val)
-                           (symbolp (ps-macroexpand-1 val))
-                           (not (keywordp val))
-                           (not (member val allowed-symbols)))
-                      (error "Parenscript only supports keywords, numbers, and string literals as keys in case clauses. ~S is a symbol in clauses ~S"
-                             val clauses))
-                     (t
-                      `((,(case val
-                                ((t otherwise) 'default)
-                                (%true          t)
-                                (t              (ps-macroexpand-1 val)))
-                          ,@body
-                          ,@(when more '(break))))))))
-      `(switch ,value ,@(mapcon (lambda (clause)
-                                  (make-switch-clause (car (first clause))
-                                                      (cdr (first clause))
-                                                      (rest clause)))
-                                clauses)))))
+  (labels
+      ((make-switch-clause (val body more)
+         (if (consp val)
+             (append (mapcar #'list (butlast val))
+                     (make-switch-clause
+                      (if (eq t (car (last val))) ;; literal 'true'
+                          '%true
+                          (car (last val)))
+                      body
+                      more))
+             `((,(cond ((member val '(t otherwise)) 'default)
+                       ((eql val '%true)            t)
+                       ((eql val 'false)            'false)
+                       ((null val)                  'false)
+                       ((symbolp val)               (list 'quote val))
+                       (t                           val))
+                 ,@body
+                 ,@(when more '(break)))))))
+    `(switch ,value
+       ,@(mapcon (lambda (clause)
+                   (make-switch-clause (car (first clause))
+                                       (cdr (first clause))
+                                       (rest clause)))
+                 clauses))))
 
 (defpsmacro when (test &rest body)
   `(if ,test (progn ,@body)))

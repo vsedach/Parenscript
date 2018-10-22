@@ -352,7 +352,8 @@ form, FORM, returns the new value for *compilation-level*."
                  (incf *ps-gensym-counter*))))))
 
 (defmacro with-ps-gensyms (symbols &body body)
-  "Each element of SYMBOLS is either a symbol or a list of (symbol
+  "Helper macro for writing Parenscript macros. Each element of
+SYMBOLS is either a symbol or a list of (symbol
 gensym-prefix-string)."
   `(let* ,(mapcar (lambda (symbol)
                     (destructuring-bind (symbol &optional prefix)
@@ -366,22 +367,30 @@ gensym-prefix-string)."
      ,@body))
 
 (defmacro ps-once-only ((&rest vars) &body body)
+  "Helper macro for writing Parenscript macros. Useful for preventing unwanted multiple evaluation."
   (let ((gensyms (mapcar (lambda (x) (ps-gensym (string x))) vars)))
     `(let ,(mapcar (lambda (g v) `(,g (ps-gensym ,(string v)))) gensyms vars)
        `(let* (,,@(mapcar (lambda (g v) ``(,,g ,,v)) gensyms vars))
           ,(let ,(mapcar (lambda (g v) `(,v ,g)) gensyms vars)
              ,@body)))))
 
-(defmacro maybe-once-only (vars &body body)
-  "Introduces a binding for a form if the form is not a variable or
-  constant. If it is, uses that form in the body directly."
+(defmacro maybe-once-only ((&rest vars) &body body)
+  "Helper macro for writing Parenscript macros. Like PS-ONCE-ONLY,
+except that if the given VARS are variables or constants, no intermediate variables are created."
   (let ((vars-bound (gensym)))
-    `(let* ((,vars-bound ())
-            ,@(loop for var in vars collect
-                   `(,var (if (or (constantp ,var) (symbolp ,var))
-                              ,var
-                              (let ((gensym (ps-gensym ,(symbol-name var))))
-                                (push `(,gensym ,,var) ,vars-bound)
-                                gensym)))))
+    `(let*
+         ((,vars-bound ())
+          ,@(loop for var in vars collect
+                 `(,var
+                   (if (or
+                        (constantp ,var)
+                        (and
+                         (symbolp ,var)
+                         (not (lookup-macro-def ,var *symbol-macro-env*))
+                         (not (gethash ,var *symbol-macro-toplevel*))))
+                        ,var
+                        (let ((var¹ (ps-gensym ',var)))
+                          (push (list var¹ ,var) ,vars-bound)
+                          var¹)))))
        `(let ,,vars-bound
-         ,,@body))))
+          ,,@body))))

@@ -4178,3 +4178,22 @@ x = 2 + sideEffect() + x + 5;")
       (write-string "[1,2,3]" ps::*psw-stream*)
       (values))))
   "alert([1,2,3]);")
+
+(test-ps-js maybe-once-only-symbol-macrolet
+  (symbol-macrolet ((x (call-me-once)))
+    (sinh x))
+
+  "(function () {
+    var x1 = callMeOnce();
+    return (Math.exp(x1) - Math.exp(-x1)) / 2;
+})();")
+
+(test-ps-js maybe-once-only-symbol-macro
+  (progn
+    (define-symbol-macro maybe-once-only-symbol-macro (call-me-once))
+    (tanh maybe-once-only-symbol-macro))
+
+  "(function () {
+    var x1 = callMeOnce();
+    return (Math.exp(x1) - Math.exp(-x1)) / (Math.exp(x1) + Math.exp(-x1));
+})();")

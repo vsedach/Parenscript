@@ -902,3 +902,11 @@
                (setf x nil))))
       (< 0 (rem (random (foo)) 1) 1)))
   t)
+
+(test-js-eval let-setf-side-effects
+  (let ((x 10))
+    (defun side-effect()
+      (setf x 4)
+      3)
+    (setf x (+ 2 (side-effect) x 5)))
+  14)

@@ -4129,36 +4129,45 @@ function foo(x) {
   "фоо бар"
   "'фоо бар';")
 
-;;; broken
+(test-ps-js expressionize-return
+  (defun next-page (self)
+    (with-slots (limit offset count)
+        (@ self state)
+      (when (and count (< (* limit offset) count))
+        (set-state self (create x (+ offset 1))))))
+  "function nextPage(self) {
+    var object1 = self.state;
+    return object1.count && object1.limit * object1.offset < object1.count ? setState(self, { x : object1.offset + 1 }) : null;
+};")
 
-;; (test-ps-js let-defun-toplevel
-;;   (progn (let ((foo 0))
-;;            (defun bar () foo))
-;;          (bar))
-;;   "var bar_foo1 = 0;
-;; function bar() {
-;;     return bar_foo1;
-;; };
-;; bar();")
+(test-ps-js let-defun-toplevel
+  (progn (let ((foo 0))
+           (defun bar () foo))
+         (bar))
+  "var foo = 0;
+function bar() {
+    return foo;
+};
+bar();")
 
-;; (test-ps-js let-defvar-toplevel
-;;   (progn (let ((foo 0))
-;;            (defvar bar (1+ foo)))
-;;          bar)
-;;   "var bar_foo1 = 0;
-;; var bar = bar_foo1 + 1;
-;; bar;")
+(test-ps-js let-defvar-toplevel
+  (progn (let ((foo 0))
+           (defvar bar (1+ foo)))
+         bar)
+  "var foo = 0;
+var bar = foo + 1;
+bar;")
 
-;; (test-ps-js setf-side-effects
-;;   (progn
-;;     (let ((x 10))
-;;       (defun side-effect()
-;;         (setf x 4)
-;;         3)
-;;       (setf x (+ 2 (side-effect) x 5))))
-;;   "var sideEffect_x1 = 10;
-;; function sideEffect() {
-;;     sideEffect_x1 = 4;
-;;     return 3;
-;; };
-;; sideEffect_x1 = 2 + sideEffect() + x + 5;")
+(test-ps-js setf-side-effects
+  (let ((x 10))
+    (defun side-effect()
+      (setf x 4)
+      3)
+    (setf x (+ 2 (side-effect) x 5)))
+  "var x = 10;
+function sideEffect() {
+    x = 4;
+    return 3;
+};
+x = 2 + sideEffect() + x + 5;")
+

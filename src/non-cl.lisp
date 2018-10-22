@@ -218,9 +218,11 @@
   ;; dynamic environment only, analogous to eval.
   `(ps-js:escape
     (with-output-to-string (*psw-stream*)
-      (let ((compile-expression? ,compile-expression?)
-	    (*js-string-delimiter* ,*js-string-delimiter*))
-        (parenscript-print (ps-compile ,lisp-form) t)))))
+      (let ((compile-expression?   ,compile-expression?)
+	    (*js-string-delimiter* ,*js-string-delimiter*)
+            (eval-results          (multiple-value-list ,lisp-form)))
+        (when eval-results
+          (parenscript-print (ps-compile (car eval-results)) t))))))
 
 (defun lisp (x) x)
 

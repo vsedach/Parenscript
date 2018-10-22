@@ -4171,3 +4171,10 @@ function sideEffect() {
 };
 x = 2 + sideEffect() + x + 5;")
 
+(test-ps-js stupid-lisp-trick
+  (alert
+   (lisp
+    (progn
+      (write-string "[1,2,3]" ps::*psw-stream*)
+      (values))))
+  "alert([1,2,3]);")

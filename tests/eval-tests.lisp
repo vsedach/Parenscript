@@ -849,6 +849,23 @@
     (loop for x across x sum (funcall x)))
   45)
 
+(test-js-eval loop-variable-capture4
+  (let ((x (make-array 10 :initial-element (lambda () 0))))
+    (dotimes (i 10)
+      (let ((i i))
+        (setf (aref x i) (lambda () i))
+        (when (= i 5) (return))))
+    (loop for x across x sum (funcall x)))
+  15)
+
+(test-js-eval loop-variable-capture5
+  (let ((A (make-array 10)))
+    (dotimes (i 10)
+      (flet ((foo (x) (+ i x)))
+        (setf (aref A i) (lambda () (foo i)))))
+    (loop for x across A sum (funcall x)))
+  200)
+
 (test-js-eval nested-let
   (let ((x (let ((y 94))
              y)))

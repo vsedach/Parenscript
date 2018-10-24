@@ -2,10 +2,11 @@
 ;;; Copyright 2005-2006 Edward Marco Baringer
 ;;; Copyright 2006 Attila Lendvai
 ;;; Copyright 2006 Luca Capello
-;;; Copyright 2007-2012 Vladimir Sedach
+;;; Copyright 2007-2012, 2018 Vladimir Sedach
 ;;; Copyright 2008 Travis Cross
 ;;; Copyright 2009-2010 Red Daly
 ;;; Copyright 2009-2010 Daniel Gackle
+;;; Copyright 2012, 2015 Boris Smilga
 
 ;;; SPDX-License-Identifier: BSD-3-Clause
 

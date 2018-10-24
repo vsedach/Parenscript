@@ -640,21 +640,16 @@ Parenscript now implements implicit return, update your code! Things like (lambd
           init-forms))
 
 (defun compile-loop-body (loop-vars body)
-  (let*
-      ((in-loop-scope?                 t)
-       ;; provides lexical bindings for all free variables using WITH
-       (in-function-scope?             t)
-       (*loop-scope-lexicals*          ())
-       (*loop-scope-lexicals-captured* ())
-       (*ps-gensym-counter*            *ps-gensym-counter*)
-       (compiled-body (compile-statement `(progn ,@body))))
-    (aif (remove-duplicates *loop-scope-lexicals-captured*)
-         `(ps-js:block
-              (ps-js:with
-               ,(compile-expression
-                 `(create ,@(mapcan (lambda (x) (list x nil)) it)))
-               ,compiled-body))
-         compiled-body)))
+  (let (compiled-body loop-closures?)
+    (let* ((in-loop-scope?                 t)
+           (*loop-scope-lexicals*          ())
+           (*loop-scope-lexicals-captured* ())
+           (*ps-gensym-counter*            *ps-gensym-counter*))
+      (setf compiled-body  (compile-statement `(progn ,@body))
+            loop-closures? *loop-scope-lexicals-captured*))
+    (if loop-closures?
+        (compile-statement `(progn ((lambda () ,@body))))
+        compiled-body)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; evaluation

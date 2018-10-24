@@ -768,8 +768,8 @@ for (var a = pop(stack); a; a = pop(stack)) {
 })();")
 
 (test-ps-js loop-for-of-for-in
-   (defun blah (obj b)
-     (loop :for k :of obj :for a :in b :do (foo k a)))
+  (defun blah (obj b)
+    (loop :for k :of obj :for a :in b :do (foo k a)))
 "function blah(obj, b) {
     var _js2 = b.length;
     var FIRST3 = true;
@@ -3363,12 +3363,12 @@ for (var i = 0; i < 10; i += 1) {
      (lambda () (+ i x))))
  "(function () {
 for (var i = 0; i < 10; i += 1) {
-    with ({ x : null }) {
+    (function () {
         var x = i + 1;
-        function () {
+        return function () {
             return i + x;
         };
-    };
+    })();
 };
 })();")
 
@@ -3378,14 +3378,14 @@ for (var i = 0; i < 10; i += 1) {
       (lambda () (foo i))))
  "(function () {
 for (var i = 0; i < 10; i += 1) {
-    with ({ foo : null }) {
+    (function () {
         var foo = function (x) {
             return i + x;
         };
-        function () {
+        return function () {
             return foo(i);
         };
-    };
+    })();
 };
 })();")
 
@@ -3394,12 +3394,12 @@ for (var i = 0; i < 10; i += 1) {
     (let ((abc (bar)))
       (lambda () (+ 1 abc))))
   "while (foo()) {
-    with ({ abc : null }) {
+    (function () {
         var abc = bar();
-        function () {
+        return function () {
             return 1 + abc;
         };
-    };
+    })();
 };")
 
 (test-ps-js dotted-list-form

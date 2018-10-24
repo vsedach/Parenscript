@@ -61,7 +61,7 @@
 
 (test-js-eval empty-array
   (array)
-  '())
+  #())
 
 (test-js-eval funargs-let1
   ((lambda (x)
@@ -910,3 +910,13 @@
       3)
     (setf x (+ 2 (side-effect) x 5)))
   14)
+
+(test-js-eval dolist-result-bind-nil
+  (dolist (i '(1 2 3) (list i 9))
+    (list i))
+  '(nil 9))
+
+(test-js-eval dotimes-result-bind-nil
+  (dotimes (i '(1 2 3) (list 9 i))
+    (list i))
+  '(9 nil))

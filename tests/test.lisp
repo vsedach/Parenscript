@@ -48,12 +48,13 @@
                   (ps-doc* ',parenscript)))))))
 
 (defun js-repr (x)
-  (if (listp x)
-      (cl-js:js-array
-       (make-array (length x)
-                   :initial-contents (mapcar #'js-repr x)
-                   :adjustable t))
-      x))
+  (cond ((or (consp x) (simple-vector-p x))
+         (cl-js:js-array
+          (make-array (length x)
+                      :initial-contents (map 'vector #'js-repr x)
+                      :adjustable t)))
+        ((null x) :null)
+        (t x)))
 
 (defmacro %test-js-eval (testname parenscript test-statement)
   `(fiveam:test ,testname ()

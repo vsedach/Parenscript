@@ -554,6 +554,7 @@ return alert('Summation to 10 is ' + (function () {
     for (var i = 0; i < 10; i += 1) {
         res += i + 1;
     };
+    var i = null;
     return res;
 })());
 })();")
@@ -584,6 +585,7 @@ return alert('Sum of ' + l + ' is: ' + (function () {
         c = l[_js_idx1];
         s += c;
     };
+    var c = null;
     return s;
 })());
 })();")

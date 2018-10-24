@@ -395,7 +395,8 @@ lambda-list::=
 
 (defpsmacro dotimes ((var count &optional (result nil result?)) &rest body)
   `(do* ((,var 0 (1+ ,var)))
-        ((>= ,var ,count) ,@(when result? (list result)))
+        ((>= ,var ,count)
+         ,@(when result? `((let ((,var nil)) ,result))))
      ,@body))
 
 (defpsmacro dolist ((var array &optional (result nil result?)) &body body)
@@ -409,7 +410,7 @@ lambda-list::=
                    (list (list arrvar array)))
            (,idx 0 (1+ ,idx)))
           ((>= ,idx (getprop ,arrvar 'length))
-           ,@(when result? (list result)))
+           ,@(when result? `((let ((,var nil)) ,result))))
        (setq ,var (aref ,arrvar ,idx))
        ,@body)))
 

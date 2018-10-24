@@ -395,5 +395,5 @@ except that if the given VARS are variables or constants, no intermediate variab
                         (let ((var¹ (ps-gensym ',var)))
                           (push (list var¹ ,var) ,vars-bound)
                           var¹)))))
-       `(let ,,vars-bound
+       `(let ,(reverse ,vars-bound)
           ,,@body))))

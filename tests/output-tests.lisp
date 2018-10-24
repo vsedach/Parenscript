@@ -4197,3 +4197,15 @@ x = 2 + sideEffect() + x + 5;")
     var x1 = callMeOnce();
     return (Math.exp(x1) - Math.exp(-x1)) / (Math.exp(x1) + Math.exp(-x1));
 })();")
+
+(test-ps-js maybe-once-only-evaluation-order
+  (macrolet
+      ((A (x y)
+         (maybe-once-only (x y)
+           `(+ ,x ,x ,y ,y))))
+    (A (fun1) (fun2)))
+  "(function () {
+    var x1 = fun1();
+    var y2 = fun2();
+    return x1 + x1 + y2 + y2;
+})();")

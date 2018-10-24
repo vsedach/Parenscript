@@ -368,10 +368,13 @@ gensym-prefix-string)."
 
 (defmacro ps-once-only ((&rest vars) &body body)
   "Helper macro for writing Parenscript macros. Useful for preventing unwanted multiple evaluation."
-  (let ((gensyms (mapcar (lambda (x) (ps-gensym (string x))) vars)))
-    `(let ,(mapcar (lambda (g v) `(,g (ps-gensym ,(string v)))) gensyms vars)
-       `(let* (,,@(mapcar (lambda (g v) ``(,,g ,,v)) gensyms vars))
-          ,(let ,(mapcar (lambda (g v) `(,v ,g)) gensyms vars)
+  (let ((gensyms (mapcar #'ps-gensym vars)))
+    `(let ,(mapcar (lambda (g v) `(,g (ps-gensym ',v)))
+                   gensyms vars)
+       `(let* (,,@(mapcar (lambda (g v) `(list ,g ,v))
+                          gensyms vars))
+          ,(let ,(mapcar (lambda (g v) (list v g))
+                         gensyms vars)
              ,@body)))))
 
 (defmacro maybe-once-only ((&rest vars) &body body)

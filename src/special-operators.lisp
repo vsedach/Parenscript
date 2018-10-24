@@ -299,7 +299,7 @@ invocations or not.")
            ,@declarations
            ,@(butlast body)
            (return-from ,tag ,(car (last body))))))
-     (progn
+     ((progn locally)
        `(progn ,@(butlast (cdr form))
                (return-from ,tag ,(car (last (cdr form))))))
      (switch

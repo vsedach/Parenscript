@@ -602,11 +602,13 @@ for (var i in obj) {
 })();")
 
 (test-ps-js iteration-constructs-9
-  (while ((@ film is-not-finished))
-  ((@ this eat) (new *popcorn)))
-  "while (film.isNotFinished()) {
+  (loop while (funcall (@ film is-not-finished)) do
+       (funcall (@ this eat) (new *popcorn)))
+  "(function () {
+while (film.isNotFinished()) {
     this.eat(new Popcorn);
-};")
+};
+}).call(this);")
 
 (test-ps-js loop-for-bindings
   (loop :for ((a b) (:c :d)) :in arr :do (foo a b c d))
@@ -3390,17 +3392,19 @@ for (var i = 0; i < 10; i += 1) {
 })();")
 
 (test-ps-js while-closures-let
-  (while (foo)
+  (loop while (foo) do
     (let ((abc (bar)))
       (lambda () (+ 1 abc))))
-  "while (foo()) {
+  "(function () {
+while (foo()) {
     (function () {
         var abc = bar();
         return function () {
             return 1 + abc;
         };
     })();
-};")
+};
+})();")
 
 (test-ps-js dotted-list-form
   (defun foo (a)
@@ -3848,7 +3852,7 @@ return function (x) {
 })());")
 
 (test-ps-js trivial-expression-while
-  (foobar (while (< 0 x) (decf x)))
+  (foobar (loop while (< 0 x) do (decf x)))
   "foobar((function () {
     while (0 < x) {
         --x;

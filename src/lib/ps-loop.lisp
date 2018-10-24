@@ -407,10 +407,14 @@
                                (t `((bind ,place ,expr ,@body)))))))
                body)))))
 
+(define-statement-operator loop-while (test &rest body)
+  `(ps-js:while ,(compile-expression test)
+     ,(compile-loop-body () body)))
+
 (defun master-loop (master-iter body)
   (destructuring-bind (tag place init step test &optional js-obj) master-iter
     (assert (eq tag :iter))
-    (cond ((null place) `(while ,test ,@body))
+    (cond ((null place) `(loop-while ,test ,@body))
           (js-obj
            (assert (not (or init step test)) nil "Unexpected iteration state in for..in loop: ~a" master-iter)
            `(for-in (,place ,js-obj) ,@body))

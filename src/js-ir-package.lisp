@@ -118,7 +118,7 @@
    #:block
    #:break
    #:continue
-   #:do-while
+   #:do-while  ; currently unused
    #:for
    #:for-in
    #:if

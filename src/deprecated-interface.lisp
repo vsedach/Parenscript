@@ -146,7 +146,16 @@ is output to the OUTPUT-STREAM stream."
 (define-statement-operator with (expression &rest body)
   (warn-deprecated 'with '|LET or WITH-SLOTS|)
   `(ps-js:with ,(compile-expression expression)
-     ,(compile-statement `(progn ,@body))))
+               ,(compile-statement `(progn ,@body))))
+
+(define-statement-operator while (test &rest body)
+  (warn-deprecated 'while '|LOOP WHILE|)
+  `(ps-js:while ,(compile-expression test)
+     ,(compile-loop-body () body)))
+
+(defmacro while (test &body body)
+  (warn-deprecated 'while '|LOOP WHILE|)
+  `(loop while ,test do (progn ,@body)))
 
 (defpsmacro label (&rest args)
   (warn-deprecated 'label 'block)

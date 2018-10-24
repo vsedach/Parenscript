@@ -185,13 +185,6 @@
                  ,(compile-expression object)
                  ,(compile-loop-body (list var) body)))
 
-(define-statement-operator while (test &rest body)
-  `(ps-js:while ,(compile-expression test)
-     ,(compile-loop-body () body)))
-
-(defmacro while (test &body body)
-  `(loop while ,test do (progn ,@body)))
-
 ;;; misc
 
 (define-statement-operator try (form &rest clauses)

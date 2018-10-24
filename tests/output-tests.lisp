@@ -4209,3 +4209,13 @@ x = 2 + sideEffect() + x + 5;")
     var y2 = fun2();
     return x1 + x1 + y2 + y2;
 })();")
+
+(test-ps-js maybe-once-only-macroexpansion
+  (macrolet
+      ((A (x y)
+         (ps:maybe-once-only (x y)
+           `(+ ,x ,x ,y ,y)))
+       (fun1 () 'G)
+       (fun2 () 6))
+    (A (fun1) (fun2)))
+  "G + G + 6 + 6;")

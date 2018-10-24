@@ -386,15 +386,11 @@ except that if the given VARS are variables or constants, no intermediate variab
          ((,vars-bound ())
           ,@(loop for var in vars collect
                  `(,var
-                   (if (or
-                        (constantp ,var)
-                        (and
-                         (symbolp ,var)
-                         (not (lookup-macro-def ,var *symbol-macro-env*))
-                         (not (gethash ,var *symbol-macro-toplevel*))))
-                        ,var
-                        (let ((var¹ (ps-gensym ',var)))
-                          (push (list var¹ ,var) ,vars-bound)
-                          var¹)))))
-       `(let ,(reverse ,vars-bound)
+                   (let ((form (ps-macroexpand ,var)))
+                     (if (atom form)
+                         form
+                         (let ((var¹ (ps-gensym ',var)))
+                           (push (list var¹ form) ,vars-bound)
+                           var¹))))))
+       `(let* ,(reverse ,vars-bound)
           ,,@body))))

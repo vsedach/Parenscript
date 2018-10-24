@@ -4092,7 +4092,7 @@ for (var i = 0; i < 5; i += 1) {
     return null;
 };")
 
-(test-ps-js defun-no-body-let-decare
+(test-ps-js defun-no-body-let-declare
   (defun foo () (let () (declare (ignore x))))
   "function foo() {
     return null;

@@ -220,7 +220,10 @@ lambda list from a Parenscript perspective."
 (defmacro define-ps-symbol-macro (symbol expansion)
   (defined-operator-override-check symbol
       `(eval-when (:compile-toplevel :load-toplevel :execute)
-	 (setf (gethash ',symbol *symbol-macro-toplevel*) (lambda (form) (declare (ignore form)) ',expansion)))))
+	 (setf (gethash ',symbol *symbol-macro-toplevel*)
+               (lambda (form)
+                 (declare (ignore form))
+                 ',expansion)))))
 
 (defun import-macros-from-lisp (&rest names)
   "Import the named Lisp macros into the Parenscript macro
@@ -240,17 +243,23 @@ CL environment)."
   `(progn (defmacro ,name ,args ,@body)
           (defpsmacro ,name ,args ,@body)))
 
+(defun symbol-macro? (form)
+  "If FORM is a symbol macro, return its macro function. Otherwise,
+return NIL."
+  (and (symbolp form)
+       (or (and (member form *enclosing-lexicals*)
+                (lookup-macro-def form *symbol-macro-env*))
+           (gethash form *symbol-macro-toplevel*))))
+
 (defun ps-macroexpand-1 (form)
-  (aif (or (and (symbolp form)
-                (or (and (member form *enclosing-lexicals*)
-                         (lookup-macro-def form *symbol-macro-env*))
-                    (gethash form *symbol-macro-toplevel*))) ;; hack
+  (aif (or (symbol-macro? form)
            (and (consp form) (lookup-macro-def (car form) *macro-env*)))
        (values (ps-macroexpand (funcall it form)) t)
        form))
 
 (defun ps-macroexpand (form)
-  (multiple-value-bind (form1 expanded?) (ps-macroexpand-1 form)
+  (multiple-value-bind (form1 expanded?)
+      (ps-macroexpand-1 form)
     (if expanded?
         (values (ps-macroexpand form1) t)
         form1)))
@@ -392,5 +401,5 @@ except that if the given VARS are variables or constants, no intermediate variab
                          (let ((var¹ (ps-gensym ',var)))
                            (push (list var¹ form) ,vars-bound)
                            var¹))))))
-       `(let* ,(reverse ,vars-bound)
+       `(let* ,(nreverse ,vars-bound)
           ,,@body))))

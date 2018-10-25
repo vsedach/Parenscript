@@ -259,11 +259,6 @@
               (warn "Returning from unknown block ~A" tag)
               (ret1only)))))) ;; for backwards-compatibility
 
-(defvar *suppress-deprecation* nil
-  "Temporarily turns off deprecation warnings so that the compiler can
-sneakily macroexpand forms during code-walking whether they are macro
-invocations or not.")
-
 (defun try-expressionizing-if? (exp &optional (score 0)) ;; poor man's codewalker
   "Heuristic that tries not to expressionize deeply nested if expressions."
   (cond ((< 1 score) nil)
@@ -272,9 +267,7 @@ invocations or not.")
         ((listp exp)
          (loop for x in (cdr exp) always
               (try-expressionizing-if?
-               (or (ignore-errors
-                     (let ((*suppress-deprecation* t))
-                       (ps-macroexpand x)))
+               (or (ignore-errors (ps-macroexpand x))
                    x) ;; fail
                (+ score (case (car exp)
                           ((if cond) 1)

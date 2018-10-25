@@ -45,10 +45,9 @@
   ())
 
 (defun warn-deprecated (old-name &optional new-name)
-  (unless *suppress-deprecation*
-    (warn 'simple-style-warning
-          :format-control "~:@(~a~) is deprecated~:[.~;, use ~:@(~a~) instead~]"
-          :format-arguments (list old-name new-name new-name))))
+  (warn 'simple-style-warning
+        :format-control "~:@(~a~) is deprecated~:[.~;, use ~:@(~a~) instead~]"
+        :format-arguments (list old-name new-name new-name)))
 
 (defmacro defun-js (old-name new-name args &body body)
   `(defun ,old-name ,args

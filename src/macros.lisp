@@ -384,7 +384,8 @@ lambda-list::=
      ,@(when result? (list result))))
 
 (defpsmacro do (decls (end-test &optional (result nil result?)) &body body)
-  (multiple-value-bind (do-body declarations) (parse-body body)
+  (multiple-value-bind (do-body declarations)
+      (parse-body body)
     `(block nil
        (let ,(do-make-iteration-bindings decls)
          ,@declarations

@@ -866,6 +866,21 @@
     (loop for x across A sum (funcall x)))
   200)
 
+(test-js-eval loop-variable-capture6
+  (labels ((make-cl (i) (lambda () (* i 10))))
+    (let ((closures (loop :for i :from 1 :to 3
+                       :collect (make-cl i))))
+      (loop :for fn :in closures :collect (funcall fn))))
+  '(10 20 30))
+
+(test-js-eval loop-variable-capture7
+  (let ((closures (loop :for i :from 1 :to 3
+                     :collect (let* ((j i)
+                                     (cl (lambda () (* j 10))))
+                                cl))))
+    (loop :for fn :in closures :collect (funcall fn)))
+  '(10 20 30))
+
 (test-js-eval nested-let
   (let ((x (let ((y 94))
              y)))
@@ -937,3 +952,90 @@
   (dotimes (i '(1 2 3) (list 9 i))
     (list i))
   '(9 nil))
+
+(test-js-eval progn-of-block-closure
+  ((lambda ()
+     (progn
+       (block nil
+         ((lambda ()
+            ((lambda ()
+               (return 1)))
+            2))))))
+  1)
+
+(test-js-eval progn-of-block-closure1
+  ((lambda ()
+     (progn
+       (block X
+         ((lambda ()
+            ((lambda ()
+               (return-from X 1)))
+            2))))))
+  1)
+
+(test-js-eval progn-of-block-closure2
+  ((lambda ()
+     (1+
+       (block X
+         ((lambda ()
+            ((lambda ()
+               (return-from X 1)))
+            3))))))
+  2)
+
+(test-js-eval progn-of-block-closure3
+  ((lambda ()
+     (1+
+       (block nil
+         ((lambda ()
+            ((lambda ()
+               (return 1)))
+            3))))))
+  2)
+
+(test-js-eval block-closure-no-progn
+  ((lambda ()
+     (block nil
+       ((lambda ()
+          ((lambda ()
+             (return 1)))
+          2)))))
+  1)
+
+(test-js-eval function-clears-current-block-tag
+  ((lambda ()
+     (block X
+       ((lambda ()
+          ((lambda ()
+             (return-from X 1)))
+          2)))
+     5))
+  5)
+
+(test-js-eval defvar-dynamic-return
+  (progn
+    (defvar foo ((lambda ()
+                   (block nil
+                     ((lambda () (return 6)))
+                     (+ 1 2)))))
+    foo)
+  6)
+
+(test-js-eval defvar-dynamic-return1
+  (progn
+    (defvar foo ((lambda ()
+                   (block nil
+                     ((lambda () (return 6)))
+                     (+ 1 2))
+                   (+ 4 5))))
+    foo)
+  9)
+
+(test-js-eval defvar-dynamic-return-expression
+  (progn
+    (defvar foo ((lambda ()
+                   (+ 1 (block nil
+                          ((lambda () (return 6)))
+                          (+ 1 2))))))
+    foo)
+  7)

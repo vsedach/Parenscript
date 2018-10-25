@@ -150,14 +150,17 @@ of (declare ...) forms, and the remaining body."
 (defun collapse-function-return-blocks (body)
   (append (butlast body)
           (let ((last (ps-macroexpand (car (last body)))))
-            (if (and (listp last) (eq 'block (car last))) ; no need for a block at the end of a function body
-                (progn (push (or (second last) 'nilBlock) *function-block-names*)
+            (if (and (listp last) (eq 'block (car last)))
+                ;; no need for a block at the end of a function body
+                (progn (push (or (second last) 'nilBlock)
+                             *function-block-names*)
                        (cddr last))
                 (list last)))))
 
 (defun compile-function-body (args body)
   (with-declaration-effects (body body)
     (let* ((in-function-scope?            t)
+           (*current-block-tag*           nil)
            (*vars-needing-to-be-declared* ())
            (*used-up-names*               ())
            (*enclosing-function-arguments*

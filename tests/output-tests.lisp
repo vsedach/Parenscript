@@ -3515,10 +3515,10 @@ while (foo()) {
 };")
 
 (test-ps-js block-dynamic-return
-  (var foo ((lambda ()
-              (block nil
-                ((lambda () (return 6)))
-                (+ 1 2)))))
+  (defvar foo ((lambda ()
+                 (block nil
+                   ((lambda () (return 6)))
+                   (+ 1 2)))))
   "var foo = (function () {
     try {
         (function () {
@@ -3535,20 +3535,31 @@ while (foo()) {
     };
 })();")
 
-(test-ps-js block-dynamic-return1
-  (var foo ((lambda ()
-              (block nil
-                ((lambda () (return 6)))
-                (+ 1 2))
-              (foobar 1 2))))
+(test-ps-js block-dynamic-return1-redundant
+  (defvar foo ((lambda ()
+                 (block nil
+                   ((lambda () (return 6)))
+                   (+ 1 2))
+                 (+ 4 5))))
+  ;;; FIXME. Not wrong, but redundant
   "var foo = (function () {
     nilBlock: {
+    try {
         (function () {
-            break nilBlock;
+            throw { '__ps_block_tag' : 'nilBlock', '__ps_value1' : 6 };
         })();
         1 + 2;
+    } catch (_ps_err1) {
+        if (_ps_err1 && 'nilBlock' === _ps_err1['__ps_block_tag']) {
+            __PS_MV_REG = { 'tag' : arguments.callee, 'values' : _ps_err1['__ps_values'] };
+            _ps_err1['__ps_value1'];
+            break nilBlock;
+        } else {
+            throw _ps_err1;
+        };
     };
-    return foobar(1, 2);
+    };
+    return 4 + 5;
 })();")
 
 (test-ps-js iteration-lambda-capture-no-need
@@ -4225,3 +4236,33 @@ x = 2 + sideEffect() + x + 5;")
        (fun2 () 6))
     (A (fun1) (fun2)))
   "G + G + 6 + 6;")
+
+(test-ps-js lambda-block-wrap-for-dynamic-return
+  (lambda ()
+    (block X
+      ((lambda ()
+         ((lambda ()
+            (return-from X 1)))
+         2)))
+    5)
+"(function () {
+    X: {
+        try {
+            (function () {
+                (function () {
+                    throw { '__ps_block_tag' : 'X', '__ps_value1' : 1 };
+                })();
+                return 2;
+            })();
+        } catch (_ps_err1) {
+            if (_ps_err1 && 'X' === _ps_err1['__ps_block_tag']) {
+                __PS_MV_REG = { 'tag' : arguments.callee, 'values' : _ps_err1['__ps_values'] };
+                _ps_err1['__ps_value1'];
+                break X;
+            } else {
+                throw _ps_err1;
+            };
+        };
+    };
+    return 5;
+});")

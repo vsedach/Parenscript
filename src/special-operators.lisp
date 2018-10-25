@@ -201,11 +201,13 @@
   (if in-function-scope?
       (let* ((name                  (or name 'nilBlock))
              (in-loop-scope?        (if name in-loop-scope? nil))
-             (*dynamic-return-tags* (cons (cons name nil) *dynamic-return-tags*))
+             (*dynamic-return-tags* (cons (cons name nil)
+                                          *dynamic-return-tags*))
              (*current-block-tag*   name)
              (compiled-body         (wrap-for-dynamic-return
                                      (list name)
                                      (compile-statement `(progn ,@body)))))
+        ;; this probably does not nest correctly
         (if (tree-find `(ps-js:break ,name) compiled-body)
             `(ps-js:label ,name ,compiled-body)
             compiled-body))
@@ -324,7 +326,8 @@ invocations or not.")
                    (list (when catch
                            `(:catch ,(car catch)
                               ,@(butlast (cdr catch))
-                              (return-from ,tag ,(car (last (cdr catch))))))
+                              (return-from ,tag
+                                ,(car (last (cdr catch))))))
                          finally))))
      (cond
        `(cond
@@ -346,11 +349,11 @@ invocations or not.")
                ,@(when (or in-case? (fourth form))
                        `((return-from ,tag ,(fourth form)))))))
      (block
-      (let ((tag* (or (cadr form) 'nilBlock))
-            (body* (cddr form)))
-        (let ((*function-block-names* (cons tag* *function-block-names*)))
+      (let ((tag¹  (or (cadr form) 'nilBlock))
+            (body¹ (cddr form)))
+        (let ((*function-block-names* (cons tag¹ *function-block-names*)))
           (return-from expressionize-result
-            (expressionize-result tag* `(progn ,@body*))))))
+            (expressionize-result tag¹ `(progn ,@body¹))))))
      (return-from ;; this will go away someday
       (unless tag
         (warn 'simple-style-warning

@@ -283,7 +283,7 @@ invocations or not.")
                           (otherwise 0))))))
         (t t)))
 
-(defun expressionize-result (tag form)
+(defun return-result-of (tag form)
   (ps-compile
    (case (car form)
      ((continue break throw) ;; non-local exit
@@ -343,7 +343,7 @@ invocations or not.")
                    (compile-expression-error ()
                      (setf *used-up-names* used-up-names)
                      nil))))
-          (return-from expressionize-result (return-exp tag form))
+          (return-from return-result-of (return-exp tag form))
           `(if ,(second form)
                (return-from ,tag ,(third form))
                ,@(when (or in-case? (fourth form))
@@ -353,7 +353,7 @@ invocations or not.")
              (*function-block-names* (cons tag¹ *function-block-names*))
              (*dynamic-return-tags*  (cons (cons tag¹ nil)
                                            *dynamic-return-tags*)))
-        (return-from expressionize-result
+        (return-from return-result-of
           (wrap-for-dynamic-return
            (list tag¹)
            (ps-compile `(return-from ,tag (progn ,@(cddr form))))))))
@@ -364,7 +364,7 @@ invocations or not.")
 Parenscript now implements implicit return, update your code! Things like (lambda () (return x)) are not valid Common Lisp and may not be supported in future versions of Parenscript."))
        form)
      (otherwise
-      (return-from expressionize-result
+      (return-from return-result-of
         (cond ((not (gethash (car form) *special-statement-operators*))
                (return-exp tag form))
               (in-case?
@@ -376,7 +376,7 @@ Parenscript now implements implicit return, update your code! Things like (lambd
   (let ((form (ps-macroexpand result)))
     (if (or (atom form) (eq 'values (car form)))
         (return-exp tag form)
-        (expressionize-result tag form))))
+        (return-result-of tag form))))
 
 (define-expression-operator values (&optional main &rest additional)
   (when main

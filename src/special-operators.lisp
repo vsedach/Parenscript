@@ -626,7 +626,18 @@ Parenscript now implements implicit return, update your code! Things like (lambd
                                         documentation)
   ;; this must be used as a top-level form, otherwise the resulting
   ;; behavior will be undefined.
-  (declare (ignore documentation))
+  (declare (ignore documentation)) ; TODO: print docstring
+  (pushnew name *special-variables*)
+
+  (ps-compile (if value-provided?
+                  `(when (undefined ,name) (var ,name ,value))
+                  (list 'var name))))
+
+(define-statement-operator defparameter
+    (name &optional (value (values) value-provided?) documentation)
+  ;; this must be used as a top-level form, otherwise the resulting
+  ;; behavior will be undefined.
+  (declare (ignore documentation)) ; TODO: print docstring
   (pushnew name *special-variables*)
   (ps-compile `(var ,name ,@(when value-provided? (list value)))))
 

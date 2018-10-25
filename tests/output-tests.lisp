@@ -464,10 +464,36 @@ return _js2.style.left = _js1;
 
 (test-ps-js variable-declaration-1
   (defvar *a* (array 1 2 3))
-  "var A = [1, 2, 3];")
+  "if ('undefined' === typeof A) { var A = [1, 2, 3]; };")
 
 (test-ps-js variable-declaration-2
   (progn (defvar *a* 4)
+         (let ((x 1)
+               (*a* 2))
+           (let* ((y (+ x 1))
+                  (x (+ x y)))
+             (+ *a* x y))))
+  "if ('undefined' === typeof A) { var A = 4; };
+(function () {
+var x = 1;
+var A_TMPSTACK1;
+try {
+    A_TMPSTACK1 = A;
+    A = 2;
+    var y = x + 1;
+    var x2 = x + y;
+    return A + x2 + y;
+} finally {
+    A = A_TMPSTACK1;
+};
+})();")
+
+(test-ps-js variable-declaration-3
+  (defparameter A 987)
+  "var A = 987;")
+
+(test-ps-js variable-declaration-4
+  (progn (defparameter *a* 4)
          (let ((x 1)
                (*a* 2))
            (let* ((y (+ x 1))
@@ -487,6 +513,10 @@ try {
     A = A_TMPSTACK1;
 };
 })();")
+
+(test-ps-js variable-declaration-5
+  (defvar BAZ)
+  "var BAZ;")
 
 (test-ps-js iteration-constructs-1
   (do* ((a) b (c (array "a" "b" "c" "d" "e"))
@@ -1571,7 +1601,7 @@ __setf_someThing('foo', 1, 2);")
 })();")
 
 (test-ps-js special-var2
-  (progn (defvar *foo*)
+  (progn (defparameter *foo*)
          (let* ((*baz* 3)
                 (*foo* 2))
            (* *foo* 2 *baz*)))
@@ -3519,7 +3549,7 @@ while (foo()) {
                  (block nil
                    ((lambda () (return 6)))
                    (+ 1 2)))))
-  "var foo = (function () {
+  "if ('undefined' === typeof foo) { var foo = (function () {
     try {
         (function () {
             throw { '__ps_block_tag' : 'nilBlock', '__ps_value1' : 6 };
@@ -3533,14 +3563,15 @@ while (foo()) {
             throw _ps_err1;
         };
     };
-})();")
+})(); };")
 
 (test-ps-js block-dynamic-return1-redundant
-  (defvar foo ((lambda ()
-                 (block nil
-                   ((lambda () (return 6)))
-                   (+ 1 2))
-                 (+ 4 5))))
+  (defparameter foo
+    ((lambda ()
+       (block nil
+         ((lambda () (return 6)))
+         (+ 1 2))
+       (+ 4 5))))
   ;;; FIXME. Not wrong, but redundant
   "var foo = (function () {
     nilBlock: {
@@ -3960,7 +3991,7 @@ return function (x) {
 })() });")
 
 (test-ps-js toplevel-local-scope1
-  (defvar foo (create "fn" (let ((x 5)) (lambda () x))))
+  (defparameter foo (create "fn" (let ((x 5)) (lambda () x))))
   "var foo = { 'fn' : (function () {
     var x = 5;
     return function () {
@@ -4007,7 +4038,7 @@ return function (x) {
 function bar() {
     return foo + 1;
 };
-var baz = 2;")
+if ('undefined' === typeof baz) { var baz = 2; };")
 
 (test-ps-js js-ir-package-unique-symbols
   (loop :for i :from 0 :below 5 :do
@@ -4172,7 +4203,7 @@ bar();")
            (defvar bar (1+ foo)))
          bar)
   "var foo = 0;
-var bar = foo + 1;
+if ('undefined' === typeof bar) { var bar = foo + 1; };
 bar;")
 
 (test-ps-js setf-side-effects

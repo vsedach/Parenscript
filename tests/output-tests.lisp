@@ -4266,3 +4266,24 @@ x = 2 + sideEffect() + x + 5;")
     };
     return 5;
 });")
+
+(test-ps-js lambda-progn-block
+  (lambda ()
+    (progn
+      (block X
+        (lambda ()
+          (return-from X 1)))))
+  "(function () {
+    try {
+        return function () {
+            throw { '__ps_block_tag' : 'X', '__ps_value1' : 1 };
+        };
+    } catch (_ps_err1) {
+        if (_ps_err1 && 'X' === _ps_err1['__ps_block_tag']) {
+            __PS_MV_REG = { 'tag' : arguments.callee, 'values' : _ps_err1['__ps_values'] };
+            return _ps_err1['__ps_value1'];
+        } else {
+            throw _ps_err1;
+        };
+    };
+});")

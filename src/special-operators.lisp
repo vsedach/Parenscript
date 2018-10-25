@@ -206,7 +206,7 @@
              (*current-block-tag*   name)
              (compiled-body         (wrap-for-dynamic-return
                                      (list name)
-                                     (compile-statement `(progn ,@body)))))
+                                     (ps-compile `(progn ,@body)))))
         ;; this probably does not nest correctly
         (if (tree-find `(ps-js:break ,name) compiled-body)
             `(ps-js:label ,name ,compiled-body)
@@ -349,11 +349,14 @@ invocations or not.")
                ,@(when (or in-case? (fourth form))
                        `((return-from ,tag ,(fourth form)))))))
      (block
-      (let ((tag¹  (or (cadr form) 'nilBlock))
-            (body¹ (cddr form)))
-        (let ((*function-block-names* (cons tag¹ *function-block-names*)))
-          (return-from expressionize-result
-            (expressionize-result tag¹ `(progn ,@body¹))))))
+      (let* ((tag¹                   (or (cadr form) 'nilBlock))
+             (*function-block-names* (cons tag¹ *function-block-names*))
+             (*dynamic-return-tags*  (cons (cons tag¹ nil)
+                                           *dynamic-return-tags*)))
+        (return-from expressionize-result
+          (wrap-for-dynamic-return
+           (list tag¹)
+           (ps-compile `(return-from ,tag (progn ,@(cddr form))))))))
      (return-from ;; this will go away someday
       (unless tag
         (warn 'simple-style-warning
@@ -369,12 +372,11 @@ Parenscript now implements implicit return, update your code! Things like (lambd
               (t (compile-statement form))))))))
 
 (define-statement-operator return-from (tag &optional result)
-  (if tag
-      (let ((form (ps-macroexpand result)))
-        (if (or (atom form) (eq 'values (car form)))
-            (return-exp tag form)
-            (expressionize-result tag form)))
-      (ps-compile `(return-from nilBlock ,result))))
+  (setq tag (or tag 'nilBlock))
+  (let ((form (ps-macroexpand result)))
+    (if (or (atom form) (eq 'values (car form)))
+        (return-exp tag form)
+        (expressionize-result tag form))))
 
 (define-expression-operator values (&optional main &rest additional)
   (when main

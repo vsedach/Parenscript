@@ -167,7 +167,8 @@ of (declare ...) forms, and the remaining body."
            (collapsed-body
             (collapse-function-return-blocks body))
            (suppress-values?
-            (find 'values (flatten body)))
+            ;; probably buggy; this should be done after macroexpansion
+            (tree-find 'values collapsed-body))
            (*dynamic-return-tags*
             (append (mapcar (lambda (x) (cons x nil))
                             *function-block-names*)
@@ -238,7 +239,7 @@ of (declare ...) forms, and the remaining body."
     `(ps-js:lambda ,args1 ,body-block)))
 
 (defmacro local-functions (special-op &body bindings)
-  `(if (or in-function-scope? this-in-lambda-wrapped-form?)
+  `(if in-function-scope?
        (let* ((fn-renames (collect-function-names fn-defs))
               ,@bindings)
          `(,(if compile-expression? 'ps-js:|,| 'ps-js:block)

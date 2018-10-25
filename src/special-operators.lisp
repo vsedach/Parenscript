@@ -198,7 +198,7 @@
        body))
 
 (define-statement-operator block (name &rest body)
-  (if (or in-function-scope? this-in-lambda-wrapped-form?)
+  (if in-function-scope?
       (let* ((name                  (or name 'nilBlock))
              (in-loop-scope?        (if name in-loop-scope? nil))
              (*dynamic-return-tags* (cons (cons name nil) *dynamic-return-tags*))
@@ -206,7 +206,7 @@
              (compiled-body         (wrap-for-dynamic-return
                                      (list name)
                                      (compile-statement `(progn ,@body)))))
-        (if (tree-search `(ps-js:break ,name) compiled-body)
+        (if (tree-find `(ps-js:break ,name) compiled-body)
             `(ps-js:label ,name ,compiled-body)
             compiled-body))
       (ps-compile (with-lambda-scope `(block ,name ,@body)))))
@@ -333,7 +333,7 @@ invocations or not.")
           ,@(when in-case? `((t (return-from ,tag nil))))))
      (if
       (if (and (try-expressionizing-if? form)
-               (not (find 'values (flatten form)))
+               (not (tree-find 'values form))
                (let ((used-up-names                   *used-up-names*)
                      (*lambda-wrappable-statements*                ()))
                  (handler-case (compile-expression form)
@@ -463,9 +463,13 @@ Parenscript now implements implicit return, update your code! Things like (lambd
             (member x symbols-in-bindings))
     (ps-gensym (symbol-name x))))
 
-(defun with-lambda-scope (body)
- (prog1 (lambda-wrap body)
-   (setf *vars-needing-to-be-declared* ())))
+(defun with-lambda-scope (form)
+  (prog1 (if (tree-find 'this
+                        (let ((*ps-gensym-counter* *ps-gensym-counter*))
+                          (ps-compile `(lambda () ,form))))
+             `(funcall (getprop (lambda () ,form) 'call) this)
+             `((lambda () ,form)))
+    (setf *vars-needing-to-be-declared* ())))
 
 (define-expression-operator let (bindings &body body)
   (with-declaration-effects (body body)
@@ -534,9 +538,7 @@ Parenscript now implements implicit return, update your code! Things like (lambd
                                            dynamic-bindings)))))
                       renamed-body))))
           (ps-compile
-           (cond ((or in-function-scope?
-                      this-in-lambda-wrapped-form?
-                      (null bindings))
+           (cond ((or in-function-scope? (null bindings))
                   let-body)
                  ;; HACK
                  ((find-if

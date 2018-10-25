@@ -63,14 +63,18 @@
   (list "break" "case" "catch" "continue" "default" "delete" "do" "else"
         "finally" "for" "function" "if" "in" "instanceof" "new" "return"
         "switch" "this" "throw" "try" "typeof" "var" "void" "while" "with"
-        "abstract" "boolean" "byte" "char" "class" "const" "debugger" "double"
-        "enum" "export" "extends" "final" "float" "goto" "implements" "import"
-        "int" "interface" "long" "native" "package" "private" "protected"
-        "public" "short" "static" "super" "synchronized" "throws" "transient"
-        "volatile" "{}" "true" "false" "null" "undefined"))
+        "abstract" "boolean" "byte" "char" "class" "const" "debugger"
+        "double" "enum" "export" "extends" "final" "float" "goto"
+        "implements" "import" "int" "interface" "long" "native" "package"
+        "private" "protected" "public" "short" "static" "super"
+        "synchronized" "throws" "transient" "volatile" "{}" "true" "false"
+        "null" "undefined"))
 
-(defvar *lambda-wrappable-statements* ;; break, return, continue not included
-  '(throw switch for for-in while try block))
+(defvar *lambda-wrappable-statements*
+  '(throw switch for for-in while try block)
+  "Statement special forms that can be wrapped in a lambda to make
+  them into expressions. Control transfer forms like BREAK, RETURN,
+  and CONTINUE need special treatment, and are not included.")
 
 (defun reserved-symbol-p (symbol)
   (find (string-downcase (string symbol)) *reserved-symbol-names* :test #'string=))
@@ -102,7 +106,9 @@
        (or (gethash (car form) *special-expression-operators*)
            (gethash (car form) *special-statement-operators*))))
 
-;;; scoping and lexical environment
+;;; naming, scoping, and lexical environment
+
+(defvar *ps-gensym-counter* 0)
 
 (defvar *vars-needing-to-be-declared* ()
   "This special variable is expected to be bound to a fresh list by
@@ -265,20 +271,6 @@ return NIL."
         (values (ps-macroexpand form1) t)
         form1)))
 
-;;; lambda wrapping
-
-(defvar *ps-gensym-counter* 0)
-
-(defvar this-in-lambda-wrapped-form? nil)
-
-(defun lambda-wrap (form)
-  (let ((this-in-lambda-wrapped-form? :query)
-	(*ps-gensym-counter* *ps-gensym-counter*))
-    (ps-compile form)
-    (if (eq this-in-lambda-wrapped-form? :yes)
-	`(chain (lambda () ,form) (call this))
-	`((lambda () ,form)))))
-
 ;;;; compiler interface
 
 (defparameter *compilation-level* :toplevel
@@ -300,37 +292,41 @@ form, FORM, returns the new value for *compilation-level*."
 
 (define-condition compile-expression-error (error)
   ((form :initarg :form :reader error-form))
-  (:report (lambda (condition stream)
-             (format stream "The Parenscript form ~A cannot be compiled into an expression." (error-form condition)))))
+  (:report
+   (lambda (condition stream)
+     (format
+      stream
+      "The Parenscript form ~A cannot be compiled into an expression."
+      (error-form condition)))))
 
 (defun compile-special-form (form)
-  (let* ((op (car form))
-         (statement-impl (gethash op *special-statement-operators*))
+  (let* ((op              (car form))
+         (statement-impl  (gethash op *special-statement-operators*))
          (expression-impl (gethash op *special-expression-operators*)))
-    (cond ((or (not compile-expression?) this-in-lambda-wrapped-form?)
+    (cond ((not compile-expression?)
            (apply (or statement-impl expression-impl) (cdr form)))
           (expression-impl
            (apply expression-impl (cdr form)))
           ((member op *lambda-wrappable-statements*)
-           (compile-expression (lambda-wrap form)))
-          (t (error 'compile-expression-error :form form)))))
+           (compile-expression (with-lambda-scope form)))
+          (t
+           (error 'compile-expression-error :form form)))))
 
 (defun ps-compile (form)
-  (macrolet ((try-expanding (form &body body)
-               `(multiple-value-bind (expansion expanded?) (ps-macroexpand ,form)
-                  (if expanded?
-                      (ps-compile expansion)
-                      (progn ,@body)))))
+  (macrolet
+      ((try-expanding (form &body body)
+         `(multiple-value-bind (expansion expanded?)
+              (ps-macroexpand ,form)
+            (if expanded?
+                (ps-compile expansion)
+                ,@body))))
     (typecase form
       ((or null number string character)
        form)
       (vector
        (ps-compile `(quote ,(coerce form 'list))))
       (symbol
-       (try-expanding form
-	 (when (and (eq form 'this) (eq this-in-lambda-wrapped-form? :query))
-	   (setq this-in-lambda-wrapped-form? :yes))
-	 form))
+       (try-expanding form form))
       (cons
        (try-expanding form
          (let ((*compilation-level*

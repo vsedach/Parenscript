@@ -118,11 +118,11 @@ Use GETPROP, @, or CHAIN instead."
         ((atom x) (cons x acc))
         (t (flatten (car x) (flatten (cdr x) acc)))))
 
-(defun tree-search (A tree)
+(defun tree-find (A tree)
   (or (equal A tree)
       (when (consp tree)
-        (loop for x on tree thereis ;; fucking dotted lists
-              (or (tree-search A (car x))
+        (loop for x on tree thereis
+              (or (tree-find A (car x))
                   (unless (listp (cdr x))
                     (equal A (cdr x))))))))
 

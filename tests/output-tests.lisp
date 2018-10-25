@@ -3565,34 +3565,6 @@ while (foo()) {
     };
 })(); };")
 
-(test-ps-js block-dynamic-return1-redundant
-  (defparameter foo
-    ((lambda ()
-       (block nil
-         ((lambda () (return 6)))
-         (+ 1 2))
-       (+ 4 5))))
-  ;;; FIXME. Not wrong, but redundant
-  "var foo = (function () {
-    nilBlock: {
-    try {
-        (function () {
-            throw { '__ps_block_tag' : 'nilBlock', '__ps_value1' : 6 };
-        })();
-        1 + 2;
-    } catch (_ps_err1) {
-        if (_ps_err1 && 'nilBlock' === _ps_err1['__ps_block_tag']) {
-            __PS_MV_REG = { 'tag' : arguments.callee, 'values' : _ps_err1['__ps_values'] };
-            _ps_err1['__ps_value1'];
-            break nilBlock;
-        } else {
-            throw _ps_err1;
-        };
-    };
-    };
-    return 4 + 5;
-})();")
-
 (test-ps-js iteration-lambda-capture-no-need
   (dolist (x y)
     (lambda (x) (1+ x)))
@@ -4318,3 +4290,78 @@ x = 2 + sideEffect() + x + 5;")
         };
     };
 });")
+
+(test-ps-js defun-when-if-return
+  (defun foobar ()
+    (when (bar)
+      (loop if (foo) return 10)))
+  "function foobar() {
+    if (bar()) {
+        while (true) {
+            if (foo()) {
+                return 10;
+            };
+        };
+    };
+};")
+
+(test-ps-js block-block-return-from-toplevel
+  (block bar
+    (block foo
+      (return-from foo 10)))
+  "(function () {
+    return 10;
+})();")
+
+;;; Stuff to fix. Not necessarily wrong, but redundant/could be better
+
+(test-ps-js block-dynamic-return1-redundant
+  (defparameter foo
+    ((lambda ()
+       (block nil
+         ((lambda () (return 6)))
+         (+ 1 2))
+       (+ 4 5))))
+  ;;; FIXME. Not wrong, but redundant
+  "var foo = (function () {
+    nilBlock: {
+    try {
+        (function () {
+            throw { '__ps_block_tag' : 'nilBlock', '__ps_value1' : 6 };
+        })();
+        1 + 2;
+    } catch (_ps_err1) {
+        if (_ps_err1 && 'nilBlock' === _ps_err1['__ps_block_tag']) {
+            __PS_MV_REG = { 'tag' : arguments.callee, 'values' : _ps_err1['__ps_values'] };
+            _ps_err1['__ps_value1'];
+            break nilBlock;
+        } else {
+            throw _ps_err1;
+        };
+    };
+    };
+    return 4 + 5;
+})();")
+
+(test-ps-js block-gratuitous-dynamic-return
+  (block foo
+    (block bar
+      (block nil
+        (return-from bar 10)))
+    (foo))
+  "(function () {
+    bar: {
+        try {
+            throw { '__ps_block_tag' : 'bar', '__ps_value1' : 10 };
+        } catch (_ps_err1) {
+            if (_ps_err1 && 'bar' === _ps_err1['__ps_block_tag']) {
+                __PS_MV_REG = { 'tag' : arguments.callee, 'values' : _ps_err1['__ps_values'] };
+                _ps_err1['__ps_value1'];
+                break bar;
+            } else {
+                throw _ps_err1;
+            };
+        };
+    };
+    return foo();
+})();")

@@ -1039,3 +1039,11 @@
                           (+ 1 2))))))
     foo)
   7)
+
+(test-js-eval defun-when-if-return
+  (progn
+    (defun foobar ()
+      (when t
+        (loop if t return 10)))
+    (foobar))
+  10)

@@ -243,7 +243,7 @@
 (defpsmacro stringify (&rest things)
   (if (and (= (length things) 1) (stringp (car things)))
       (car things)
-      `((@ (list ,@things) join) "")))
+      `(funcall (getprop (list ,@things) 'join) "")))
 (defun stringify (&rest things)
   "Like concatenate but prints all of its arguments."
   (format nil "~{~A~}" things))

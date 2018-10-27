@@ -87,16 +87,14 @@ for (var i = 0, j = arr[i]; i < 10; i = ++i, j = arr[i]) {
 
 (ps
   (defun add-div (name href link-text)
-    (document.write
-     (ps-html ((:div :id name)
-               "The link is: "
-               ((:a :href href) link-text))))))
+    (funcall (getprop document 'write)
+             (ps-html ((:div :id name)
+                       "The link is: "
+                       ((:a :href href) link-text))))))
 
 ;; compiles to
 "
 function addDiv(name, href, linkText) {
-  document.write('<div id=\"' + name + '\">The link is: <a href=\"'
-                                + href + '\">'
-                                + linkText + '</a></div>');
-}
+    return document.write(['<div id=\\\"', name, '\\\">The link is: <a href=\\\"', href, '\\\">', linkText, '</a></div>'].join(''));
+};
 "

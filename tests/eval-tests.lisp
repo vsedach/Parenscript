@@ -1040,6 +1040,16 @@
     (funcall (ps:getprop obj 'foo)))
   4)
 
+(test-js-eval arrayp1
+  (arrayp '(1 2 3))
+  t
+  :js-target-version "1.3")
+
+(test-js-eval arrayp2
+  (arrayp '(1 2 3))
+  t
+  :js-target-version "1.8.5")
+
 ;;; Multiple value cases that are currently unimplemented
 
 ;; (test-js-eval multiple-value-call-twice

@@ -56,19 +56,25 @@
         ((null x) :null)
         (t x)))
 
-(defmacro %test-js-eval (testname parenscript test-statement)
+(defmacro %test-js-eval (testname parenscript test-statement
+                         js-target-version)
   `(fiveam:test ,testname ()
      (cl-js:with-js-env ()
-       (let ((js-result (cl-js:run-js (ps-doc* ',parenscript))))
+       (let* ((*js-target-version* ,js-target-version)
+              (js-result (cl-js:run-js (ps-doc* ',parenscript))))
          ,test-statement))))
 
-(defmacro test-js-eval (testname parenscript expected)
+(defmacro test-js-eval (testname parenscript expected
+                        &key (js-target-version *js-target-version*))
   `(%test-js-eval ,testname ,parenscript
-     (fiveam:is (equalp js-result (js-repr ,expected)))))
+     (fiveam:is (equalp js-result (js-repr ,expected)))
+     ,js-target-version))
 
-(defmacro test-js-eval-epsilon (testname parenscript expected)
+(defmacro test-js-eval-epsilon (testname parenscript expected
+                                &key (js-target-version *js-target-version*))
   `(%test-js-eval ,testname ,parenscript
-     (fiveam:is (< (abs (- js-result ,expected)) 0.0001))))
+     (fiveam:is (< (abs (- js-result ,expected)) 0.0001))
+     ,js-target-version))
 
 (fiveam:def-suite parenscript-tests)
 (fiveam:def-suite output-tests         :in parenscript-tests)

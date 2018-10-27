@@ -145,6 +145,15 @@
 (defpsmacro booleanp (x)
   `(string= (typeof ,x) "boolean"))
 
+(defpsmacro listp (x)
+  (if (js-target-at-least "1.8.5")
+      `(funcall (getprop Array 'is-array) ,x)
+      `(string= (funcall (getprop Object 'prototype 'to-string 'call) ,x)
+                "[object Array]")))
+
+(defpsmacro arrayp (x)
+  `(listp ,x))
+
 ;;; Data structures
 
 (defpsmacro make-array (&rest args)

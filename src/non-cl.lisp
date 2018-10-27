@@ -144,14 +144,16 @@
           ,@(cdr props))
       obj))
 
+(defun chain (method-calls)
+  (let ((chain (car method-calls)))
+    (dolist (next (cdr method-calls))
+      (setf chain (if (consp next)
+                      `(funcall (@ ,chain ,(car next)) ,@(cdr next))
+                      `(@ ,chain ,next))))
+    chain))
+
 (defpsmacro chain (&rest method-calls)
-  (labels ((do-chain (method-calls)
-             (if (cdr method-calls)
-                 (if (listp (car method-calls))
-                     `((@ ,(do-chain (cdr method-calls)) ,(caar method-calls)) ,@(cdar method-calls))
-                     `(@ ,(do-chain (cdr method-calls)) ,(car method-calls)))
-                 (car method-calls))))
-    (do-chain (reverse method-calls))))
+  (chain method-calls))
 
 ;;; var
 

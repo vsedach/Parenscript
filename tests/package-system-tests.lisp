@@ -74,7 +74,7 @@
 (test-ps-js uniform-symbol-handling1
   (progn (create parenscript.tests.my-library::foo 1)
          (getprop foo 'parenscript.tests.my-library::foo))
-  "({ my_library_foo : 1 });
+  "{ my_library_foo : 1 };
 foo.my_library_foo;")
 
 (let ((map (make-hash-table)))
@@ -139,7 +139,7 @@ return !foo1 && foo1.prefix_bar + prefix_someOtherVar;
 (parenscript.tests::test-ps-js prefixed-symbol-macro-obj1
   (symbol-macrolet ((x (+ 1 2)))
     (ps:create x x))
-  "({ prefix_x : 1 + 2 });")
+  "{ prefix_x : 1 + 2 };")
 
 (cl:in-package #:parenscript.tests)
 

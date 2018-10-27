@@ -55,8 +55,6 @@ vice-versa.")
 
 (defvar *psw-stream*)
 
-(defvar %printer-toplevel?)
-
 (defun parenscript-print (form immediate?)
   (declare (special immediate?))
   (let ((*indent-level* 0)
@@ -64,8 +62,7 @@ vice-versa.")
         (*psw-stream* (if immediate?
                           *psw-stream*
                           (make-string-output-stream)))
-        (%psw-accumulator ())
-        (%printer-toplevel? t))
+        (%psw-accumulator ()))
     (declare (special %psw-accumulator))
     (with-standard-io-syntax
       (if (and (listp form) (eq 'ps-js:block (car form))) ; ignore top-level block
@@ -100,10 +97,6 @@ vice-versa.")
 
 (defgeneric ps-print (form))
 (defgeneric ps-print% (js-primitive args))
-
-(defmethod ps-print :after (form)
-  (declare (ignore form))
-  (setf %printer-toplevel? nil))
 
 (defmacro defprinter (js-primitive args &body body)
   (if (listp js-primitive)
@@ -218,15 +211,9 @@ vice-versa.")
                ps-js:funcall ps-js:aref ps-js:getprop))) ;; these aren't really associative, but RPN
 
 (defun parenthesize-print (x)
-  (psw #\() (if (functionp x) (funcall x) (ps-print x)) (psw #\)))
-
-(defun parenthesize-at-toplevel (x)
-  (if %printer-toplevel?
-      (parenthesize-print x)
-      (funcall x)))
+  (psw #\() (ps-print x) (psw #\)))
 
 (defun print-op-argument (op argument)
-  (setf %printer-toplevel? nil)
   (let ((arg-op (when (listp argument) (car argument))))
     (if (or (< (precedence op) (precedence arg-op))
             (and (= (precedence op) (precedence arg-op))
@@ -293,8 +280,7 @@ vice-versa.")
   "}")
 
 (defprinter ps-js:lambda (args body-block)
-  (parenthesize-at-toplevel
-   (lambda () (print-fun-def nil args body-block))))
+  (print-fun-def nil args body-block))
 
 (defprinter ps-js:defun (name args docstring body-block)
   (when docstring (print-comment docstring))
@@ -310,29 +296,27 @@ vice-versa.")
     (ps-print body)))
 
 (defprinter ps-js:object (&rest slot-defs)
-  (parenthesize-at-toplevel
-   (lambda ()
-     (psw "{ ")
-     (let ((indent? (< 2 (length slot-defs)))
-           (indent *column*))
-       (loop for ((slot-name . slot-value) . remaining) on slot-defs do
-            (if (consp slot-name)
-                (apply #'print-fun-def slot-name slot-value)
-                (progn
-                  (ps-print slot-name) (psw " : ")
-                  (if (and (consp slot-value)
-                           (eq 'ps-js:|,| (car slot-value)))
-                      (parenthesize-print slot-value)
-                      (ps-print slot-value))))
-            (when remaining
-              (psw ",")
-              (if indent?
-                  (newline-and-indent indent)
-                  (psw #\Space))))
-       (if indent?
-           (newline-and-indent (- indent 2))
-           (psw #\Space)))
-     (psw "}"))))
+  (psw "{ ")
+  (let ((indent? (< 2 (length slot-defs)))
+        (indent *column*))
+    (loop for ((slot-name . slot-value) . remaining) on slot-defs do
+         (if (consp slot-name)
+             (apply #'print-fun-def slot-name slot-value)
+             (progn
+               (ps-print slot-name) (psw " : ")
+               (if (and (consp slot-value)
+                        (eq 'ps-js:|,| (car slot-value)))
+                   (parenthesize-print slot-value)
+                   (ps-print slot-value))))
+         (when remaining
+           (psw ",")
+           (if indent?
+               (newline-and-indent indent)
+               (psw #\Space))))
+    (if indent?
+        (newline-and-indent (- indent 2))
+        (psw #\Space)))
+  (psw "}"))
 
 (defprinter ps-js:getprop (obj slot)
   (print-op-argument op obj)"."(psw (symbol-to-js-string slot)))

@@ -573,22 +573,6 @@
          (otherwise 7)))
   6)
 
-;;; needs MV pass-through to work
-;; (test-js-eval multiple-value-call-twice
-;;   (progn
-;;     (defun foo (x &optional y z)
-;;       (if z
-;;           (values x y z)
-;;           (values x y)))
-
-;;     (defun bar ()
-;;       (foo 1 2 3)
-;;       (foo 4 5))
-
-;;     (multiple-value-bind (a b c) (bar)
-;;       (list a b c)))
-;;   '(4 5 :undefined))
-
 (test-js-eval recursive-values
   (progn
     (defun foo (x)
@@ -1047,3 +1031,37 @@
         (loop if t return 10)))
     (foobar))
   10)
+
+(test-js-eval this-passthrough-generated-lambdas
+  (let ((obj (ps:create x 3)))
+    (setf (ps:getprop obj 'foo)
+          (lambda ()
+            (1+ (loop repeat 10 return (ps:getprop ps:this 'x)))))
+    (funcall (ps:getprop obj 'foo)))
+  4)
+
+;;; Multiple value cases that are currently unimplemented
+
+;; (test-js-eval multiple-value-call-twice
+;;   (progn
+;;     (defun foo (x &optional y z)
+;;       (if z
+;;           (values x y z)
+;;           (values x y)))
+
+;;     (defun bar ()
+;;       (foo 1 2 3)
+;;       (foo 4 5))
+
+;;     (multiple-value-bind (a b c) (bar)
+;;       (list a b c)))
+;;   '(4 5 :undefined))
+
+;; (test-js-eval multiple-value-bind-nested
+;;   (multiple-value-bind (x y)
+;;       ((lambda ()
+;;          (multiple-value-bind (a b)
+;;              (values 1 2)
+;;            (values b a))))
+;;     (list x y))
+;;   '(2 1))

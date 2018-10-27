@@ -4365,3 +4365,17 @@ x = 2 + sideEffect() + x + 5;")
     };
     return foo();
 })();")
+
+(test-ps-js for-loop-var-init-let
+  (lambda (y)
+    (ps:for
+     ((x (let ((x0 (foo y)))
+           (bar x0))))
+     () ()
+     (xyzzy x)))
+  "(function (y) {
+    var x0;
+    for (var x = (x0 = foo(y), bar(x0)); ; ) {
+        xyzzy(x);
+    };
+});")

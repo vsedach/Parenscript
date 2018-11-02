@@ -133,6 +133,7 @@
     for (var i4 = 0; i4 < Math.min(arr1.length, init2.length); i4 += 1) {
         arr1[i4] = init2[i4];
     };
+    __PS_MV_REG = [];
     return arr1;
 })();")
 
@@ -144,6 +145,7 @@
     for (var i4 = 0; i4 < arr1.length; i4 += 1) {
         arr1[i4] = elt3;
     };
+    __PS_MV_REG = [];
     return arr1;
 })();")
 
@@ -176,6 +178,7 @@
   (lambda () (with-slots (a b) (foo) (+ a b)))
   "function () {
     var object1 = foo();
+    __PS_MV_REG = [];
     return object1.a + object1.b;
 };")
 
@@ -207,6 +210,7 @@
   "(function () {
       var _js1 = makeAnObject()[foo];
       var _js2 = _js1.bar;
+      __PS_MV_REG = [];
       return _js2.apply(_js1, null);
     })();")
 
@@ -734,6 +738,7 @@ for (var _js1 in obj) {
             map1[k] = bar(k);
         };
     };
+    __PS_MV_REG = [];
     return map1;
 })();")
 
@@ -861,6 +866,7 @@ for (var _js1 = 0; _js1 < _js2; _js1 += 1) {
         var a = b[_js1];
         append3 = append3.concat(a);
     };
+    __PS_MV_REG = [];
     return append3;
 })();")
 
@@ -1128,6 +1134,7 @@ return element.innerHTML = ['<textarea', disabled || !authorized ? [' disabled=\
 var _js2 = 1;
 var _js3 = 2;
 var _js1 = 3;
+__PS_MV_REG = [];
 return setBaz(_js2, _js3, _js1);
 })();")
 
@@ -1201,7 +1208,7 @@ __setf_someThing('foo', 1, 2);")
 
 (test-ps-js set-timeout
   (set-timeout (lambda () (alert "foo")) 10)
-  "setTimeout(function () { return alert('foo'); }, 10);")
+  "setTimeout(function () { __PS_MV_REG = []; return alert('foo'); }, 10);")
 
 (test-ps-js operator-precedence
   (* 3 (+ 4 5) 6)
@@ -1292,6 +1299,7 @@ __setf_someThing('foo', 1, 2);")
     (alert (aref bar 1)))
   "function foo() {
     var bar = Array.prototype.slice.call(arguments, 0);
+    __PS_MV_REG = [];
     return alert(bar[1]);
 };")
 
@@ -1426,6 +1434,7 @@ __setf_someThing('foo', 1, 2);")
   "function foo() {
     if (1 < 2) {
         bar('foo');
+        __PS_MV_REG = [];
         return 4 * 5;
     };
 };")
@@ -1454,12 +1463,16 @@ __setf_someThing('foo', 1, 2);")
     var _cmp3;
     if (1 < 2) {
         bar('foo');
+        __PS_MV_REG = [];
         return 4 * 5;
     } else if (a === b) {
+        __PS_MV_REG = [];
         return c + d;
     } else if (_cmp1 = 2, _cmp2 = 3, _cmp3 = 4, 1 < _cmp1 && _cmp1 < _cmp2 && _cmp2 < _cmp3 && _cmp3 < 5) {
+        __PS_MV_REG = [];
         return x;
     } else {
+        __PS_MV_REG = [];
         return 'foo';
     };
 };")
@@ -1747,6 +1760,7 @@ __setf_someThing('foo', 1, 2);")
     var foo = function (x) {
         return x + 1;
     };
+    __PS_MV_REG = [];
     return foo(1);
 })();")
 
@@ -1761,6 +1775,7 @@ var foo = function (x) {
 var bar = function (y) {
     return 2 + y;
 };
+__PS_MV_REG = [];
 return bar(foo(1));
 })();")
 
@@ -1777,8 +1792,10 @@ var foo1 = function (x) {
     return x + 1;
 };
 var bar = function (y) {
+    __PS_MV_REG = [];
     return 2 + foo(y);
 };
+__PS_MV_REG = [];
 return bar(foo1(1));
 })();")
 
@@ -1834,6 +1851,7 @@ var foo = function (x, y) {
     };
     return x + y;
 };
+__PS_MV_REG = [];
 return foo(1);
 })();")
 
@@ -2072,6 +2090,7 @@ return x + x;
               (1+ a))))
   "x = (function () {
     var a = foo();
+    __PS_MV_REG = [];
     return a != null ? a + 1 : null;
 })();")
 
@@ -2177,8 +2196,10 @@ return x + x;
       (baz y)))
   "function foo() {
     var y = (function () {
+        __PS_MV_REG = [];
         return bar(this);
     }).call(this);
+    __PS_MV_REG = [];
     return baz(y);
 };")
 
@@ -2239,6 +2260,7 @@ var x = function (x) {
     return x + 1;
 };
 var x1 = 2;
+__PS_MV_REG = [];
 return x(x1);
 })();")
 
@@ -2385,6 +2407,7 @@ var foo = function (x) {
     var y = 'undefined' === typeof y ? 0 : y;
     return x + y;
 };
+__PS_MV_REG = [];
 return foo(1, 'y', 2);
 })();")
 
@@ -2502,16 +2525,12 @@ try {
 (test-ps-js multiple-value-bind-simple
   (multiple-value-bind (a b) (blah)
     (+ a b))
-  "(function () {
-    var prevMv1 = 'undefined' === typeof __PS_MV_REG ? (__PS_MV_REG = undefined) : __PS_MV_REG;
-try {
+  "__PS_MV_REG = [];
+(function () {
     var a = blah();
-    var _db2 = blah === __PS_MV_REG['tag'] ? __PS_MV_REG['values'] : [];
-    var b = _db2[0];
+    var b = __PS_MV_REG[0];
+    __PS_MV_REG = [];
     return a + b;
-} finally {
-    __PS_MV_REG = prevMv1;
-};
 })();")
 
 (test-ps-js values0
@@ -2528,8 +2547,9 @@ try {
 (test-ps-js values2
   (lambda () (values x y))
   "function () {
-__PS_MV_REG = { 'tag' : arguments.callee, 'values' : [y] };
-return x;
+var val1 = x;
+__PS_MV_REG = [y];
+return val1;
 };")
 
 (test-ps-js values3
@@ -2632,6 +2652,7 @@ if (foowhat(x)) {
             foo(y);
         };
     } else {
+        __PS_MV_REG = [];
         return c;
     };
 };")
@@ -2783,6 +2804,7 @@ try {
          (setf (foo x 1 2 3 4) 5))
   "function __setf_foo(newValue, b) {
     var foo = Array.prototype.slice.call(arguments, 2);
+    __PS_MV_REG = [];
     return doSomething(b, foo, newValue);
 };
 __setf_foo(5, x, 1, 2, 3, 4);")
@@ -2925,6 +2947,7 @@ try {
     FOO = FOO_TMPSTACK1;
 };
 var FOO = 456;
+__PS_MV_REG = [];
 return 4 + 5;
 })();")
 
@@ -2941,6 +2964,7 @@ return 4 + 5;
         try {
             BAR_TMPSTACK2 = BAR;
             BAR = FOO + BAR;
+            __PS_MV_REG = [];
             return blah();
         } finally {
             BAR = BAR_TMPSTACK2;
@@ -3001,6 +3025,7 @@ var testSymbolMacro1_1 = function () {
     return 2;
 };
 foo(1);
+__PS_MV_REG = [];
 return testSymbolMacro1_1();
 })();
 bar(1);")
@@ -3133,11 +3158,13 @@ a === b;")
     scope: {
         foo();
         if (bar()) {
+            __PS_MV_REG = [];
             foobar();
             break scope;
         };
         blee();
     };
+    __PS_MV_REG = [];
     return 2;
 };")
 
@@ -3398,6 +3425,7 @@ for (var i = 0; i < 10; i += 1) {
     (function () {
         var x = i + 1;
         return function () {
+            __PS_MV_REG = [];
             return i + x;
         };
     })();
@@ -3446,6 +3474,7 @@ while (foo()) {
     if (a) {
         var b = bar[0];
         var c = bar.length > 1 ? bar.slice(1) : [];
+        __PS_MV_REG = [];
         return [b, c];
     };
 };")
@@ -3458,10 +3487,12 @@ while (foo()) {
   "function bar() {
     foo(1);
     nilBlock: {
+        __PS_MV_REG = [];
         foo(2);
         break nilBlock;
         1 + 2;
     };
+    __PS_MV_REG = [];
     return 2;
 };")
 
@@ -3834,6 +3865,7 @@ return function (x) {
   "function (x) {
     var x1 = 1;
     foo(x1);
+    __PS_MV_REG = [];
     return ++x;
 };")
 
@@ -4083,6 +4115,7 @@ for (var i = 0; i < 5; i += 1) {
   (acosh (blah 3.14))
   "(function () {
     var x1 = blah(3.14);
+    __PS_MV_REG = [];
     return 2 * Math.log(Math.sqrt((x1 + 1) / 2) + Math.sqrt((x1 - 1) / 2));
 })();")
 
@@ -4103,6 +4136,7 @@ for (var i = 0; i < 5; i += 1) {
     (let* ((a (bar)))))
   "function foo() {
     var a = bar();
+    __PS_MV_REG = [];
     return null;
 };")
 
@@ -4157,6 +4191,7 @@ function foo(x) {
         (set-state self (create x (+ offset 1))))))
   "function nextPage(self) {
     var object1 = self.state;
+    __PS_MV_REG = [];
     return object1.count && object1.limit * object1.offset < object1.count ? setState(self, { x : object1.offset + 1 }) : null;
 };")
 
@@ -4205,6 +4240,7 @@ x = 2 + sideEffect() + x + 5;")
 
   "(function () {
     var x1 = callMeOnce();
+    __PS_MV_REG = [];
     return (Math.exp(x1) - Math.exp(-x1)) / 2;
 })();")
 

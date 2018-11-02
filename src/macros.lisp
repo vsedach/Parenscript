@@ -200,13 +200,12 @@
 ;;; multiple values
 
 (defpsmacro multiple-value-bind (vars form &body body)
-  (let* ((form (ps-macroexpand form))
-         (progn-form
-          (when (and (consp form)
-                     (member
-                      (car form)
-                      '(with label let flet labels macrolet symbol-macrolet progn)))
-            (pop form))))
+  (let* ((form       (ps-macroexpand form))
+         (progn-form (when (and (consp form)
+                                (member (car form)
+                                        '(with label let flet labels
+                                          macrolet symbol-macrolet progn)))
+                       (pop form))))
     (if progn-form
         `(,progn-form
           ,@(butlast form)
@@ -214,23 +213,21 @@
               ,@(last form)
             ,@body))
         ;; assume function call
-        (with-ps-gensyms (prev-mv)
-          (let* ((fun-exp (car form))
-                 (funobj (if (symbolp fun-exp)
-                             fun-exp
-                             (ps-gensym 'funobj))))
-            `(let (,@(unless (symbolp fun-exp) `((,funobj ,fun-exp)))
-                   (,prev-mv (if (undefined __PS_MV_REG)
-                                 (setf __PS_MV_REG undefined)
-                                 __PS_MV_REG)))
-               (try
-                (let ((,(car vars) (,funobj ,@(cdr form))))
-                  (destructuring-bind (&optional ,@(cdr vars))
-                      (if (eql ,funobj (@ __PS_MV_REG :tag))
-                          (@ __PS_MV_REG :values)
-                          (list))
-                    ,@body))
-                (:finally (setf __PS_MV_REG ,prev-mv)))))))))
+        `(progn
+           (setf __PS_MV_REG '())
+           (let ((,(car vars) ,form))
+             (destructuring-bind (&optional ,@(cdr vars))
+                 __PS_MV_REG
+               ,@body))))))
+
+(defpsmacro multiple-value-list (form)
+  (with-ps-gensyms (first-value values-list)
+    `(let* ((,first-value (progn
+                            (setf __PS_MV_REG '())
+                            ,form))
+            (,values-list (funcall (getprop __PS_MV_REG 'slice))))
+       (funcall (getprop ,values-list 'unshift) ,first-value)
+       ,values-list)))
 
 ;;; conditionals
 
@@ -509,9 +506,9 @@ lambda-list::=
 
 (defpsmacro prog1 (first &rest others)
   (with-ps-gensyms (val)
-    `(let ((,val ,first))
+    `(let ((,val (multiple-value-list ,first)))
        ,@others
-       ,val)))
+       (values-list ,val))))
 
 (defpsmacro prog2 (first second &rest others)
   `(progn ,first (prog1 ,second ,@others)))

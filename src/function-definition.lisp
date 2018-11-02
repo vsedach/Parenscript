@@ -163,15 +163,13 @@ of (declare ...) forms, and the remaining body."
            (*current-block-tag*           nil)
            (*vars-needing-to-be-declared* ())
            (*used-up-names*               ())
+           (returning-values?             nil)
            (*enclosing-function-arguments*
             (append args *enclosing-function-arguments*))
            (*enclosing-lexicals*
             (set-difference *enclosing-lexicals* args))
            (collapsed-body
             (collapse-function-return-blocks body))
-           (suppress-values?
-            ;; probably buggy; this should be done after macroexpansion
-            (tree-find 'values collapsed-body))
            (*dynamic-return-tags*
             (append (mapcar (lambda (x) (cons x nil))
                             *function-block-names*)

@@ -170,11 +170,7 @@
 (define-statement-operator progn (&rest body)
   `(ps-js:block ,@(compile-progn body)))
 
-(defun fill-mv-reg (values)
-  `(setf __PS_MV_REG (create :tag    (@ arguments callee)
-                             :values ,values)))
-
-(defvar suppress-values? nil)
+(defvar returning-values? nil)
 
 (defun wrap-for-dynamic-return (handled-tags body)
   (aif (loop for (tag . thrown?) in *dynamic-return-tags*
@@ -182,18 +178,18 @@
              collect tag)
        (with-ps-gensyms (_ps_err)
          (flet ((make-catch-clause (tag)
-                  `((and ,_ps_err (eql ',tag (getprop ,_ps_err :__ps_block_tag)))
-                    ,(fill-mv-reg `(getprop ,_ps_err :__ps_values))
-                    (return-from ,tag (getprop ,_ps_err :__ps_value1)))))
+                  `((and ,_ps_err (eql ',tag
+                                       (getprop ,_ps_err :__ps_block_tag)))
+                    (return-from ,tag
+                      (values-list (getprop ,_ps_err :__ps_values))))))
            `(ps-js:block
                (ps-js:try
                 ,body
-                :catch   (,_ps_err
-                          ,(let ((suppress-values? nil))
-                             (compile-statement
-                              `(progn (cond
-                                        ,@(mapcar #'make-catch-clause it)
-                                        (t (throw ,_ps_err)))))))
+                :catch (,_ps_err
+                        ,(compile-statement
+                          `(progn (cond
+                                    ,@(mapcar #'make-catch-clause it)
+                                    (t (throw ,_ps_err))))))
                 :finally nil))))
        body))
 
@@ -213,51 +209,47 @@
             compiled-body))
       (ps-compile (with-lambda-scope `(block ,name ,@body)))))
 
+(define-expression-operator values (&rest forms)
+  (ps-compile
+   (with-ps-gensyms (val)
+     `(let ((,val ,(car forms)))
+        (setf __PS_MV_REG (list ,@(cdr forms)))
+        ,val))))
+
+(define-expression-operator values-list (list)
+  (ps-compile
+   (with-ps-gensyms (values-list firstval)
+     `(let ((,values-list (funcall (getprop ,list 'slice))))
+        (setf ,firstval   (funcall (getprop ,values-list 'shift))
+              __PS_MV_REG ,values-list)
+        ,firstval))))
+
 (defun return-exp (tag &optional (value nil value?))
-  (let (rest-values)
-    (when (and (consp value) (eq 'values (car value))) ; multiple value return?
-      (setf rest-values (cddr value) value (cadr value)))
-    (flet ((ret1only ()
-             (let ((ret `(ps-js:return
-                           ,@(when value?
-                                   (list (compile-expression value))))))
-               (if suppress-values?
-                   `(ps-js:block (ps-js:= __PS_MV_REG {})
-                      ,ret)
-                   ret)))
-           (fill-mv ()
-             (fill-mv-reg `(list ,@rest-values))))
-      (acond ((eql tag *current-block-tag*)
-              (compile-statement
-               (if value?
-                   `(progn ,value
-                           ,@(when rest-values (list (fill-mv)))
-                           (break ,tag))
-                   `(break ,tag))))
-             ((or (eql '%function tag)
-                  (member tag *function-block-names*))
-              (if rest-values
-                  (let* ((cvalue (compile-expression value))
-                         (val1   (unless (or (constantp cvalue)
-                                             (symbolp   cvalue))
-                                   (ps-gensym 'val1_))))
-                    (let ((suppress-values? nil))
-                      (compile-statement
-                       `(let ,(when val1 `((,val1 ,value)))
-                          ,(fill-mv)
-                          (return-from ,tag ,(or val1 value))))))
-                  (ret1only)))
-             ((assoc tag *dynamic-return-tags*)
-              (setf (cdr it) t)
-              (ps-compile
-               `(throw (create
-                        :__ps_block_tag      ',tag
-                        :__ps_value1          ,value
-                        ,@(when rest-values
-                                `(:__ps_values (list ,@rest-values)))))))
-             (t
-              (warn "Returning from unknown block ~A" tag)
-              (ret1only)))))) ;; for backwards-compatibility
+  (acond
+    ((eql tag *current-block-tag*)
+     (compile-statement
+      `(progn
+         ,@(unless returning-values? '((setf __PS_MV_REG '())))
+         ,@(when value? (list value))
+         (break ,tag))))
+    ((assoc tag *dynamic-return-tags*)
+     (setf (cdr it) t)
+     (ps-compile
+      `(progn
+         ,@(unless returning-values? '((setf __PS_MV_REG '())))
+         (throw (create
+                 :__ps_block_tag ',tag
+                 :__ps_values    (multiple-value-list ,value))))))
+    (t
+     (unless (or (eql '%function tag)
+                 (member tag *function-block-names*))
+       (warn "Returning from unknown block ~A" tag))
+     (let ((X (when value? (list (compile-expression value)))))
+       (if returning-values?
+           `(ps-js:return ,@X)
+           `(ps-js:block
+              (ps-js:= __PS_MV_REG [])
+              (ps-js:return ,@X)))))))
 
 (defun try-expressionizing-if? (exp &optional (score 0)) ;; poor man's codewalker
   "Heuristic that tries not to expressionize deeply nested if expressions."
@@ -340,16 +332,27 @@
           `(if ,(second form)
                (return-from ,tag ,(third form))
                ,@(when (or in-case? (fourth form))
-                       `((return-from ,tag ,(fourth form)))))))
+                   `((return-from ,tag ,(fourth form)))))))
      (block
-      (let* ((tag¹                   (or (cadr form) 'nilBlock))
-             (*function-block-names* (cons tag¹ *function-block-names*))
-             (*dynamic-return-tags*  (cons (cons tag¹ nil)
+      (let* ((tag₁                   (or (cadr form) 'nilBlock))
+             (*function-block-names* (cons tag₁ *function-block-names*))
+             (*dynamic-return-tags*  (cons (cons tag₁ nil)
                                            *dynamic-return-tags*)))
         (return-from return-result-of
           (wrap-for-dynamic-return
-           (list tag¹)
+           (list tag₁)
            (ps-compile `(return-from ,tag (progn ,@(cddr form))))))))
+     (values
+      (with-ps-gensyms (val)
+        `(let ((,val ,(cadr form)))
+           (setf __PS_MV_REG (list ,@(cddr form)))
+           (return-from ,tag ,val t))))
+     (values-list
+      (with-ps-gensyms (values-list firstval)
+        `(let ((,values-list (funcall (getprop ,(cadr form) 'slice))))
+           (setf ,firstval   (funcall (getprop ,values-list 'shift))
+                 __PS_MV_REG ,values-list)
+           (return-from ,tag ,firstval t))))
      (return-from ;; this will go away someday
       (unless tag
         (warn 'simple-style-warning
@@ -364,18 +367,13 @@ Parenscript now implements implicit return, update your code! Things like (lambd
                `(ps-js:block ,(compile-statement form) ,(return-exp tag)))
               (t (compile-statement form))))))))
 
-(define-statement-operator return-from (tag &optional result)
+(define-statement-operator return-from (tag &optional
+                                            result returning-values?)
   (setq tag (or tag 'nilBlock))
   (let ((form (ps-macroexpand result)))
-    (if (or (atom form) (eq 'values (car form)))
+    (if (atom form)
         (return-exp tag form)
         (return-result-of tag form))))
-
-(define-expression-operator values (&optional main &rest additional)
-  (when main
-    (ps-compile (if additional
-                    `(prog1 ,main ,@additional)
-                    main))))
 
 (define-statement-operator throw (&rest args)
   `(ps-js:throw ,@(mapcar #'compile-expression args)))
@@ -684,7 +682,7 @@ and :execute. The code in BODY is assumed to be Common Lisp code
 in :compile-toplevel and :load-toplevel sitations, and Parenscript
 code in :execute."
   (when (and (member :compile-toplevel situation-list)
-	     (member *compilation-level* '(:toplevel :inside-toplevel-form)))
+             (member *compilation-level* '(:toplevel :inside-toplevel-form)))
     (eval `(progn ,@body)))
   (if (member :execute situation-list)
       (ps-compile `(progn ,@body))

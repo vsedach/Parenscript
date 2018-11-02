@@ -164,6 +164,7 @@ of (declare ...) forms, and the remaining body."
            (*vars-needing-to-be-declared* ())
            (*used-up-names*               ())
            (returning-values?             nil)
+           (clear-multiple-values?        nil)
            (*enclosing-function-arguments*
             (append args *enclosing-function-arguments*))
            (*enclosing-lexicals*

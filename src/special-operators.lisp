@@ -229,14 +229,16 @@
     ((eql tag *current-block-tag*)
      (compile-statement
       `(progn
-         ,@(unless returning-values? '((setf __PS_MV_REG '())))
+         ,@(when (and (not returning-values?) clear-multiple-values?)
+             '((setf __PS_MV_REG '())))
          ,@(when value? (list value))
          (break ,tag))))
     ((assoc tag *dynamic-return-tags*)
      (setf (cdr it) t)
      (ps-compile
       `(progn
-         ,@(unless returning-values? '((setf __PS_MV_REG '())))
+         ,@(when (and (not returning-values?) clear-multiple-values?)
+             '((setf __PS_MV_REG '())))
          (throw (create
                  :__ps_block_tag ',tag
                  :__ps_values    (multiple-value-list ,value))))))
@@ -245,11 +247,11 @@
                  (member tag *function-block-names*))
        (warn "Returning from unknown block ~A" tag))
      (let ((X (when value? (list (compile-expression value)))))
-       (if returning-values?
-           `(ps-js:return ,@X)
+       (if (and (not returning-values?) clear-multiple-values?)
            `(ps-js:block
               (ps-js:= __PS_MV_REG [])
-              (ps-js:return ,@X)))))))
+              (ps-js:return ,@X))
+           `(ps-js:return ,@X))))))
 
 (defun try-expressionizing-if? (exp &optional (score 0)) ;; poor man's codewalker
   "Heuristic that tries not to expressionize deeply nested if expressions."

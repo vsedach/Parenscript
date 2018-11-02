@@ -289,6 +289,7 @@ form, FORM, returns the new value for *compilation-level*."
         ((eq :toplevel level) :inside-toplevel-form)))
 
 (defvar compile-expression?)
+(defvar clear-multiple-values? t)
 
 (define-condition compile-expression-error (error)
   ((form :initarg :form :reader error-form))
@@ -333,11 +334,13 @@ form, FORM, returns the new value for *compilation-level*."
                 (adjust-compilation-level form *compilation-level*)))
            (if (special-form? form)
                (compile-special-form form)
-               `(ps-js:funcall
-                 ,(if (symbolp (car form))
-                      (maybe-rename-local-function (car form))
-                      (compile-expression (car form)))
-                 ,@(mapcar #'compile-expression (cdr form))))))))))
+               (progn
+                 (setq clear-multiple-values? t)
+                 `(ps-js:funcall
+                   ,(if (symbolp (car form))
+                        (maybe-rename-local-function (car form))
+                        (compile-expression (car form)))
+                   ,@(mapcar #'compile-expression (cdr form)))))))))))
 
 (defun compile-statement (form)
   (let ((compile-expression? nil))

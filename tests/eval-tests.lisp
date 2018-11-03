@@ -1050,28 +1050,43 @@
   t
   :js-target-version "1.8.5")
 
-;;; Multiple value cases that are currently unimplemented
+(test-js-eval multiple-value-bind-values
+  (multiple-value-bind (x y)
+      (values 1 2)
+    y)
+  2)
 
-;; (test-js-eval multiple-value-call-twice
-;;   (progn
-;;     (defun foo (x &optional y z)
-;;       (if z
-;;           (values x y z)
-;;           (values x y)))
+(test-js-eval multiple-value-passthrough
+  (progn
+    (defun foo ()
+      (values 1 2))
+    (defun bar ()
+      (foo))
+    (multiple-value-bind (x y)
+        (bar)
+      y))
+  2)
 
-;;     (defun bar ()
-;;       (foo 1 2 3)
-;;       (foo 4 5))
+(test-js-eval multiple-value-call-twice
+  (progn
+    (defun foo (x &optional y z)
+      (if z
+          (values x y z)
+          (values x y)))
 
-;;     (multiple-value-bind (a b c) (bar)
-;;       (list a b c)))
-;;   '(4 5 :undefined))
+    (defun bar ()
+      (foo 1 2 3)
+      (foo 4 5))
 
-;; (test-js-eval multiple-value-bind-nested
-;;   (multiple-value-bind (x y)
-;;       ((lambda ()
-;;          (multiple-value-bind (a b)
-;;              (values 1 2)
-;;            (values b a))))
-;;     (list x y))
-;;   '(2 1))
+    (multiple-value-bind (a b c) (bar)
+      (list a b c)))
+  '(4 5 :undefined))
+
+(test-js-eval multiple-value-bind-nested
+  (multiple-value-bind (x y)
+      ((lambda ()
+         (multiple-value-bind (a b)
+             (values 1 2)
+           (values b a))))
+    (list x y))
+  '(2 1))

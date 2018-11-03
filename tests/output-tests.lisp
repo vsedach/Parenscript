@@ -1205,7 +1205,7 @@ __setf_someThing('foo', 1, 2);")
 (test-ps-js return-nothing
   (defun foo ()  (return-from foo))
   "function foo() {
-    return null;
+    return;
 };")
 
 (test-ps-js return-values
@@ -3151,7 +3151,7 @@ a === b;")
     foo();
     if (bar()) {
         __PS_MV_REG = [];
-        return null;
+        return;
     };
     __PS_MV_REG = [];
     return blee();
@@ -3168,7 +3168,7 @@ a === b;")
     foo();
     if (bar()) {
         __PS_MV_REG = [];
-        return null;
+        return;
     };
     __PS_MV_REG = [];
     return blee();

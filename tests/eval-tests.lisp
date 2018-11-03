@@ -350,7 +350,7 @@
 
 (test-js-eval values0
   ((lambda () (values)))
-  :null)
+  :undefined)
 
 (test-js-eval mv-return1
   (progn (defun foo ()

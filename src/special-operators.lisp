@@ -351,10 +351,12 @@
            (list tag₁)
            (ps-compile `(return-from ,tag (progn ,@(cddr form))))))))
      (values
-      (with-ps-gensyms (val)
-        `(let ((,val ,(cadr form)))
-           (setf __PS_MV_REG (list ,@(cddr form)))
-           (return-from ,tag ,val t))))
+      (if (cddr form)
+          (with-ps-gensyms (val)
+            `(let ((,val ,(cadr form)))
+               (setf __PS_MV_REG (list ,@(cddr form)))
+               (return-from ,tag ,val t)))
+          `(return-from ,tag ,@(cdr form))))
      (values-list
       (with-ps-gensyms (values-list firstval)
         `(let ((,values-list (funcall (getprop ,(cadr form) 'slice))))
@@ -376,12 +378,15 @@ Parenscript now implements implicit return, update your code! Things like (lambd
               (t (compile-statement form))))))))
 
 (define-statement-operator return-from (tag &optional
-                                            result returning-values?)
+                                            (result nil result?)
+                                            returning-values?)
   (setq tag (or tag 'nilBlock))
-  (let ((form (ps-macroexpand result)))
-    (if (atom form)
-        (return-exp tag form)
-        (return-result-of tag form))))
+  (if result?
+      (let ((form (ps-macroexpand result)))
+        (if (atom form)
+            (return-exp tag form)
+            (return-result-of tag form)))
+      (return-exp tag)))
 
 (define-statement-operator throw (&rest args)
   `(ps-js:throw ,@(mapcar #'compile-expression args)))

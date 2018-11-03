@@ -92,6 +92,7 @@ foo.my_library_foo;")
   (defun parenscript.tests.obfuscate-me::libfun2 (a b parenscript.tests.obfuscate-me::foo)
     (+ a (parenscript.tests.my-library::library-function b parenscript.tests.obfuscate-me::foo)))
   "function mjcgvo3(a, b, gpp) {
+    __PS_MV_REG = [];
     return a + my_library_libraryFunction(b, gpp);
 };")
 
@@ -105,6 +106,7 @@ foo.my_library_foo;")
        (parenscript.tests.obfuscate-me::libfun2 parenscript.tests.obfuscate-and-prefix::b a)
        (parenscript.tests.my-library::library-function parenscript.tests.my-library::d parenscript.tests.obfuscate-and-prefix::b)))
   "function __FOO___ygvo(a, __FOO___c, my_library_d) {
+    __PS_MV_REG = [];
     return a * mjcgvo3(__FOO___c, a) * my_library_libraryFunction(my_library_d, __FOO___c);
 };")
 
@@ -159,6 +161,7 @@ return !foo1 && foo1.prefix_bar + prefix_someOtherVar;
 ")
          (ps-compile-stream s))
        "function __FOO___ygvo(a, __FOO___c, my_library_d) {
+    __PS_MV_REG = [];
     return a * mjcgvo3(__FOO___c, a) * my_library_libraryFunction(my_library_d, __FOO___c);
 };
 function interfaceFunction(prefix_baz) {

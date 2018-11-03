@@ -181,7 +181,7 @@
                   `((and ,_ps_err (eql ',tag
                                        (getprop ,_ps_err :__ps_block_tag)))
                     (return-from ,tag
-                      (values-list (getprop ,_ps_err :__ps_values))))))
+                      (getprop ,_ps_err :__ps_value)))))
            `(ps-js:block
                (ps-js:try
                 ,body
@@ -225,33 +225,39 @@
         ,firstval))))
 
 (defun return-exp (tag &optional (value nil value?))
-  (acond
-    ((eql tag *current-block-tag*)
-     (compile-statement
-      `(progn
-         ,@(when (and (not returning-values?) clear-multiple-values?)
-             '((setf __PS_MV_REG '())))
-         ,@(when value? (list value))
-         (break ,tag))))
-    ((assoc tag *dynamic-return-tags*)
-     (setf (cdr it) t)
-     (ps-compile
-      `(progn
-         ,@(when (and (not returning-values?) clear-multiple-values?)
-             '((setf __PS_MV_REG '())))
-         (throw (create
-                 :__ps_block_tag ',tag
-                 :__ps_values    (multiple-value-list ,value))))))
-    (t
-     (unless (or (eql '%function tag)
-                 (member tag *function-block-names*))
-       (warn "Returning from unknown block ~A" tag))
-     (let ((X (when value? (list (compile-expression value)))))
-       (if (and (not returning-values?) clear-multiple-values?)
-           `(ps-js:block
-              (ps-js:= __PS_MV_REG [])
-              (ps-js:return ,@X))
-           `(ps-js:return ,@X))))))
+  (flet ((lexical-return ()
+           (let ((X (when value? (list (compile-expression value)))))
+             (if (and (not returning-values?) clear-multiple-values?)
+                 `(ps-js:block
+                      (ps-js:= __PS_MV_REG [])
+                    (ps-js:return ,@X))
+                 `(ps-js:return ,@X)))))
+    (acond
+      ((eql tag *current-block-tag*)
+       (compile-statement
+        `(progn
+           ,@(when (and (not returning-values?) clear-multiple-values?)
+               '((setf __PS_MV_REG '())))
+           ,@(when value? (list value))
+           (break ,tag))))
+
+      ((or (eql '%function tag)
+           (member tag *function-block-names*))
+       (lexical-return))
+
+      ((assoc tag *dynamic-return-tags*)
+       (setf (cdr it) t)
+       (ps-compile
+        `(progn
+           ,@(when (and (not returning-values?) clear-multiple-values?)
+               '((setf __PS_MV_REG '())))
+           (throw (create
+                   :__ps_block_tag ',tag
+                   :__ps_value     ,value)))))
+
+      (t
+       (warn "Returning from unknown block ~A" tag)
+       (lexical-return)))))
 
 (defun try-expressionizing-if? (exp &optional (score 0)) ;; poor man's codewalker
   "Heuristic that tries not to expressionize deeply nested if expressions."

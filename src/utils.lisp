@@ -118,6 +118,13 @@ Use GETPROP, @, or CHAIN instead."
         ((atom x) (cons x acc))
         (t (flatten (car x) (flatten (cdr x) acc)))))
 
+(defun flatten-blocks (body)
+  (when body
+    (if (and (listp (car body)) (eq 'ps-js:block (caar body)))
+        (append (flatten-blocks (cdr (car body)))
+                (flatten-blocks (cdr body)))
+        (cons (car body) (flatten-blocks (cdr body))))))
+
 (defun tree-find (A tree)
   (or (equal A tree)
       (when (consp tree)

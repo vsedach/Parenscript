@@ -65,18 +65,13 @@
 
 (define-statement-operator switch (test-expr &rest clauses)
   `(ps-js:switch ,(compile-expression test-expr)
-     ,@(loop for (val . body) in clauses collect
-            (cons (if (eq val 'default)
-                      'ps-js:default
-                      (let ((in-case? t))
-                        (compile-expression val)))
-                  (mapcan (lambda (x)
-                            (let* ((in-case? t)
-                                   (exp      (compile-statement x)))
-                              (if (and (listp exp) (eq 'ps-js:block (car exp)))
-                                  (cdr exp)
-                                  (list exp))))
-                          body)))))
+     ,@(let ((in-case? t))
+         (loop for (val . body) in clauses collect
+              (cons (if (eq val 'default)
+                        'ps-js:default
+                        (compile-expression val))
+                    (flatten-blocks
+                     (mapcar #'compile-statement body)))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; objects

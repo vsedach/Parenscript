@@ -148,12 +148,6 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; blocks and control flow
 
-(defun flatten-blocks (body)
-  (when body
-    (if (and (listp (car body)) (eq 'ps-js:block (caar body)))
-        (append (cdr (car body)) (flatten-blocks (cdr body)))
-        (cons (car body) (flatten-blocks (cdr body))))))
-
 (defun compile-progn (body)
   (let ((block (flatten-blocks (mapcar #'ps-compile body))))
     (append (remove-if #'constantp (butlast block))
@@ -224,14 +218,18 @@
               __PS_MV_REG ,values-list)
         ,firstval))))
 
+(define-statement-operator %simple-lexical-return (&rest value)
+  `(ps-js:return ,@value))
+
 (defun return-exp (tag &optional (value nil value?))
   (flet ((lexical-return ()
            (let ((X (when value? (list (compile-expression value)))))
-             (if (and (not returning-values?) clear-multiple-values?)
-                 `(ps-js:block
-                      (ps-js:= __PS_MV_REG [])
-                    (ps-js:return ,@X))
-                 `(ps-js:return ,@X)))))
+             (ps-compile
+              (if (and (not returning-values?) clear-multiple-values?)
+                  `(progn
+                     (setf __PS_MV_REG (list))
+                     (%simple-lexical-return ,@X))
+                  `(%simple-lexical-return ,@X))))))
     (acond
       ((eql tag *current-block-tag*)
        (compile-statement
@@ -306,7 +304,8 @@
                             1)
                            ((eq 'break (car (last cbody)))
                             2))
-                     (let ((result-form (ps-macroexpand (car (last cbody it)))))
+                     (let ((result-form (ps-macroexpand
+                                         (car (last cbody it)))))
                        `(,cvalue
                          ,@(butlast cbody it)
                          (return-from ,tag

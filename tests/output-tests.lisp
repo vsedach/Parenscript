@@ -2709,7 +2709,6 @@ if (foowhat(x)) {
         });
     } catch (_ps_err5) {
         if (_ps_err5 && 'baz' === _ps_err5['__ps_block_tag']) {
-            __PS_MV_REG = [];
             return _ps_err5['__ps_value'];
         } else {
             throw _ps_err5;
@@ -3568,11 +3567,11 @@ while (foo()) {
     try {
         __PS_MV_REG = [];
         return (function () {
+            __PS_MV_REG = [];
             throw { '__ps_block_tag' : 'foo', '__ps_value' : 6 };
         })();
     } catch (_ps_err1) {
         if (_ps_err1 && 'foo' === _ps_err1['__ps_block_tag']) {
-            __PS_MV_REG = [];
             return _ps_err1['__ps_value'];
         } else {
             throw _ps_err1;
@@ -3588,11 +3587,11 @@ while (foo()) {
     try {
         __PS_MV_REG = [];
         return (function () {
+            __PS_MV_REG = [];
             throw { '__ps_block_tag' : 'foo', '__ps_value' : null };
         })();
     } catch (_ps_err1) {
         if (_ps_err1 && 'foo' === _ps_err1['__ps_block_tag']) {
-            __PS_MV_REG = [];
             return _ps_err1['__ps_value'];
         } else {
             throw _ps_err1;
@@ -3630,11 +3629,11 @@ while (foo()) {
     try {
         __PS_MV_REG = [];
         return (function () {
+            __PS_MV_REG = [];
             throw { '__ps_block_tag' : 'foo', '__ps_value' : baz ? 6 : 5 };
         })();
     } catch (_ps_err1) {
         if (_ps_err1 && 'foo' === _ps_err1['__ps_block_tag']) {
-            __PS_MV_REG = [];
             return _ps_err1['__ps_value'];
         } else {
             throw _ps_err1;
@@ -3651,13 +3650,13 @@ while (foo()) {
 var foo = (function () {
     try {
         (function () {
+            __PS_MV_REG = [];
             throw { '__ps_block_tag' : 'nilBlock', '__ps_value' : 6 };
         })();
         __PS_MV_REG = [];
         return 1 + 2;
     } catch (_ps_err1) {
         if (_ps_err1 && 'nilBlock' === _ps_err1['__ps_block_tag']) {
-            __PS_MV_REG = [];
             return _ps_err1['__ps_value'];
         } else {
             throw _ps_err1;
@@ -4375,6 +4374,7 @@ x = 2 + sideEffect() + x + 5;")
         try {
             (function () {
                 (function () {
+                    __PS_MV_REG = [];
                     throw { '__ps_block_tag' : 'X', '__ps_value' : 1 };
                 })();
                 __PS_MV_REG = [];
@@ -4382,7 +4382,6 @@ x = 2 + sideEffect() + x + 5;")
             })();
         } catch (_ps_err1) {
             if (_ps_err1 && 'X' === _ps_err1['__ps_block_tag']) {
-                __PS_MV_REG = [];
                 _ps_err1['__ps_value'];
                 break X;
             } else {
@@ -4403,6 +4402,7 @@ x = 2 + sideEffect() + x + 5;")
   "function () {
     try {
         return function () {
+            __PS_MV_REG = [];
             throw { '__ps_block_tag' : 'X', '__ps_value' : 1 };
         };
     } catch (_ps_err1) {
@@ -4451,12 +4451,12 @@ x = 2 + sideEffect() + x + 5;")
     nilBlock: {
     try {
         (function () {
+            __PS_MV_REG = [];
             throw { '__ps_block_tag' : 'nilBlock', '__ps_value' : 6 };
         })();
         1 + 2;
     } catch (_ps_err1) {
         if (_ps_err1 && 'nilBlock' === _ps_err1['__ps_block_tag']) {
-            __PS_MV_REG = [];
             _ps_err1['__ps_value'];
             break nilBlock;
         } else {
@@ -4477,6 +4477,7 @@ x = 2 + sideEffect() + x + 5;")
   "(function () {
     bar: {
         try {
+            __PS_MV_REG = [];
             throw { '__ps_block_tag' : 'bar', '__ps_value' : 10 };
         } catch (_ps_err1) {
             if (_ps_err1 && 'bar' === _ps_err1['__ps_block_tag']) {

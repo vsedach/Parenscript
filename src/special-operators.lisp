@@ -175,7 +175,8 @@
                   `((and ,_ps_err (eql ',tag
                                        (getprop ,_ps_err :__ps_block_tag)))
                     (return-from ,tag
-                      (getprop ,_ps_err :__ps_value)))))
+                      (getprop ,_ps_err :__ps_value)
+                      t))))
            `(ps-js:block
                (ps-js:try
                 ,body
@@ -227,7 +228,7 @@
              (ps-compile
               (if (and (not returning-values?) clear-multiple-values?)
                   `(progn
-                     (setf __PS_MV_REG (list))
+                     (setf __PS_MV_REG '())
                      (%simple-lexical-return ,@X))
                   `(%simple-lexical-return ,@X))))))
     (acond
@@ -247,7 +248,7 @@
        (setf (cdr it) t)
        (ps-compile
         `(progn
-           ,@(when (and (not returning-values?) clear-multiple-values?)
+           ,@(unless returning-values?
                '((setf __PS_MV_REG '())))
            (throw (create
                    :__ps_block_tag ',tag

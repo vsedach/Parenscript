@@ -67,4 +67,3 @@
         ((@ arr :splice :apply) arr
          (append (list (length arr) (length other)) other))))
     arr)))
-v

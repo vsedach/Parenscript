@@ -41,9 +41,6 @@
 (in-package #:parenscript)
 (in-readtable :parenscript)
 
-(define-condition simple-style-warning (simple-warning style-warning)
-  ())
-
 (defun warn-deprecated (old-name &optional new-name)
   (warn 'simple-style-warning
         :format-control "~:@(~a~) is deprecated~:[.~;, use ~:@(~a~) instead~]"

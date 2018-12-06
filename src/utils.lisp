@@ -39,6 +39,9 @@
 
 (in-package #:parenscript)
 
+(define-condition simple-style-warning (simple-warning style-warning)
+  ())
+
 (let ((cache (make-hash-table :test 'equal)))
   (defun encode-js-identifier (identifier)
     "Given a string, produces to a valid JavaScript identifier by
@@ -46,15 +49,19 @@ following transformation heuristics case conversion. For example,
 paren-script becomes parenScript, *some-global* becomes SOMEGLOBAL."
     (when (and (not (string= identifier "[]"))
                (find #\[ identifier))
-      (warn "Parenscript symbol ~A contains a literal array accessor.
+      (warn 'simple-style-warning
+            :format-control
+            "Parenscript symbol ~A contains a literal array accessor.
 This compound naming convention is deprecated and will be removed!
 Use AREF, ELT, GETPROP, @, or CHAIN instead."
-            identifier))
+            :format-arguments (list identifier)))
     (when (find #\. identifier)
-      (warn "Parenscript symbol ~A contains one or more dot operators.
+      (warn 'simple-style-warning
+            :format-control
+            "Parenscript symbol ~A contains one or more dot operators.
 This compound naming convention is deprecated and will be removed!
 Use GETPROP, @, or CHAIN instead."
-            identifier))
+            :format-arguments (list identifier)))
     (or
      (gethash identifier cache)
      (setf

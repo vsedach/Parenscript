@@ -101,6 +101,7 @@
     (abs (n) `((@ *math abs) ,n))
     (evenp (n) `(not (oddp ,n)))
     (oddp (n) `(rem ,n 2))
+    (zerop (n) `(= ,n 0))
     (exp (n) `((@ *math exp) ,n))
     (expt (base power) `((@ *math pow) ,base ,power))
     (log (n &optional base)

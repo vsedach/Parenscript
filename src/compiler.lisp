@@ -1,7 +1,49 @@
+;;; Copyright 2005 Manuel Odendahl
+;;; Copyright 2005-2006 Edward Marco Baringer
+;;; Copyright 2006 Attila Lendvai
+;;; Copyright 2006 Luca Capello
+;;; Copyright 2007-2012, 2018 Vladimir Sedach
+;;; Copyright 2008 Travis Cross
+;;; Copyright 2009-2010 Red Daly
+;;; Copyright 2009-2010 Daniel Gackle
+;;; Copyright 2012, 2015 Boris Smilga
+
+;;; SPDX-License-Identifier: BSD-3-Clause
+
+;;; Redistribution and use in source and binary forms, with or
+;;; without modification, are permitted provided that the following
+;;; conditions are met:
+
+;;; 1. Redistributions of source code must retain the above copyright
+;;; notice, this list of conditions and the following disclaimer.
+
+;;; 2. Redistributions in binary form must reproduce the above
+;;; copyright notice, this list of conditions and the following
+;;; disclaimer in the documentation and/or other materials provided
+;;; with the distribution.
+
+;;; 3. Neither the name of the copyright holder nor the names of its
+;;; contributors may be used to endorse or promote products derived
+;;; from this software without specific prior written permission.
+
+;;; THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND
+;;; CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES,
+;;; INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+;;; MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+;;; DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS
+;;; BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+;;; EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
+;;; TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+;;; DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
+;;; ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+;;; OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+;;; OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+;;; POSSIBILITY OF SUCH DAMAGE.
+
 (in-package #:parenscript)
 (in-readtable :parenscript)
 
-(defvar *version* 2.3 "Parenscript compiler version.")
+(defvar *version* 2.7 "Parenscript compiler version.")
 
 (defparameter %compiling-reserved-forms-p% t
   "Used to issue warnings when replacing PS special operators or macros.")
@@ -21,14 +63,18 @@
   (list "break" "case" "catch" "continue" "default" "delete" "do" "else"
         "finally" "for" "function" "if" "in" "instanceof" "new" "return"
         "switch" "this" "throw" "try" "typeof" "var" "void" "while" "with"
-        "abstract" "boolean" "byte" "char" "class" "const" "debugger" "double"
-        "enum" "export" "extends" "final" "float" "goto" "implements" "import"
-        "int" "interface" "long" "native" "package" "private" "protected"
-        "public" "short" "static" "super" "synchronized" "throws" "transient"
-        "volatile" "{}" "true" "false" "null" "undefined"))
+        "abstract" "boolean" "byte" "char" "class" "const" "debugger"
+        "double" "enum" "export" "extends" "final" "float" "goto"
+        "implements" "import" "int" "interface" "long" "native" "package"
+        "private" "protected" "public" "short" "static" "super"
+        "synchronized" "throws" "transient" "volatile" "{}" "true" "false"
+        "null" "undefined"))
 
-(defvar *lambda-wrappable-statements* ;; break, return, continue not included
-  '(throw switch for for-in while try block))
+(defvar *lambda-wrappable-statements*
+  '(throw switch for for-in while try block)
+  "Statement special forms that can be wrapped in a lambda to make
+  them into expressions. Control transfer forms like BREAK, RETURN,
+  and CONTINUE need special treatment, and are not included.")
 
 (defun reserved-symbol-p (symbol)
   (find (string-downcase (string symbol)) *reserved-symbol-names* :test #'string=))
@@ -60,7 +106,9 @@
        (or (gethash (car form) *special-expression-operators*)
            (gethash (car form) *special-statement-operators*))))
 
-;;; scoping and lexical environment
+;;; naming, scoping, and lexical environment
+
+(defvar *ps-gensym-counter* 0)
 
 (defvar *vars-needing-to-be-declared* ()
   "This special variable is expected to be bound to a fresh list by
@@ -179,7 +227,10 @@ lambda list from a Parenscript perspective."
 (defmacro define-ps-symbol-macro (symbol expansion)
   (defined-operator-override-check symbol
       `(eval-when (:compile-toplevel :load-toplevel :execute)
-	 (setf (gethash ',symbol *symbol-macro-toplevel*) (lambda (form) (declare (ignore form)) ',expansion)))))
+	 (setf (gethash ',symbol *symbol-macro-toplevel*)
+               (lambda (form)
+                 (declare (ignore form))
+                 ',expansion)))))
 
 (defun import-macros-from-lisp (&rest names)
   "Import the named Lisp macros into the Parenscript macro
@@ -199,32 +250,26 @@ CL environment)."
   `(progn (defmacro ,name ,args ,@body)
           (defpsmacro ,name ,args ,@body)))
 
+(defun symbol-macro? (form)
+  "If FORM is a symbol macro, return its macro function. Otherwise,
+return NIL."
+  (and (symbolp form)
+       (or (and (member form *enclosing-lexicals*)
+                (lookup-macro-def form *symbol-macro-env*))
+           (gethash form *symbol-macro-toplevel*))))
+
 (defun ps-macroexpand-1 (form)
-  (aif (or (and (symbolp form)
-                (or (and (member form *enclosing-lexicals*)
-                         (lookup-macro-def form *symbol-macro-env*))
-                    (gethash form *symbol-macro-toplevel*))) ;; hack
+  (aif (or (symbol-macro? form)
            (and (consp form) (lookup-macro-def (car form) *macro-env*)))
        (values (ps-macroexpand (funcall it form)) t)
        form))
 
 (defun ps-macroexpand (form)
-  (multiple-value-bind (form1 expanded?) (ps-macroexpand-1 form)
+  (multiple-value-bind (form1 expanded?)
+      (ps-macroexpand-1 form)
     (if expanded?
         (values (ps-macroexpand form1) t)
         form1)))
-
-;;; lambda wrapping
-
-(defvar this-in-lambda-wrapped-form? nil)
-
-(defun lambda-wrap (form)
-  (let ((this-in-lambda-wrapped-form? :query)
-	(*ps-gensym-counter* *ps-gensym-counter*))
-    (ps-compile form)
-    (if (eq this-in-lambda-wrapped-form? :yes)
-	`(chain (lambda () ,form) (call this))
-	`((lambda () ,form)))))
 
 ;;;; compiler interface
 
@@ -244,51 +289,58 @@ form, FORM, returns the new value for *compilation-level*."
         ((eq :toplevel level) :inside-toplevel-form)))
 
 (defvar compile-expression?)
+(defvar clear-multiple-values? t)
 
 (define-condition compile-expression-error (error)
   ((form :initarg :form :reader error-form))
-  (:report (lambda (condition stream)
-             (format stream "The Parenscript form ~A cannot be compiled into an expression." (error-form condition)))))
+  (:report
+   (lambda (condition stream)
+     (format
+      stream
+      "The Parenscript form ~A cannot be compiled into an expression."
+      (error-form condition)))))
 
 (defun compile-special-form (form)
-  (let* ((op (car form))
-         (statement-impl (gethash op *special-statement-operators*))
+  (let* ((op              (car form))
+         (statement-impl  (gethash op *special-statement-operators*))
          (expression-impl (gethash op *special-expression-operators*)))
-    (cond ((or (not compile-expression?) this-in-lambda-wrapped-form?)
+    (cond ((not compile-expression?)
            (apply (or statement-impl expression-impl) (cdr form)))
           (expression-impl
            (apply expression-impl (cdr form)))
           ((member op *lambda-wrappable-statements*)
-           (compile-expression (lambda-wrap form)))
-          (t (error 'compile-expression-error :form form)))))
+           (compile-expression (with-lambda-scope form)))
+          (t
+           (error 'compile-expression-error :form form)))))
 
 (defun ps-compile (form)
-  (macrolet ((try-expanding (form &body body)
-               `(multiple-value-bind (expansion expanded?) (ps-macroexpand ,form)
-                  (if expanded?
-                      (ps-compile expansion)
-                      (progn ,@body)))))
+  (macrolet
+      ((try-expanding (form &body body)
+         `(multiple-value-bind (expansion expanded?)
+              (ps-macroexpand ,form)
+            (if expanded?
+                (ps-compile expansion)
+                ,@body))))
     (typecase form
       ((or null number string character)
        form)
       (vector
        (ps-compile `(quote ,(coerce form 'list))))
       (symbol
-       (try-expanding form
-	 (when (and (eq form 'this) (eq this-in-lambda-wrapped-form? :query))
-	   (setq this-in-lambda-wrapped-form? :yes))
-	 form))
+       (try-expanding form form))
       (cons
        (try-expanding form
          (let ((*compilation-level*
                 (adjust-compilation-level form *compilation-level*)))
            (if (special-form? form)
                (compile-special-form form)
-               `(ps-js:funcall
-                 ,(if (symbolp (car form))
-                      (maybe-rename-local-function (car form))
-                      (compile-expression (car form)))
-                 ,@(mapcar #'compile-expression (cdr form))))))))))
+               (progn
+                 (setq clear-multiple-values? t)
+                 `(ps-js:funcall
+                   ,(if (symbolp (car form))
+                        (maybe-rename-local-function (car form))
+                        (compile-expression (car form)))
+                   ,@(mapcar #'compile-expression (cdr form)))))))))))
 
 (defun compile-statement (form)
   (let ((compile-expression? nil))
@@ -298,18 +350,19 @@ form, FORM, returns the new value for *compilation-level*."
   (let ((compile-expression? t))
     (ps-compile form)))
 
-(defvar *ps-gensym-counter* 0)
-
-(defun ps-gensym (&optional (prefix-or-counter "_JS"))
-  (assert (or (stringp prefix-or-counter) (integerp prefix-or-counter)))
-  (let ((prefix (if (stringp prefix-or-counter) prefix-or-counter "_JS"))
-        (counter (if (integerp prefix-or-counter) prefix-or-counter (incf *ps-gensym-counter*))))
-   (make-symbol (format nil "~A~:[~;_~]~A" prefix
-                        (digit-char-p (char prefix (1- (length prefix))))
-                        counter))))
+(defun ps-gensym (&optional (x '_js))
+  (make-symbol
+   (if (integerp x)
+       (format nil "~A~A" '_js x)
+       (let ((prefix (string x)))
+         (format nil "~A~:[~;_~]~A"
+                 prefix
+                 (digit-char-p (char prefix (1- (length prefix))))
+                 (incf *ps-gensym-counter*))))))
 
 (defmacro with-ps-gensyms (symbols &body body)
-  "Each element of SYMBOLS is either a symbol or a list of (symbol
+  "Helper macro for writing Parenscript macros. Each element of
+SYMBOLS is either a symbol or a list of (symbol
 gensym-prefix-string)."
   `(let* ,(mapcar (lambda (symbol)
                     (destructuring-bind (symbol &optional prefix)
@@ -323,22 +376,30 @@ gensym-prefix-string)."
      ,@body))
 
 (defmacro ps-once-only ((&rest vars) &body body)
-  (let ((gensyms (mapcar (lambda (x) (ps-gensym (string x))) vars)))
-    `(let ,(mapcar (lambda (g v) `(,g (ps-gensym ,(string v)))) gensyms vars)
-       `(let* (,,@(mapcar (lambda (g v) ``(,,g ,,v)) gensyms vars))
-          ,(let ,(mapcar (lambda (g v) `(,v ,g)) gensyms vars)
+  "Helper macro for writing Parenscript macros. Useful for preventing unwanted multiple evaluation."
+  (warn-deprecated 'ps-once-only 'maybe-once-only)
+  (let ((gensyms (mapcar #'ps-gensym vars)))
+    `(let* ,(mapcar (lambda (g v) `(,g (ps-gensym ',v)))
+                    gensyms vars)
+       `(let* (,,@(mapcar (lambda (g v) `(list ,g ,v))
+                          gensyms vars))
+          ,(let* ,(mapcar (lambda (g v) (list v g))
+                          gensyms vars)
              ,@body)))))
 
-(defmacro maybe-once-only (vars &body body)
-  "Introduces a binding for a form if the form is not a variable or
-  constant. If it is, uses that form in the body directly."
+(defmacro maybe-once-only ((&rest vars) &body body)
+  "Helper macro for writing Parenscript macros. Like PS-ONCE-ONLY,
+except that if the given VARS are variables or constants, no intermediate variables are created."
   (let ((vars-bound (gensym)))
-    `(let* ((,vars-bound ())
-            ,@(loop for var in vars collect
-                   `(,var (if (or (constantp ,var) (symbolp ,var))
-                              ,var
-                              (let ((gensym (ps-gensym ,(symbol-name var))))
-                                (push `(,gensym ,,var) ,vars-bound)
-                                gensym)))))
-       `(let ,,vars-bound
-         ,,@body))))
+    `(let*
+         ((,vars-bound ())
+          ,@(loop for var in vars collect
+                 `(,var
+                   (let ((form (ps-macroexpand ,var)))
+                     (if (atom form)
+                         form
+                         (let ((var¹ (ps-gensym ',var)))
+                           (push (list var¹ form) ,vars-bound)
+                           var¹))))))
+       `(let* ,(nreverse ,vars-bound)
+          ,,@body))))

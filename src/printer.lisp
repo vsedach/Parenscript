@@ -1,3 +1,43 @@
+;;; Copyright 2005 Manuel Odendahl
+;;; Copyright 2005-2006 Edward Marco Baringer
+;;; Copyright 2007-2012 Vladimir Sedach
+;;; Copyright 2008 Travis Cross
+;;; Copyright 2009-2013 Daniel Gackle
+;;; Copyright 2010 Scott Bell
+;;; Copyright 2014 Boris Smilga
+
+;;; SPDX-License-Identifier: BSD-3-Clause
+
+;;; Redistribution and use in source and binary forms, with or
+;;; without modification, are permitted provided that the following
+;;; conditions are met:
+
+;;; 1. Redistributions of source code must retain the above copyright
+;;; notice, this list of conditions and the following disclaimer.
+
+;;; 2. Redistributions in binary form must reproduce the above
+;;; copyright notice, this list of conditions and the following
+;;; disclaimer in the documentation and/or other materials provided
+;;; with the distribution.
+
+;;; 3. Neither the name of the copyright holder nor the names of its
+;;; contributors may be used to endorse or promote products derived
+;;; from this software without specific prior written permission.
+
+;;; THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND
+;;; CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES,
+;;; INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+;;; MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+;;; DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS
+;;; BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+;;; EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
+;;; TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+;;; DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
+;;; ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+;;; OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+;;; OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+;;; POSSIBILITY OF SUCH DAMAGE.
+
 (in-package #:parenscript)
 (in-readtable :parenscript)
 
@@ -15,8 +55,6 @@ vice-versa.")
 
 (defvar *psw-stream*)
 
-(defvar %printer-toplevel?)
-
 (defun parenscript-print (form immediate?)
   (declare (special immediate?))
   (let ((*indent-level* 0)
@@ -24,8 +62,7 @@ vice-versa.")
         (*psw-stream* (if immediate?
                           *psw-stream*
                           (make-string-output-stream)))
-        (%psw-accumulator ())
-        (%printer-toplevel? t))
+        (%psw-accumulator ()))
     (declare (special %psw-accumulator))
     (with-standard-io-syntax
       (if (and (listp form) (eq 'ps-js:block (car form))) ; ignore top-level block
@@ -60,10 +97,6 @@ vice-versa.")
 
 (defgeneric ps-print (form))
 (defgeneric ps-print% (js-primitive args))
-
-(defmethod ps-print :after (form)
-  (declare (ignore form))
-  (setf %printer-toplevel? nil))
 
 (defmacro defprinter (js-primitive args &body body)
   (if (listp js-primitive)
@@ -118,29 +151,30 @@ vice-versa.")
       (newline-and-indent))))
 
 (defparameter *js-lisp-escaped-chars*
-  '((#\' . #\')
-    (#\\ . #\\)
-    (#\b . #\Backspace)
-    (#\f . #.(code-char 12))
-    (#\n . #\Newline)
-    (#\r . #\Return)
-    (#\t . #\Tab)))
+  (list #\'            #\'
+        #\"            #\"
+        #\\            #\\
+        #\Backspace    #\b
+        (code-char 12) #\f
+        #\Newline      #\n
+        #\Return       #\r
+        #\Tab          #\t))
 
 (defmethod ps-print ((char character))
   (ps-print (string char)))
 
 (defmethod ps-print ((string string))
-  (flet ((lisp-special-char-to-js (lisp-char)
-           (car (rassoc lisp-char *js-lisp-escaped-chars*))))
-    (psw *js-string-delimiter*)
-    (loop for char across string
-          for code = (char-code char)
-          for special = (lisp-special-char-to-js char)
-          do (cond (special (psw #\\) (psw special))
-                   ((or (<= code #x1f) (>= code #x80))
-                    (format *psw-stream* "\\u~:@(~4,'0x~)" code))
-                   (t (psw char))))
-    (psw *js-string-delimiter*)))
+  (psw *js-string-delimiter*)
+  (loop for char across string do
+       (acond ((getf *js-lisp-escaped-chars* char)
+               (psw #\\ it))
+              ((or (<= (char-code char) #x1F)
+                   (<= #x80 (char-code char) #x9F)
+                   (member (char-code char) '(#xA0 #xAD #x200B #x200C)))
+               (format *psw-stream* "\\u~:@(~4,'0x~)" (char-code char)))
+              (t
+               (psw char))))
+  (psw *js-string-delimiter*))
 
 (defmethod ps-print ((number number))
   (format *psw-stream* (if (integerp number) "~D" "~F") number))
@@ -177,15 +211,9 @@ vice-versa.")
                ps-js:funcall ps-js:aref ps-js:getprop))) ;; these aren't really associative, but RPN
 
 (defun parenthesize-print (x)
-  (psw #\() (if (functionp x) (funcall x) (ps-print x)) (psw #\)))
-
-(defun parenthesize-at-toplevel (x)
-  (if %printer-toplevel?
-      (parenthesize-print x)
-      (funcall x)))
+  (psw #\() (ps-print x) (psw #\)))
 
 (defun print-op-argument (op argument)
-  (setf %printer-toplevel? nil)
   (let ((arg-op (when (listp argument) (car argument))))
     (if (or (< (precedence op) (precedence arg-op))
             (and (= (precedence op) (precedence arg-op))
@@ -252,8 +280,7 @@ vice-versa.")
   "}")
 
 (defprinter ps-js:lambda (args body-block)
-  (parenthesize-at-toplevel
-   (lambda () (print-fun-def nil args body-block))))
+  (print-fun-def nil args body-block))
 
 (defprinter ps-js:defun (name args docstring body-block)
   (when docstring (print-comment docstring))
@@ -269,29 +296,27 @@ vice-versa.")
     (ps-print body)))
 
 (defprinter ps-js:object (&rest slot-defs)
-  (parenthesize-at-toplevel
-   (lambda ()
-     (psw "{ ")
-     (let ((indent? (< 2 (length slot-defs)))
-           (indent *column*))
-       (loop for ((slot-name . slot-value) . remaining) on slot-defs do
-            (if (consp slot-name)
-                (apply #'print-fun-def slot-name slot-value)
-                (progn
-                  (ps-print slot-name) (psw " : ")
-                  (if (and (consp slot-value)
-                           (eq 'ps-js:|,| (car slot-value)))
-                      (parenthesize-print slot-value)
-                      (ps-print slot-value))))
-            (when remaining
-              (psw ",")
-              (if indent?
-                  (newline-and-indent indent)
-                  (psw #\Space))))
-       (if indent?
-           (newline-and-indent (- indent 2))
-           (psw #\Space)))
-     (psw "}"))))
+  (psw "{ ")
+  (let ((indent? (< 2 (length slot-defs)))
+        (indent *column*))
+    (loop for ((slot-name . slot-value) . remaining) on slot-defs do
+         (if (consp slot-name)
+             (apply #'print-fun-def slot-name slot-value)
+             (progn
+               (ps-print slot-name) (psw " : ")
+               (if (and (consp slot-value)
+                        (eq 'ps-js:|,| (car slot-value)))
+                   (parenthesize-print slot-value)
+                   (ps-print slot-value))))
+         (when remaining
+           (psw ",")
+           (if indent?
+               (newline-and-indent indent)
+               (psw #\Space))))
+    (if indent?
+        (newline-and-indent (- indent 2))
+        (psw #\Space)))
+  (psw "}"))
 
 (defprinter ps-js:getprop (obj slot)
   (print-op-argument op obj)"."(psw (symbol-to-js-string slot)))

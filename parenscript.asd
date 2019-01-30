@@ -3,8 +3,8 @@
 (defsystem :parenscript
   :name "parenscript"
   :author "Manuel Odendahl <manuel@bl0rg.net>"
-  :maintainer "Vladimir Sedach <vsedach@gmail.com>"
-  :licence "BSD"
+  :maintainer "Vladimir Sedach <vas@oneofus.la>"
+  :licence "BSD-3-Clause"
   :description "Lisp to JavaScript transpiler"
   :components
   ((:static-file "parenscript.asd")

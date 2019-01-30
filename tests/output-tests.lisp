@@ -1,11 +1,42 @@
-;; Copying and distribution of this file, with or without
-;; modification, are permitted in any medium without royalty. This
-;; file is offered as-is, without any warranty.
+;;; Copyright 2005-2006 Henrik Hjelte
+;;; Copyright 2007-2012 Vladimir Sedach
 
-(in-package #:ps-test)
+;;; SPDX-License-Identifier: BSD-3-Clause
+
+;;; Redistribution and use in source and binary forms, with or
+;;; without modification, are permitted provided that the following
+;;; conditions are met:
+
+;;; 1. Redistributions of source code must retain the above copyright
+;;; notice, this list of conditions and the following disclaimer.
+
+;;; 2. Redistributions in binary form must reproduce the above
+;;; copyright notice, this list of conditions and the following
+;;; disclaimer in the documentation and/or other materials provided
+;;; with the distribution.
+
+;;; 3. Neither the name of the copyright holder nor the names of its
+;;; contributors may be used to endorse or promote products derived
+;;; from this software without specific prior written permission.
+
+;;; THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND
+;;; CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES,
+;;; INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+;;; MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+;;; DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS
+;;; BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+;;; EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
+;;; TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+;;; DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
+;;; ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+;;; OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+;;; OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+;;; POSSIBILITY OF SUCH DAMAGE.
+
+(in-package #:parenscript.tests)
 (named-readtables:in-readtable :parenscript)
 
-(in-suite output-tests)
+(fiveam:in-suite output-tests)
 
 (test-ps-js statements-and-expressions-1
   (+ i (if 1 2 3))
@@ -69,16 +100,16 @@
 
 (test-ps-js array-literals-1
   (array)
-  "[  ];")
+  "[];")
 
 (test-ps-js array-literals-2
   (array 1 2 3)
-  "[ 1, 2, 3 ];")
+  "[1, 2, 3];")
 
 (test-ps-js array-literals-3
   (array (array 2 3)
          (array "foobar" "bratzel bub"))
-  "[ [ 2, 3 ], [ 'foobar', 'bratzel bub' ] ];")
+  "[[2, 3], ['foobar', 'bratzel bub']];")
 
 (test-ps-js array-literals-4
   (make-array)
@@ -102,6 +133,7 @@
     for (var i4 = 0; i4 < Math.min(arr1.length, init2.length); i4 += 1) {
         arr1[i4] = init2[i4];
     };
+    __PS_MV_REG = [];
     return arr1;
 })();")
 
@@ -113,20 +145,21 @@
     for (var i4 = 0; i4 < arr1.length; i4 += 1) {
         arr1[i4] = elt3;
     };
+    __PS_MV_REG = [];
     return arr1;
 })();")
 
 (test-ps-js object-literals-1
   (create foo "bar" :blorg 1)
-  "({ foo : 'bar', 'blorg' : 1 });")
+  "{ foo : 'bar', 'blorg' : 1 };")
 
 (test-ps-js object-literals-2
   (create foo "hihi"
           blorg (array 1 2 3)
           another-object (create :schtrunz 1))
-  "({ foo : 'hihi',
-  blorg : [ 1, 2, 3 ],
-  anotherObject : { 'schtrunz' : 1 } });")
+  "{ foo : 'hihi',
+  blorg : [1, 2, 3],
+  anotherObject : { 'schtrunz' : 1 } };")
 
 (test-ps-js object-literals-3
   (getprop an-object 'foo)
@@ -143,14 +176,15 @@
 
 (test-ps-js with-slots-single-eval
   (lambda () (with-slots (a b) (foo) (+ a b)))
-  "(function () {
+  "function () {
     var object1 = foo();
+    __PS_MV_REG = [];
     return object1.a + object1.b;
-});")
+};")
 
 (test-ps-js object-literal-quoted-symbols
   (create 'test "bang" 'symbol-saved-my-life "parenscript")
-  "({ 'test' : 'bang', 'symbolSavedMyLife' : 'parenscript' });")
+  "{ 'test' : 'bang', 'symbolSavedMyLife' : 'parenscript' };")
 
 (test-ps-js object-literal-property-accessors
   (defun foo ()
@@ -176,6 +210,7 @@
   "(function () {
       var _js1 = makeAnObject()[foo];
       var _js2 = _js1.bar;
+      __PS_MV_REG = [];
       return _js2.apply(_js1, null);
     })();")
 
@@ -184,6 +219,7 @@
   "(function () {
     var _js1 = makeAnObject();
     var _js2 = _js1.foo;
+    __PS_MV_REG = [];
     return _js2.apply(_js1, bar());
 })();")
 
@@ -209,9 +245,9 @@
 
 (test-ps-js literal-symbols-4
   (lambda () nil)
-  "(function () {
+  "function () {
     return null;
-});")
+};")
 
 (test-ps-js literal-symbols-5
   undefined
@@ -239,7 +275,7 @@
 
 (test-ps-js function-calls-and-method-calls-2
   (foobar (blorg 1 2) (blabla 3 4) (array 2 3 4))
-  "foobar(blorg(1, 2), blabla(3, 4), [ 2, 3, 4 ]);")
+  "foobar(blorg(1, 2), blabla(3, 4), [2, 3, 4]);")
 
 (test-ps-js function-calls-and-method-calls-3
   ((getprop this 'blorg) 1 2)
@@ -303,9 +339,9 @@ blafoo(i);")
 
 (test-ps-js lambda-definition-2
   (lambda (a b) (+ a b))
-  "(function (a, b) {
+  "function (a, b) {
     return a + b;
-});")
+};")
 
 (test-ps-js assignment-1
   (setf a 1)
@@ -402,8 +438,10 @@ return _js2.style.left = _js1;
 "function foo() {
     if (blorg.isCorrect()) {
         carryOn();
+        __PS_MV_REG = [];
         return i;
     } else {
+        __PS_MV_REG = [];
         return alert('blorg is not correct!');
     };
 };")
@@ -420,6 +458,7 @@ return _js2.style.left = _js1;
   "function foo() {
     if (blorg.isCorrect()) {
         carryOn();
+        __PS_MV_REG = [];
         return i;
     };
 };")
@@ -433,10 +472,36 @@ return _js2.style.left = _js1;
 
 (test-ps-js variable-declaration-1
   (defvar *a* (array 1 2 3))
-  "var A = [ 1, 2, 3 ];")
+  "if ('undefined' === typeof A) { var A = [1, 2, 3]; };")
 
 (test-ps-js variable-declaration-2
   (progn (defvar *a* 4)
+         (let ((x 1)
+               (*a* 2))
+           (let* ((y (+ x 1))
+                  (x (+ x y)))
+             (+ *a* x y))))
+  "if ('undefined' === typeof A) { var A = 4; };
+(function () {
+var x = 1;
+var A_TMPSTACK1;
+try {
+    A_TMPSTACK1 = A;
+    A = 2;
+    var y = x + 1;
+    var x2 = x + y;
+    return A + x2 + y;
+} finally {
+    A = A_TMPSTACK1;
+};
+})();")
+
+(test-ps-js variable-declaration-3
+  (defparameter A 987)
+  "var A = 987;")
+
+(test-ps-js variable-declaration-4
+  (progn (defparameter *a* 4)
          (let ((x 1)
                (*a* 2))
            (let* ((y (+ x 1))
@@ -456,6 +521,10 @@ try {
     A = A_TMPSTACK1;
 };
 })();")
+
+(test-ps-js variable-declaration-5
+  (defvar BAZ)
+  "var BAZ;")
 
 (test-ps-js iteration-constructs-1
   (do* ((a) b (c (array "a" "b" "c" "d" "e"))
@@ -519,10 +588,12 @@ for (var i = 0; i < arr.length; i += 1) {
                 (incf res (1+ i))))))
   "(function () {
 var res = 0;
+__PS_MV_REG = [];
 return alert('Summation to 10 is ' + (function () {
     for (var i = 0; i < 10; i += 1) {
         res += i + 1;
     };
+    var i = null;
     return res;
 })());
 })();")
@@ -548,11 +619,13 @@ for (var c = null, _js_idx2 = 0; _js_idx2 < l.length; _js_idx2 += 1) {
   "(function () {
 var l = [1, 2, 4, 8, 16, 32];
 var s = 0;
+__PS_MV_REG = [];
 return alert('Sum of ' + l + ' is: ' + (function () {
     for (var c = null, _js_idx1 = 0; _js_idx1 < l.length; _js_idx1 += 1) {
         c = l[_js_idx1];
         s += c;
     };
+    var c = null;
     return s;
 })());
 })();")
@@ -569,11 +642,13 @@ for (var i in obj) {
 })();")
 
 (test-ps-js iteration-constructs-9
-  (while ((@ film is-not-finished))
-  ((@ this eat) (new *popcorn)))
-  "while (film.isNotFinished()) {
+  (loop while (funcall (@ film is-not-finished)) do
+       (funcall (@ this eat) (new *popcorn)))
+  "(function () {
+while (film.isNotFinished()) {
     this.eat(new Popcorn);
-};")
+};
+}).call(this);")
 
 (test-ps-js loop-for-bindings
   (loop :for ((a b) (:c :d)) :in arr :do (foo a b c d))
@@ -657,6 +732,7 @@ for (var _js1 in obj) {
     for (var k in obj) {
         map1[k] = foo(k);
     };
+    __PS_MV_REG = [];
     return map1;
 })();")
 
@@ -669,6 +745,7 @@ for (var _js1 in obj) {
             map1[k] = bar(k);
         };
     };
+    __PS_MV_REG = [];
     return map1;
 })();")
 
@@ -735,8 +812,8 @@ for (var a = pop(stack); a; a = pop(stack)) {
 })();")
 
 (test-ps-js loop-for-of-for-in
-   (defun blah (obj b)
-     (loop :for k :of obj :for a :in b :do (foo k a)))
+  (defun blah (obj b)
+    (loop :for k :of obj :for a :in b :do (foo k a)))
 "function blah(obj, b) {
     var _js2 = b.length;
     var FIRST3 = true;
@@ -784,6 +861,7 @@ for (var _js1 = 0; _js1 < _js2; _js1 += 1) {
         var a = b[_js1];
         collect3.push(foo(a));
     };
+    __PS_MV_REG = [];
     return collect3;
 })();")
 
@@ -796,6 +874,7 @@ for (var _js1 = 0; _js1 < _js2; _js1 += 1) {
         var a = b[_js1];
         append3 = append3.concat(a);
     };
+    __PS_MV_REG = [];
     return append3;
 })();")
 
@@ -843,17 +922,17 @@ for (var _js1 = 0; _js1 < _js2; _js1 += 1) {
 
 (test-ps-js the-html-generator-1
   (ps-html ((:a :href "foobar") "blorg"))
-  "'<A HREF=\"foobar\">blorg</A>';")
+  "'<a href=\\\"foobar\\\">blorg</a>';")
 
 (test-ps-js the-html-generator-2
   (ps-html ((:a :href (generate-a-link)) "blorg"))
-  "['<A HREF=\"', generateALink(), '\">blorg</A>'].join('');")
+  "['<a href=\\\"', generateALink(), '\\\">blorg</a>'].join('');")
 
 (test-ps-js the-html-generator-3
   (funcall (getprop document 'write)
            (ps-html ((:a :href "#"
                          :onclick (ps-inline (transport))) "link")))
-  "document.write(['<A HREF=\"#\" ONCLICK=\"', 'javascript:' + 'transport()', '\">link</A>'].join(''));")
+  "document.write(['<a href=\\\"#\\\" onclick=\\\"', 'javascript:' + 'transport()', '\\\">link</a>'].join(''));")
 
 (test-ps-js the-html-generator-4
   (let ((disabled nil)
@@ -864,7 +943,7 @@ for (var _js1 = 0; _js1 < _js2; _js1 += 1) {
   "(function () {
 var disabled = null;
 var authorized = true;
-return element.innerHTML = ['<TEXTAREA', disabled || !authorized ? [' DISABLED=\"', 'disabled', '\"'].join('') : '', '>Edit me</TEXTAREA>'].join('');
+return element.innerHTML = ['<textarea', disabled || !authorized ? [' disabled=\\\"', 'disabled', '\\\"'].join('') : '', '>Edit me</textarea>'].join('');
 })();")
 
 (test-ps-js plus-is-not-commutative
@@ -897,24 +976,22 @@ return element.innerHTML = ['<TEXTAREA', disabled || !authorized ? [' DISABLED=\
 
 (test-ps-js method-call-array
   ((@ (list 10 20) to-string))
-  "[ 10, 20 ].toString();")
+  "[10, 20].toString();")
 
 (test-ps-js method-call-lambda-call
   (funcall (getprop (funcall (lambda (x) x) 10) 'to-string))
   "(function (x) { return x; })(10).toString();")
 
-(test no-whitespace-before-dot
-  (let* ((str (ps* '((@ ((lambda (x) x) 10) to-string))))
-         (dot-pos (position #\. str :test #'char=))
-         (char-before (elt str (1- dot-pos)))
-         (a-parenthesis #\)))
-    (is (char= char-before a-parenthesis))))
+(fiveam:test no-whitespace-before-dot
+  (let ((str (ps* '((@ ((lambda (x) x) 10) to-string)))))
+    (fiveam:is (char= #\) (elt str (1- (position #\. str)))))))
 
 (test-ps-js simple-getprop
   (let ((foo (create a 1)))
     (alert (getprop foo 'a)))
   "(function () {
    var foo = { a : 1 };
+   __PS_MV_REG = [];
    return alert(foo.a);
 })();")
 
@@ -986,22 +1063,32 @@ return element.innerHTML = ['<TEXTAREA', disabled || !authorized ? [' DISABLED=\
          default:   alert('default clause');
          };")
 
-(test escape-sequences-in-string
-  (let ((escapes `((#\\ . #\\)
-                   (#\b . #\Backspace)
-                   (#\f . ,(code-char 12))
-                   ("u000B" . ,(code-char #x000b));;Vertical tab, too uncommon to bother with
-                   (#\n . #\Newline)
-                   (#\r . #\Return)
-                   (#\' . #\');;Double quote need not be quoted because parenscript strings are single quoted
-                   (#\t . #\Tab)
-                   ("u001F" . ,(code-char #x001f));; character below 32
-                   ("u0080" . ,(code-char 128)) ;;Character over 127. Actually valid, parenscript escapes them to be sure.
-                   ("uABCD" . ,(code-char #xabcd)))));; Really above ascii.
+(fiveam:test escape-sequences-in-string
+  (let ((escapes
+         `((#\\     . #\\)
+           (#\b     . #\Backspace)
+           (#\f     . ,(code-char 12))
+           ("u000B" . ,(code-char #xB))       ; vertical tab
+           (#\n     . #\Newline)
+           (#\r     . #\Return)
+           (#\'     . #\')
+           (#\"     . #\")
+           (#\t     . #\Tab)
+           ("u001F" . ,(code-char #x1F))      ; character below 32
+           ("u0080" . ,(code-char 128))       ; character over 127
+           ("u00A0" . ,(code-char 160))       ; non-breaking space
+           ("u00AD" . ,(code-char 173))       ; soft hyphen
+           ("u200B" . ,(code-char #x200B))    ; zero-width space
+           ("u200C" . ,(code-char #x200C))    ; zero-width non-joiner
+           )))
     (loop for (js-escape . lisp-char) in escapes
           for generated = (ps-doc* (format nil "hello~ahi" lisp-char))
           for wanted = (format nil "'hello\\~ahi';" js-escape)
-          do (is (string= (normalize-js-code generated) wanted)))))
+          do (fiveam:is (string= generated wanted)))))
+
+(fiveam:test escape-doublequotes
+  (let ((*js-string-delimiter* #\"))
+    (fiveam:is (string= (ps-doc* "hello\"hi") "\"hello\\\"\hi\";"))))
 
 (test-ps-js getprop-setf
   (setf (getprop x 'y) (+ (+ a 3) 4))
@@ -1015,11 +1102,15 @@ return element.innerHTML = ['<TEXTAREA', disabled || !authorized ? [' DISABLED=\
   (getprop (if (not zoo) foo bar) 'x)
   "(!zoo ? foo : bar).x;")
 
-(test script-star-eval1
-  (is (string= "x = 1; y = 2;" (normalize-js-code (ps* '(setf x 1) '(setf y 2))))))
+(fiveam:test script-star-eval1
+  (fiveam:is (string=
+              (normalize-js-output (ps* '(setf x 1) '(setf y 2)))
+              "x = 1; y = 2;")))
 
-(test script-star-eval2
-  (is (string= "x = 1;" (normalize-js-code (ps* '(setf x 1))))))
+(fiveam:test script-star-eval2
+  (fiveam:is (string=
+              (normalize-js-output (ps* '(setf x 1)))
+              "x = 1;")))
 
 (test-ps-js list-with-single-nil
   (array nil)
@@ -1052,6 +1143,7 @@ return element.innerHTML = ['<TEXTAREA', disabled || !authorized ? [' DISABLED=\
 var _js2 = 1;
 var _js3 = 2;
 var _js1 = 3;
+__PS_MV_REG = [];
 return setBaz(_js2, _js3, _js1);
 })();")
 
@@ -1102,30 +1194,32 @@ __setf_someThing('foo', 1, 2);")
 (test-ps-js arglist-optional4
   (lambda (&optional (x 0 supplied?))
     x)
-  "(function (x) {
+  "function (x) {
     var suppliedwhat = x !== undefined;
     if (!suppliedwhat) {
         x = 0;
     };
     return x;
-});")
+};")
 
 (test-ps-js return-nothing
   (defun foo ()  (return-from foo))
   "function foo() {
-    return null;
+    return;
 };")
 
 (test-ps-js return-values
-  (defun foo ()  (return-from foo (values 1 2 3)))
+  (defun foo ()
+    (return-from foo (values 1 2 3)))
   "function foo() {
-    __PS_MV_REG = { 'tag' : arguments.callee, 'values' : [2, 3] };
-    return 1;
+    var val1 = 1;
+    __PS_MV_REG = [2, 3];
+    return val1;
 };")
 
 (test-ps-js set-timeout
   (set-timeout (lambda () (alert "foo")) 10)
-  "setTimeout(function () { return alert('foo'); }, 10);")
+  "setTimeout(function () { __PS_MV_REG = []; return alert('foo'); }, 10);")
 
 (test-ps-js operator-precedence
   (* 3 (+ 4 5) 6)
@@ -1157,11 +1251,11 @@ __setf_someThing('foo', 1, 2);")
 
 (test-ps-js obj-literal-numbers
   (create 1 "foo")
-  "({ 1 : 'foo' });")
+  "{ 1 : 'foo' };")
 
 (test-ps-js obj-literal-strings
   (create "foo" 2)
-  "({ 'foo' : 2 });")
+  "{ 'foo' : 2 };")
 
 (test-ps-js getprop-string
   (getprop foo "bar")
@@ -1175,17 +1269,21 @@ __setf_someThing('foo', 1, 2);")
   (getprop (progn (some-fun "abc") "123") "length")
   "(someFun('abc'), '123')['length'];")
 
+(test-ps-js getprop-multi1
+  (getprop foo 1 "two" three 'bar 1 2)
+  "foo[1]['two'][three].bar[1][2];")
+
 (test-ps-js method-call-block
   ((@ (progn (some-fun "abc") "123") to-string))
   "(someFun('abc'), '123').toString();")
 
 (test-ps-js create-blank
   (create)
-  "({ });")
+  "{ };")
 
 (test-ps-js blank-object-literal
   {}
-  "({ });")
+  "{ };")
 
 (test-ps-js array-literal1
   []
@@ -1212,6 +1310,7 @@ __setf_someThing('foo', 1, 2);")
     (alert (aref bar 1)))
   "function foo() {
     var bar = Array.prototype.slice.call(arguments, 0);
+    __PS_MV_REG = [];
     return alert(bar[1]);
 };")
 
@@ -1219,6 +1318,7 @@ __setf_someThing('foo', 1, 2);")
   (defun foo (baz &rest bar) (+ baz (aref bar 1)))
   "function foo(baz) {
     var bar = Array.prototype.slice.call(arguments, 1);
+    __PS_MV_REG = [];
     return baz + bar[1];
 };")
 
@@ -1286,7 +1386,7 @@ __setf_someThing('foo', 1, 2);")
 (test-ps-js arglist-keyword-supplied
   (lambda (&key (foo 1 supplied?))
     foo)
-"(function () {
+"function () {
     var _js2 = arguments.length;
     for (var n1 = 0; n1 < _js2; n1 += 2) {
         switch (arguments[n1]) {
@@ -1298,7 +1398,7 @@ __setf_someThing('foo', 1, 2);")
     var suppliedwhat;
     var foo = 'undefined' === typeof foo ? 1 : foo;
     return foo;
-});")
+};")
 
 (test-ps-js keyword-funcall1
   (func :baz 1)
@@ -1346,6 +1446,7 @@ __setf_someThing('foo', 1, 2);")
   "function foo() {
     if (1 < 2) {
         bar('foo');
+        __PS_MV_REG = [];
         return 4 * 5;
     };
 };")
@@ -1374,12 +1475,16 @@ __setf_someThing('foo', 1, 2);")
     var _cmp3;
     if (1 < 2) {
         bar('foo');
+        __PS_MV_REG = [];
         return 4 * 5;
     } else if (a === b) {
+        __PS_MV_REG = [];
         return c + d;
     } else if (_cmp1 = 2, _cmp2 = 3, _cmp3 = 4, 1 < _cmp1 && _cmp1 < _cmp2 && _cmp2 < _cmp3 && _cmp3 < 5) {
+        __PS_MV_REG = [];
         return x;
     } else {
+        __PS_MV_REG = [];
         return 'foo';
     };
 };")
@@ -1404,37 +1509,50 @@ __setf_someThing('foo', 1, 2);")
                       :onclick (ps-inline (transport)))
                   img))
         img))
-  "document.write(LINKORNOT === 1 ? ['<A HREF=\"#\" ONCLICK=\"', 'javascript:' + 'transport()', '\">', img, '</A>'].join('') : img);")
+  "document.write(LINKORNOT === 1 ? ['<a href=\\\"#\\\" onclick=\\\"', 'javascript:' + 'transport()', '\\\">', img, '</a>'].join('') : img);")
 
 (test-ps-js negate-number-literal
   (- 1)
   "-1;")
 
-(test macro-environment1
-  (is (string= (normalize-js-code (let* ((macroname (gensym)))
-                                    (ps* `(defmacro ,macroname (x) `(+ ,x 123))
-                                         `(defun test1 ()
-                                            (macrolet ((,macroname (x) `(aref data ,x)))
-                                              (when (,macroname x)
-                                                (setf (,macroname x) 123)))))))
-               (normalize-js-code
+(fiveam:test macro-environment1
+  (fiveam:is
+   (string=
+    (normalize-js-output
+     (let* ((macroname (gensym)))
+       (ps* `(defmacro ,macroname (x) `(+ ,x 123))
+            `(defun test1 ()
+               (macrolet ((,macroname (x) `(aref data ,x)))
+                 (when (,macroname x)
+                   (setf (,macroname x) 123)))))))
+    (normalize-js-output
 "function test1() {
     return data[x] ? (data[x] = 123) : null;
 };"))))
 
-(test macro-environment2
-  (is (string= (normalize-js-code (let ((outer-lexical-variable 1))
-                                    (defpsmacro macro-environment2-macro (x)
-                                      `(+ ,outer-lexical-variable ,x))
-                                    (ps* '(macro-environment2-macro 2))))
-               (normalize-js-code "1 + 2;"))))
+(fiveam:test macro-environment2
+  (fiveam:is
+   (string=
+    (let ((outer-lexical-variable 1))
+      (defpsmacro macro-environment2-macro (x)
+        `(+ ,outer-lexical-variable ,x))
+      (ps* '(macro-environment2-macro 2)))
+    "1 + 2;")))
 
 (test-ps-js ampersand-whole-1
   (macrolet ((foo (&whole foo bar baz)
                (declare (ignore bar baz))
-                (with-standard-io-syntax (format nil "~a" foo))))
+               (with-standard-io-syntax
+                 (let ((*print-case* :downcase))
+                   (format nil "~a" foo)))))
     (foo 1 2))
-  "'(FOO 1 2)';")
+  "'(foo 1 2)';")
+
+(test-ps-js ampersand-whole-2
+  (macrolet ((foo (&whole foo bar baz)
+               `(+ ,bar ,baz)))
+    (foo 1 2))
+  "1 + 2;")
 
 (test-ps-js keyword-consistent
   :x
@@ -1459,6 +1577,21 @@ __setf_someThing('foo', 1, 2);")
   (progn (define-symbol-macro tst-sym-macro1 2)
          (foo tst-sym-macro1))
   "foo(2);")
+
+(test-ps-js define-symbol-macro2
+  (progn (define-symbol-macro tst-sym-macro2 3)
+         (list tst-sym-macro2))
+  "[3];")
+
+(test-ps-js define-symbol-macro3
+  (progn (define-symbol-macro tst-sym-macro3 4)
+         (setq foo (create tst-sym-macro3 tst-sym-macro3)))
+  "foo = { tstSymMacro3 : 4 };")
+
+(test-ps-js define-symbol-macro4
+  (progn (define-symbol-macro tst-sym-macro4 5)
+         (setq foo (if (baz) tst-sym-macro4 bar)))
+  "foo = baz() ? 5 : bar;")
 
 (test-ps-js expression-progn
   (1+ (progn (foo) (if x 1 2)))
@@ -1493,7 +1626,7 @@ __setf_someThing('foo', 1, 2);")
 })();")
 
 (test-ps-js special-var2
-  (progn (defvar *foo*)
+  (progn (defparameter *foo*)
          (let* ((*baz* 3)
                 (*foo* 2))
            (* *foo* 2 *baz*)))
@@ -1535,6 +1668,7 @@ __setf_someThing('foo', 1, 2);")
     (or (getprop cache id)
         (setf (getprop cache id) ((@ document get-element-by-id) id))))
   "function foo() {
+    __PS_MV_REG = [];
     return cache[id] || (cache[id] = document.getElementById(id));
 };")
 
@@ -1625,11 +1759,11 @@ __setf_someThing('foo', 1, 2);")
                       (:a :href "http://foo.com"
                           symbol)
                       (:span :class "ticker-symbol-popup")))
-  "['<SPAN CLASS=\"ticker-symbol\" TICKER-SYMBOL=\"', symbol, '\"><A HREF=\"http://foo.com\">', symbol, '</A><SPAN CLASS=\"ticker-symbol-popup\"></SPAN></SPAN>'].join('');")
+  "['<span class=\\\"ticker-symbol\\\" ticker-symbol=\\\"', symbol, '\\\"><a href=\\\"http://foo.com\\\">', symbol, '</a><span class=\\\"ticker-symbol-popup\\\"></span></span>'].join('');")
 
 (test-ps-js who-html2
   (who-ps-html (:p "t0" (:span "t1")))
-  "'<P>t0<SPAN>t1</SPAN></P>';")
+  "'<p>t0<span>t1</span></p>';")
 
 (test-ps-js flet1
   ((lambda () (flet ((foo (x)
@@ -1639,6 +1773,7 @@ __setf_someThing('foo', 1, 2);")
     var foo = function (x) {
         return x + 1;
     };
+    __PS_MV_REG = [];
     return foo(1);
 })();")
 
@@ -1653,6 +1788,7 @@ var foo = function (x) {
 var bar = function (y) {
     return 2 + y;
 };
+__PS_MV_REG = [];
 return bar(foo(1));
 })();")
 
@@ -1669,8 +1805,10 @@ var foo1 = function (x) {
     return x + 1;
 };
 var bar = function (y) {
+    __PS_MV_REG = [];
     return 2 + foo(y);
 };
+__PS_MV_REG = [];
 return bar(foo1(1));
 })();")
 
@@ -1682,8 +1820,10 @@ return bar(foo1(1));
                 (foo 3))))
 "(function () {
     var foo = function (x) {
+        __PS_MV_REG = [];
         return 0 === x ? 0 : x + foo(x - 1);
     };
+    __PS_MV_REG = [];
     return foo(3);
 })();")
 
@@ -1693,11 +1833,14 @@ return bar(foo1(1));
     (bar (foo 1)))
   "(function () {
 var foo = function (x) {
+    __PS_MV_REG = [];
     return bar(x) + 1;
 };
 var bar = function (y) {
+    __PS_MV_REG = [];
     return 2 + foo(y);
 };
+__PS_MV_REG = [];
 return bar(foo(1));
 })();")
 
@@ -1710,8 +1853,10 @@ var foo = function (x) {
     return x + 1;
 };
 var bar = function (y) {
+    __PS_MV_REG = [];
     return 2 + foo(y);
 };
+__PS_MV_REG = [];
 return bar(foo(1));
 })();")
 
@@ -1726,6 +1871,7 @@ var foo = function (x, y) {
     };
     return x + y;
 };
+__PS_MV_REG = [];
 return foo(1);
 })();")
 
@@ -1761,34 +1907,38 @@ return foo(1);
   '(1 [])
   "[1, []];")
 
-(test ps-lisp-expands-in-lexical-environment
-  (is (string= "5;" (let ((x 5))
-                      (ps (lisp x))))))
+(fiveam:test ps-lisp-expands-in-lexical-environment
+  (fiveam:is (string= (let ((x 5)) (ps (lisp x)))
+                      "5;")))
 
-(test ps-lisp-expands-in-lexical-environment1
-  (is (string= "1 + 5;" (let ((x 5))
-                          (ps (+ 1 (lisp x)))))))
+(fiveam:test ps-lisp-expands-in-lexical-environment1
+  (fiveam:is (string= (let ((x 5)) (ps (+ 1 (lisp x))))
+                      "1 + 5;")))
 
-(test ps-lisp-expands-in-lexical-environment2
-  (is (string= "1 + 2 + 3;" (let ((x 2))
-                          (ps (+ 1 (lisp x) 3))))))
+(fiveam:test ps-lisp-expands-in-lexical-environment2
+  (fiveam:is (string= (let ((x 2)) (ps (+ 1 (lisp x) 3)))
+                      "1 + 2 + 3;")))
 
-(test ps*-lisp-expands-in-null-lexical-environment
-  (signals unbound-variable (let ((x 5))
-                              (declare (ignore x))
-                              (ps* '(lisp x)))))
+(fiveam:test ps*-lisp-expands-in-null-lexical-environment
+  (fiveam:signals unbound-variable
+    (let ((x 5))
+      (declare (ignore x))
+      (ps* '(lisp x)))))
 
-(test ps*-lisp-expands-in-dynamic-environment
-  (is (string= "1 + 2;"
+(fiveam:test ps*-lisp-expands-in-dynamic-environment
+  (fiveam:is (string=
                (let ((foo 2))
                  (declare (special foo))
-                 (ps* '(+ 1 (lisp (locally (declare (special foo)) foo))))))))
+                 (ps* '(+ 1 (lisp (locally (declare (special foo))
+                                    foo)))))
+               "1 + 2;")))
 
-(test ps-lisp-dynamic-environment
-  (is (string= "1 + 2;"
+(fiveam:test ps-lisp-dynamic-environment
+  (fiveam:is (string=
                (let ((foo 2))
                  (declare (special foo))
-                 (ps (+ 1 (lisp foo)))))))
+                 (ps (+ 1 (lisp foo))))
+               "1 + 2;")))
 
 (test-ps-js nested-if-expressions1
   (defun foo ()
@@ -1811,6 +1961,11 @@ return foo(1);
         return z ? a : b;
     };
 };")
+
+(test-ps-js nested-if-expressions3
+  (foo (if (if x y z) a b)
+       (if x y (if z a b)))
+  "foo((x ? y : z) ? a : b, x ? y : (z ? a : b));")
 
 (test-ps-js let1
   (let (x)
@@ -1886,10 +2041,10 @@ return x1 + y;
   (lambda ()
     (let (x)
       (+ x x)))
-  "(function () {
+  "function () {
     var x = null;
     return x + x;
-});")
+};")
 
 (test-ps-js let*1
   (let* ((x 1))
@@ -1955,6 +2110,7 @@ return x + x;
               (1+ a))))
   "x = (function () {
     var a = foo();
+    __PS_MV_REG = [];
     return a != null ? a + 1 : null;
 })();")
 
@@ -2000,10 +2156,10 @@ return x + x;
   (lambda (x)
     (let ((x (+ 1 x)))
       x))
-  "(function (x) {
+  "function (x) {
     var x1 = 1 + x;
     return x1;
-});")
+};")
 
 (test-ps-js symbol-macro-array
   (symbol-macrolet ((x 1))
@@ -2011,9 +2167,34 @@ return x + x;
   "[1];")
 
 (test-ps-js symbol-macro-obj
-  (symbol-macrolet ((x y))
+  (symbol-macrolet ((x (+ 1 2)))
     (create x 1))
-  "({ x : 1 });")
+  "{ x : 1 };")
+
+(test-ps-js symbol-macro-obj1
+  (symbol-macrolet ((x (+ 1 2)))
+    (ps:create x x))
+  "{ x : 1 + 2 };")
+
+(test-ps-js symbol-macro-getprop1
+  (symbol-macrolet ((x (+ 1 2)))
+    (ps:getprop a x))
+  "a[1 + 2];")
+
+(test-ps-js symbol-macro-getprop1
+  (symbol-macrolet ((x (+ 1 2)))
+    (ps:getprop a 'x))
+  "a.x;")
+
+(test-ps-js let-let-create
+  (let ((a 99))
+    (let ((a 22))
+      (create a 33)))
+  "(function () {
+    var a = 99;
+    var a1 = 22;
+    return { a : 33 };
+})();")
 
 (test-ps-js symbol-macro-conditional1
   (symbol-macrolet ((x y))
@@ -2035,8 +2216,10 @@ return x + x;
       (baz y)))
   "function foo() {
     var y = (function () {
+        __PS_MV_REG = [];
         return bar(this);
     }).call(this);
+    __PS_MV_REG = [];
     return baz(y);
 };")
 
@@ -2073,6 +2256,7 @@ var x = function (x) {
     return x + 1;
 };
 var x1 = 2;
+__PS_MV_REG = [];
 return x(x1);
 })();")
 
@@ -2085,6 +2269,7 @@ var x = 2;
 var x1 = function (x) {
     return x + 1;
 };
+__PS_MV_REG = [];
 return x1(x);
 })();")
 
@@ -2097,6 +2282,7 @@ var x = function (x) {
     return x + 1;
 };
 var x1 = 2;
+__PS_MV_REG = [];
 return x(x1);
 })();")
 
@@ -2109,6 +2295,7 @@ var x = 2;
 var x1 = function (x) {
     return x + 1;
 };
+__PS_MV_REG = [];
 return x1(x);
 })();")
 
@@ -2141,7 +2328,7 @@ return ++x1;
 
 (test-ps-js create-reserved-word
   (create :default 1)
-  "({ 'default' : 1 });")
+  "{ 'default' : 1 };")
 
 (test-ps-js getprop-reserved-word
   (getprop foo :default)
@@ -2158,37 +2345,41 @@ return ++x1;
 
 (defvar *lisp-output* nil)
 
-(test eval-when-lisp-side ()
-    (setf *lisp-output* 'original-value)
-    (let ((js-output (normalize-js-code
-              (ps-doc* `(eval-when (:compile-toplevel)
-                  (setf *lisp-output* 'it-works))))))
-      (is (eql 'it-works *lisp-output*))
-      (is (string= "" js-output))))
+(fiveam:test eval-when-lisp-side ()
+  (setf *lisp-output* 'original-value)
+  (let ((js-output
+         (normalize-js-output
+          (ps-doc* `(eval-when (:compile-toplevel)
+                      (setf *lisp-output* 'it-works))))))
+    (fiveam:is (eql 'it-works *lisp-output*))
+    (fiveam:is (string= "" js-output))))
 
 (defpsmacro my-in-package (package-name)
   `(eval-when (:compile-toplevel)
      (setf *lisp-output* ,package-name)))
 
-(test eval-when-macro-expansion ()
-    (setf *lisp-output* 'original-value)
-    (let ((js-output (normalize-js-code
-              (ps-doc* `(progn
-                  (my-in-package :cl-user)
-                  3)))))
-      (declare (ignore js-output))
-      (is (eql :cl-user *lisp-output*))))
+(fiveam:test eval-when-macro-expansion ()
+  (setf *lisp-output* 'original-value)
+  (let ((js-output
+         (normalize-js-output
+          (ps-doc* `(progn
+                      (my-in-package :cl-user)
+                      3)))))
+    (declare (ignore js-output))
+    (fiveam:is (eql :cl-user *lisp-output*))))
 
-(test eval-when-macrolet-expansion ()
-    (setf *lisp-output* 'original-value)
-    (let ((js-output (normalize-js-code
-              (ps-doc* `(macrolet ((my-in-package2 (package-name)
+(fiveam:test eval-when-macrolet-expansion ()
+  (setf *lisp-output* 'original-value)
+  (let ((js-output
+         (normalize-js-output
+          (ps-doc*
+           `(macrolet ((my-in-package2 (package-name)
                          `(eval-when (:compile-toplevel)
-                        (setf *lisp-output* ,package-name))))
-                  (my-in-package2 :cl-user)
-                  3)))))
-      (declare (ignore js-output))
-      (is (eql :cl-user *lisp-output*))))
+                            (setf *lisp-output* ,package-name))))
+              (my-in-package2 :cl-user)
+              3)))))
+    (declare (ignore js-output))
+    (fiveam:is (eql :cl-user *lisp-output*))))
 
 (test-ps-js getprop-keyword
   (getprop foo :bar)
@@ -2196,10 +2387,10 @@ return ++x1;
 
 (test-ps-js nary-comparison1
   (lambda () (< 1 2 3))
-  "(function () {
+  "function () {
     var _cmp1;
     return (_cmp1 = 2, 1 < _cmp1 && _cmp1 < 3);
-});")
+};")
 
 (test-ps-js chain-getprop1
   (chain ($ "foo") (bar x z) frob (baz 5))
@@ -2220,6 +2411,7 @@ return ++x1;
     var foo = function (x) {
         return x + 1;
     };
+    __PS_MV_REG = [];
     return foo(1);
 })() + 1;")
 
@@ -2239,15 +2431,15 @@ var foo = function (x) {
     var y = 'undefined' === typeof y ? 0 : y;
     return x + y;
 };
+__PS_MV_REG = [];
 return foo(1, 'y', 2);
 })();")
 
 (test-ps-js return-case-break-elimination
   (defun foo ()
-    (return-from foo
-      (case 1
-        (0 1)
-        (otherwise 2))))
+    (case 1
+      (0 1)
+      (otherwise 2)))
   "function foo() {
     switch (1) {
     case 0:
@@ -2267,28 +2459,28 @@ return foo(1, 'y', 2);
 
 (test-ps-js switch-return-fallthrough
   (defun foo ()
-    (return-from foo
-      (switch x
-        (1 (foo) break)
-        (2 (bar))
-        (default 4))))
+    (switch x
+      (1 (foo) break)
+      (2 (bar))
+      (default 4)))
   "function foo() {
     switch (x) {
     case 1:
+        __PS_MV_REG = [];
         return foo();
     case 2:
         bar();
     default:
+        __PS_MV_REG = [];
         return 4;
     };
 };")
 
 (test-ps-js return-last-case
   (defun foo ()
-    (return-from foo
-      (case x
-       (:a 'eh)
-       (:b 'bee))))
+    (case x
+      (:a 'eh)
+      (:b 'bee)))
   "function foo() {
     switch (x) {
     case 'a':
@@ -2300,11 +2492,10 @@ return foo(1, 'y', 2);
 
 (test-ps-js return-macrolet
   (defun foo ()
-    (return-from foo
-      (macrolet ((x () 1))
-        (case (x)
-          (:a 'eh)
-          (:b 'bee)))))
+    (macrolet ((x () 1))
+      (case (x)
+        (:a 'eh)
+        (:b 'bee))))
   "function foo() {
     switch (1) {
     case 'a':
@@ -2322,17 +2513,13 @@ return foo(1, 'y', 2);
     (alert a)
     (alert b))
   "returnsMv();
+__PS_MV_REG = [];
 (function () {
-  var prevMv1 = 'undefined' === typeof __PS_MV_REG ? (__PS_MV_REG = undefined) : __PS_MV_REG;
-try {
     var a = doesnt();
-    var _db2 = doesnt === __PS_MV_REG['tag'] ? __PS_MV_REG['values'] : [];
-    var b = _db2[0];
+    var b = __PS_MV_REG[0];
     alert(a);
+    __PS_MV_REG = [];
     return alert(b);
-} finally {
-    __PS_MV_REG = prevMv1;
-};
 })();")
 
 (test-ps-js mv-bind2
@@ -2343,74 +2530,68 @@ try {
     (alert a)
     (alert b))
   "(function () {
-var a = 1;
-returnsMv(a);
-var prevMv2 = 'undefined' === typeof __PS_MV_REG ? (__PS_MV_REG = undefined) : __PS_MV_REG;
-try {
-    var a3 = doesnt(b);
-    var _db4 = doesnt === __PS_MV_REG['tag'] ? __PS_MV_REG['values'] : [];
-    var b = _db4[0];
-    alert(a3);
+    var a = 1;
+    returnsMv(a);
+    __PS_MV_REG = [];
+    var a1 = doesnt(b);
+    var b = __PS_MV_REG[0];
+    alert(a1);
+    __PS_MV_REG = [];
     return alert(b);
-} finally {
-    __PS_MV_REG = prevMv2;
-};
 })();")
 
 (test-ps-js multiple-value-bind-simple
   (multiple-value-bind (a b) (blah)
     (+ a b))
-  "(function () {
-    var prevMv1 = 'undefined' === typeof __PS_MV_REG ? (__PS_MV_REG = undefined) : __PS_MV_REG;
-try {
+  "__PS_MV_REG = [];
+(function () {
     var a = blah();
-    var _db2 = blah === __PS_MV_REG['tag'] ? __PS_MV_REG['values'] : [];
-    var b = _db2[0];
+    var b = __PS_MV_REG[0];
+    __PS_MV_REG = [];
     return a + b;
-} finally {
-    __PS_MV_REG = prevMv1;
-};
 })();")
 
 (test-ps-js values0
   (lambda () (values))
-  "(function () {
-    __PS_MV_REG = {};
-    return null;
-});")
+  "function () {
+    return;
+};")
 
 (test-ps-js values1
-  (values x)
-  "x;")
+  (lambda () (values x))
+  "function () {
+    return x;
+};")
 
 (test-ps-js values2
   (lambda () (values x y))
-  "(function () {
-__PS_MV_REG = { 'tag' : arguments.callee, 'values' : [y] };
-return x;
-});")
+  "function () {
+    var val1 = x;
+    __PS_MV_REG = [y];
+    return val1;
+};")
 
 (test-ps-js values3
   (lambda () (values x y z))
-  "(function () {
-    __PS_MV_REG = { 'tag' : arguments.callee, 'values' : [y, z] };
-    return x;
-});")
+  "function () {
+    var val1 = x;
+    __PS_MV_REG = [y, z];
+    return val1;
+};")
 
 (test-ps-js values-return
   (defun foo (x y)
     (return-from foo (values (* x x) y)))
   "function foo(x, y) {
-    var val1_1 = x * x;
-    __PS_MV_REG = { 'tag' : arguments.callee, 'values' : [y] };
-    return val1_1;
+    var val1 = x * x;
+    __PS_MV_REG = [y];
+    return val1;
 };")
 
 (test-ps-js return-macrolet1
   (defun foo ()
-    (return-from foo
-      (symbol-macrolet ((x 2))
-        (loop do (+ x x)))))
+    (symbol-macrolet ((x 2))
+      (loop do (+ x x))))
   "function foo() {
     while (true) {
         2 + 2;
@@ -2431,8 +2612,10 @@ if (foowhat(x)) {
         foo(y);
     };
 } else if (barwhat(x)) {
+    __PS_MV_REG = [];
     return x;
 } else {
+    __PS_MV_REG = [];
     return 3;
 };
 };")
@@ -2452,10 +2635,13 @@ if (foowhat(x)) {
             var y = x[_js1];
             foo(y);
         };
+        __PS_MV_REG = [];
         return;
     case 2:
+        __PS_MV_REG = [];
         return x;
     case true:
+        __PS_MV_REG = [];
         return 3;
     };
 };")
@@ -2483,7 +2669,7 @@ if (foowhat(x)) {
     (if a
         (loop for y in x do (foo y))
         c))
-  "(function () {
+  "function () {
     if (a) {
         var _js4 = x.length;
         for (var _js3 = 0; _js3 < _js4; _js3 += 1) {
@@ -2491,9 +2677,10 @@ if (foowhat(x)) {
             foo(y);
         };
     } else {
+        __PS_MV_REG = [];
         return c;
     };
-});")
+};")
 
 (test-ps-js lambda-loop-if-return1
   (defun baz ()
@@ -2504,6 +2691,7 @@ if (foowhat(x)) {
                c))))
   "function baz() {
     try {
+        __PS_MV_REG = [];
         return foo(function () {
             if (a) {
                 var _js4 = x.length;
@@ -2511,16 +2699,17 @@ if (foowhat(x)) {
                     var y = x[_js3];
                     foo(y);
                 };
+                __PS_MV_REG = [];
                 throw { '__ps_block_tag' : 'baz',
-                        '__ps_value1' : null };
+                        '__ps_value' : null };
             } else {
+                __PS_MV_REG = [];
                 return c;
             };
         });
     } catch (_ps_err5) {
         if (_ps_err5 && 'baz' === _ps_err5['__ps_block_tag']) {
-            __PS_MV_REG = { 'tag' : arguments.callee, 'values' : _ps_err5['__ps_values'] };
-            return _ps_err5['__ps_value1'];
+            return _ps_err5['__ps_value'];
         } else {
             throw _ps_err5;
         };
@@ -2552,8 +2741,10 @@ case 1:
     for (var _js1 = 0; _js1 < 3; _js1 += 1) {
         alert('foo');
     };
+    __PS_MV_REG = [];
     return;
 case 2:
+    __PS_MV_REG = [];
     return 'bar';
 };
 };")
@@ -2566,38 +2757,72 @@ case 2:
                  `(@ ,el offset-left)))
       (setf (left x) 10)
       (left x)))
-  "(function () {
+  "function () {
 var _js2 = x;
 var _js1 = 10;
 _js2.style.left = _js1;
 return x.offsetLeft;
-});")
+};")
 
 (test-ps-js for-return
   (lambda () (dolist (arg args) (foo arg)))
-  "(function () {
+  "function () {
     for (var arg = null, _js_idx1 = 0; _js_idx1 < args.length; _js_idx1 += 1) {
         arg = args[_js_idx1];
         foo(arg);
     };
-});")
+};")
 
 (test-ps-js try-catch-return
   (defun foo ()
-    (return-from foo
-      (try (foo)
-           (:catch (e)
-             (bar))
-           (:finally
-            (cleanup)))))
+    (try (foo)
+         (:catch (e)
+           (bar))
+         (:finally
+           (cleanup))))
   "function foo() {
 try {
+    __PS_MV_REG = [];
     return foo();
 } catch (e) {
+    __PS_MV_REG = [];
     return bar();
 } finally {
     cleanup();
 };
+};")
+
+(test-ps-js let-try
+  (let ((x (ps:try (+ 1 2)
+                   (:catch (y) 5))))
+    x)
+  "(function () {
+    var x = (function () {
+        try {
+            return 1 + 2;
+        } catch (y) {
+            return 5;
+        };
+    })();
+    __PS_MV_REG = [];
+    return x;
+})();")
+
+(test-ps-js try-finally-return-from
+  (defun xyz ()
+    (return-from xyz
+      (ps:try (when (blah) 4)
+              (:finally (foo))))
+    (dont-call-me))
+  "function xyz() {
+    try {
+        __PS_MV_REG = [];
+        return blah() ? 4 : null;
+    } finally {
+        foo();
+    };
+    __PS_MV_REG = [];
+    return dontCallMe();
 };")
 
 (test-ps-js defun-setf-optional
@@ -2613,6 +2838,7 @@ try {
          (setf (foo x 1 2 3 4) 5))
   "function __setf_foo(newValue, b) {
     var foo = Array.prototype.slice.call(arguments, 2);
+    __PS_MV_REG = [];
     return doSomething(b, foo, newValue);
 };
 __setf_foo(5, x, 1, 2, 3, 4);")
@@ -2626,16 +2852,16 @@ __setf_foo(5, x, 1, 2, 3, 4);")
 (test-ps-js implicit-return-null
   (lambda ()
     )
-  "(function () {
+  "function () {
     return null;
-});")
+};")
 
 (test-ps-js implicit-return-null
   (lambda ()
     nil)
-  "(function () {
+  "function () {
     return null;
-});")
+};")
 
 (test-ps-js return-conditional-nested
   (defun blep (ss x y)
@@ -2659,6 +2885,7 @@ __setf_foo(5, x, 1, 2, 3, 4);")
                 var val = baz(a, b);
                 if (val != null) {
                     if (blah(val)) {
+                        __PS_MV_REG = [];
                         return !blee() ? true : null;
                     };
                 };
@@ -2667,7 +2894,6 @@ __setf_foo(5, x, 1, 2, 3, 4);")
     };
 };")
 
-;; this test needs to be rewritten when named blocks are implemented!!!!
 (test-ps-js return-when-returns-broken-return
   (defun foo ()
     (return-from foo (when x 1))
@@ -2686,8 +2912,10 @@ __setf_foo(5, x, 1, 2, 3, 4);")
   "function foo() {
 switch (foo) {
 case 123:
+    __PS_MV_REG = [];
     return bar() ? true : null;
 case 345:
+    __PS_MV_REG = [];
     return blah();
 };
 };")
@@ -2713,7 +2941,7 @@ try {
     (declare (special *foo*))
     (let ((*foo* 1))
       (1+ *foo*)))
-  "(function () {
+  "function () {
     var FOO_TMPSTACK1;
     try {
         FOO_TMPSTACK1 = FOO;
@@ -2722,7 +2950,7 @@ try {
     } finally {
         FOO = FOO_TMPSTACK1;
     };
-});")
+};")
 
 (test-ps-js declare-special-let
   (let ((*foo* 123))
@@ -2733,10 +2961,32 @@ var FOO_TMPSTACK1;
 try {
     FOO_TMPSTACK1 = FOO;
     FOO = 123;
+    __PS_MV_REG = [];
     return blah();
 } finally {
     FOO = FOO_TMPSTACK1;
 };
+})();")
+
+(test-ps-js declare-special-let-scope
+  (block nil
+    (let ((*foo* 123))
+      (declare (special *foo*))
+      (blah))
+    (let ((*foo* 456))
+      (+ 4 5)))
+  "(function () {
+var FOO_TMPSTACK1;
+try {
+    FOO_TMPSTACK1 = FOO;
+    FOO = 123;
+    blah();
+} finally {
+    FOO = FOO_TMPSTACK1;
+};
+var FOO = 456;
+__PS_MV_REG = [];
+return 4 + 5;
 })();")
 
 (test-ps-js declare-special-let*
@@ -2752,6 +3002,7 @@ try {
         try {
             BAR_TMPSTACK2 = BAR;
             BAR = FOO + BAR;
+            __PS_MV_REG = [];
             return blah();
         } finally {
             BAR = BAR_TMPSTACK2;
@@ -2775,6 +3026,7 @@ function foo(x, y) {
     try {
         BAR_TMPSTACK1 = BAR;
         BAR = bar(y);
+        __PS_MV_REG = [];
         return FOO(x);
     } finally {
         BAR = BAR_TMPSTACK1;
@@ -2812,37 +3064,42 @@ var testSymbolMacro1_1 = function () {
     return 2;
 };
 foo(1);
+__PS_MV_REG = [];
 return testSymbolMacro1_1();
 })();
 bar(1);")
 
-(test compile-stream-nulls
-  (is (string=
-       ""
-       (with-input-from-string (s "
-   (defmacro macro-null-toplevel ()
-     nil)
-   (macro-null-toplevel)")
-         (ps-compile-stream s)))))
+(fiveam:test compile-stream-nulls
+  (fiveam:is
+   (string=
+    (with-input-from-string (s "
+      (defmacro macro-null-toplevel ()
+        nil)
+      (macro-null-toplevel)")
+      (ps-compile-stream s))
+    "")))
 
-(test compile-stream1
-  (is (string=
-       "(function () {
+(fiveam:test compile-stream1
+  (fiveam:is
+   (string=
+    (with-input-from-string (s "
+      (define-symbol-macro test-symbol-macro1 1)
+      (flet ((test-symbol-macro1 () 2))
+            (foo test-symbol-macro1)
+            (test-symbol-macro1))
+      (bar test-symbol-macro1)")
+      (ps::with-blank-compilation-environment
+        (ps-compile-stream s)))
+"(function () {
     var testSymbolMacro1_1 = function () {
         return 2;
     };
     foo(1);
+    __PS_MV_REG = [];
     return testSymbolMacro1_1();
 })();
 bar(1);
-"
-       (with-input-from-string (s "
-(define-symbol-macro test-symbol-macro1 1)
-(flet ((test-symbol-macro1 () 2))
-      (foo test-symbol-macro1)
-      (test-symbol-macro1))
-(bar test-symbol-macro1)")
-         (ps::with-blank-compilation-environment (ps-compile-stream s))))))
+")))
 
 (test-ps-js equality-nary1
   (let ((x 10) (y 10) (z 10))
@@ -2877,9 +3134,11 @@ a === b;")
     (bar 5))
   "function foo(x) {
     baz(4);
+    __PS_MV_REG = [];
     return x;
+    __PS_MV_REG = [];
     return bar(5);
-}; ")
+};")
 
 (test-ps-js block-return-from
   (block scope
@@ -2890,8 +3149,10 @@ a === b;")
   "(function () {
     foo();
     if (bar()) {
-        return null;
+        __PS_MV_REG = [];
+        return;
     };
+    __PS_MV_REG = [];
     return blee();
 })();")
 
@@ -2905,8 +3166,10 @@ a === b;")
   "function baz() {
     foo();
     if (bar()) {
-        return null;
+        __PS_MV_REG = [];
+        return;
     };
+    __PS_MV_REG = [];
     return blee();
 };")
 
@@ -2922,10 +3185,12 @@ a === b;")
     scope: {
         foo();
         if (bar()) {
+            __PS_MV_REG = [];
             break scope;
         };
         blee();
     };
+    __PS_MV_REG = [];
     return 2;
 };")
 
@@ -2941,11 +3206,13 @@ a === b;")
     scope: {
         foo();
         if (bar()) {
+            __PS_MV_REG = [];
             foobar();
             break scope;
         };
         blee();
     };
+    __PS_MV_REG = [];
     return 2;
 };")
 
@@ -2957,16 +3224,18 @@ a === b;")
        (return-from scope))
      (blee))
     (+ 1 2))
-  "(function () {
+  "function () {
     scope: {
         foo();
         if (bar()) {
+            __PS_MV_REG = [];
             break scope;
         };
         blee();
     };
+    __PS_MV_REG = [];
     return 1 + 2;
-});")
+};")
 
 (test-ps-js block-return-from2
   (lambda ()
@@ -2976,14 +3245,16 @@ a === b;")
      (when (bar)
        (return-from scope 6))
      (blee)))
-  "(function () {
+  "function () {
     bar(5);
     foo();
     if (bar()) {
+        __PS_MV_REG = [];
         return 6;
     };
+    __PS_MV_REG = [];
     return blee();
-});")
+};")
 
 (test-ps-js let-funcall
   (let ((x foo))
@@ -3012,6 +3283,10 @@ return x();
   #(1 2 3)
   "[1, 2, 3];")
 
+(test-ps-js vector-literal1
+  #(1 2 #(a b) 3)
+  "[1, 2, ['a', 'b'], 3];")
+
 (test-ps-js rem1
   (+ 1 (rem 2 (+ 3 4)))
   "1 + 2 % (3 + 4);")
@@ -3023,11 +3298,12 @@ return x();
 (test-ps-js lambda-apply
   (lambda (x)
     (apply (lambda (y) (bar (1+ y))) x))
-  "(function (x) {
+  "function (x) {
     return (function (y) {
+        __PS_MV_REG = [];
         return bar(y + 1);
     }).apply(this, x);
-});")
+};")
 
 (test-ps-js operator-expressions-nested-let
   (let ((x (let ((y 1))
@@ -3067,7 +3343,11 @@ return null;
 
 (test-ps-js empty-cond-clause
   (setf x (cond ((foo))))
-  "x = (function () { var testResult1 = foo(); return testResult1 ? testResult1 : null; })();")
+  "x = (function () {
+var testResult1 = foo();
+__PS_MV_REG = [];
+return testResult1 ? testResult1 : null;
+})();")
 
 (test-ps-js empty-cond-clause1
   (setf x (cond ((foo) 123)
@@ -3077,9 +3357,13 @@ return null;
          (function () {
             var testResult1 = bar();
             if (testResult1) {
+              __PS_MV_REG = [];
               return testResult1;
             } else {
-              if (true) { return 456; };
+              if (true) {
+                __PS_MV_REG = [];
+                return 456;
+              };
             };
           })();")
 
@@ -3095,11 +3379,11 @@ return null;
   (lambda ()
     (list (let ((foo 12)) (* foo 2))
           (let ((foo 13)) (* foo 3))))
-  "(function () {
+  "function () {
     var foo;
     var foo1;
     return [(foo = 12, foo * 2), (foo1 = 13, foo1 * 3)];
-});")
+};")
 
 (test-ps-js defun-comment1
   (defun foo (x)
@@ -3172,26 +3456,24 @@ var x = bar();")
         (progn
           (loop :repeat 100 :do (bar))
           42)))
-  "(function () {
+  "function () {
    if (baz) {
        return 7;
    } else {
        for (var _js2 = 0; _js2 < 100; _js2 += 1) {
            bar();
        };
+       __PS_MV_REG = [];
        return 42;
    };
-});")
+};")
 
-;; closures in loops need a new binding per loop iteration (idea borrowed from Scheme2JS)
 (test-ps-js loop-closures
  (dotimes (i 10) (lambda () (+ i 1)))
  "(function () {
 for (var i = 0; i < 10; i += 1) {
-    with ({ i : i }) {
-        function () {
-            return i + 1;
-        };
+    function () {
+        return i + 1;
     };
 };
 })();")
@@ -3202,42 +3484,48 @@ for (var i = 0; i < 10; i += 1) {
      (lambda () (+ i x))))
  "(function () {
 for (var i = 0; i < 10; i += 1) {
-    with ({ i : i, x : null }) {
+    (function () {
         var x = i + 1;
-        function () {
+        return function () {
             return i + x;
         };
-    };
+    })();
 };
 })();")
 
 (test-ps-js loop-closures-flet
-  (dotimes (i 10) (flet ((foo (x) (+ i x))) (lambda () (foo i))))
+  (dotimes (i 10)
+    (flet ((foo (x) (+ i x)))
+      (lambda () (foo i))))
  "(function () {
 for (var i = 0; i < 10; i += 1) {
-    with ({ foo : null, i : i }) {
+    (function () {
         var foo = function (x) {
             return i + x;
         };
-        function () {
+        return function () {
+            __PS_MV_REG = [];
             return foo(i);
         };
-    };
+    })();
 };
 })();")
 
 (test-ps-js while-closures-let
-  (while (foo)
-    (let ((x (bar)))
-      (lambda () (+ 1 x))))
-  "while (foo()) {
-    with ({ x : null }) {
-        var x = bar();
-        function () {
-            return 1 + x;
+  (loop while (foo) do
+    (let ((abc (bar)))
+      (lambda () (+ 1 abc))))
+  "(function () {
+while (foo()) {
+    (function () {
+        var abc = bar();
+        __PS_MV_REG = [];
+        return function () {
+            return 1 + abc;
         };
-    };
-};")
+    })();
+};
+})();")
 
 (test-ps-js dotted-list-form
   (defun foo (a)
@@ -3249,6 +3537,7 @@ for (var i = 0; i < 10; i += 1) {
     if (a) {
         var b = bar[0];
         var c = bar.length > 1 ? bar.slice(1) : [];
+        __PS_MV_REG = [];
         return [b, c];
     };
 };")
@@ -3261,10 +3550,12 @@ for (var i = 0; i < 10; i += 1) {
   "function bar() {
     foo(1);
     nilBlock: {
+        __PS_MV_REG = [];
         foo(2);
         break nilBlock;
         1 + 2;
     };
+    __PS_MV_REG = [];
     return 2;
 };")
 
@@ -3274,13 +3565,14 @@ for (var i = 0; i < 10; i += 1) {
        (return-from foo 6))))
   "function foo() {
     try {
+        __PS_MV_REG = [];
         return (function () {
-            throw { '__ps_block_tag' : 'foo', '__ps_value1' : 6 };
+            __PS_MV_REG = [];
+            throw { '__ps_block_tag' : 'foo', '__ps_value' : 6 };
         })();
     } catch (_ps_err1) {
         if (_ps_err1 && 'foo' === _ps_err1['__ps_block_tag']) {
-            __PS_MV_REG = { 'tag' : arguments.callee, 'values' : _ps_err1['__ps_values'] };
-            return _ps_err1['__ps_value1'];
+            return _ps_err1['__ps_value'];
         } else {
             throw _ps_err1;
         };
@@ -3293,13 +3585,14 @@ for (var i = 0; i < 10; i += 1) {
        (return-from foo))))
   "function foo() {
     try {
+        __PS_MV_REG = [];
         return (function () {
-            throw { '__ps_block_tag' : 'foo', '__ps_value1' : null };
+            __PS_MV_REG = [];
+            throw { '__ps_block_tag' : 'foo', '__ps_value' : null };
         })();
     } catch (_ps_err1) {
         if (_ps_err1 && 'foo' === _ps_err1['__ps_block_tag']) {
-            __PS_MV_REG = { 'tag' : arguments.callee, 'values' : _ps_err1['__ps_values'] };
-            return _ps_err1['__ps_value1'];
+            return _ps_err1['__ps_value'];
         } else {
             throw _ps_err1;
         };
@@ -3312,18 +3605,18 @@ for (var i = 0; i < 10; i += 1) {
        (return-from foo (values 1 2 3)))))
   "function foo() {
     try {
-        __PS_MV_REG = {};
+        __PS_MV_REG = [];
         return (function () {
+            var val1 = 1;
+            __PS_MV_REG = [2, 3];
             throw { '__ps_block_tag' : 'foo',
-                    '__ps_value1' : 1,
-                    '__ps_values' : [2, 3] };
+                    '__ps_value' : val1 };
         })();
-    } catch (_ps_err1) {
-        if (_ps_err1 && 'foo' === _ps_err1['__ps_block_tag']) {
-            __PS_MV_REG = { 'tag' : arguments.callee, 'values' : _ps_err1['__ps_values'] };
-            return _ps_err1['__ps_value1'];
+    } catch (_ps_err2) {
+        if (_ps_err2 && 'foo' === _ps_err2['__ps_block_tag']) {
+            return _ps_err2['__ps_value'];
         } else {
-            throw _ps_err1;
+            throw _ps_err2;
         };
     };
 };")
@@ -3334,13 +3627,14 @@ for (var i = 0; i < 10; i += 1) {
        (return-from foo (if baz 6 5)))))
   "function foo() {
     try {
+        __PS_MV_REG = [];
         return (function () {
-            throw { '__ps_block_tag' : 'foo', '__ps_value1' : baz ? 6 : 5 };
+            __PS_MV_REG = [];
+            throw { '__ps_block_tag' : 'foo', '__ps_value' : baz ? 6 : 5 };
         })();
     } catch (_ps_err1) {
         if (_ps_err1 && 'foo' === _ps_err1['__ps_block_tag']) {
-            __PS_MV_REG = { 'tag' : arguments.callee, 'values' : _ps_err1['__ps_values'] };
-            return _ps_err1['__ps_value1'];
+            return _ps_err1['__ps_value'];
         } else {
             throw _ps_err1;
         };
@@ -3348,51 +3642,36 @@ for (var i = 0; i < 10; i += 1) {
 };")
 
 (test-ps-js block-dynamic-return
-  (var foo ((lambda ()
-              (block nil
-                ((lambda () (return 6)))
-                (+ 1 2)))))
-  "var foo = (function () {
+  (defvar foo ((lambda ()
+                 (block nil
+                   ((lambda () (return 6)))
+                   (+ 1 2)))))
+  "if ('undefined' === typeof foo) {
+var foo = (function () {
     try {
         (function () {
-            throw { '__ps_block_tag' : 'nilBlock', '__ps_value1' : 6 };
+            __PS_MV_REG = [];
+            throw { '__ps_block_tag' : 'nilBlock', '__ps_value' : 6 };
         })();
+        __PS_MV_REG = [];
         return 1 + 2;
     } catch (_ps_err1) {
         if (_ps_err1 && 'nilBlock' === _ps_err1['__ps_block_tag']) {
-            __PS_MV_REG = { 'tag' : arguments.callee, 'values' : _ps_err1['__ps_values'] };
-            return _ps_err1['__ps_value1'];
+            return _ps_err1['__ps_value'];
         } else {
             throw _ps_err1;
         };
     };
-})();")
-
-(test-ps-js block-dynamic-return1
-  (var foo ((lambda ()
-              (block nil
-                ((lambda () (return 6)))
-                (+ 1 2))
-              (foobar 1 2))))
-  "var foo = (function () {
-    nilBlock: {
-        (function () {
-            break nilBlock;
-        })();
-        1 + 2;
-    };
-    return foobar(1, 2);
-})();")
+})(); };")
 
 (test-ps-js iteration-lambda-capture-no-need
-  (dolist (x y) (lambda (x) (1+ x))) ;; there's really no need to create a 'with' scope in this case
+  (dolist (x y)
+    (lambda (x) (1+ x)))
   "(function () {
 for (var x = null, _js_idx1 = 0; _js_idx1 < y.length; _js_idx1 += 1) {
-    with ({ x : x }) {
-        x = y[_js_idx1];
-        function (x) {
-            return x + 1;
-        };
+    x = y[_js_idx1];
+    function (x) {
+        return x + 1;
     };
 };
 })();")
@@ -3413,6 +3692,7 @@ for (var x = null, _js_idx1 = 0; _js_idx1 < y.length; _js_idx1 += 1) {
   (defun blah ()
     (or (foo) (progn (bar) nil)))
   "function blah() {
+    __PS_MV_REG = [];
     return foo() || (bar(), null);
 };")
 
@@ -3422,12 +3702,12 @@ for (var x = null, _js_idx1 = 0; _js_idx1 < y.length; _js_idx1 += 1) {
       (when x
         (return 1))
       2))
-  "(function (x) {
+  "function (x) {
     if (x) {
         return 1;
     };
     return 2;
-});")
+};")
 
 (test-ps-js lambda-nil-return-implicit-nested2
   (lambda (x)
@@ -3437,7 +3717,7 @@ for (var x = null, _js_idx1 = 0; _js_idx1 < y.length; _js_idx1 += 1) {
         (dotimes (i 4)
           (return-from foo i)))
       2))
-  "(function (x) {
+  "function (x) {
     if (x) {
         return 1;
     } else {
@@ -3446,7 +3726,7 @@ for (var x = null, _js_idx1 = 0; _js_idx1 < y.length; _js_idx1 += 1) {
         };
     };
     return 2;
-});")
+};")
 
 (test-ps-js throw-is-a-statement
   (defun blah ()
@@ -3470,6 +3750,7 @@ for (var x = null, _js_idx1 = 0; _js_idx1 < y.length; _js_idx1 += 1) {
     if (someCondition()) {
         foo();
         bar();
+        __PS_MV_REG = [];
         return baz();
     };
 };")
@@ -3483,11 +3764,14 @@ for (var x = null, _js_idx1 = 0; _js_idx1 < y.length; _js_idx1 += 1) {
     switch (a) {
     case 'a':
         if (foo()) {
+            __PS_MV_REG = [];
             return 111;
         } else {
+            __PS_MV_REG = [];
             return null;
         };
     case 'b':
+        __PS_MV_REG = [];
         return true;
     };
 };")
@@ -3501,6 +3785,7 @@ for (var x = null, _js_idx1 = 0; _js_idx1 < y.length; _js_idx1 += 1) {
     var foo = function () {
         return 123;
     };
+    __PS_MV_REG = [];
     return foo();
 };")
 
@@ -3512,6 +3797,7 @@ for (var x = null, _js_idx1 = 0; _js_idx1 < y.length; _js_idx1 += 1) {
 var foo = function () {
         return 123;
     };
+    __PS_MV_REG = [];
     return foo();
 })();")
 
@@ -3520,9 +3806,9 @@ var foo = function () {
     "This is a docstring"
     (declare (ignore x))
     2)
-  "(function (x) {
+  "function (x) {
     return 2;
-});")
+};")
 
 (test-ps-js setf-let-exp
   (setf foo (let ((x (+ 1 2)))
@@ -3535,10 +3821,10 @@ var foo = function () {
 (test-ps-js create-let-exp
   (create :abc (let ((x (+ 1 2)))
                  (if x 123 456)))
-  "({ 'abc' : (function () {
+  "{ 'abc' : (function () {
     var x = 1 + 2;
     return x ? 123 : 456;
-})() });")
+})() };")
 
 (test-ps-js eql-eql-eql-precedence
   (unless (equal (= 3 3) (= 3 4))
@@ -3562,16 +3848,21 @@ var foo = function () {
         if (foo1()) {
             if (foo2()) {
                 if (foo3()) {
+                    __PS_MV_REG = [];
                     return null;
                 };
+                __PS_MV_REG = [];
                 return true;
             } else {
+                __PS_MV_REG = [];
                 return null;
             };
         } else {
+            __PS_MV_REG = [];
             return null;
         };
     case 456:
+        __PS_MV_REG = [];
         return foo7();
     };
 };")
@@ -3581,13 +3872,13 @@ var foo = function () {
     (cond (foo 1)
           (t 2)
           (t 3)))
-  "(function () {
+  "function () {
     if (foo) {
         return 1;
     } else {
         return 2;
     };
-});")
+};")
 
 (test-ps-js let-let-funcall-lambda
   (let ((x 5))
@@ -3626,9 +3917,9 @@ return function (x) {
 (test-ps-js symbol-macrolet-no-shadow-lambda
   (symbol-macrolet ((x y))
     (lambda (x) (+ x x)))
-  "(function (x) {
+  "function (x) {
     return x + x;
-});")
+};")
 
 (test-ps-js divide-one-arg-reciprocal
   (/ 2)
@@ -3651,11 +3942,12 @@ return function (x) {
     (let ((x 1))
       (foo x))
     (incf x))
-  "(function (x) {
+  "function (x) {
     var x1 = 1;
     foo(x1);
+    __PS_MV_REG = [];
     return ++x;
-});")
+};")
 
 (test-ps-js times-rem
   (* x (rem y z))
@@ -3667,14 +3959,14 @@ return function (x) {
 
 (test-ps-js case-break-return
   (lambda () (case x (:foo) (:bar 1)))
-  "(function () {
+  "function () {
     switch (x) {
     case 'foo':
         return null;
     case 'bar':
         return 1;
     };
-});")
+};")
 
 (test-ps-js trivial-expression-switch
   (foobar (case x (1 2)))
@@ -3686,7 +3978,7 @@ return function (x) {
 })());")
 
 (test-ps-js trivial-expression-while
-  (foobar (while (< 0 x) (decf x)))
+  (foobar (loop while (< 0 x) do (decf x)))
   "foobar((function () {
     while (0 < x) {
         --x;
@@ -3713,7 +4005,7 @@ return function (x) {
   (lambda ()
     (let ((x 1)) (lambda () (1+ x)))
     (let ((x 2)) (lambda () (1+ x))))
-  "(function () {
+  "function () {
     var x = 1;
     function () {
         return x + 1;
@@ -3722,7 +4014,7 @@ return function (x) {
     return function () {
         return x1 + 1;
     };
-});")
+};")
 
 (test-ps-js let-closures-rename1
   (lambda ()
@@ -3732,7 +4024,7 @@ return function (x) {
     (let ((x 2))
       (let ((y 3))
         (lambda () (+ x y)))))
-  "(function () {
+  "function () {
     var x = 1;
     var y = 2;
     function () {
@@ -3743,7 +4035,7 @@ return function (x) {
     return function () {
         return x1 + y2;
     };
-});")
+};")
 
 (test-ps-js let-closures-rename2
   (defun make-closures ()
@@ -3766,24 +4058,24 @@ return function (x) {
     (when bar
       (let ((x 1))
         (1+ x))))
-  "(function (bar) {
+  "function (bar) {
     if (bar) {
         var x = 1;
         return x + 1;
     };
-});")
+};")
 
 (test-ps-js toplevel-local-scope
   (create "fn" (let ((x 5)) (lambda () x)))
-  "({ 'fn' : (function () {
+  "{ 'fn' : (function () {
     var x = 5;
     return function () {
         return x;
     };
-})() });")
+})() };")
 
 (test-ps-js toplevel-local-scope1
-  (defvar foo (create "fn" (let ((x 5)) (lambda () x))))
+  (defparameter foo (create "fn" (let ((x 5)) (lambda () x))))
   "var foo = { 'fn' : (function () {
     var x = 5;
     return function () {
@@ -3812,8 +4104,10 @@ return function (x) {
   "function foo(xbaz) {
     if (!blah()) {
         if (xbaz) {
+            __PS_MV_REG = [];
             return blah();
         } else {
+            __PS_MV_REG = [];
             return blahblah();
         };
     };
@@ -3830,7 +4124,7 @@ return function (x) {
 function bar() {
     return foo + 1;
 };
-var baz = 2;")
+if ('undefined' === typeof baz) { var baz = 2; };")
 
 (test-ps-js js-ir-package-unique-symbols
   (loop :for i :from 0 :below 5 :do
@@ -3851,17 +4145,17 @@ for (var i = 0; i < 5; i += 1) {
   (lambda (p)
     (with-slots (x y) p
       (if (< x 0) y x)))
-  "(function (p) {
+  "function (p) {
     return p.x < 0 ? p.y : p.x;
-});")
+};")
 
 (test-ps-js broken-quote-expansion2
   (progn
     (define-symbol-macro foo123 (ps:@ a foo123))
     (lambda () (when (> foo123 1) 2)))
-  "(function () {
+  "function () {
     return a.foo123 > 1 ? 2 : null;
-});")
+};")
 
 (test-ps-js unused-named-block-not-printed1
   (block foobar
@@ -3903,39 +4197,311 @@ for (var i = 0; i < 5; i += 1) {
   (acosh (blah 3.14))
   "(function () {
     var x1 = blah(3.14);
+    __PS_MV_REG = [];
     return 2 * Math.log(Math.sqrt((x1 + 1) / 2) + Math.sqrt((x1 - 1) / 2));
 })();")
 
-;;; broken
+(test-ps-js double-negation
+  (or (not foo) (not (not foo)) (not (not (not foo))))
+  "!foo || foo || !foo;")
 
-;; (test-ps-js let-defun-toplevel
-;;   (progn (let ((foo 0))
-;;            (defun bar () foo))
-;;          (bar))
-;;   "var bar_foo1 = 0;
-;; function bar() {
-;;     return bar_foo1;
-;; };
-;; bar();")
+(test-ps-js empty-let
+  (defun foo ()
+    (let ((a (bar)))))
+  "function foo() {
+    var a = bar();
+    __PS_MV_REG = [];
+    return null;
+};")
 
-;; (test-ps-js let-defvar-toplevel
-;;   (progn (let ((foo 0))
-;;            (defvar bar (1+ foo)))
-;;          bar)
-;;   "var bar_foo1 = 0;
-;; var bar = bar_foo1 + 1;
-;; bar;")
+(test-ps-js empty-let*
+  (defun foo ()
+    (let* ((a (bar)))))
+  "function foo() {
+    var a = bar();
+    __PS_MV_REG = [];
+    return null;
+};")
 
-;; (test-ps-js setf-side-effects
-;;   (progn
-;;     (let ((x 10))
-;;       (defun side-effect()
-;;         (setf x 4)
-;;         3)
-;;       (setf x (+ 2 (side-effect) x 5))))
-;;   "var sideEffect_x1 = 10;
-;; function sideEffect() {
-;;     sideEffect_x1 = 4;
-;;     return 3;
-;; };
-;; sideEffect_x1 = 2 + sideEffect() + x + 5;")
+(test-ps-js defun-no-body-declare
+  (defun foo () (declare (ignore x)))
+  "function foo() {
+    return null;
+};")
+
+(test-ps-js defun-no-body-let-declare
+  (defun foo () (let () (declare (ignore x))))
+  "function foo() {
+    return null;
+};")
+
+(test-ps-js empty-defun-docstring-declare
+  (defun foo (x)
+    "docstring"
+    (declare (ignore x)))
+  "/** docstring */
+function foo(x) {
+    return null;
+};")
+
+(test-ps-js defun-docstring-string
+  (defun foo (x)
+    "docstring"
+    "abc")
+  "/** docstring */
+function foo(x) {
+    return 'abc';
+};")
+
+(test-ps-js return-object
+  (defun foo (obj)
+    (ps:create :abc (let ((x (ps:getprop obj "blah")))
+                      (if x 123 456))))
+  "function foo(obj) {
+    var x;
+    return { 'abc' : (x = obj['blah'], x ? 123 : 456) };
+};")
+
+(test-ps-js unicode-strings
+  "фоо бар"
+  "'фоо бар';")
+
+(test-ps-js expressionize-return
+  (defun next-page (self)
+    (with-slots (limit offset count)
+        (@ self state)
+      (when (and count (< (* limit offset) count))
+        (set-state self (create x (+ offset 1))))))
+  "function nextPage(self) {
+    var object1 = self.state;
+    __PS_MV_REG = [];
+    return object1.count && object1.limit * object1.offset < object1.count ? setState(self, { x : object1.offset + 1 }) : null;
+};")
+
+(test-ps-js let-defun-toplevel
+  (progn (let ((foo 0))
+           (defun bar () foo))
+         (bar))
+  "var foo = 0;
+function bar() {
+    return foo;
+};
+bar();")
+
+(test-ps-js let-defvar-toplevel
+  (progn (let ((foo 0))
+           (defvar bar (1+ foo)))
+         bar)
+  "var foo = 0;
+if ('undefined' === typeof bar) { var bar = foo + 1; };
+bar;")
+
+(test-ps-js setf-side-effects
+  (let ((x 10))
+    (defun side-effect()
+      (setf x 4)
+      3)
+    (setf x (+ 2 (side-effect) x 5)))
+  "var x = 10;
+function sideEffect() {
+    x = 4;
+    return 3;
+};
+x = 2 + sideEffect() + x + 5;")
+
+(test-ps-js stupid-lisp-trick
+  (alert
+   (lisp
+    (progn
+      (write-string "[1,2,3]" ps::*psw-stream*)
+      (values))))
+  "alert([1,2,3]);")
+
+(test-ps-js maybe-once-only-symbol-macrolet
+  (symbol-macrolet ((x (call-me-once)))
+    (sinh x))
+
+  "(function () {
+    var x1 = callMeOnce();
+    __PS_MV_REG = [];
+    return (Math.exp(x1) - Math.exp(-x1)) / 2;
+})();")
+
+(test-ps-js maybe-once-only-symbol-macro
+  (progn
+    (define-symbol-macro maybe-once-only-symbol-macro (call-me-once))
+    (tanh maybe-once-only-symbol-macro))
+
+  "(function () {
+    var x1 = callMeOnce();
+    __PS_MV_REG = [];
+    return (Math.exp(x1) - Math.exp(-x1)) / (Math.exp(x1) + Math.exp(-x1));
+})();")
+
+(test-ps-js maybe-once-only-evaluation-order
+  (macrolet
+      ((A (x y)
+         (maybe-once-only (x y)
+           `(+ ,x ,x ,y ,y))))
+    (A (fun1) (fun2)))
+  "(function () {
+    var x1 = fun1();
+    var y2 = fun2();
+    __PS_MV_REG = [];
+    return x1 + x1 + y2 + y2;
+})();")
+
+(test-ps-js maybe-once-only-macroexpansion
+  (macrolet
+      ((A (x y)
+         (ps:maybe-once-only (x y)
+           `(+ ,x ,x ,y ,y)))
+       (fun1 () 'G)
+       (fun2 () 6))
+    (A (fun1) (fun2)))
+  "G + G + 6 + 6;")
+
+(test-ps-js lambda-block-wrap-for-dynamic-return
+  (lambda ()
+    (block X
+      ((lambda ()
+         ((lambda ()
+            (return-from X 1)))
+         2)))
+    5)
+"function () {
+    X: {
+        try {
+            (function () {
+                (function () {
+                    __PS_MV_REG = [];
+                    throw { '__ps_block_tag' : 'X', '__ps_value' : 1 };
+                })();
+                __PS_MV_REG = [];
+                return 2;
+            })();
+        } catch (_ps_err1) {
+            if (_ps_err1 && 'X' === _ps_err1['__ps_block_tag']) {
+                _ps_err1['__ps_value'];
+                break X;
+            } else {
+                throw _ps_err1;
+            };
+        };
+    };
+    __PS_MV_REG = [];
+    return 5;
+};")
+
+(test-ps-js lambda-progn-block
+  (lambda ()
+    (progn
+      (block X
+        (lambda ()
+          (return-from X 1)))))
+  "function () {
+    try {
+        return function () {
+            __PS_MV_REG = [];
+            throw { '__ps_block_tag' : 'X', '__ps_value' : 1 };
+        };
+    } catch (_ps_err1) {
+        if (_ps_err1 && 'X' === _ps_err1['__ps_block_tag']) {
+            return _ps_err1['__ps_value'];
+        } else {
+            throw _ps_err1;
+        };
+    };
+};")
+
+(test-ps-js defun-when-if-return
+  (defun foobar ()
+    (when (bar)
+      (loop if (foo) return 10)))
+  "function foobar() {
+    if (bar()) {
+        while (true) {
+            if (foo()) {
+                __PS_MV_REG = [];
+                return 10;
+            };
+        };
+    };
+};")
+
+(test-ps-js block-block-return-from-toplevel
+  (block bar
+    (block foo
+      (return-from foo 10)))
+  "(function () {
+    return 10;
+})();")
+
+;;; Stuff to fix. Not necessarily wrong, but redundant/could be better
+
+(test-ps-js block-dynamic-return1-redundant
+  (defparameter foo
+    ((lambda ()
+       (block nil
+         ((lambda () (return 6)))
+         (+ 1 2))
+       (+ 4 5))))
+  ;;; FIXME. Not wrong, but redundant
+  "var foo = (function () {
+    nilBlock: {
+    try {
+        (function () {
+            __PS_MV_REG = [];
+            throw { '__ps_block_tag' : 'nilBlock', '__ps_value' : 6 };
+        })();
+        1 + 2;
+    } catch (_ps_err1) {
+        if (_ps_err1 && 'nilBlock' === _ps_err1['__ps_block_tag']) {
+            _ps_err1['__ps_value'];
+            break nilBlock;
+        } else {
+            throw _ps_err1;
+        };
+    };
+    };
+    __PS_MV_REG = [];
+    return 4 + 5;
+})();")
+
+(test-ps-js block-gratuitous-dynamic-return
+  (block foo
+    (block bar
+      (block nil
+        (return-from bar 10)))
+    (foo))
+  "(function () {
+    bar: {
+        try {
+            __PS_MV_REG = [];
+            throw { '__ps_block_tag' : 'bar', '__ps_value' : 10 };
+        } catch (_ps_err1) {
+            if (_ps_err1 && 'bar' === _ps_err1['__ps_block_tag']) {
+                _ps_err1['__ps_value'];
+                break bar;
+            } else {
+                throw _ps_err1;
+            };
+        };
+    };
+    __PS_MV_REG = [];
+    return foo();
+})();")
+
+(test-ps-js for-loop-var-init-let
+  (lambda (y)
+    (ps:for
+     ((x (let ((x0 (foo y)))
+           (bar x0))))
+     () ()
+     (xyzzy x)))
+  "function (y) {
+    var x0;
+    for (var x = (x0 = foo(y), bar(x0)); ; ) {
+        xyzzy(x);
+    };
+};")

@@ -1,3 +1,41 @@
+;;; Copyright 2005 Manuel Odendahl
+;;; Copyright 2005-2006 Edward Marco Baringer
+;;; Copyright 2007-2012 Vladimir Sedach
+;;; Copyright 2011-2013 Daniel Gackle
+;;; Copyright 2014 Boris Smilga
+
+;;; SPDX-License-Identifier: BSD-3-Clause
+
+;;; Redistribution and use in source and binary forms, with or
+;;; without modification, are permitted provided that the following
+;;; conditions are met:
+
+;;; 1. Redistributions of source code must retain the above copyright
+;;; notice, this list of conditions and the following disclaimer.
+
+;;; 2. Redistributions in binary form must reproduce the above
+;;; copyright notice, this list of conditions and the following
+;;; disclaimer in the documentation and/or other materials provided
+;;; with the distribution.
+
+;;; 3. Neither the name of the copyright holder nor the names of its
+;;; contributors may be used to endorse or promote products derived
+;;; from this software without specific prior written permission.
+
+;;; THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND
+;;; CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES,
+;;; INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+;;; MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+;;; DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS
+;;; BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+;;; EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
+;;; TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+;;; DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
+;;; ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+;;; OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+;;; OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+;;; POSSIBILITY OF SUCH DAMAGE.
+
 (in-package #:parenscript)
 (in-readtable :parenscript)
 
@@ -36,7 +74,7 @@
 (defun fix-nary-comparison (operator objects)
   (let* ((tmp-var-forms (butlast (cdr objects)))
          (tmp-vars (loop repeat (length tmp-var-forms)
-                         collect (ps-gensym "_CMP")))
+                         collect (ps-gensym '_cmp)))
          (all-comparisons (append (list (car objects))
                                   tmp-vars
                                   (last objects))))
@@ -80,7 +118,7 @@
             (list ',op1 (compile-expression x)))
            ((references? delta x)
             (ps-compile
-             (let ((var (ps-gensym "_PS_INCR_PLACE")))
+             (let ((var (ps-gensym '_ps_incr_place)))
                `(let ((,var ,delta))
                   (,',op ,x ,var)))))
            (t
@@ -110,12 +148,6 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; blocks and control flow
 
-(defun flatten-blocks (body)
-  (when body
-    (if (and (listp (car body)) (eq 'ps-js:block (caar body)))
-        (append (cdr (car body)) (flatten-blocks (cdr body)))
-        (cons (car body) (flatten-blocks (cdr body))))))
-
 (defun compile-progn (body)
   (let ((block (flatten-blocks (mapcar #'ps-compile body))))
     (append (remove-if #'constantp (butlast block))
@@ -132,11 +164,7 @@
 (define-statement-operator progn (&rest body)
   `(ps-js:block ,@(compile-progn body)))
 
-(defun fill-mv-reg (values)
-  `(setf __PS_MV_REG (create :tag    (@ arguments callee)
-                             :values ,values)))
-
-(defvar suppress-values? nil)
+(defvar returning-values? nil)
 
 (defun wrap-for-dynamic-return (handled-tags body)
   (aif (loop for (tag . thrown?) in *dynamic-return-tags*
@@ -144,85 +172,91 @@
              collect tag)
        (with-ps-gensyms (_ps_err)
          (flet ((make-catch-clause (tag)
-                  `((and ,_ps_err (eql ',tag (getprop ,_ps_err :__ps_block_tag)))
-                    ,(fill-mv-reg `(getprop ,_ps_err :__ps_values))
-                    (return-from ,tag (getprop ,_ps_err :__ps_value1)))))
+                  `((and ,_ps_err (eql ',tag
+                                       (getprop ,_ps_err :__ps_block_tag)))
+                    (return-from ,tag
+                      (getprop ,_ps_err :__ps_value)
+                      t))))
            `(ps-js:block
                (ps-js:try
                 ,body
-                :catch   (,_ps_err
-                          ,(let ((suppress-values? nil))
-                             (compile-statement
-                              `(progn (cond
-                                        ,@(mapcar #'make-catch-clause it)
-                                        (t (throw ,_ps_err)))))))
+                :catch (,_ps_err
+                        ,(compile-statement
+                          `(progn (cond
+                                    ,@(mapcar #'make-catch-clause it)
+                                    (t (throw ,_ps_err))))))
                 :finally nil))))
        body))
 
 (define-statement-operator block (name &rest body)
-  (if (or in-function-scope? this-in-lambda-wrapped-form?)
+  (if in-function-scope?
       (let* ((name                  (or name 'nilBlock))
              (in-loop-scope?        (if name in-loop-scope? nil))
-             (*dynamic-return-tags* (cons (cons name nil) *dynamic-return-tags*))
+             (*dynamic-return-tags* (cons (cons name nil)
+                                          *dynamic-return-tags*))
              (*current-block-tag*   name)
              (compiled-body         (wrap-for-dynamic-return
                                      (list name)
-                                     (compile-statement `(progn ,@body)))))
-        (if (tree-search `(ps-js:break ,name) compiled-body)
+                                     (ps-compile `(progn ,@body)))))
+        ;; this probably does not nest correctly
+        (if (tree-find `(ps-js:break ,name) compiled-body)
             `(ps-js:label ,name ,compiled-body)
             compiled-body))
       (ps-compile (with-lambda-scope `(block ,name ,@body)))))
 
-(defun return-exp (tag &optional (value nil value?))
-  (let (rest-values)
-    (when (and (consp value) (eq 'values (car value))) ; multiple value return?
-      (setf rest-values (cddr value) value (cadr value)))
-    (flet ((ret1only ()
-             (let ((ret `(ps-js:return
-                           ,@(when value?
-                                   (list (compile-expression value))))))
-               (if suppress-values?
-                   `(ps-js:block (ps-js:= __PS_MV_REG {})
-                      ,ret)
-                   ret)))
-           (fill-mv ()
-             (fill-mv-reg `(list ,@rest-values))))
-      (acond ((eql tag *current-block-tag*)
-              (compile-statement
-               (if value?
-                   `(progn ,value
-                           ,@(when rest-values (list (fill-mv)))
-                           (break ,tag))
-                   `(break ,tag))))
-             ((or (eql '%function tag)
-                  (member tag *function-block-names*))
-              (if rest-values
-                  (let* ((cvalue (compile-expression value))
-                         (val1   (unless (or (constantp cvalue)
-                                             (symbolp   cvalue))
-                                   (ps-gensym "VAL1_"))))
-                    (let ((suppress-values? nil))
-                      (compile-statement
-                       `(let ,(when val1 `((,val1 ,value)))
-                          ,(fill-mv)
-                          (return-from ,tag ,(or val1 value))))))
-                  (ret1only)))
-             ((assoc tag *dynamic-return-tags*)
-              (setf (cdr it) t)
-              (ps-compile
-               `(throw (create
-                        :__ps_block_tag      ',tag
-                        :__ps_value1          ,value
-                        ,@(when rest-values
-                                `(:__ps_values (list ,@rest-values)))))))
-             (t
-              (warn "Returning from unknown block ~A" tag)
-              (ret1only)))))) ;; for backwards-compatibility
+(define-expression-operator values (&rest forms)
+  (ps-compile
+   (with-ps-gensyms (val)
+     `(let ((,val ,(car forms)))
+        (setf __PS_MV_REG (list ,@(cdr forms)))
+        ,val))))
 
-(defvar *suppress-deprecation* nil
-  "Temporarily turns off deprecation warnings so that the compiler can
-sneakily macroexpand forms during code-walking whether they are macro
-invocations or not.")
+(define-expression-operator values-list (list)
+  (ps-compile
+   (with-ps-gensyms (values-list firstval)
+     `(let ((,values-list (funcall (getprop ,list 'slice))))
+        (setf ,firstval   (funcall (getprop ,values-list 'shift))
+              __PS_MV_REG ,values-list)
+        ,firstval))))
+
+(define-statement-operator %simple-lexical-return (&rest value)
+  `(ps-js:return ,@value))
+
+(defun return-exp (tag &optional (value nil value?))
+  (flet ((lexical-return ()
+           (let ((X (when value? (list (compile-expression value)))))
+             (ps-compile
+              (if (and (not returning-values?) clear-multiple-values?)
+                  `(progn
+                     (setf __PS_MV_REG '())
+                     (%simple-lexical-return ,@X))
+                  `(%simple-lexical-return ,@X))))))
+    (acond
+      ((eql tag *current-block-tag*)
+       (compile-statement
+        `(progn
+           ,@(when (and (not returning-values?) clear-multiple-values?)
+               '((setf __PS_MV_REG '())))
+           ,@(when value? (list value))
+           (break ,tag))))
+
+      ((or (eql '%function tag)
+           (member tag *function-block-names*))
+       (lexical-return))
+
+      ((assoc tag *dynamic-return-tags*)
+       (setf (cdr it) t)
+       (ps-compile
+        `(progn
+           ,@(unless returning-values?
+               '((setf __PS_MV_REG '())))
+           (throw (create
+                   :__ps_block_tag ',tag
+                   :__ps_value     ,value)))))
+
+      (t
+       (warn "Returning from unknown block ~A" tag)
+       (lexical-return)))))
 
 (defun try-expressionizing-if? (exp &optional (score 0)) ;; poor man's codewalker
   "Heuristic that tries not to expressionize deeply nested if expressions."
@@ -232,9 +266,7 @@ invocations or not.")
         ((listp exp)
          (loop for x in (cdr exp) always
               (try-expressionizing-if?
-               (or (ignore-errors
-                     (let ((*suppress-deprecation* t))
-                       (ps-macroexpand x)))
+               (or (ignore-errors (ps-macroexpand x))
                    x) ;; fail
                (+ score (case (car exp)
                           ((if cond) 1)
@@ -243,17 +275,25 @@ invocations or not.")
                           (otherwise 0))))))
         (t t)))
 
-(defun expressionize-result (tag form)
+(defun return-result-of (tag form)
   (ps-compile
    (case (car form)
      ((continue break throw) ;; non-local exit
       form)
      ;; implicit progn forms
-     ((with label let flet labels macrolet symbol-macrolet)
+     ((with) ;; deprecated and will be removed
       `(,(first form) ,(second form)
          ,@(butlast (cddr form))
          (return-from ,tag ,(car (last (cddr form))))))
-     (progn
+     ;; implicit body (declaration + progn) forms
+     ((let flet labels macrolet symbol-macrolet)
+      (multiple-value-bind (body declarations)
+          (parse-body (cddr form))
+        `(,(first form) ,(second form)
+           ,@declarations
+           ,@(butlast body)
+           (return-from ,tag ,(car (last body))))))
+     ((progn locally)
        `(progn ,@(butlast (cdr form))
                (return-from ,tag ,(car (last (cdr form))))))
      (switch
@@ -265,7 +305,8 @@ invocations or not.")
                             1)
                            ((eq 'break (car (last cbody)))
                             2))
-                     (let ((result-form (ps-macroexpand (car (last cbody it)))))
+                     (let ((result-form (ps-macroexpand
+                                         (car (last cbody it)))))
                        `(,cvalue
                          ,@(butlast cbody it)
                          (return-from ,tag
@@ -278,7 +319,8 @@ invocations or not.")
                    (list (when catch
                            `(:catch ,(car catch)
                               ,@(butlast (cdr catch))
-                              (return-from ,tag ,(car (last (cdr catch))))))
+                              (return-from ,tag
+                                ,(car (last (cdr catch))))))
                          finally))))
      (cond
        `(cond
@@ -287,24 +329,40 @@ invocations or not.")
           ,@(when in-case? `((t (return-from ,tag nil))))))
      (if
       (if (and (try-expressionizing-if? form)
-               (not (find 'values (flatten form)))
+               (not (tree-find 'values form))
                (let ((used-up-names                   *used-up-names*)
                      (*lambda-wrappable-statements*                ()))
                  (handler-case (compile-expression form)
                    (compile-expression-error ()
                      (setf *used-up-names* used-up-names)
                      nil))))
-          (return-from expressionize-result (return-exp tag form))
+          (return-from return-result-of (return-exp tag form))
           `(if ,(second form)
                (return-from ,tag ,(third form))
                ,@(when (or in-case? (fourth form))
-                       `((return-from ,tag ,(fourth form)))))))
+                   `((return-from ,tag ,(fourth form)))))))
      (block
-      (let ((tag* (or (cadr form) 'nilBlock))
-            (body* (cddr form)))
-        (let ((*function-block-names* (cons tag* *function-block-names*)))
-          (return-from expressionize-result
-            (expressionize-result tag* `(progn ,@body*))))))
+      (let* ((tag₁                   (or (cadr form) 'nilBlock))
+             (*function-block-names* (cons tag₁ *function-block-names*))
+             (*dynamic-return-tags*  (cons (cons tag₁ nil)
+                                           *dynamic-return-tags*)))
+        (return-from return-result-of
+          (wrap-for-dynamic-return
+           (list tag₁)
+           (ps-compile `(return-from ,tag (progn ,@(cddr form))))))))
+     (values
+      (if (cddr form)
+          (with-ps-gensyms (val)
+            `(let ((,val ,(cadr form)))
+               (setf __PS_MV_REG (list ,@(cddr form)))
+               (return-from ,tag ,val t)))
+          `(return-from ,tag ,@(cdr form))))
+     (values-list
+      (with-ps-gensyms (values-list firstval)
+        `(let ((,values-list (funcall (getprop ,(cadr form) 'slice))))
+           (setf ,firstval   (funcall (getprop ,values-list 'shift))
+                 __PS_MV_REG ,values-list)
+           (return-from ,tag ,firstval t))))
      (return-from ;; this will go away someday
       (unless tag
         (warn 'simple-style-warning
@@ -312,26 +370,23 @@ invocations or not.")
 Parenscript now implements implicit return, update your code! Things like (lambda () (return x)) are not valid Common Lisp and may not be supported in future versions of Parenscript."))
        form)
      (otherwise
-      (return-from expressionize-result
+      (return-from return-result-of
         (cond ((not (gethash (car form) *special-statement-operators*))
                (return-exp tag form))
               (in-case?
                `(ps-js:block ,(compile-statement form) ,(return-exp tag)))
               (t (compile-statement form))))))))
 
-(define-statement-operator return-from (tag &optional result)
-  (if tag
+(define-statement-operator return-from (tag &optional
+                                            (result nil result?)
+                                            returning-values?)
+  (setq tag (or tag 'nilBlock))
+  (if result?
       (let ((form (ps-macroexpand result)))
-        (if (or (atom form) (eq 'values (car form)))
+        (if (atom form)
             (return-exp tag form)
-            (expressionize-result tag form)))
-      (ps-compile `(return-from nilBlock ,result))))
-
-(define-expression-operator values (&optional main &rest additional)
-  (when main
-    (ps-compile (if additional
-                    `(prog1 ,main ,@additional)
-                    main))))
+            (return-result-of tag form)))
+      (return-exp tag)))
 
 (define-statement-operator throw (&rest args)
   `(ps-js:throw ,@(mapcar #'compile-expression args)))
@@ -398,14 +453,14 @@ Parenscript now implements implicit return, update your code! Things like (lambd
 
 (defmacro with-declaration-effects ((var block) &body body)
   (with-ps-gensyms (decls)
-    `(multiple-value-bind (,decls ,var) (parse-body ,block)
+    `(multiple-value-bind (,var ,decls) (parse-body ,block)
        (let ((*special-variables*
-               (append (loop for decl in ,decls
-                             nconcing
-                               (loop for (id . rest) in (cdr decl)
-                                     if (eq id 'special)
-                                       nconc rest))
-                       *special-variables*)))
+              (nconc
+               (loop for decl in ,decls nconc
+                    (loop for (decl-type . decl-args) in (cdr decl)
+                          if (eq decl-type 'special)
+                          append decl-args))
+               *special-variables*)))
          ,@body))))
 
 (defun maybe-rename-lexical-var (x symbols-in-bindings)
@@ -417,16 +472,21 @@ Parenscript now implements implicit return, update your code! Things like (lambd
             (member x symbols-in-bindings))
     (ps-gensym (symbol-name x))))
 
-(defun with-lambda-scope (body)
- (prog1 (lambda-wrap body)
-   (setf *vars-needing-to-be-declared* ())))
+(defun with-lambda-scope (form)
+  (prog1 (if (tree-find 'this
+                        (let ((*ps-gensym-counter* *ps-gensym-counter*))
+                          (ps-compile `(lambda () ,form))))
+             `(funcall (getprop (lambda () ,form) 'call) this)
+             `((lambda () ,form)))
+    (setf *vars-needing-to-be-declared* ())))
 
 (define-expression-operator let (bindings &body body)
   (with-declaration-effects (body body)
     (flet ((rename (x) (first x))
-           (var (x) (second x))
-           (val (x) (third x)))
+           (var    (x) (second x))
+           (val    (x) (third x)))
       (let* ((new-lexicals ())
+             (loop-scoped-lexicals ())
              (normalized-bindings
               (mapcar (lambda (x)
                         (if (symbolp x)
@@ -437,17 +497,20 @@ Parenscript now implements implicit return, update your code! Things like (lambd
               (mapcan (lambda (x) (flatten (cadr x)))
                       normalized-bindings))
              (lexical-bindings
-              (loop for x in normalized-bindings
-                    unless (special-variable? (car x)) collect
-                    (cons (aif (maybe-rename-lexical-var (car x)
-                                                         symbols-in-bindings)
-                               it
-                               (progn
-                                 (push (car x) new-lexicals)
-                                 (when (boundp '*used-up-names*)
-                                   (push (car x) *used-up-names*))
-                                 nil))
-                          x)))
+              (mapcan
+               (lambda (x)
+                 (unless (special-variable? (car x))
+                   (let ((renamed (maybe-rename-lexical-var
+                                   (car x) symbols-in-bindings)))
+                     (if renamed
+                         (when in-loop-scope?
+                           (push renamed loop-scoped-lexicals))
+                         (progn
+                           (push (car x) new-lexicals)
+                           (when (boundp '*used-up-names*)
+                             (push (car x) *used-up-names*))))
+                     (list (cons renamed x)))))
+               normalized-bindings))
              (dynamic-bindings
               (loop for x in normalized-bindings
                     when (special-variable? (car x)) collect
@@ -462,7 +525,8 @@ Parenscript now implements implicit return, update your code! Things like (lambd
               (append new-lexicals *enclosing-lexicals*))
              (*loop-scope-lexicals*
               (when in-loop-scope?
-                (append new-lexicals *loop-scope-lexicals*)))
+                (append new-lexicals loop-scoped-lexicals
+                        *loop-scope-lexicals*)))
              (let-body
               `(progn
                  ,@(mapcar (lambda (x)
@@ -482,19 +546,18 @@ Parenscript now implements implicit return, update your code! Things like (lambd
                            (setf ,@(mapcan (lambda (x) `(,(var x) ,(rename x)))
                                            dynamic-bindings)))))
                       renamed-body))))
-        (ps-compile (cond ((or in-function-scope? this-in-lambda-wrapped-form?
-                               (null bindings))
-                           let-body)
-                          ;; HACK
-                          ((find-if (lambda (x)
-                                      (member x '(defun% defvar)))
-                                    (flatten
-                                     (loop for x in body collecting
-                                          (or (ignore-errors (ps-macroexpand x))
-                                              x))))
-                           let-body)
-                          (t
-                           (with-lambda-scope let-body))))))))
+          (ps-compile
+           (cond ((or in-function-scope? (null bindings))
+                  let-body)
+                 ;; HACK
+                 ((find-if
+                   (lambda (x) (member x '(defun% defvar)))
+                   (flatten
+                    (loop for x in body collecting
+                         (or (ignore-errors (ps-macroexpand x)) x))))
+                  let-body)
+                 (t
+                  (with-lambda-scope let-body))))))))
 
 (define-expression-operator locally (&rest body)
   (with-declaration-effects (body body)
@@ -574,7 +637,18 @@ Parenscript now implements implicit return, update your code! Things like (lambd
                                         documentation)
   ;; this must be used as a top-level form, otherwise the resulting
   ;; behavior will be undefined.
-  (declare (ignore documentation))
+  (declare (ignore documentation)) ; TODO: print docstring
+  (pushnew name *special-variables*)
+
+  (ps-compile (if value-provided?
+                  `(when (undefined ,name) (var ,name ,value))
+                  (list 'var name))))
+
+(define-statement-operator defparameter
+    (name &optional (value (values) value-provided?) documentation)
+  ;; this must be used as a top-level form, otherwise the resulting
+  ;; behavior will be undefined.
+  (declare (ignore documentation)) ; TODO: print docstring
   (pushnew name *special-variables*)
   (ps-compile `(var ,name ,@(when value-provided? (list value)))))
 
@@ -588,25 +662,16 @@ Parenscript now implements implicit return, update your code! Things like (lambd
           init-forms))
 
 (defun compile-loop-body (loop-vars body)
-  (let* ((in-loop-scope?                                                    t)
-         ;; provides lexical bindings for all free variables using WITH
-         (in-function-scope?                                                t)
-         (*loop-scope-lexicals*                                     loop-vars)
-         (*loop-scope-lexicals-captured*                                   ())
-         (*ps-gensym-counter*                             *ps-gensym-counter*)
-         (compiled-body                   (compile-statement `(progn ,@body))))
-    ;; the sort is there to make order for output-tests consistent across implementations
-    (aif (sort (remove-duplicates *loop-scope-lexicals-captured*)
-               #'string< :key #'symbol-name)
-         `(ps-js:block
-              (ps-js:with
-                  ,(compile-expression
-                    `(create
-                      ,@(loop for x in it
-                              collect x
-                              collect (when (member x loop-vars) x))))
-                ,compiled-body))
-         compiled-body)))
+  (let (compiled-body loop-closures?)
+    (let* ((in-loop-scope?                 t)
+           (*loop-scope-lexicals*          ())
+           (*loop-scope-lexicals-captured* ())
+           (*ps-gensym-counter*            *ps-gensym-counter*))
+      (setf compiled-body  (compile-statement `(progn ,@body))
+            loop-closures? *loop-scope-lexicals-captured*))
+    (if loop-closures?
+        (compile-statement `(progn ((lambda () ,@body))))
+        compiled-body)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; evaluation
@@ -630,7 +695,7 @@ and :execute. The code in BODY is assumed to be Common Lisp code
 in :compile-toplevel and :load-toplevel sitations, and Parenscript
 code in :execute."
   (when (and (member :compile-toplevel situation-list)
-	     (member *compilation-level* '(:toplevel :inside-toplevel-form)))
+             (member *compilation-level* '(:toplevel :inside-toplevel-form)))
     (eval `(progn ,@body)))
   (if (member :execute situation-list)
       (ps-compile `(progn ,@body))

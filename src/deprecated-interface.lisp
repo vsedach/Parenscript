@@ -1,14 +1,50 @@
+;;; Copyright 2005 Manuel Odendahl
+;;; Copyright 2005-06 Edward Marco Baringer
+;;; Copyright 2007 Red Daly
+;;; Copyright 2007 Attila Lendvai
+;;; Copyright 2007-2012 Vladimir Sedach
+;;; Copyright 2008 Travis Cross
+;;; Coypright 2010, 2013 Daniel Gackle
+
+;;; SPDX-License-Identifier: BSD-3-Clause
+
+;;; Redistribution and use in source and binary forms, with or
+;;; without modification, are permitted provided that the following
+;;; conditions are met:
+
+;;; 1. Redistributions of source code must retain the above copyright
+;;; notice, this list of conditions and the following disclaimer.
+
+;;; 2. Redistributions in binary form must reproduce the above
+;;; copyright notice, this list of conditions and the following
+;;; disclaimer in the documentation and/or other materials provided
+;;; with the distribution.
+
+;;; 3. Neither the name of the copyright holder nor the names of its
+;;; contributors may be used to endorse or promote products derived
+;;; from this software without specific prior written permission.
+
+;;; THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND
+;;; CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES,
+;;; INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+;;; MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+;;; DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS
+;;; BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+;;; EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
+;;; TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+;;; DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
+;;; ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+;;; OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+;;; OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+;;; POSSIBILITY OF SUCH DAMAGE.
+
 (in-package #:parenscript)
 (in-readtable :parenscript)
 
-(define-condition simple-style-warning (style-warning simple-warning)
-  ())
-
 (defun warn-deprecated (old-name &optional new-name)
-  (unless *suppress-deprecation*
-    (warn 'simple-style-warning
-          :format-control "~:@(~a~) is deprecated~:[.~;, use ~:@(~a~) instead~]"
-          :format-arguments (list old-name new-name new-name))))
+  (warn 'simple-style-warning
+        :format-control "~:@(~a~) is deprecated~:[.~;, use ~:@(~a~) instead~]"
+        :format-arguments (list old-name new-name new-name)))
 
 (defmacro defun-js (old-name new-name args &body body)
   `(defun ,old-name ,args
@@ -106,7 +142,16 @@ is output to the OUTPUT-STREAM stream."
 (define-statement-operator with (expression &rest body)
   (warn-deprecated 'with '|LET or WITH-SLOTS|)
   `(ps-js:with ,(compile-expression expression)
-     ,(compile-statement `(progn ,@body))))
+               ,(compile-statement `(progn ,@body))))
+
+(define-statement-operator while (test &rest body)
+  (warn-deprecated 'while '|LOOP WHILE|)
+  `(ps-js:while ,(compile-expression test)
+     ,(compile-loop-body () body)))
+
+(defmacro while (test &body body)
+  (warn-deprecated 'while '|LOOP WHILE|)
+  `(loop while ,test do (progn ,@body)))
 
 (defpsmacro label (&rest args)
   (warn-deprecated 'label 'block)

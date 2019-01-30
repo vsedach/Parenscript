@@ -1,3 +1,5 @@
+;; SPDX-License-Identifier: BSD-3-Clause
+
 (in-package :parenscript)
 
 (defun parenscript-function-p (symbol)
@@ -15,4 +17,3 @@
      (values it t))))
 #++
 (pushnew 'parenscript-arglist swank::*external-arglist-hooks*)
-

@@ -1,3 +1,39 @@
+;;; Copyright 2011 Vladimir Sedach
+;;; Copyright 2014-2015 Boris Smilga
+;;; Copyright 2014 Max Rottenkolber
+
+;;; SPDX-License-Identifier: BSD-3-Clause
+
+;;; Redistribution and use in source and binary forms, with or
+;;; without modification, are permitted provided that the following
+;;; conditions are met:
+
+;;; 1. Redistributions of source code must retain the above copyright
+;;; notice, this list of conditions and the following disclaimer.
+
+;;; 2. Redistributions in binary form must reproduce the above
+;;; copyright notice, this list of conditions and the following
+;;; disclaimer in the documentation and/or other materials provided
+;;; with the distribution.
+
+;;; 3. Neither the name of the copyright holder nor the names of its
+;;; contributors may be used to endorse or promote products derived
+;;; from this software without specific prior written permission.
+
+;;; THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND
+;;; CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES,
+;;; INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+;;; MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+;;; DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS
+;;; BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+;;; EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
+;;; TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+;;; DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
+;;; ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+;;; OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+;;; OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+;;; POSSIBILITY OF SUCH DAMAGE.
+
 (in-package #:parenscript)
 (in-readtable :parenscript)
 
@@ -35,19 +71,14 @@ Syntax of key spec:
   "Parses a function or block body, which may or may not include a
 docstring.  Returns 2 or 3 values: a docstring (if allowed for), a list
 of (declare ...) forms, and the remaining body."
-  (flet ((values* (docstring declarations body)
-           (if allow-docstring
-               (values docstring declarations body)
-               (values declarations body))))
-    (loop for forms on body for (form) = forms
-          with docstring = (not allow-docstring)
-          if (and (stringp form) (not docstring))
-            do (setf docstring form)
-          else if (and (consp form) (eq (first form) 'declare))
-            collect form into declarations
-          else
-            return (values* docstring declarations forms)
-          finally (return (values* docstring declarations nil)))))
+  (let (docstring declarations)
+    (loop while
+         (cond ((and (consp (car body)) (eq (caar body) 'declare))
+                (push (pop body) declarations))
+               ((and allow-docstring (not docstring)
+                     (stringp (car body)) (cdr body))
+                (setf docstring (pop body)))))
+    (values body declarations docstring)))
 
 (defun parse-extended-function (lambda-list body)
   "The lambda list is transformed as follows:
@@ -105,12 +136,12 @@ of (declare ...) forms, and the remaining body."
               `(var ,rest
                     ((@ Array prototype slice call)
                      arguments ,(length effective-args))))))
-      (multiple-value-bind (docstring declarations executable-body)
+      (multiple-value-bind (fun-body declarations docstring)
           (parse-body body :allow-docstring t)
         (values effective-args
                 (append declarations
                         opt-forms key-forms (awhen rest-form (list it))
-                        executable-body)
+                        fun-body)
                 docstring)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -119,24 +150,27 @@ of (declare ...) forms, and the remaining body."
 (defun collapse-function-return-blocks (body)
   (append (butlast body)
           (let ((last (ps-macroexpand (car (last body)))))
-            (if (and (listp last) (eq 'block (car last))) ; no need for a block at the end of a function body
-                (progn (push (or (second last) 'nilBlock) *function-block-names*)
+            (if (and (listp last) (eq 'block (car last)))
+                ;; no need for a block at the end of a function body
+                (progn (push (or (second last) 'nilBlock)
+                             *function-block-names*)
                        (cddr last))
                 (list last)))))
 
 (defun compile-function-body (args body)
   (with-declaration-effects (body body)
-    (let* ((in-function-scope?                          t)
-           (*vars-needing-to-be-declared*              ())
-           (*used-up-names*                            ())
+    (let* ((in-function-scope?            t)
+           (*current-block-tag*           nil)
+           (*vars-needing-to-be-declared* ())
+           (*used-up-names*               ())
+           (returning-values?             nil)
+           (clear-multiple-values?        nil)
            (*enclosing-function-arguments*
             (append args *enclosing-function-arguments*))
            (*enclosing-lexicals*
             (set-difference *enclosing-lexicals* args))
            (collapsed-body
             (collapse-function-return-blocks body))
-           (suppress-values?
-            (find 'values (flatten body)))
            (*dynamic-return-tags*
             (append (mapcar (lambda (x) (cons x nil))
                             *function-block-names*)
@@ -154,10 +188,9 @@ of (declare ...) forms, and the remaining body."
             (compile-statement
              `(progn
                 ,@(mapcar
-                   (lambda (var)
-                     `(var ,var))
+                   (lambda (var) `(var ,var))
                    (remove-duplicates *vars-needing-to-be-declared*))))))
-      (when in-loop-scope? ;; this might be broken when it comes to let-renaming
+      (when in-loop-scope?
         (setf *loop-scope-lexicals-captured*
               (append (intersection (flatten body) *loop-scope-lexicals*)
                       *loop-scope-lexicals-captured*)))
@@ -208,7 +241,7 @@ of (declare ...) forms, and the remaining body."
     `(ps-js:lambda ,args1 ,body-block)))
 
 (defmacro local-functions (special-op &body bindings)
-  `(if (or in-function-scope? this-in-lambda-wrapped-form?)
+  `(if in-function-scope?
        (let* ((fn-renames (collect-function-names fn-defs))
               ,@bindings)
          `(,(if compile-expression? 'ps-js:|,| 'ps-js:block)

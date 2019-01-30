@@ -1,4 +1,42 @@
+;;; Copyright 2009-2013 Daniel Gackle
+;;; Copyright 2009-2012 Vladimir Sedach
+;;; Copyright 2012, 2015 Boris Smilga
+;;; Copyright 2018 Neil Lindquist
+
+;;; SPDX-License-Identifier: BSD-3-Clause
+
+;;; Redistribution and use in source and binary forms, with or
+;;; without modification, are permitted provided that the following
+;;; conditions are met:
+
+;;; 1. Redistributions of source code must retain the above copyright
+;;; notice, this list of conditions and the following disclaimer.
+
+;;; 2. Redistributions in binary form must reproduce the above
+;;; copyright notice, this list of conditions and the following
+;;; disclaimer in the documentation and/or other materials provided
+;;; with the distribution.
+
+;;; 3. Neither the name of the copyright holder nor the names of its
+;;; contributors may be used to endorse or promote products derived
+;;; from this software without specific prior written permission.
+
+;;; THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND
+;;; CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES,
+;;; INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+;;; MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+;;; DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS
+;;; BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+;;; EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
+;;; TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+;;; DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
+;;; ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+;;; OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+;;; OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+;;; POSSIBILITY OF SUCH DAMAGE.
+
 (in-package #:parenscript)
+(named-readtables:in-readtable :parenscript)
 
 ;;; bind and bind* - macros used for destructuring bindings in PS LOOP
 
@@ -64,9 +102,11 @@
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (defvar *loop-keywords*
     '(:named :for :repeat :with :while :until :initially :finally
-      :from :to :below :downto :above :by :in :across :on := :then
-      :when :unless :if :else :end :do :return
-      :sum :collect :append :count :minimize :maximize :map :of :into))
+      :from :downfrom :to :below :downto :above :by :in :across :on := :then
+      :when :unless :if :else :end :do :doing :return
+      :sum :summing :collect :collecting :append :appending :count :counting
+      :minimize :minimizing :maximize :maximizing :map :mapping
+      :of :into))
 
   (defun as-keyword (key)
     (cond ((not (symbolp key)) key)
@@ -126,24 +166,24 @@
 (defun maybe-hoist (expr state)
   (cond ((complex-js-expr? expr)
          (let ((var (ps-gensym)))
-           (push (list var expr) (prologue state))
+           (push (list 'setf var expr) (prologue state))
            var))
         (t expr)))
 
-(defun for-from (var state)
+(defun for-from (from-key var state)
   (unless (atom var)
     (err "an atom after FROM" var))
   (let ((start (eat state))
-        (op '+)
-        (test-op nil)
+        (op (loop-case from-key (:downfrom '-) (otherwise '+)))
+        (test-op (loop-case from-key (:downfrom '>=) (otherwise '<=)))
         (by nil)
         (end nil))
     (loop while (member (as-keyword (peek state)) '(:to :below :downto :above :by)) do
           (let ((term (eat state)))
             (if (eq (as-keyword term) :by)
                 (setf by (eat state))
-                (setf op (loop-case term ((:downto :above) '-) (otherwise '+))
-                      test-op (loop-case term (:to '<=) (:below '<) (:downto '>=) (:above '>))
+                (setf op (loop-case term ((:downto :above) '-) (otherwise op))
+                      test-op (loop-case term (:to test-op) (:below '<) (:downto '>=) (:above '>))
                       end (eat state)))))
     (let ((test (when test-op
                   (list test-op var (maybe-hoist end state)))))
@@ -198,7 +238,7 @@
   (let ((place (eat state))
         (term (eat state :atom)))
     (loop-case term
-          (:from (for-from place state))
+          ((:from :downfrom) (for-from term place state))
           (:= (for-= place state))
           ((:in :across) (for-in place state))
           (:on (for-on place state))
@@ -207,7 +247,7 @@
 
 (defun a-with-clause (state) ;; so named to avoid with-xxx macro convention
   (let ((place (eat state)))
-    (push (list place (eat state :if :=)) (prologue state))))
+    (push (list 'setf place (eat state :if :=)) (prologue state))))
 
 (defun accumulate (kind item var state)
   (when (null var)
@@ -216,25 +256,25 @@
     (unless (accum-var state)
       (setf (accum-var state)
             (ps-gensym (string (loop-case kind
-                                     (:minimize 'min)
-                                     (:maximize 'max)
+                                     ((:minimize :minimizing) 'min)
+                                     ((:maximize :maximizing) 'max)
                                      (t kind)))))
       (setf (accum-kind state) kind))
     (setf var (accum-var state)))
   (let ((initial (loop-case kind
-                       ((:sum :count) 0)
-                       ((:maximize :minimize) nil)
-                       ((:collect :append) '[])
-                       ((:map) '{}))))
-    (push (list var initial) (prologue state)))
+                       ((:sum :summing :count :counting) 0)
+                       ((:maximize :maximizing :minimize :minimizing) nil)
+                       ((:collect :collecting :append :appending) '[])
+                       ((:map :mapping) '{}))))
+    (push (list 'setf var initial) (prologue state)))
   (loop-case kind
-        (:sum `(incf ,var ,item))
-        (:count `(when ,item (incf ,var))) ;; note the JS semantics - neither 0 nor "" will count
-        (:minimize `(setf ,var (if (null ,var) ,item (min ,var ,item))))
-        (:maximize `(setf ,var (if (null ,var) ,item (max ,var ,item))))
-        (:collect `((@ ,var 'push) ,item))
-        (:append `(setf ,var (append ,var ,item)))
-        (:map (destructuring-bind (key val) item
+        ((:sum :summing)`(incf ,var ,item))
+        ((:count :counting)`(when ,item (incf ,var))) ;; note the JS semantics - neither 0 nor "" will count
+        ((:minimize :minimizing) `(setf ,var (if (null ,var) ,item (min ,var ,item))))
+        ((:maximize :maximizing) `(setf ,var (if (null ,var) ,item (max ,var ,item))))
+        ((:collect :collecting) `((@ ,var 'push) ,item))
+        ((:append :appending) `(setf ,var (append ,var ,item)))
+        ((:map :mapping) (destructuring-bind (key val) item
                 `(setf (getprop ,var ,key) ,val)))))
 
 (defun repeat-clause (state)
@@ -274,15 +314,16 @@
                        (otherwise test-form))
                     (progn ,@(reverse seqs))
                     (progn ,@(reverse alts))))))
-        ((:sum :collect :append :count :minimize :maximize)
+        ((:sum :summing :collect :collecting :append :appending :count :counting
+          :minimize :minimizing :maximize :maximizing)
          (accumulate term (eat state) (eat state :if :into) state))
-        (:map (let ((key (eat state)))
+        ((:map :mapping) (let ((key (eat state)))
                 (multiple-value-bind (val valp)
                     (eat state :if :to)
                   (unless valp
                     (error "MAP must be followed by a TO to specify value."))
                   (accumulate :map (list key val) (eat state :if :into) state))))
-        (:do (eat state :progn))
+        ((:do :doing) (eat state :progn))
         (:return `(return-from ,(name state) ,(eat state)))
         (otherwise (err "a PS-LOOP keyword" term))))
 
@@ -291,6 +332,7 @@
     (loop-case term
           (:named (setf (name state) (eat state :symbol)))
           (:with (a-with-clause state))
+          (:initially (push (eat state :progn) (prologue state)))
           (:for (for-clause state))
           (:repeat (repeat-clause state))
           (:while (while-clause state))
@@ -365,10 +407,14 @@
                                (t `((bind ,place ,expr ,@body)))))))
                body)))))
 
+(define-statement-operator loop-while (test &rest body)
+  `(ps-js:while ,(compile-expression test)
+     ,(compile-loop-body () body)))
+
 (defun master-loop (master-iter body)
   (destructuring-bind (tag place init step test &optional js-obj) master-iter
     (assert (eq tag :iter))
-    (cond ((null place) `(while ,test ,@body))
+    (cond ((null place) `(loop-while ,test ,@body))
           (js-obj
            (assert (not (or init step test)) nil "Unexpected iteration state in for..in loop: ~a" master-iter)
            `(for-in (,place ,js-obj) ,@body))
@@ -380,7 +426,7 @@
     (assert (eq (car master) :iter) nil "First clause is not master loop: ~a" master)
     (let* ((firstvar (loop :for (tag nil init step) :in rest
                        :when (and (eq tag :iter) (not (tree-equal init step)))
-                       :do (return (ps-gensym "first"))))
+                       :do (return (ps-gensym 'FIRST))))
            (body (build-body rest firstvar)))
       (when firstvar
         (setf body (append body `((setf ,firstvar nil)))))
@@ -389,11 +435,15 @@
 
 (defun prologue-wrap (prologue body)
   (cond ((null prologue) body)
-        (t (destructuring-bind (place expr) (car prologue)
+        ((equal 'setf (caar prologue))
+           (destructuring-bind (place expr) (cdr (car prologue))
              (prologue-wrap
               (cdr prologue)
               (cond ((atom place) (cons `(var ,place ,expr) body))
-                    (t `((bind ,place ,expr ,@body)))))))))
+                    (t `((bind ,place ,expr ,@body)))))))
+        (t (prologue-wrap
+             (cdr prologue)
+             (cons (car prologue) body)))))
 
 (defpsmacro loop (&rest keywords-and-forms)
   (let ((state (parse-ps-loop keywords-and-forms)))
@@ -403,5 +453,5 @@
                     ,@(awhen (accum-var state) (list it))))
            (full `(block ,(name state) ,@(prologue-wrap (prologue state) main))))
       (if (accum-var state)
-          (lambda-wrap full)
+          (with-lambda-scope full)
           full))))

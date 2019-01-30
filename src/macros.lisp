@@ -1,3 +1,42 @@
+;;; Copyright 2005 Manuel Odendahl
+;;; Copyright 2005-2006 Edward Marco Baringer
+;;; Copyright 2006 Luca Capello
+;;; Copyright 2010-2012 Vladimir Sedach
+;;; Copyright 2010-2013 Daniel Gackle
+;;; Copyright 2012, 2014 Boris Smilga
+
+;;; SPDX-License-Identifier: BSD-3-Clause
+
+;;; Redistribution and use in source and binary forms, with or
+;;; without modification, are permitted provided that the following
+;;; conditions are met:
+
+;;; 1. Redistributions of source code must retain the above copyright
+;;; notice, this list of conditions and the following disclaimer.
+
+;;; 2. Redistributions in binary form must reproduce the above
+;;; copyright notice, this list of conditions and the following
+;;; disclaimer in the documentation and/or other materials provided
+;;; with the distribution.
+
+;;; 3. Neither the name of the copyright holder nor the names of its
+;;; contributors may be used to endorse or promote products derived
+;;; from this software without specific prior written permission.
+
+;;; THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND
+;;; CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES,
+;;; INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+;;; MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+;;; DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS
+;;; BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+;;; EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
+;;; TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+;;; DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
+;;; ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+;;; OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+;;; OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+;;; POSSIBILITY OF SUCH DAMAGE.
+
 (in-package #:parenscript)
 (in-readtable :parenscript)
 
@@ -69,12 +108,12 @@
           (and (numberp base) (= base 10) `(* (log ,n) (@ *math *log10e*)))
           `(/ (log ,n) (log ,base))))
     (sqrt (n) `((@ *math sqrt) ,n))
-    (random (&optional arg) (if arg
-                                (maybe-once-only (arg)
-                                  `(if (< (abs ,arg) 1)
-                                       (* ,arg (funcall (@ *math random)))
-                                       (floor (* ,arg (funcall (@ *math random))))))
-				'(funcall (@ *math random)))))
+    (random (&optional upto) (if upto
+                                 (maybe-once-only (upto)
+                                   `(if (rem ,upto 1)
+                                        (* ,upto (random))
+                                        (floor (* ,upto (random)))))
+                                 '(funcall (@ *math random)))))
 
 (defpsmacro ash (integer count)
   (let ((count (ps-macroexpand count)))
@@ -105,6 +144,15 @@
 
 (defpsmacro booleanp (x)
   `(string= (typeof ,x) "boolean"))
+
+(defpsmacro listp (x)
+  (if (js-target-at-least "1.8.5")
+      `(funcall (getprop Array 'is-array) ,x)
+      `(string= (funcall (getprop Object 'prototype 'to-string 'call) ,x)
+                "[object Array]")))
+
+(defpsmacro arrayp (x)
+  `(listp ,x))
 
 ;;; Data structures
 
@@ -152,13 +200,12 @@
 ;;; multiple values
 
 (defpsmacro multiple-value-bind (vars form &body body)
-  (let* ((form (ps-macroexpand form))
-         (progn-form
-          (when (and (consp form)
-                     (member
-                      (car form)
-                      '(with label let flet labels macrolet symbol-macrolet progn)))
-            (pop form))))
+  (let* ((form       (ps-macroexpand form))
+         (progn-form (when (and (consp form)
+                                (member (car form)
+                                        '(with label let flet labels
+                                          macrolet symbol-macrolet progn)))
+                       (pop form))))
     (if progn-form
         `(,progn-form
           ,@(butlast form)
@@ -166,55 +213,49 @@
               ,@(last form)
             ,@body))
         ;; assume function call
-        (with-ps-gensyms (prev-mv)
-          (let* ((fun-exp (car form))
-                 (funobj (if (symbolp fun-exp)
-                             fun-exp
-                             (ps-gensym "funobj"))))
-            `(let (,@(unless (symbolp fun-exp) `((,funobj ,fun-exp)))
-                   (,prev-mv (if (undefined __PS_MV_REG)
-                                 (setf __PS_MV_REG undefined)
-                                 __PS_MV_REG)))
-               (try
-                (let ((,(car vars) (,funobj ,@(cdr form))))
-                  (destructuring-bind (&optional ,@(cdr vars))
-                      (if (eql ,funobj (@ __PS_MV_REG :tag))
-                          (@ __PS_MV_REG :values)
-                          (list))
-                    ,@body))
-                (:finally (setf __PS_MV_REG ,prev-mv)))))))))
+        `(progn
+           (setf __PS_MV_REG '())
+           (let ((,(car vars) ,form))
+             (destructuring-bind (&optional ,@(cdr vars))
+                 __PS_MV_REG
+               ,@body))))))
+
+(defpsmacro multiple-value-list (form)
+  (with-ps-gensyms (first-value values-list)
+    `(let* ((,first-value (progn
+                            (setf __PS_MV_REG '())
+                            ,form))
+            (,values-list (funcall (getprop __PS_MV_REG 'slice))))
+       (funcall (getprop ,values-list 'unshift) ,first-value)
+       ,values-list)))
 
 ;;; conditionals
 
 (defpsmacro case (value &rest clauses)
-  (let ((allowed-symbols '(t otherwise false %true)))
-    (labels ((make-switch-clause (val body more)
-               (cond ((listp val)
-                      (append (mapcar #'list (butlast val))
-                              (make-switch-clause
-                               (if (eq t (car (last val))) ;; literal 'true'
-                                   '%true
-                                   (car (last val)))
-                               body
-                               more)))
-                     ((and (symbolp val)
-                           (symbolp (ps-macroexpand-1 val))
-                           (not (keywordp val))
-                           (not (member val allowed-symbols)))
-                      (error "Parenscript only supports keywords, numbers, and string literals as keys in case clauses. ~S is a symbol in clauses ~S"
-                             val clauses))
-                     (t
-                      `((,(case val
-                                ((t otherwise) 'default)
-                                (%true          t)
-                                (t              (ps-macroexpand-1 val)))
-                          ,@body
-                          ,@(when more '(break))))))))
-      `(switch ,value ,@(mapcon (lambda (clause)
-                                  (make-switch-clause (car (first clause))
-                                                      (cdr (first clause))
-                                                      (rest clause)))
-                                clauses)))))
+  (labels
+      ((make-switch-clause (val body more)
+         (if (consp val)
+             (append (mapcar #'list (butlast val))
+                     (make-switch-clause
+                      (if (eq t (car (last val))) ;; literal 'true'
+                          '%true
+                          (car (last val)))
+                      body
+                      more))
+             `((,(cond ((member val '(t otherwise)) 'default)
+                       ((eql val '%true)            t)
+                       ((eql val 'false)            'false)
+                       ((null val)                  'false)
+                       ((symbolp val)               (list 'quote val))
+                       (t                           val))
+                 ,@body
+                 ,@(when more '(break)))))))
+    `(switch ,value
+       ,@(mapcon (lambda (clause)
+                   (make-switch-clause (car (first clause))
+                                       (cdr (first clause))
+                                       (rest clause)))
+                 clauses))))
 
 (defpsmacro when (test &rest body)
   `(if ,test (progn ,@body)))
@@ -349,32 +390,34 @@ lambda-list::=
      ,@(when result? (list result))))
 
 (defpsmacro do (decls (end-test &optional (result nil result?)) &body body)
-  (multiple-value-bind (declarations executable-body) (parse-body body)
+  (multiple-value-bind (do-body declarations)
+      (parse-body body)
     `(block nil
        (let ,(do-make-iteration-bindings decls)
          ,@declarations
          (for () ((not ,end-test)) ()
-              ,@executable-body
+              ,@do-body
               ,(do-make-iter-psteps decls))
          ,@(when result? (list result))))))
 
 (defpsmacro dotimes ((var count &optional (result nil result?)) &rest body)
   `(do* ((,var 0 (1+ ,var)))
-        ((>= ,var ,count) ,@(when result? (list result)))
+        ((>= ,var ,count)
+         ,@(when result? `((let ((,var nil)) ,result))))
      ,@body))
 
 (defpsmacro dolist ((var array &optional (result nil result?)) &body body)
-  (let* ((idx (ps-gensym "_JS_IDX"))
+  (let* ((idx (ps-gensym '_js_idx))
          (introduce-array-var? (not (symbolp array)))
          (arrvar (if introduce-array-var?
-                     (ps-gensym "_JS_ARRVAR")
+                     (ps-gensym '_js_arrvar)
                      array)))
     `(do* (,var
            ,@(when introduce-array-var?
                    (list (list arrvar array)))
            (,idx 0 (1+ ,idx)))
           ((>= ,idx (getprop ,arrvar 'length))
-           ,@(when result? (list result)))
+           ,@(when result? `((let ((,var nil)) ,result))))
        (setq ,var (aref ,arrvar ,idx))
        ,@body)))
 
@@ -440,10 +483,10 @@ lambda-list::=
 
 (defpsmacro destructuring-bind (bindings expr &body body)
   (setf bindings (dot->rest bindings))
-  (multiple-value-bind (declarations executable-body) (parse-body body)
-    (let* ((arr (if (hoist-expr? bindings expr) (ps-gensym "_DB") expr))
+  (multiple-value-bind (body1 declarations) (parse-body body)
+    (let* ((arr (if (hoist-expr? bindings expr) (ps-gensym '_db) expr))
            (bound (destructuring-wrap arr 0 bindings declarations
-                                      (cons 'progn executable-body))))
+                                      (cons 'progn body1))))
       (cond ((eq arr expr) bound)
             (t `(let ((,arr ,expr)) ,bound))))))
 
@@ -463,9 +506,9 @@ lambda-list::=
 
 (defpsmacro prog1 (first &rest others)
   (with-ps-gensyms (val)
-    `(let ((,val ,first))
+    `(let ((,val (multiple-value-list ,first)))
        ,@others
-       ,val)))
+       (values-list ,val))))
 
 (defpsmacro prog2 (first second &rest others)
   `(progn ,first (prog1 ,second ,@others)))
@@ -487,10 +530,10 @@ lambda-list::=
 ;;; misc
 
 (defpsmacro let* (bindings &body body)
-  (multiple-value-bind (declarations executive-body) (parse-body body)
+  (multiple-value-bind (let-body declarations) (parse-body body)
     (loop for binding in (cons nil (reverse bindings))
           for var = (if (symbolp binding) binding (car binding))
-          for body = executive-body
+          for body = let-body
             then `((let (,binding)
                      (declare ,@(pop-declarations-for-var var declarations))
                      ,@body))

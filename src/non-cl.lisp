@@ -1,3 +1,41 @@
+;;; Copyright 2005 Manuel Odendahl
+;;; Copyright 2005-2006 Edward Marco Baringer
+;;; Copyright 2006 Luca Capello
+;;; Copyright 2010-2012 Vladimir Sedach
+;;; Copyright 2012, 2014, 2015 Boris Smilga
+
+;;; SPDX-License-Identifier: BSD-3-Clause
+
+;;; Redistribution and use in source and binary forms, with or
+;;; without modification, are permitted provided that the following
+;;; conditions are met:
+
+;;; 1. Redistributions of source code must retain the above copyright
+;;; notice, this list of conditions and the following disclaimer.
+
+;;; 2. Redistributions in binary form must reproduce the above
+;;; copyright notice, this list of conditions and the following
+;;; disclaimer in the documentation and/or other materials provided
+;;; with the distribution.
+
+;;; 3. Neither the name of the copyright holder nor the names of its
+;;; contributors may be used to endorse or promote products derived
+;;; from this software without specific prior written permission.
+
+;;; THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND
+;;; CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES,
+;;; INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+;;; MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+;;; DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS
+;;; BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+;;; EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
+;;; TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+;;; DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
+;;; ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+;;; OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+;;; OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+;;; POSSIBILITY OF SUCH DAMAGE.
+
 (in-package #:parenscript)
 (in-readtable :parenscript)
 
@@ -27,59 +65,55 @@
 
 (define-statement-operator switch (test-expr &rest clauses)
   `(ps-js:switch ,(compile-expression test-expr)
-     ,@(loop for (val . body) in clauses collect
-            (cons (if (eq val 'default)
-                      'ps-js:default
-                      (let ((in-case? t))
-                        (compile-expression val)))
-                  (mapcan (lambda (x)
-                            (let* ((in-case? t)
-                                   (exp      (compile-statement x)))
-                              (if (and (listp exp) (eq 'ps-js:block (car exp)))
-                                  (cdr exp)
-                                  (list exp))))
-                          body)))))
+     ,@(let ((in-case? t))
+         (loop for (val . body) in clauses collect
+              (cons (if (eq val 'default)
+                        'ps-js:default
+                        (compile-expression val))
+                    (flatten-blocks
+                     (mapcar #'compile-statement body)))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; objects
 
 (define-expression-operator create (&rest arrows)
-  `(ps-js:object
-    ,@(loop with allow-accessors = (vstring>= *js-target-version* "1.8.5")
-            for (key val-expr) on arrows by #'cddr
-            for (accessor . accessor-args) =
-              (when (and allow-accessors
-                         (consp key)
-                         (symbolp (first  key))
-                         (symbolp (second key)))
-                (case (first key)
-                  (get (and (null (third key))
-                            `((ps-js:get ,(second key)))))
-                  (set (and (symbolp (third key)) (null (fourth key))
-                            `((ps-js:set ,(second key)) ,(third key))))))
-            collecting
-              (if accessor
-                  (list accessor accessor-args
-                        (let ((*function-block-names* ()))
-                          (compile-function-body (third accessor)
-                                                 (list val-expr))))
-                  (cons (cond ((and (symbolp key) (reserved-symbol-p key))
-                               (reserved-symbol-p key))
-                              ((or (stringp key) (numberp key) (symbolp key))
-                               key)
-                              ((and (consp key)
-                                    (eq 'quote (first  key))
-                                    (symbolp   (second key))
-                                    (null      (third  key)))
-                               (symbol-to-js-string (second key)))
-                              (t
-                               (error "Slot key ~s is not one of ~
-                                       ~{~a~#[~;, or ~:;, ~]~}."
-                                      key
-                                      `("symbol" "string" "number"
-                                        ,@(when allow-accessors
-                                            '("accessor spec"))))))
-                        (compile-expression val-expr))))))
+  (let ((allow-accessors (js-target-at-least "1.8.5")))
+    (cons
+     'ps-js:object
+     (loop for (key val-expr) on arrows by #'cddr
+           for (accessor . accessor-args) =
+             (when (and allow-accessors
+                        (consp key)
+                        (symbolp (first  key))
+                        (symbolp (second key)))
+               (case (first key)
+                 (get (and (null (third key))
+                           `((ps-js:get ,(second key)))))
+                 (set (and (symbolp (third key)) (null (fourth key))
+                           `((ps-js:set ,(second key)) ,(third key))))))
+           collecting
+             (if accessor
+                 (list accessor accessor-args
+                       (let ((*function-block-names* ()))
+                         (compile-function-body (third accessor)
+                                                (list val-expr))))
+                 (cons (cond ((and (symbolp key) (reserved-symbol-p key))
+                              (reserved-symbol-p key))
+                             ((or (stringp key) (numberp key) (symbolp key))
+                              key)
+                             ((and (consp key)
+                                   (eq 'quote (first  key))
+                                   (symbolp   (second key))
+                                   (null      (third  key)))
+                              (symbol-to-js-string (second key)))
+                             (t
+                              (error "Slot key ~s is not one of ~
+                                      ~{~a~#[~;, or ~:;, ~]~}."
+                                     key
+                                     (list* "symbol" "string" "number"
+                                            (when allow-accessors
+                                              '("accessor spec"))))))
+                       (compile-expression val-expr)))))))
 
 (define-expression-operator %js-getprop (obj slot)
   (let ((expanded-slot (ps-macroexpand slot))
@@ -106,14 +140,16 @@
           ,@(cdr props))
       obj))
 
+(defun chain (method-calls)
+  (let ((chain (car method-calls)))
+    (dolist (next (cdr method-calls))
+      (setf chain (if (consp next)
+                      `(funcall (@ ,chain ,(car next)) ,@(cdr next))
+                      `(@ ,chain ,next))))
+    chain))
+
 (defpsmacro chain (&rest method-calls)
-  (labels ((do-chain (method-calls)
-             (if (cdr method-calls)
-                 (if (listp (car method-calls))
-                     `((@ ,(do-chain (cdr method-calls)) ,(caar method-calls)) ,@(cdar method-calls))
-                     `(@ ,(do-chain (cdr method-calls)) ,(car method-calls)))
-                 (car method-calls))))
-    (do-chain (reverse method-calls))))
+  (chain method-calls))
 
 ;;; var
 
@@ -147,13 +183,6 @@
                  ,(compile-expression object)
                  ,(compile-loop-body (list var) body)))
 
-(define-statement-operator while (test &rest body)
-  `(ps-js:while ,(compile-expression test)
-     ,(compile-loop-body () body)))
-
-(defmacro while (test &body body)
-  `(loop while ,test do (progn ,@body)))
-
 ;;; misc
 
 (define-statement-operator try (form &rest clauses)
@@ -180,9 +209,11 @@
   ;; dynamic environment only, analogous to eval.
   `(ps-js:escape
     (with-output-to-string (*psw-stream*)
-      (let ((compile-expression? ,compile-expression?)
-	    (*js-string-delimiter* ,*js-string-delimiter*))
-        (parenscript-print (ps-compile ,lisp-form) t)))))
+      (let ((compile-expression?   ,compile-expression?)
+	    (*js-string-delimiter* ,*js-string-delimiter*)
+            (eval-results          (multiple-value-list ,lisp-form)))
+        (when eval-results
+          (parenscript-print (ps-compile (car eval-results)) t))))))
 
 (defun lisp (x) x)
 
@@ -207,7 +238,7 @@
 (defpsmacro stringify (&rest things)
   (if (and (= (length things) 1) (stringp (car things)))
       (car things)
-      `((@ (list ,@things) join) "")))
+      `(funcall (getprop (list ,@things) 'join) "")))
 (defun stringify (&rest things)
   "Like concatenate but prints all of its arguments."
   (format nil "~{~A~}" things))

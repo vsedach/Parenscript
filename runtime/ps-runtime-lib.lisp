@@ -1,3 +1,5 @@
+;; SPDX-License-Identifier: BSD-3-Clause
+
 (in-package #:parenscript)
 
 ;;; Script of library functions you can include with your own code to
@@ -50,10 +52,12 @@
             (setf idx (1+ idx))))
         result))
 
-    (defun reduce (func list &optional init) ;; the use of init here is actually a bit broken wrt null
+    (defun reduce (func list &optional init)
       (let* ((acc))
-        (do* ((i (if init -1 0) (1+ i))
-              (acc (if init init (elt list 0)) (func acc (elt list i))))
+        (do* ((i (if (= (length arguments) 3) -1 0)
+                 (1+ i))
+              (acc (if (= (length arguments) 3) init (elt list 0))
+                   (func acc (elt list i))))
              ((>= i (1- (length list)))))
         acc))
 

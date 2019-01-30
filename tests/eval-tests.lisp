@@ -1,11 +1,43 @@
-;; Copying and distribution of this file, with or without
-;; modification, are permitted in any medium without royalty. This
-;; file is offered as-is, without any warranty.
+;;; Copyright 2011-2012 Vladimir Sedach
 
-(in-package #:ps-eval-tests)
+;;; SPDX-License-Identifier: BSD-3-Clause
+
+;;; Redistribution and use in source and binary forms, with or
+;;; without modification, are permitted provided that the following
+;;; conditions are met:
+
+;;; 1. Redistributions of source code must retain the above copyright
+;;; notice, this list of conditions and the following disclaimer.
+
+;;; 2. Redistributions in binary form must reproduce the above
+;;; copyright notice, this list of conditions and the following
+;;; disclaimer in the documentation and/or other materials provided
+;;; with the distribution.
+
+;;; 3. Neither the name of the copyright holder nor the names of its
+;;; contributors may be used to endorse or promote products derived
+;;; from this software without specific prior written permission.
+
+;;; THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND
+;;; CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES,
+;;; INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+;;; MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+;;; DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS
+;;; BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+;;; EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
+;;; TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+;;; DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
+;;; ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+;;; OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+;;; OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+;;; POSSIBILITY OF SUCH DAMAGE.
+
+(in-package #:parenscript.eval-tests)
 (named-readtables:in-readtable :parenscript)
 
-(in-suite ps-test::eval-tests)
+#+sbcl (declaim (sb-ext:muffle-conditions sb-ext:compiler-note))
+
+(fiveam:in-suite parenscript.tests::eval-tests)
 
 (test-js-eval number
   3
@@ -29,7 +61,7 @@
 
 (test-js-eval empty-array
   (array)
-  '())
+  #())
 
 (test-js-eval funargs-let1
   ((lambda (x)
@@ -318,7 +350,7 @@
 
 (test-js-eval values0
   ((lambda () (values)))
-  :null)
+  :undefined)
 
 (test-js-eval mv-return1
   (progn (defun foo ()
@@ -356,7 +388,7 @@
 (test-js-eval for-obj-place-in
   (loop :for (:a :b) :in (list (create :a 2 :b 3)
                                (create :a 4 :b 5))
-    :sum (+ a b))
+    :summing (+ a b))
   14)
 
 (test-js-eval for-arr-place-=
@@ -371,7 +403,7 @@
 
 (test-js-eval loop-until1
    (let ((x 0))
-     (loop :do (incf x) :until t)
+     (loop :doing (incf x) :until t)
      x)
    1)
 
@@ -400,6 +432,26 @@
    (loop :for i :from 0 :below 10 :by 3 :append (list i (* i 100)))
    '(0 0 3 300 6 600 9 900))
 
+(test-js-eval loop-appending
+   (loop :for i :from 0 :below 10 :by 3 :appending (list i (* i 100)))
+   '(0 0 3 300 6 600 9 900))
+
+(test-js-eval loop-maximize
+   (loop :for i :in (list 1 5 3 2) :maximize i)
+   5)
+
+(test-js-eval loop-maximizing
+   (loop :for i :in (list 1 5 3 7) :maximizing i)
+   7)
+
+(test-js-eval loop-minimize
+   (loop :for i :in (list 1 5 3 2) :minimize i)
+   1)
+
+(test-js-eval loop-minimizing
+   (loop :for i :in (list 3 5 3 2) :minimizing i)
+   2)
+
 (test-js-eval loop-for-on
    (loop :for (a b) :on '(10 20 30 40 50 60) :by 2 :collect (list b a))
    '((20 10) (40 30) (60 50)))
@@ -407,7 +459,7 @@
 (test-js-eval loop-parallel-clauses-with-return
    (loop :for i :from 0 :below 10 :for x = (* i 10)
      :when (> i 5) :do (return x)
-     :collect i)
+     :collecting i)
    60)
 
 (test-js-eval loop-extended-conditional-clauses
@@ -437,6 +489,16 @@
     (funcall (@ bar push) foo)
     bar)
   '(1 2 2 1 3 4 4 2 5 6 6 3 21))
+
+(test-js-eval for-loop-downfrom-to
+  (loop for i :downfrom 5 :to 0
+    collect i)
+  '(5 4 3 2 1 0))
+
+(test-js-eval for-loop-downfrom-above
+  (loop for i :downfrom 5 :above 0
+    collect i)
+  '(5 4 3 2 1))
 
 (test-js-eval loop-conditional-return-works
   (block nil
@@ -496,28 +558,20 @@
          (otherwise 7)))
   6)
 
+(test-js-eval case-clauses-false-nil
+  (* 2 (case (= 1 2)
+         (1 1)
+         ((nil) 3)
+         (2 5)
+         (otherwise 7)))
+  6)
+
 (test-js-eval case-clauses-true
   (* 2 (case (= 2 2)
          (1 1)
          ((t) 3)
          (otherwise 7)))
   6)
-
-;;; needs MV pass-through to work
-;; (test-js-eval multiple-value-call-twice
-;;   (progn
-;;     (defun foo (x &optional y z)
-;;       (if z
-;;           (values x y z)
-;;           (values x y)))
-
-;;     (defun bar ()
-;;       (foo 1 2 3)
-;;       (foo 4 5))
-
-;;     (multiple-value-bind (a b c) (bar)
-;;       (list a b c)))
-;;   '(4 5 :undefined))
 
 (test-js-eval recursive-values
   (progn
@@ -616,7 +670,20 @@
         (0 3)
         (x 7)
         (t 13))))
+  13)
+
+(test-js-eval case-symbol
+  (let ((blah 'x))
+    (case blah
+      (0 3)
+      (x 7)
+      (t 13)))
   7)
+
+(test-js-eval symbol-macro-funcall
+  (symbol-macrolet ((bar (getprop Math 'min)))
+    (funcall bar -1 2))
+  -1)
 
 (test-js-eval negative-mod
   (mod -12 7)
@@ -708,3 +775,318 @@
 (test-js-eval array-init-2
   (make-array 5 :initial-element 10)
   '(10 10 10 10 10))
+
+(test-js-eval dotimes-block-return
+  (1+ (dotimes (x 3) (if (= x 2) (return (+ x x)))))
+  5)
+
+(test-js-eval labels-factorial
+  (progn
+    (defun fac (n)
+      (labels ((f (n a)
+                 (if (< n 2)
+                     a
+                     (f (- n 1) (* n a)))))
+        (f n 1)))
+    (fac 5))
+  120)
+
+(test-js-eval destructuring-bind1
+  ((lambda (a)
+     (when a
+       (destructuring-bind (b . c)
+           a
+         (list b c))))
+   '(1 2 3))
+  '(1 (2 3)))
+
+(test-js-eval defun-not-a-docstring
+  (progn
+    (defun foo ()
+      "bar")
+    (foo))
+  "bar")
+
+(test-js-eval lambda-not-a-docstring
+  ((lambda () "bar"))
+  "bar")
+
+(test-js-eval loop-variable-capture1
+  (let ((x (make-array 10)))
+    (dotimes (i 10) (setf (aref x i) (lambda () i)))
+    (loop for x across x sum (funcall x)))
+  100)
+
+(test-js-eval loop-variable-capture2
+  (let ((x (make-array 10)))
+    (dotimes (i 10)
+      (let ((y i))
+        (setf (aref x i) (lambda () y))))
+    (loop for x across x sum (funcall x)))
+  45)
+
+(test-js-eval loop-variable-capture3
+  (let ((x (make-array 10)))
+    (dotimes (i 10)
+      (let ((i i))
+        (setf (aref x i) (lambda () i))))
+    (loop for x across x sum (funcall x)))
+  45)
+
+(test-js-eval loop-variable-capture4
+  (let ((x (make-array 10 :initial-element (lambda () 0))))
+    (dotimes (i 10)
+      (let ((i i))
+        (setf (aref x i) (lambda () i))
+        (when (= i 5) (return))))
+    (loop for x across x sum (funcall x)))
+  15)
+
+(test-js-eval loop-variable-capture5
+  (let ((A (make-array 10)))
+    (dotimes (i 10)
+      (flet ((foo (x) (+ i x)))
+        (setf (aref A i) (lambda () (foo i)))))
+    (loop for x across A sum (funcall x)))
+  200)
+
+(test-js-eval loop-variable-capture6
+  (labels ((make-cl (i) (lambda () (* i 10))))
+    (let ((closures (loop :for i :from 1 :to 3
+                       :collect (make-cl i))))
+      (loop :for fn :in closures :collect (funcall fn))))
+  '(10 20 30))
+
+(test-js-eval loop-variable-capture7
+  (let ((closures (loop :for i :from 1 :to 3
+                     :collect (let* ((j i)
+                                     (cl (lambda () (* j 10))))
+                                cl))))
+    (loop :for fn :in closures :collect (funcall fn)))
+  '(10 20 30))
+
+(test-js-eval nested-let
+  (let ((x (let ((y 94))
+             y)))
+    x)
+  94)
+
+(test-js-eval lambda-apply
+  ((lambda (x)
+     (apply (lambda (y) (1+ y))
+            x))
+   (list 6))
+  7)
+
+(test-js-eval subtract-associative
+  (list (- 1 2 3)
+        (- 1 (- 2 3)))
+  '(-4 2))
+
+(test-js-eval logand1
+  (let ((x 4583))
+    (setf x (logand x 947))
+    x)
+  419)
+
+(test-js-eval cons-cdr-clause-empty
+  ((lambda () (cond (923))))
+  923)
+
+(test-js-eval labels-return-from
+  (labels ((bar (x)
+             (when (evenp x)
+               (return-from bar "even"))
+             "odd"))
+    (bar 9))
+  "odd")
+
+(test-js-eval random-float-const
+  (< 0 (rem (random 123.456) 1) 1)
+  t)
+
+(test-js-eval random-int-const
+  (rem (random 234) 1)
+  0)
+
+(test-js-eval random-float-fun-once-only
+  (let ((x t))
+    (flet ((foo ()
+             (prog1 (if x
+                        123.123
+                        (throw "foobar"))
+               (setf x nil))))
+      (< 0 (rem (random (foo)) 1) 1)))
+  t)
+
+(test-js-eval let-setf-side-effects
+  (let ((x 10))
+    (defun side-effect()
+      (setf x 4)
+      3)
+    (setf x (+ 2 (side-effect) x 5)))
+  14)
+
+(test-js-eval dolist-result-bind-nil
+  (dolist (i '(1 2 3) (list i 9))
+    (list i))
+  '(nil 9))
+
+(test-js-eval dotimes-result-bind-nil
+  (dotimes (i '(1 2 3) (list 9 i))
+    (list i))
+  '(9 nil))
+
+(test-js-eval progn-of-block-closure
+  ((lambda ()
+     (progn
+       (block nil
+         ((lambda ()
+            ((lambda ()
+               (return 1)))
+            2))))))
+  1)
+
+(test-js-eval progn-of-block-closure1
+  ((lambda ()
+     (progn
+       (block X
+         ((lambda ()
+            ((lambda ()
+               (return-from X 1)))
+            2))))))
+  1)
+
+(test-js-eval progn-of-block-closure2
+  ((lambda ()
+     (1+
+       (block X
+         ((lambda ()
+            ((lambda ()
+               (return-from X 1)))
+            3))))))
+  2)
+
+(test-js-eval progn-of-block-closure3
+  ((lambda ()
+     (1+
+       (block nil
+         ((lambda ()
+            ((lambda ()
+               (return 1)))
+            3))))))
+  2)
+
+(test-js-eval block-closure-no-progn
+  ((lambda ()
+     (block nil
+       ((lambda ()
+          ((lambda ()
+             (return 1)))
+          2)))))
+  1)
+
+(test-js-eval function-clears-current-block-tag
+  ((lambda ()
+     (block X
+       ((lambda ()
+          ((lambda ()
+             (return-from X 1)))
+          2)))
+     5))
+  5)
+
+(test-js-eval defvar-dynamic-return
+  (progn
+    (defvar foo ((lambda ()
+                   (block nil
+                     ((lambda () (return 6)))
+                     (+ 1 2)))))
+    foo)
+  6)
+
+(test-js-eval defvar-dynamic-return1
+  (progn
+    (defvar foo ((lambda ()
+                   (block nil
+                     ((lambda () (return 6)))
+                     (+ 1 2))
+                   (+ 4 5))))
+    foo)
+  9)
+
+(test-js-eval defvar-dynamic-return-expression
+  (progn
+    (defvar foo ((lambda ()
+                   (+ 1 (block nil
+                          ((lambda () (return 6)))
+                          (+ 1 2))))))
+    foo)
+  7)
+
+(test-js-eval defun-when-if-return
+  (progn
+    (defun foobar ()
+      (when t
+        (loop if t return 10)))
+    (foobar))
+  10)
+
+(test-js-eval this-passthrough-generated-lambdas
+  (let ((obj (ps:create x 3)))
+    (setf (ps:getprop obj 'foo)
+          (lambda ()
+            (1+ (loop repeat 10 return (ps:getprop ps:this 'x)))))
+    (funcall (ps:getprop obj 'foo)))
+  4)
+
+(test-js-eval arrayp1
+  (arrayp '(1 2 3))
+  t
+  :js-target-version "1.3")
+
+(test-js-eval arrayp2
+  (arrayp '(1 2 3))
+  t
+  :js-target-version "1.8.5")
+
+(test-js-eval multiple-value-bind-values
+  (multiple-value-bind (x y)
+      (values 1 2)
+    y)
+  2)
+
+(test-js-eval multiple-value-passthrough
+  (progn
+    (defun foo ()
+      (values 1 2))
+    (defun bar ()
+      (foo))
+    (multiple-value-bind (x y)
+        (bar)
+      y))
+  2)
+
+(test-js-eval multiple-value-call-twice
+  (progn
+    (defun foo (x &optional y z)
+      (if z
+          (values x y z)
+          (values x y)))
+
+    (defun bar ()
+      (foo 1 2 3)
+      (foo 4 5))
+
+    (multiple-value-bind (a b c) (bar)
+      (list a b c)))
+  '(4 5 :undefined))
+
+(test-js-eval multiple-value-bind-nested
+  (multiple-value-bind (x y)
+      ((lambda ()
+         (multiple-value-bind (a b)
+             (values 1 2)
+           (values b a))))
+    (list x y))
+  '(2 1))

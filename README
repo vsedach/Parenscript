@@ -5,33 +5,52 @@ browser (as JavaScript) and server (as Common Lisp).
 Parenscript code is treated the same way as Common Lisp code, making
 the full power of Lisp macros available for JavaScript. This provides
 a web development environment that is unmatched in its ability to
-reduce code duplication and provide advanced metaprogramming
+reduce code duplication and provide advanced meta-programming
 facilities to web developers.
 
 At the same time, Parenscript is different from almost all other
 "language X" to JavaScript translators in that it imposes almost no
 overhead:
 
-No runtime dependencies:
-  Any piece of Parenscript code is runnable as-is. There are no
-  JavaScript files to include.
-Native types:
-  Parenscript works entirely with native JavaScript datatypes. There
-  are no new types introduced, and object prototypes are not
-  touched.
-Native calling convention:
-  Any JavaScript code can be called without the need for
-  bindings. Likewise, Parenscript can be used to make efficient,
-  self-contained JavaScript libraries.
-Readable code:
-  Parenscript generates concise, formatted, idiomatic JavaScript
-  code. Identifier names are preserved. This enables seamless
-  debugging in tools like Firebug.
-Efficiency:
-  Parenscript introduces minimal overhead for advanced Common Lisp
-  features. The generated code is almost as fast as hand-written
-  JavaScript.
+  No run-time dependencies:
+    Any piece of Parenscript code is runnable as-is. There are no
+    JavaScript files to include.
+  Native types:
+    Parenscript works entirely with native JavaScript data types. There
+    are no new types introduced, and object prototypes are not
+    touched.
+  Native calling convention:
+    Any JavaScript code can be called without the need for
+    bindings. Likewise, Parenscript can be used to make efficient,
+    self-contained JavaScript libraries.
+  Readable code:
+    Parenscript generates concise, formatted, idiomatic JavaScript
+    code. Identifier names are preserved. This enables seamless
+    use of JavaScript debuggers.
+  Efficiency:
+    Parenscript introduces minimal overhead for advanced Common Lisp
+    features. The generated code is almost as fast as hand-written
+    JavaScript.
 
-Web site:          http://common-lisp.net/project/parenscript/
-Source repository: https://github.com/vsedach/Parenscript
-License:           BSD (see COPYING file)
+Parenscript is available via Quicklisp:
+  (ql:quickload :parenscript)
+
+To run unit tests:
+  (ql:quickload :parenscript.tests)
+  (parenscript.tests:run-tests)
+
+Contributing:
+  Please send patches and bug reports to the mailing list:
+    parenscript-devel@common-lisp.net
+
+Documentation:
+  See docs/tutorial.html and docs/reference.html
+Mailing list:
+  parenscript-devel@common-lisp.net
+  https://mailman.common-lisp.net/listinfo/parenscript-devel
+Web site:
+  http://common-lisp.net/project/parenscript/
+Source repository:
+  https://gitlab.common-lisp.net/parenscript/parenscript.git
+License:
+  BSD-3-Clause, see the file COPYING
